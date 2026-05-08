@@ -83,6 +83,7 @@ function toGuardian(g: ApiGuardian): IGuardian {
 function toStudent(s: ApiStudentProfile): IStudentProfile {
   return {
     id: s.id,
+    userId: s.user.id,
     studentId: s.studentId,
     firstName: s.user.firstName,
     lastName: s.user.lastName,

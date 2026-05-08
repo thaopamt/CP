@@ -160,7 +160,8 @@ export interface IGuardian {
  * with demographics, denormalized KPIs, and guardian list.
  */
 export interface IStudentProfile {
-  id: string;                 // User ID (auth)
+  id: string;                 // StudentProfile ID
+  userId: string;             // User ID (auth)
   studentId: string;          // institutional code (e.g. "STU-2024-8901")
   firstName: string;
   lastName: string;

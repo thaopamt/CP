@@ -17,12 +17,29 @@ export class EnrollmentsService extends TypeOrmCrudService<Enrollment> {
 
   /** Idempotent enroll — throws on duplicate, otherwise creates and bumps the count. */
   async enroll(classId: string, studentId: string): Promise<Enrollment> {
-    const existing = await this.repo.findOne({ where: { classId, studentId } });
-    if (existing) throw new ConflictException('Student already enrolled in this class');
+    const existing = await this.repo.createQueryBuilder('e')
+      .withDeleted()
+      .where('e.classId = :classId', { classId })
+      .andWhere('e.studentId = :studentId', { studentId })
+      .getOne();
+    
+    if (existing) {
+      if (existing.deletedAt) {
+        // Soft-deleted -> restore it
+        await this.repo.restore(existing.id);
+        await this.classes.recountEnrollment(classId);
+        const reloaded = await this.repo.findOne({ where: { id: existing.id } });
+        return reloaded!;
+      }
+      throw new ConflictException('Student already enrolled in this class');
+    }
+
     const row = this.repo.create({ classId, studentId });
     const saved = await this.repo.save(row);
     await this.classes.recountEnrollment(classId);
-    return saved;
+    // Reload to ensure eager relations (like student) are populated for the response
+    const reloaded = await this.repo.findOne({ where: { id: saved.id } });
+    return reloaded!;
   }
 
   async drop(id: string): Promise<void> {

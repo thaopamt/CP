@@ -22,7 +22,10 @@ import {
   PaymentStatus,
 } from '@cp/shared';
 
-import { useClass, useEnrollmentsByClass } from '../../../api/class.queries';
+import { useClass, useEnrollmentsByClass, useEnrollStudent, useDropEnrollment } from '../../../api/class.queries';
+import { AssignStudentsModal } from './AssignStudentsModal';
+import { RemoveStudentModal } from './RemoveStudentModal';
+import { useToast } from '../../../providers/ToastProvider';
 
 type Tab = 'roster' | 'schedule' | 'activity';
 
@@ -33,12 +36,48 @@ export default function ClassDetailPage() {
 
   const classQuery = useClass(classId);
   const rosterQuery = useEnrollmentsByClass(classId);
+  const enrollStudent = useEnrollStudent();
+  const dropEnrollment = useDropEnrollment(classId ?? '');
 
   const [tab, setTab] = useState<Tab>('roster');
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [studentToRemove, setStudentToRemove] = useState<IClassEnrollment | null>(null);
+  const toast = useToast();
+
+  const handleAssignStudents = async (studentIds: string[]) => {
+    if (!classId) return;
+    setIsAssigning(true);
+    try {
+      await Promise.all(
+        studentIds.map((id) => enrollStudent.mutateAsync({ classId, studentId: id }))
+      );
+      setIsAssignModalOpen(false);
+      toast.success(t('pages.admin.classes.detail.assignModal.success', 'Students successfully assigned.'));
+    } catch (err: any) {
+      console.error('Failed to assign students:', err);
+      toast.error(err?.response?.data?.message || err.message || t('common.error', 'An error occurred'));
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!studentToRemove) return;
+    try {
+      await dropEnrollment.mutateAsync(studentToRemove.id);
+      setStudentToRemove(null);
+      toast.success(t('pages.admin.classes.detail.roster.removeSuccess', 'Student removed successfully.'));
+    } catch (err: any) {
+      console.error('Failed to remove student', err);
+      toast.error(err?.response?.data?.message || err.message || t('common.error', 'An error occurred'));
+    }
+  };
 
   const dayLabel = (d: DayOfWeek) => t(`enums.dayOfWeek.${d}`);
   const initials = (name: string) =>
     name.split(' ').slice(0, 2).map((p) => p[0]).join('').toUpperCase();
+  const formatTime = (timeStr?: string) => timeStr ? timeStr.split(':').slice(0, 2).join(':') : '';
 
   const cls = classQuery.data;
 
@@ -126,7 +165,31 @@ export default function ClassDetailPage() {
         </StatusBadge>
       ),
     },
-  ], [t]);
+    {
+      key: 'actions',
+      header: '',
+      cell: (row: IClassEnrollment) => (
+        <div className="flex justify-end">
+          <Button
+            variant="ghost"
+            className="text-error hover:bg-error-container/20 rounded-full w-8 h-8 p-0 flex items-center justify-center transition-colors"
+            title={t('pages.admin.classes.detail.roster.removeStudent', 'Remove Student')}
+            disabled={dropEnrollment.isPending && dropEnrollment.variables === row.id}
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation();
+              setStudentToRemove(row);
+            }}
+          >
+            {dropEnrollment.isPending && dropEnrollment.variables === row.id ? (
+              <Icon name="progress_activity" size={18} className="animate-spin text-error" />
+            ) : (
+              <Icon name="person_remove" size={18} className="text-on-surface-variant hover:text-error" />
+            )}
+          </Button>
+        </div>
+      ),
+    },
+  ], [t, dropEnrollment]);
 
   // Loading / error gate — AFTER all hooks
   if (classQuery.isLoading || !cls) {
@@ -212,9 +275,9 @@ export default function ClassDetailPage() {
           icon="event"
           iconColor="text-secondary"
           label={t('pages.admin.classes.detail.kpi.nextSession')}
-          value={nextSession ? `${dayLabel(nextSession.dayOfWeek)} · ${nextSession.startTime}` : '—'}
+          value={nextSession ? `${dayLabel(nextSession.dayOfWeek)} · ${formatTime(nextSession.startTime)}` : '—'}
           caption={t('pages.admin.classes.detail.kpi.nextSessionAt', {
-            when: nextSession ? `${dayLabel(nextSession.dayOfWeek)} ${nextSession.startTime}` : '—',
+            when: nextSession ? `${dayLabel(nextSession.dayOfWeek)} ${formatTime(nextSession.startTime)}` : '—',
             room: cls.room ?? '—',
           })}
           highlight
@@ -280,18 +343,30 @@ export default function ClassDetailPage() {
         </header>
 
         {tab === 'roster' && (
-          <DataTable
-            rows={roster}
-            columns={rosterColumns}
-            rowKey={(r) => r.id}
-            emptyState={
-              <span>
-                {rosterQuery.isLoading
-                  ? t('common.loading')
-                  : t('pages.admin.classes.detail.roster.empty')}
-              </span>
-            }
-          />
+          <div className="flex flex-col">
+            <div className="flex justify-end items-center p-md border-b border-outline-variant/30">
+              <Button
+                variant="admin"
+                size="sm"
+                leadingIcon={<Icon name="person_add" size={16} />}
+                onClick={() => setIsAssignModalOpen(true)}
+              >
+                {t('pages.admin.classes.detail.roster.addStudent', 'Add Student')}
+              </Button>
+            </div>
+            <DataTable
+              rows={roster}
+              columns={rosterColumns}
+              rowKey={(r) => r.id}
+              emptyState={
+                <span>
+                  {rosterQuery.isLoading
+                    ? t('common.loading')
+                    : t('pages.admin.classes.detail.roster.empty')}
+                </span>
+              }
+            />
+          </div>
         )}
 
         {tab === 'schedule' && (
@@ -314,7 +389,7 @@ export default function ClassDetailPage() {
                             className="rounded-md bg-primary-container/30 border-l-4 border-primary px-sm py-xs"
                           >
                             <div className="text-[12px] text-on-surface font-semibold">
-                              {s.startTime}–{s.endTime}
+                              {formatTime(s.startTime)}–{formatTime(s.endTime)}
                             </div>
                             <div className="text-[11px] text-on-surface-variant">{s.room ?? cls.room}</div>
                           </div>
@@ -340,6 +415,22 @@ export default function ClassDetailPage() {
           </div>
         )}
       </div>
+
+      <AssignStudentsModal
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        onAssign={handleAssignStudents}
+        isSubmitting={isAssigning}
+        enrolledStudentIds={roster.map(r => r.studentId)}
+      />
+
+      <RemoveStudentModal
+        isOpen={studentToRemove !== null}
+        onClose={() => setStudentToRemove(null)}
+        onConfirm={handleConfirmRemove}
+        student={studentToRemove}
+        isSubmitting={dropEnrollment.isPending}
+      />
     </div>
   );
 }

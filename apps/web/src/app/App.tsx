@@ -50,6 +50,8 @@ const StudentQuests = lazy(() => import('./pages/student/QuestsPage'));
 const StudentAssignments = lazy(() => import('./pages/student/AssignmentsPage'));
 const StudentWorkspace = lazy(() => import('./pages/student/WorkspacePage'));
 
+import { ToastProvider } from './providers/ToastProvider';
+
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
 });
@@ -65,6 +67,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
+          <ToastProvider />
           <Suspense fallback={<Loading />}>
             <Routes>
               {/* ── Public ───────────────────────────────────────────── */}
