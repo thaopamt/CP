@@ -12,6 +12,7 @@ export const API_PATHS = {
 
 export const STORAGE_KEYS = {
   authStore: 'cp.auth',
+  locale: 'cp.locale',
 } as const;
 
 /** Pagination defaults — also configured in the @dataui/crud global config. */

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EduPulse - Student Coding IDE</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Lexend:wght@500;600&amp;family=Manrope:wght@600;700;800&amp;family=Fira+Code:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline-variant": "#cbc4d2",
+                        "tertiary-container": "#c9a74d",
+                        "on-primary-fixed": "#22005d",
+                        "primary-fixed-dim": "#cfbcff",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-container": "#645a7d",
+                        "on-tertiary-container": "#503d00",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed": "#ffdf93",
+                        "on-secondary-fixed": "#1f1635",
+                        "tertiary": "#765b00",
+                        "surface-container-highest": "#e6e0e9",
+                        "inverse-surface": "#322f35",
+                        "on-surface-variant": "#494551",
+                        "error-container": "#ffdad6",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-on-surface": "#f5eff7",
+                        "inverse-primary": "#cfbcff",
+                        "surface-container-low": "#f8f2fa",
+                        "primary-container": "#6750a4",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed": "#241a00",
+                        "background": "#fdf7ff",
+                        "surface-bright": "#fdf7ff",
+                        "on-secondary-fixed-variant": "#4b4263",
+                        "on-surface": "#1d1b20",
+                        "on-primary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "surface-dim": "#ded8e0",
+                        "surface": "#fdf7ff",
+                        "surface-variant": "#e6e0e9",
+                        "secondary-container": "#e1d4fd",
+                        "surface-container-high": "#ece6ee",
+                        "surface-container": "#f2ecf4",
+                        "primary": "#4f378a",
+                        "tertiary-fixed-dim": "#e7c365",
+                        "on-background": "#1d1b20",
+                        "on-primary-fixed-variant": "#4f378a",
+                        "outline": "#7a7582",
+                        "on-secondary": "#ffffff",
+                        "secondary": "#63597c",
+                        "surface-tint": "#6750a4",
+                        "secondary-fixed-dim": "#cdc0e9",
+                        "on-primary-container": "#e0d2ff",
+                        "secondary-fixed": "#e9ddff",
+                        "primary-fixed": "#e9ddff",
+                        "on-tertiary-fixed-variant": "#594400"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xs": "4px",
+                        "3xl": "64px",
+                        "xl": "32px",
+                        "md": "16px",
+                        "sm": "8px",
+                        "lg": "24px",
+                        "2xl": "48px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["manrope"],
+                        "body-lg": ["inter"],
+                        "label-sm": ["lexend"],
+                        "body-md": ["inter"],
+                        "student-card-title": ["lexend"],
+                        "headline-md": ["manrope"],
+                        "display-xl": ["manrope"],
+                        "mono": ["'Fira Code'", "monospace"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "label-sm": ["14px", { "lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "student-card-title": ["20px", { "lineHeight": "1.2", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "display-xl": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .CodeMirror-lines {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Custom scrollbar for panels */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbc4d2;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #7a7582;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex flex-col overflow-hidden">
+<!-- TopAppBar -->
+<header class="bg-surface shadow-sm shadow-sm flex justify-between items-center w-full px-md md:px-lg h-16 z-40 shrink-0">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary text-[32px]">rocket_launch</span>
+<span class="text-headline-md font-headline-md font-bold text-primary">EduPulse</span>
+</div>
+<div class="flex items-center gap-md">
+<div class="hidden md:flex items-center bg-surface-container-low rounded-full px-4 py-2 border border-outline-variant transition-colors hover:border-outline focus-within:border-primary">
+<span class="material-symbols-outlined text-on-surface-variant mr-2">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-body-md font-body-md text-on-surface outline-none w-48 transition-all" placeholder="Search commands..." type="text"/>
+</div>
+<button class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors scale-95 active:scale-90 flex items-center justify-center">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 0;">notifications</span>
+</button>
+<button class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors scale-95 active:scale-90 flex items-center justify-center">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 0;">help_outline</span>
+</button>
+<button class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors scale-95 active:scale-90 flex items-center justify-center">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 0;">settings</span>
+</button>
+<button class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors scale-95 active:scale-90 flex items-center justify-center bg-secondary-container text-on-secondary-container ml-2">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">light_mode</span>
+</button>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-container ml-2 hover:border-primary transition-colors cursor-pointer">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A close-up portrait of a cheerful elementary student. Bright, vibrant lighting consistent with a playful learning application. Warm, inviting tones emphasizing accessibility and modern digital education aesthetics." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0yCYbuXP2M6-poORnJdL-lox022QbpLZP5-2exXtHbGWwzR7WTXaRLeY-AO54vScWuTnr2xVwEjCbjHL4TYN4OwjrQhPRHQ6qqyKn8SUKle-x0S0EH_PikMjwHtJAhZ460YxlmLOnlrwBWG15T-Pbe3lSWovHuMoCtotwOcCvx5WouhlKunYjC-WwBL9JgR57PfdFxTqwSK07gTR-sPFIjqQlKWeQ1xKXIvUJojFJdzeUyjgrtLHAWWEbLkti9USyg6yKBxMOOSI"/>
+</div>
+</div>
+</header>
+<!-- Main Workspace -->
+<main class="flex-1 flex flex-col md:flex-row overflow-hidden gap-1 p-sm pb-2xl md:pb-sm bg-surface-container-lowest">
+<!-- Left Panel: Problem Description -->
+<section class="flex flex-col w-full md:w-1/3 lg:w-1/4 bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden shadow-sm flex-shrink-0 transition-all duration-300 ease-in-out">
+<div class="bg-primary text-on-primary px-lg py-sm flex justify-between items-center shrink-0 border-b border-primary-container">
+<h2 class="text-student-card-title font-student-card-title flex items-center gap-2">
+<span class="material-symbols-outlined">menu_book</span>
+                Mission: Draw a Square
+            </h2>
+<div class="bg-tertiary-container text-on-tertiary-container text-label-sm font-label-sm px-3 py-1 rounded-full font-bold shadow-sm">
+                Quest 3 of 10
+            </div>
+</div>
+<div class="p-lg overflow-y-auto flex-1 text-body-md font-body-md text-on-surface space-y-md">
+<p class="leading-relaxed">Welcome, Commander! Today we need to draw a perfect square to power up the spaceship's shields.</p>
+<div class="bg-surface-container-low p-md rounded-xl border-l-4 border-primary shadow-sm">
+<h3 class="text-label-sm font-label-sm font-bold text-primary mb-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">assignment</span> Instructions:
+                </h3>
+<ul class="list-none space-y-2 text-on-surface">
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-primary text-[18px] mt-0.5">arrow_right</span>
+<span>Use the <code class="bg-primary-container/10 px-1.5 py-0.5 rounded text-primary font-mono font-medium text-sm">forward(distance)</code> command to move.</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-primary text-[18px] mt-0.5">arrow_right</span>
+<span>Use the <code class="bg-primary-container/10 px-1.5 py-0.5 rounded text-primary font-mono font-medium text-sm">right(angle)</code> command to turn.</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-primary text-[18px] mt-0.5">arrow_right</span>
+<span>A square has 4 equal sides and 4 equal angles (90 degrees).</span>
+</li>
+</ul>
+</div>
+<div class="bg-secondary-container/30 p-md rounded-xl border border-secondary-container">
+<h3 class="text-label-sm font-label-sm font-bold text-secondary mb-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">lightbulb</span> Hint
+                </h3>
+<p class="text-sm text-on-surface-variant leading-relaxed">You can use a loop instead of writing the same commands four times!</p>
+</div>
+<div class="mt-lg">
+<h3 class="text-student-card-title font-student-card-title mb-sm text-on-surface">Expected Result:</h3>
+<div class="bg-white border-2 border-dashed border-outline-variant rounded-xl h-48 flex items-center justify-center relative overflow-hidden shadow-inner">
+<!-- Simulated target visual -->
+<div class="w-24 h-24 border-4 border-tertiary rounded-sm opacity-50 absolute"></div>
+<span class="material-symbols-outlined text-tertiary text-opacity-50 absolute bottom-12 left-12 text-[24px]">rocket</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Vertical Drag Handle -->
+<div class="hidden md:flex flex-col justify-center items-center w-2 cursor-col-resize hover:bg-outline-variant/30 rounded-full transition-colors group z-10 mx-1">
+<div class="w-1 h-12 bg-outline-variant/40 rounded-full group-hover:bg-primary transition-colors"></div>
+</div>
+<!-- Right Panel: Editor & Console -->
+<section class="flex flex-col w-full md:w-2/3 lg:w-3/4 flex-shrink-0 transition-all duration-300 ease-in-out">
+<!-- Top Panel: Code Editor -->
+<div class="flex-1 flex flex-col bg-[#1e1e1e] rounded-xl overflow-hidden shadow-md relative border border-outline-variant/20">
+<div class="bg-[#2d2d2d] text-[#d4d4d4] px-4 py-2 flex justify-between items-center text-label-sm font-label-sm border-b border-[#404040]">
+<div class="flex gap-2 items-center">
+<span class="material-symbols-outlined text-[18px] text-primary-fixed-dim">code</span>
+<span class="text-primary-fixed-dim font-bold tracking-wide">main.py</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="bg-[#4caf50] hover:bg-[#45a049] text-white px-4 py-1.5 rounded-full flex items-center gap-2 transition-all duration-200 active:scale-95 shadow-[0_2px_0_#2e7d32] font-semibold tracking-wide">
+<span class="material-symbols-outlined text-[20px]">play_arrow</span>
+                        Run Code
+                    </button>
+</div>
+</div>
+<!-- Simulated Editor Area -->
+<div class="flex-1 flex overflow-auto text-[15px] font-mono leading-relaxed p-4" style="font-family: 'Fira Code', monospace;">
+<!-- Line Numbers -->
+<div class="text-[#858585] text-right pr-4 select-none flex flex-col opacity-60">
+<span>1</span>
+<span>2</span>
+<span>3</span>
+<span>4</span>
+<span>5</span>
+<span>6</span>
+<span>7</span>
+<span>8</span>
+<span>9</span>
+<span>10</span>
+</div>
+<!-- Code Content -->
+<div class="text-[#d4d4d4] flex-1 whitespace-pre">
+<span class="text-[#569cd6]">import</span> turtle
+
+<span class="text-[#6a9955]"># Set up our rocket ship</span>
+t = turtle.Turtle()
+t.shape(<span class="text-[#ce9178]">'turtle'</span>)
+t.color(<span class="text-[#ce9178]">'green'</span>)
+
+<span class="text-[#6a9955]"># Write your code below to draw a square!</span>
+<span class="text-[#569cd6]">for</span> i <span class="text-[#569cd6]">in</span> <span class="text-[#dcdcaa]">range</span>(<span class="text-[#b5cea8]">4</span>):
+    t.forward(<span class="text-[#b5cea8]">100</span>)
+    t.right(<span class="text-[#b5cea8]">90</span>)
+                </div>
+</div>
+<!-- Playful visual output overlay for students -->
+<div class="absolute bottom-4 right-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-2 text-white flex items-center gap-2 text-label-sm font-label-sm cursor-pointer hover:bg-white/20 transition-all duration-200 shadow-lg group">
+<span class="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">visibility</span> Show Visual Output
+            </div>
+</div>
+<!-- Horizontal Drag Handle -->
+<div class="flex justify-center items-center h-2 cursor-row-resize hover:bg-outline-variant/30 rounded-full transition-colors group z-10 my-1">
+<div class="h-1 w-12 bg-outline-variant/40 rounded-full group-hover:bg-primary transition-colors"></div>
+</div>
+<!-- Bottom Panel: Console & Tests -->
+<div class="h-64 flex flex-col lg:flex-row bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm shrink-0 transition-all duration-300 ease-in-out">
+<!-- Terminal Output -->
+<div class="flex-1 flex flex-col lg:border-r border-outline-variant border-b lg:border-b-0">
+<div class="bg-surface-container text-on-surface-variant px-md py-2 text-label-sm font-label-sm font-bold border-b border-outline-variant flex items-center gap-2 justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">terminal</span> Console
+                    </div>
+<button class="text-on-surface-variant hover:text-on-surface transition-colors p-1 rounded-full hover:bg-surface-variant">
+<span class="material-symbols-outlined text-[20px]">keyboard_arrow_down</span>
+</button>
+</div>
+<div class="p-4 text-sm font-mono text-on-surface bg-[#1e1e1e] flex-1 overflow-y-auto leading-relaxed selection:bg-primary/30">
+<span class="text-[#9cdcfe] font-medium">&gt; Python 3.10.4 initialized.</span><br/>
+<span class="text-[#9cdcfe] font-medium">&gt; Running main.py...</span><br/>
+<span class="text-[#d4d4d4]">Turtle moved forward 100 units.</span><br/>
+<span class="text-[#d4d4d4]">Turtle turned right 90 degrees.</span><br/>
+<span class="text-[#d4d4d4]">Turtle moved forward 100 units.</span><br/>
+<span class="text-[#d4d4d4]">Turtle turned right 90 degrees.</span><br/>
+<span class="text-[#4caf50] font-medium mt-1 inline-block">&gt; Program finished successfully.</span>
+</div>
+</div>
+<!-- Test Cases -->
+<div class="flex-1 flex flex-col bg-surface-container-lowest">
+<div class="bg-surface-container text-on-surface-variant px-md py-2 text-label-sm font-label-sm font-bold border-b border-outline-variant flex items-center gap-2 justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">fact_check</span> Test Results
+                    </div>
+<span class="bg-[#4caf50]/20 text-[#2e7d32] px-3 py-0.5 rounded-full text-xs font-bold border border-[#4caf50]/30 shadow-sm">2/2 Passed</span>
+</div>
+<div class="p-md flex flex-col gap-3 overflow-y-auto flex-1">
+<!-- Pass -->
+<div class="flex items-start gap-3 bg-[#4caf50]/10 p-3 rounded-xl border border-[#4caf50]/30 transition-all hover:shadow-sm">
+<span class="material-symbols-outlined text-[#4caf50] text-[24px] shrink-0">check_circle</span>
+<div>
+<div class="text-label-sm font-label-sm text-on-surface font-bold">Has 4 sides</div>
+<div class="text-sm text-on-surface-variant mt-0.5">Robot moved forward 4 times.</div>
+</div>
+</div>
+<!-- Pass -->
+<div class="flex items-start gap-3 bg-[#4caf50]/10 p-3 rounded-xl border border-[#4caf50]/30 transition-all hover:shadow-sm">
+<span class="material-symbols-outlined text-[#4caf50] text-[24px] shrink-0">check_circle</span>
+<div>
+<div class="text-label-sm font-label-sm text-on-surface font-bold">Turns 90 degrees</div>
+<div class="text-sm text-on-surface-variant mt-0.5">Robot turned right by 90 degrees 4 times.</div>
+</div>
+</div>
+</div>
+<div class="p-md bg-surface-container border-t border-outline-variant shrink-0">
+<button class="w-full bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container font-student-card-title text-student-card-title py-3 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 active:scale-95 shadow-[0_4px_0_#381e72] hover:shadow-[0_2px_0_#381e72] hover:translate-y-[2px] relative overflow-hidden group">
+<div class="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out"></div>
+<span class="material-symbols-outlined text-[24px]">stars</span>
+                        Submit Mission
+                    </button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden bg-surface/90 backdrop-blur-md border-t border-outline-variant shadow-[0_-4px_12px_rgba(0,0,0,0.05)] fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-sm pb-safe pt-xs rounded-t-xl h-16 transition-all">
+<a class="flex flex-col items-center justify-center text-on-surface-variant active:scale-95 transition-transform w-16" href="#">
+<span class="material-symbols-outlined mb-1 text-[24px]">home</span>
+<span class="text-[10px] font-label-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-tertiary-container text-on-tertiary-container rounded-full px-5 py-1.5 active:scale-95 transition-transform scale-110 shadow-sm" href="#">
+<span class="material-symbols-outlined mb-1 text-[24px]" style="font-variation-settings: 'FILL' 1;">rocket_launch</span>
+<span class="text-[10px] font-label-sm font-bold">Quests</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant active:scale-95 transition-transform w-16" href="#">
+<span class="material-symbols-outlined mb-1 text-[24px]">leaderboard</span>
+<span class="text-[10px] font-label-sm">Progress</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant active:scale-95 transition-transform w-16" href="#">
+<span class="material-symbols-outlined mb-1 text-[24px]">mail</span>
+<span class="text-[10px] font-label-sm">Inbox</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant active:scale-95 transition-transform w-16" href="#">
+<span class="material-symbols-outlined mb-1 text-[24px]">person</span>
+<span class="text-[10px] font-label-sm">Me</span>
+</a>
+</nav>
+</body></html>

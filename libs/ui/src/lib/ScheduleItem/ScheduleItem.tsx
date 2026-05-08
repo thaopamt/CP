@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { cn } from '../cn';
 
 type Status = 'past' | 'now' | 'upcoming' | 'planning';
@@ -28,6 +29,7 @@ const STATUS_BG: Record<Status, string> = {
  * One row in the Teacher Dashboard schedule widget.
  */
 export function ScheduleItem({ time, duration, title, subtitle, status = 'upcoming' }: ScheduleItemProps) {
+  const { t } = useTranslation();
   return (
     <div
       className={cn(
@@ -45,7 +47,7 @@ export function ScheduleItem({ time, duration, title, subtitle, status = 'upcomi
           <h4 className="text-body-md font-semibold text-on-surface truncate">{title}</h4>
           {status === 'now' && (
             <span className="text-[10px] uppercase font-bold tracking-wider px-sm py-xs rounded-full bg-surface text-primary border border-primary/40">
-              Now
+              {t('ui.schedule.now')}
             </span>
           )}
         </div>

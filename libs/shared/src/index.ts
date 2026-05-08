@@ -2,3 +2,7 @@ export * from './lib/user-role.enum';
 export * from './lib/user.interface';
 export * from './lib/auth.types';
 export * from './lib/constants';
+export * from './lib/admin.types';
+export * from './lib/teacher.types';
+export * from './lib/student.types';
+export * from './lib/class.types';

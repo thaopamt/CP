@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EduPulse - Student Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Lexend:wght@500;600&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary-fixed-dim": "#e7c365",
+                      "surface-container-low": "#f8f2fa",
+                      "tertiary": "#765b00",
+                      "on-tertiary-fixed": "#241a00",
+                      "on-tertiary-fixed-variant": "#594400",
+                      "tertiary-fixed": "#ffdf93",
+                      "inverse-surface": "#322f35",
+                      "surface-bright": "#fdf7ff",
+                      "on-tertiary-container": "#503d00",
+                      "surface-dim": "#ded8e0",
+                      "primary": "#4f378a",
+                      "surface": "#fdf7ff",
+                      "error-container": "#ffdad6",
+                      "on-primary-fixed-variant": "#4f378a",
+                      "on-tertiary": "#ffffff",
+                      "primary-fixed-dim": "#cfbcff",
+                      "surface-container": "#f2ecf4",
+                      "primary-container": "#6750a4",
+                      "on-error": "#ffffff",
+                      "on-primary": "#ffffff",
+                      "on-secondary-container": "#645a7d",
+                      "on-primary-container": "#e0d2ff",
+                      "tertiary-container": "#c9a74d",
+                      "surface-tint": "#6750a4",
+                      "secondary": "#63597c",
+                      "primary-fixed": "#e9ddff",
+                      "on-secondary-fixed": "#1f1635",
+                      "on-secondary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "on-primary-fixed": "#22005d",
+                      "outline-variant": "#cbc4d2",
+                      "secondary-fixed": "#e9ddff",
+                      "on-secondary-fixed-variant": "#4b4263",
+                      "inverse-primary": "#cfbcff",
+                      "surface-container-highest": "#e6e0e9",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-variant": "#e6e0e9",
+                      "outline": "#7a7582",
+                      "background": "#fdf7ff",
+                      "on-surface-variant": "#494551",
+                      "inverse-on-surface": "#f5eff7",
+                      "on-background": "#1d1b20",
+                      "secondary-fixed-dim": "#cdc0e9",
+                      "surface-container-high": "#ece6ee",
+                      "on-surface": "#1d1b20",
+                      "error": "#ba1a1a",
+                      "secondary-container": "#e1d4fd"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px",
+                      "2xl": "1rem",
+                      "3xl": "1.5rem"
+              },
+              "spacing": {
+                      "xl": "32px",
+                      "sm": "8px",
+                      "xs": "4px",
+                      "lg": "24px",
+                      "md": "16px",
+                      "3xl": "64px",
+                      "2xl": "48px",
+                      "safe": "env(safe-area-inset-bottom)"
+              },
+              "fontFamily": {
+                      "headline-lg": ["manrope"],
+                      "student-card-title": ["lexend"],
+                      "body-md": ["inter"],
+                      "body-lg": ["inter"],
+                      "display-xl": ["manrope"],
+                      "headline-md": ["manrope"],
+                      "label-sm": ["lexend"]
+              },
+              "fontSize": {
+                      "headline-lg": ["32px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                      "student-card-title": ["20px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                      "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                      "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                      "display-xl": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                      "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                      "label-sm": ["14px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}]
+              }
+            }
+          }
+        }
+      </script>
+<style>
+        .glass-panel {
+            background: rgba(253, 247, 255, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+      </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased pb-2xl md:pb-0 pt-16">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full flex justify-between items-center px-md md:px-lg h-16 z-40 bg-surface dark:bg-inverse-surface shadow-sm dark:shadow-none">
+<div class="flex items-center gap-sm">
+<span class="text-headline-md font-headline-md font-bold text-primary dark:text-primary-fixed-dim">EduPulse</span>
+</div>
+<!-- Search (on_right) -->
+<div class="hidden md:flex flex-1 max-w-md mx-md">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" style="font-variation-settings: 'FILL' 0;">search</span>
+<input class="w-full bg-surface-container-high rounded-full py-2 pl-10 pr-4 text-body-md font-body-md border-none focus:ring-2 focus:ring-primary focus:outline-none" placeholder="Search..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-sm">
+<!-- Trailing Icons -->
+<button class="p-2 rounded-full text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">notifications</span>
+</button>
+<button class="p-2 rounded-full text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">help_outline</span>
+</button>
+<button class="p-2 rounded-full text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors scale-95 active:scale-90 transition-transform hidden md:block">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+</button>
+<!-- Profile Image -->
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container-highest ml-sm border border-outline-variant cursor-pointer scale-95 active:scale-90 transition-transform">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A close up portrait of a smiling young student in a brightly lit modern classroom setting. The lighting is soft and flattering, highlighting their cheerful expression. The background is a slightly blurred, colorful educational environment with soft vibrant accents fitting a light-mode UI aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGXnq9ckZ9mp0X9YfSku4VKPavFA16ZNgFQpbKuVgeHAKIMKnny-3JKFA9kLpzQv13GmQwTglib8CzyYOZCACNh7buIe1pLOpAqBSuM8ujMehMZIjy0UR4AxGt5yhnNKrZFjGVD_sZVE-ItoUGomV5axrAPrIuADW9lAhpVsx1tOIF6_gC3TaTJ0kcl7ajlJMZ_92KCy-oHgm-URMINFhJ8C7GZ-i4qhdX-3MV5tzrXMi_pFxtRztcc4KAngbZRm9Z28Bd_SVp6N4"/>
+</div>
+</div>
+</header>
+<div class="flex">
+<!-- SideNav (Web Only) -->
+<nav class="hidden md:flex flex-col w-[240px] lg:w-[280px] h-[calc(100vh-64px)] fixed top-16 left-0 p-md gap-sm bg-surface-container-low dark:bg-surface-dim border-r border-outline-variant dark:border-outline z-30">
+<!-- Nav Items (Mapped from BottomNav labels logically for web) -->
+<a class="flex items-center gap-md px-4 py-3 bg-primary-container text-on-primary-container dark:bg-primary dark:text-on-primary rounded-lg font-bold" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="text-label-sm font-label-sm">Home</span>
+</a>
+<a class="flex items-center gap-md px-4 py-3 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-highest rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">rocket_launch</span>
+<span class="text-label-sm font-label-sm">Quests</span>
+</a>
+<a class="flex items-center gap-md px-4 py-3 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-highest rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">leaderboard</span>
+<span class="text-label-sm font-label-sm">Progress</span>
+</a>
+<a class="flex items-center gap-md px-4 py-3 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-highest rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">mail</span>
+<span class="text-label-sm font-label-sm">Inbox</span>
+</a>
+<a class="flex items-center gap-md px-4 py-3 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-highest rounded-lg transition-all mt-auto" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">person</span>
+<span class="text-label-sm font-label-sm">Me</span>
+</a>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 w-full md:ml-[240px] lg:ml-[280px] p-md lg:p-lg pt-lg">
+<div class="max-w-6xl mx-auto space-y-xl">
+<!-- Welcome & Hero Section -->
+<section class="relative rounded-3xl overflow-hidden bg-gradient-to-br from-primary-container via-surface-tint to-secondary p-xl text-on-primary shadow-lg">
+<!-- Abstract Background Decorative Elements -->
+<div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full mix-blend-overlay blur-2xl -translate-y-1/2 translate-x-1/4"></div>
+<div class="absolute bottom-0 left-10 w-48 h-48 bg-tertiary-container/20 rounded-full mix-blend-overlay blur-xl translate-y-1/3"></div>
+<div class="relative z-10 flex flex-col md:flex-row items-center gap-lg">
+<div class="flex-1 space-y-sm">
+<h1 class="text-headline-lg font-headline-lg">Welcome back, Alex! 👋</h1>
+<p class="text-body-lg font-body-lg text-primary-fixed opacity-90">You're on a 3-day learning streak. Keep it up!</p>
+<!-- Level Progress -->
+<div class="mt-md bg-surface/20 rounded-2xl p-md backdrop-blur-sm border border-white/10">
+<div class="flex justify-between items-center mb-xs">
+<span class="text-label-sm font-label-sm font-bold tracking-wider uppercase">Level 12 Explorer</span>
+<span class="text-label-sm font-label-sm font-bold">450 / 500 XP</span>
+</div>
+<div class="w-full bg-surface-container-highest/30 rounded-full h-4 overflow-hidden shadow-inner border border-white/5">
+<div class="bg-tertiary-fixed h-full rounded-full w-[90%] relative">
+<div class="absolute inset-0 bg-gradient-to-r from-transparent to-white/30 rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Mascot / Avatar Display -->
+<div class="w-32 h-32 md:w-48 md:h-48 relative shrink-0">
+<div class="absolute inset-0 bg-tertiary-fixed/30 rounded-full blur-xl animate-pulse"></div>
+<img alt="3D cute robot mascot" class="relative z-10 w-full h-full object-contain drop-shadow-2xl" data-alt="A highly detailed 3D render of a cute, friendly robot mascot character. The robot has large, expressive glowing eyes and is painted in bright, vibrant colors matching a playful learning app aesthetic. It is rendered against a transparent or solid light background with soft, studio-quality lighting to create a premium, tactile feel." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMzJRLmwx3QQ2mtvOLtMbwkQoI3h7wDtzbZUBwKym2Vs9bkfS03hOTOjwKl3_kcci3GbdRTcw_dUULjPaiHJVL3OkIXZm7Ui5TmZJQcRP1RtEE3TClTnTiDYeDmtqnU09Ja4XxB-7i2xxwgF3cW5WN99b0EoAE_450weKZOSMgKtjh1QpPVfzqXYvZygZ-zdkbzVSOW8fc_XgFklIzLLp9vR1zwMhJfR0TsH6tl3GbNYMuUDzhnJHDPFvIcn0iMylR7oyBSWZhz0Y"/>
+<!-- Badge Badge -->
+<div class="absolute -bottom-2 -right-2 bg-tertiary text-on-tertiary w-12 h-12 rounded-full flex items-center justify-center shadow-lg border-2 border-surface z-20">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Quests Grid (Bento Style) -->
+<section>
+<div class="flex justify-between items-end mb-md">
+<h2 class="text-headline-md font-headline-md text-on-surface">My Quests 🚀</h2>
+<a class="text-label-sm font-label-sm text-primary font-bold hover:underline" href="#">View All</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md">
+<!-- Math Quest Card (In Progress) -->
+<div class="bg-surface-container-lowest rounded-3xl p-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-surface-container-high flex flex-col relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full -z-0"></div>
+<div class="flex justify-between items-start mb-md relative z-10">
+<div class="w-12 h-12 rounded-2xl bg-primary-container text-on-primary-container flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">calculate</span>
+</div>
+<span class="px-3 py-1 rounded-full bg-tertiary-container text-on-tertiary-container text-[10px] font-bold uppercase tracking-wider">Due Today</span>
+</div>
+<h3 class="text-student-card-title font-student-card-title text-on-surface mb-xs relative z-10">Fractions Mastery</h3>
+<p class="text-label-sm font-label-sm text-on-surface-variant mb-lg relative z-10 flex-1">Complete module 4 exercises.</p>
+<div class="mt-auto relative z-10">
+<div class="flex justify-between text-xs font-semibold mb-2 text-on-surface-variant">
+<span>Progress</span>
+<span>60%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-2.5 mb-4">
+<div class="bg-primary h-2.5 rounded-full" style="width: 60%"></div>
+</div>
+<button class="w-full py-3 bg-primary text-on-primary rounded-xl font-label-sm font-bold shadow-[0_4px_0_rgb(34,0,93)] active:translate-y-[2px] active:shadow-[0_2px_0_rgb(34,0,93)] transition-all">
+                                    Continue Quest
+                                </button>
+</div>
+</div>
+<!-- Science Quest Card (New) -->
+<div class="bg-surface-container-lowest rounded-3xl p-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-surface-container-high flex flex-col relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+<div class="absolute top-0 right-0 w-32 h-32 bg-[#4CAF50]/5 rounded-bl-full -z-0"></div>
+<div class="flex justify-between items-start mb-md relative z-10">
+<div class="w-12 h-12 rounded-2xl bg-[#E8F5E9] text-[#2E7D32] flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">science</span>
+</div>
+<span class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">Due in 2 days</span>
+</div>
+<h3 class="text-student-card-title font-student-card-title text-on-surface mb-xs relative z-10">Solar System</h3>
+<p class="text-label-sm font-label-sm text-on-surface-variant mb-lg relative z-10 flex-1">Watch the planetary orbit video.</p>
+<div class="mt-auto relative z-10">
+<div class="flex justify-between text-xs font-semibold mb-2 text-on-surface-variant">
+<span>Not started</span>
+<span>0%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-2.5 mb-4">
+<div class="bg-surface-container h-2.5 rounded-full" style="width: 0%"></div>
+</div>
+<button class="w-full py-3 bg-surface-container text-on-surface rounded-xl font-label-sm font-bold shadow-[0_4px_0_rgb(203,196,210)] active:translate-y-[2px] active:shadow-[0_2px_0_rgb(203,196,210)] transition-all">
+                                    Start Quest
+                                </button>
+</div>
+</div>
+<!-- English Reading Card (Completed/Review) -->
+<div class="bg-surface-container-lowest rounded-3xl p-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-surface-container-high flex flex-col relative overflow-hidden opacity-80">
+<div class="flex justify-between items-start mb-md relative z-10">
+<div class="w-12 h-12 rounded-2xl bg-secondary-container text-on-secondary-container flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">menu_book</span>
+</div>
+<span class="px-3 py-1 rounded-full bg-surface-container-highest text-on-surface-variant text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">check_circle</span> Done
+                                </span>
+</div>
+<h3 class="text-student-card-title font-student-card-title text-on-surface mb-xs relative z-10 line-through decoration-outline-variant">Short Story Reading</h3>
+<p class="text-label-sm font-label-sm text-on-surface-variant mb-lg relative z-10 flex-1">Read chapter 1 and answer questions.</p>
+<div class="mt-auto relative z-10 pt-4">
+<button class="w-full py-3 bg-transparent border-2 border-outline-variant text-on-surface-variant rounded-xl font-label-sm font-bold transition-all hover:bg-surface-container-lowest">
+                                    Review Answers
+                                </button>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+</div>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-sm pb-safe pt-xs bg-surface/80 dark:bg-inverse-surface/80 backdrop-blur-md shadow-[0_-4px_12px_rgba(0,0,0,0.05)] rounded-t-xl pb-4">
+<a class="flex flex-col items-center justify-center bg-tertiary-container text-on-tertiary-container dark:bg-tertiary dark:text-on-tertiary rounded-full px-4 py-1 active:scale-95 transition-transform scale-110 duration-300 ease-out" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="text-[10px] font-label-sm mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant active:scale-95 transition-transform px-4 py-1" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">rocket_launch</span>
+<span class="text-[10px] font-label-sm mt-1">Quests</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant active:scale-95 transition-transform px-4 py-1" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">leaderboard</span>
+<span class="text-[10px] font-label-sm mt-1">Progress</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant active:scale-95 transition-transform px-4 py-1" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">mail</span>
+<span class="text-[10px] font-label-sm mt-1">Inbox</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant active:scale-95 transition-transform px-4 py-1" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">person</span>
+<span class="text-[10px] font-label-sm mt-1">Me</span>
+</a>
+</nav>
+</body></html>

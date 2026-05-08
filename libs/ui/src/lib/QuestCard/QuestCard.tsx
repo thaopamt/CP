@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '../Button/Button';
 import { Icon } from '../Icon/Icon';
 import { cn } from '../cn';
@@ -17,10 +18,10 @@ interface QuestCardProps {
   onAction?: () => void;
 }
 
-const ACTION_LABEL: Record<QuestState, string> = {
-  'in-progress': 'Continue Quest',
-  new: 'Start Quest',
-  done: 'Review Answers',
+const ACTION_KEY: Record<QuestState, string> = {
+  'in-progress': 'ui.quest.continue',
+  new: 'ui.quest.start',
+  done: 'ui.quest.review',
 };
 
 /**
@@ -42,6 +43,7 @@ export function QuestCard({
   state = 'new',
   onAction,
 }: QuestCardProps) {
+  const { t } = useTranslation();
   const isDone = state === 'done';
   return (
     <div
@@ -75,7 +77,7 @@ export function QuestCard({
       {state !== 'done' && (
         <div className="mb-md">
           <div className="flex justify-between text-label-sm text-on-surface-variant mb-xs">
-            <span>Progress</span>
+            <span>{t('ui.assignment.progress')}</span>
             <span>{progress}%</span>
           </div>
           <div className="bg-surface-container-highest rounded-full h-2.5 overflow-hidden">
@@ -90,7 +92,7 @@ export function QuestCard({
       {state === 'done' ? (
         <Button variant="outline" className="w-full" onClick={onAction}>
           <Icon name="check_circle" className="text-[18px]" />
-          {ACTION_LABEL[state]}
+          {t(ACTION_KEY[state])}
         </Button>
       ) : (
         <Button
@@ -98,7 +100,7 @@ export function QuestCard({
           className={cn('w-full', state === 'new' && 'bg-surface-container text-on-surface')}
           onClick={onAction}
         >
-          {ACTION_LABEL[state]}
+          {t(ACTION_KEY[state])}
         </Button>
       )}
     </div>

@@ -1,144 +1,223 @@
-import { Button, Icon, StatCard } from '@cp/ui';
+import { useTranslation } from 'react-i18next';
+import {
+  AreaChart,
+  BarChart,
+  Button,
+  Icon,
+  PageHeader,
+  StatCard,
+  Timeline,
+  TimelineItem,
+} from '@cp/ui';
 
-/**
- * Admin Dashboard — ported from
- *   /design/01_stitch_edunexus_ui_foundation/admin_portal_foundation/code.html
- * Lines 187–352 of the prototype: page header + 3 stat cards + recent
- * enrollments table + alerts panel.
- */
 export default function AdminDashboardPage() {
+  const { t } = useTranslation();
+
+  const activities: TimelineItem[] = [
+    {
+      id: '1',
+      icon: 'person_add',
+      tone: 'primary',
+      title: t('pages.admin.dashboard.activities.enroll.title'),
+      meta: t('pages.admin.dashboard.activities.enroll.meta'),
+      time: t('ui.helpQueue.minutesAgo', { count: 2 }),
+    },
+    {
+      id: '2',
+      icon: 'paid',
+      tone: 'tertiary',
+      title: t('pages.admin.dashboard.activities.payment.title'),
+      meta: t('pages.admin.dashboard.activities.payment.meta'),
+      time: t('ui.helpQueue.minutesAgo', { count: 18 }),
+    },
+    {
+      id: '3',
+      icon: 'warning',
+      tone: 'error',
+      title: t('pages.admin.dashboard.activities.conflict.title'),
+      meta: t('pages.admin.dashboard.activities.conflict.meta'),
+      time: t('ui.helpQueue.hoursAgo', { count: 1 }),
+    },
+    {
+      id: '4',
+      icon: 'class',
+      tone: 'secondary',
+      title: t('pages.admin.dashboard.activities.published.title'),
+      meta: t('pages.admin.dashboard.activities.published.meta'),
+      time: t('ui.helpQueue.hoursAgo', { count: 3 }),
+    },
+  ];
+
+  const sessions = [
+    {
+      time: '09:00',
+      title: t('pages.admin.dashboard.sessions.algebra.title'),
+      room: t('pages.admin.dashboard.sessions.algebra.room'),
+    },
+    {
+      time: '10:30',
+      title: t('pages.admin.dashboard.sessions.physics.title'),
+      room: t('pages.admin.dashboard.sessions.physics.room'),
+    },
+    {
+      time: '13:00',
+      title: t('pages.admin.dashboard.sessions.history.title'),
+      room: t('pages.admin.dashboard.sessions.history.room'),
+    },
+  ];
+
+  const reminders = [
+    {
+      name: t('pages.admin.dashboard.reminders.sarah'),
+      amount: '$1,250',
+      overdue: true,
+      days: 5,
+    },
+    {
+      name: t('pages.admin.dashboard.reminders.michael'),
+      amount: '$890',
+      overdue: false,
+      days: 7,
+    },
+    {
+      name: t('pages.admin.dashboard.reminders.aiko'),
+      amount: '$2,100',
+      overdue: false,
+      days: 7,
+    },
+  ];
+
+  const days = t('pages.admin.dashboard.days', { returnObjects: true }) as Record<string, string>;
+
   return (
     <div className="flex flex-col gap-lg">
-      {/* Page header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-md">
-        <div>
-          <h2 className="font-manrope text-headline-lg text-on-surface">Overview</h2>
-          <p className="text-body-md text-on-surface-variant mt-xs">
-            Track key metrics and recent activity across the institution.
-          </p>
+      <PageHeader
+        title={t('pages.admin.dashboard.title')}
+        subtitle={t('pages.admin.dashboard.subtitle')}
+        actions={
+          <Button variant="admin" leadingIcon={<Icon name="download" size={18} />}>
+            {t('common.exportReport')}
+          </Button>
+        }
+      />
+
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-md">
+        <StatCard label={t('pages.admin.dashboard.kpi.totalRevenue')} value="$1.2M" icon="payments" iconColor="text-tertiary" trend="up" delta="+12.5%" />
+        <StatCard label={t('pages.admin.dashboard.kpi.activeStudents')} value="12,450" icon="groups" iconColor="text-primary" trend="up" delta="+4.2%" />
+        <StatCard label={t('pages.admin.dashboard.kpi.activeClasses')} value="842" icon="class" iconColor="text-secondary" trend="flat" delta={t('pages.admin.dashboard.kpi.flatLabel')} />
+        <StatCard label={t('pages.admin.dashboard.kpi.totalTeachers')} value="386" icon="school" iconColor="text-error" trend="up" delta="+2.1%" />
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-md">
+        <div className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-md flex flex-col gap-sm">
+          <div className="flex items-center justify-between">
+            <h3 className="font-manrope text-headline-md text-on-surface">
+              {t('pages.admin.dashboard.revenue.title')}
+            </h3>
+            <select className="text-label-sm bg-surface-container-low border border-outline-variant rounded-md px-md py-xs">
+              <option>{t('pages.admin.dashboard.revenue.range.last12')}</option>
+              <option>{t('pages.admin.dashboard.revenue.range.last6')}</option>
+              <option>{t('pages.admin.dashboard.revenue.range.ytd')}</option>
+            </select>
+          </div>
+          <AreaChart
+            className="text-primary"
+            data={[42, 50, 48, 60, 70, 65, 80, 88, 84, 95, 110, 120]}
+            height={260}
+          />
         </div>
-        <Button variant="admin" leadingIcon={<Icon name="download" size={18} />}>
-          Export Report
-        </Button>
-      </div>
 
-      {/* KPI grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md lg:gap-lg">
-        <StatCard
-          label="Total Students"
-          value="12,450"
-          icon="groups"
-          iconColor="text-primary"
-          trend="up"
-          delta="+4.2%"
-        />
-        <StatCard
-          label="Active Classes"
-          value="842"
-          icon="class"
-          iconColor="text-secondary"
-          trend="flat"
-          delta="—"
-        />
-        <StatCard
-          label="Revenue (MTD)"
-          value="$1.2M"
-          icon="payments"
-          iconColor="text-tertiary"
-          trend="up"
-          delta="+12.5%"
-        />
-      </div>
+        <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-md flex flex-col gap-sm">
+          <h3 className="font-manrope text-headline-md text-on-surface">
+            {t('pages.admin.dashboard.attendance.title')}
+          </h3>
+          <p className="text-label-sm text-on-surface-variant">
+            {t('pages.admin.dashboard.attendance.subtitle')}
+          </p>
+          <BarChart
+            className="flex-1"
+            barClassName="bg-secondary"
+            data={[
+              { label: days.mon, value: 92 },
+              { label: days.tue, value: 95 },
+              { label: days.wed, value: 88 },
+              { label: days.thu, value: 90 },
+              { label: days.fri, value: 80 },
+            ]}
+            height={200}
+          />
+        </div>
+      </section>
 
-      {/* Bento layout: table + alerts */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-md lg:gap-lg">
-        <section className="xl:col-span-2 bg-surface-container-lowest border border-outline-variant/50 rounded-xl shadow-elev-1 overflow-hidden flex flex-col">
-          <header className="p-md md:p-lg border-b border-outline-variant/30 flex justify-between items-center bg-surface-bright">
-            <h3 className="font-manrope text-headline-md text-on-surface">Recent Enrollments</h3>
-            <button className="text-primary text-label-sm font-semibold hover:underline">View All</button>
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-md">
+        <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-md">
+          <header className="flex items-center justify-between mb-md">
+            <h3 className="font-manrope text-headline-md text-on-surface">
+              {t('pages.admin.dashboard.upcomingSessions.title')}
+            </h3>
+            <button className="text-primary text-label-sm font-semibold hover:underline">
+              {t('common.viewAll')}
+            </button>
           </header>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-surface-container-low text-label-sm text-on-surface-variant">
-                <tr className="border-b border-outline-variant/30">
-                  <th className="p-sm md:p-md font-semibold whitespace-nowrap">Student</th>
-                  <th className="p-sm md:p-md font-semibold whitespace-nowrap">Course</th>
-                  <th className="p-sm md:p-md font-semibold whitespace-nowrap">Date</th>
-                  <th className="p-sm md:p-md font-semibold whitespace-nowrap">Status</th>
-                </tr>
-              </thead>
-              <tbody className="text-body-md divide-y divide-outline-variant/20">
-                {[
-                  { name: 'Sarah Jenkins', initials: 'SJ', course: 'CS-101', date: 'Oct 24, 2023', status: 'Active' },
-                  { name: 'Michael Rossi', initials: 'MR', course: 'ENG-204', date: 'Oct 23, 2023', status: 'Pending' },
-                  { name: 'Aiko Tanaka', initials: 'AT', course: 'MATH-310', date: 'Oct 22, 2023', status: 'Active' },
-                ].map((row) => (
-                  <tr key={row.name} className="hover:bg-surface-container-highest/30 transition-colors">
-                    <td className="p-sm md:p-md flex items-center gap-sm">
-                      <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container grid place-items-center text-label-sm font-bold shrink-0">
-                        {row.initials}
-                      </div>
-                      <span className="text-on-surface font-medium whitespace-nowrap">{row.name}</span>
-                    </td>
-                    <td className="p-sm md:p-md text-on-surface-variant">{row.course}</td>
-                    <td className="p-sm md:p-md text-on-surface-variant whitespace-nowrap">{row.date}</td>
-                    <td className="p-sm md:p-md">
-                      <span
-                        className={
-                          row.status === 'Active'
-                            ? 'px-md py-xs bg-tertiary-container/30 text-tertiary rounded-full text-[12px] font-bold uppercase border border-tertiary-container'
-                            : 'px-md py-xs bg-outline-variant/30 text-on-surface-variant rounded-full text-[12px] font-bold uppercase border border-outline-variant'
-                        }
-                      >
-                        {row.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+          <ul className="flex flex-col gap-sm">
+            {sessions.map((s) => (
+              <li key={s.time} className="flex items-center gap-md p-sm rounded-lg hover:bg-surface-container-low">
+                <div className="w-14 shrink-0 text-label-sm font-bold text-primary">{s.time}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-body-md text-on-surface truncate">{s.title}</div>
+                  <div className="text-label-sm text-on-surface-variant">{s.room}</div>
+                </div>
+                <Icon name="chevron_right" className="text-on-surface-variant" />
+              </li>
+            ))}
+          </ul>
+        </div>
 
-        <aside className="flex flex-col gap-md">
-          <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-md">
-            <div className="flex items-center gap-sm mb-md">
-              <Icon name="campaign" className="text-error" />
-              <h3 className="font-manrope text-headline-md text-on-surface">System Alerts</h3>
-            </div>
-            <ul className="flex flex-col gap-sm">
-              {[
-                { tone: 'error', msg: 'Server CPU above 85% for 12 min.' },
-                { tone: 'warn', msg: 'Backup job missed a window last night.' },
-                { tone: 'info', msg: '14 new tickets in support queue.' },
-              ].map((a, i) => (
-                <li
-                  key={i}
-                  className={
-                    a.tone === 'error'
-                      ? 'rounded-md bg-error-container/40 text-on-error-container text-label-sm px-md py-sm'
-                      : a.tone === 'warn'
-                      ? 'rounded-md bg-tertiary-container/30 text-on-surface text-label-sm px-md py-sm'
-                      : 'rounded-md bg-secondary-container/40 text-on-secondary-container text-label-sm px-md py-sm'
-                  }
-                >
-                  {a.msg}
-                </li>
-              ))}
-            </ul>
-          </div>
+        <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-md">
+          <header className="flex items-center justify-between mb-md">
+            <h3 className="font-manrope text-headline-md text-on-surface">
+              {t('pages.admin.dashboard.recentActivities.title')}
+            </h3>
+          </header>
+          <Timeline items={activities} />
+        </div>
 
-          <div className="rounded-xl p-lg text-on-primary bg-gradient-to-br from-primary via-primary-container to-secondary shadow-elev-3 backdrop-blur-md">
-            <h4 className="font-manrope text-headline-md mb-xs">Need Assistance?</h4>
-            <p className="text-label-sm opacity-90 mb-md">
-              Our support team is on standby for institutional questions.
-            </p>
-            <Button variant="outline" className="bg-surface/20 border-white/40 text-on-primary">
-              Contact Support
-            </Button>
-          </div>
-        </aside>
-      </div>
+        <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-md">
+          <header className="flex items-center justify-between mb-md">
+            <h3 className="font-manrope text-headline-md text-on-surface">
+              {t('pages.admin.dashboard.paymentReminders.title')}
+            </h3>
+            <Icon name="notifications_active" className="text-error" />
+          </header>
+          <ul className="flex flex-col gap-sm">
+            {reminders.map((p) => (
+              <li
+                key={p.name}
+                className={
+                  p.overdue
+                    ? 'flex items-center justify-between p-sm rounded-lg bg-error-container/30'
+                    : 'flex items-center justify-between p-sm rounded-lg hover:bg-surface-container-low'
+                }
+              >
+                <div>
+                  <div className="text-body-md text-on-surface">{p.name}</div>
+                  <div className="text-label-sm text-on-surface-variant">
+                    {p.overdue
+                      ? t('pages.admin.dashboard.paymentReminders.overdue', { count: p.days })
+                      : t('pages.admin.dashboard.paymentReminders.dueIn', { count: p.days })}
+                  </div>
+                </div>
+                <div className={p.overdue ? 'text-on-error-container font-bold' : 'text-on-surface font-bold'}>
+                  {p.amount}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <button className="mt-md w-full text-primary text-label-sm font-semibold py-sm rounded-lg hover:bg-primary/5">
+            {t('pages.admin.dashboard.paymentReminders.batch')}
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

@@ -29,10 +29,22 @@ const StudentLayout = lazy(() => import('./layouts/StudentLayout'));
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
 const AdminDashboard = lazy(() => import('./pages/admin/DashboardPage'));
 const AdminUsers = lazy(() => import('./pages/admin/UsersPage'));
+const AdminStudents = lazy(() => import('./pages/admin/StudentsPage'));
+const AdminCourses = lazy(() => import('./pages/admin/CoursesPage'));
+const AdminSchedule = lazy(() => import('./pages/admin/SchedulePage'));
+const AdminFinance = lazy(() => import('./pages/admin/FinancePage'));
+const AdminClassesList = lazy(() => import('./pages/admin/classes/ClassesListPage'));
+const AdminClassCreate = lazy(() => import('./pages/admin/classes/ClassCreatePage'));
+const AdminClassDetail = lazy(() => import('./pages/admin/classes/ClassDetailPage'));
 const TeacherDashboard = lazy(() => import('./pages/teacher/DashboardPage'));
 const TeacherClasses = lazy(() => import('./pages/teacher/ClassesPage'));
+const TeacherAttendance = lazy(() => import('./pages/teacher/AttendancePage'));
+const TeacherChallenges = lazy(() => import('./pages/teacher/CodingChallengePage'));
+const TeacherMonitoring = lazy(() => import('./pages/teacher/MonitoringPage'));
 const StudentDashboard = lazy(() => import('./pages/student/DashboardPage'));
 const StudentQuests = lazy(() => import('./pages/student/QuestsPage'));
+const StudentAssignments = lazy(() => import('./pages/student/AssignmentsPage'));
+const StudentWorkspace = lazy(() => import('./pages/student/WorkspacePage'));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
@@ -66,6 +78,13 @@ export default function App() {
                 }
               >
                 <Route index element={<AdminDashboard />} />
+                <Route path="students" element={<AdminStudents />} />
+                <Route path="classes" element={<AdminClassesList />} />
+                <Route path="classes/new" element={<AdminClassCreate />} />
+                <Route path="classes/:classId" element={<AdminClassDetail />} />
+                <Route path="courses" element={<AdminCourses />} />
+                <Route path="schedule" element={<AdminSchedule />} />
+                <Route path="finance" element={<AdminFinance />} />
                 <Route path="users" element={<AdminUsers />} />
               </Route>
 
@@ -79,6 +98,9 @@ export default function App() {
                 }
               >
                 <Route index element={<TeacherDashboard />} />
+                <Route path="attendance" element={<TeacherAttendance />} />
+                <Route path="monitoring" element={<TeacherMonitoring />} />
+                <Route path="challenges" element={<TeacherChallenges />} />
                 <Route path="classes" element={<TeacherClasses />} />
               </Route>
 
@@ -92,6 +114,9 @@ export default function App() {
                 }
               >
                 <Route index element={<StudentDashboard />} />
+                <Route path="assignments" element={<StudentAssignments />} />
+                <Route path="workspace" element={<StudentWorkspace />} />
+                <Route path="workspace/:problemId" element={<StudentWorkspace />} />
                 <Route path="quests" element={<StudentQuests />} />
               </Route>
 

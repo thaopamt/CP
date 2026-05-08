@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EduStream - Live Monitoring Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Lexend:wght@400;500;600&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed-dim": "#cfbcff",
+                        "surface-bright": "#fdf7ff",
+                        "surface-container": "#f2ecf4",
+                        "on-primary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#e7c365",
+                        "inverse-surface": "#322f35",
+                        "outline": "#7a7582",
+                        "tertiary": "#765b00",
+                        "on-tertiary-fixed": "#241a00",
+                        "primary": "#4f378a",
+                        "secondary-container": "#e1d4fd",
+                        "surface-container-highest": "#e6e0e9",
+                        "on-surface-variant": "#494551",
+                        "secondary": "#63597c",
+                        "on-primary-fixed": "#22005d",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#cdc0e9",
+                        "on-error": "#ffffff",
+                        "inverse-on-surface": "#f5eff7",
+                        "surface-variant": "#e6e0e9",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-container": "#e0d2ff",
+                        "on-error-container": "#93000a",
+                        "on-secondary-container": "#645a7d",
+                        "error": "#ba1a1a",
+                        "surface-tint": "#6750a4",
+                        "primary-fixed": "#e9ddff",
+                        "inverse-primary": "#cfbcff",
+                        "surface-container-high": "#ece6ee",
+                        "on-background": "#1d1b20",
+                        "on-secondary-fixed-variant": "#4b4263",
+                        "tertiary-container": "#c9a74d",
+                        "on-secondary-fixed": "#1f1635",
+                        "surface-container-low": "#f8f2fa",
+                        "outline-variant": "#cbc4d2",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed": "#e9ddff",
+                        "on-tertiary-container": "#503d00",
+                        "surface-dim": "#ded8e0",
+                        "tertiary-fixed": "#ffdf93",
+                        "on-tertiary-fixed-variant": "#594400",
+                        "on-primary-fixed-variant": "#4f378a",
+                        "on-surface": "#1d1b20",
+                        "background": "#fdf7ff",
+                        "surface": "#fdf7ff",
+                        "primary-container": "#6750a4"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "lg": "24px",
+                        "2xl": "48px",
+                        "3xl": "64px",
+                        "xl": "32px",
+                        "sm": "8px",
+                        "xs": "4px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["lexend"],
+                        "body-lg": ["inter"],
+                        "headline-lg": ["manrope"],
+                        "student-card-title": ["lexend"],
+                        "display-xl": ["manrope"],
+                        "body-md": ["inter"],
+                        "headline-md": ["manrope"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["14px", { "lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "student-card-title": ["20px", { "lineHeight": "1.2", "fontWeight": "600" }],
+                        "display-xl": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        /* Custom scrollbar for inner areas */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbc4d2; 
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md h-screen overflow-hidden flex">
+<!-- SideNavBar (Shared Component) -->
+<nav class="fixed left-0 top-0 h-full w-[240px] z-40 bg-surface-container flex flex-col py-lg px-md gap-sm border-r border-outline-variant">
+<!-- Brand Header -->
+<div class="px-md pb-lg flex flex-col gap-xs">
+<div class="flex items-center gap-sm">
+<div class="w-8 h-8 rounded-lg bg-primary text-on-primary flex items-center justify-center font-headline-md text-headline-md font-bold">E</div>
+<span class="font-headline-md text-headline-md font-bold text-primary">EduStream</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant ml-10">Teacher Portal</span>
+</div>
+<!-- CTA Button -->
+<button class="mb-md w-full bg-primary text-on-primary font-label-sm text-label-sm py-sm px-md rounded-full hover:brightness-95 transition-colors flex items-center justify-center gap-sm shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+            Start New Class
+        </button>
+<!-- Navigation Links -->
+<div class="flex flex-col gap-xs flex-1">
+<a class="flex items-center gap-md px-md py-sm rounded-full text-on-surface-variant font-label-sm text-label-sm font-medium hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-full text-on-surface-variant font-label-sm text-label-sm font-medium hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">calendar_today</span>
+                Schedule
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-full text-on-surface-variant font-label-sm text-label-sm font-medium hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">how_to_reg</span>
+                Attendance
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-full text-on-surface-variant font-label-sm text-label-sm font-medium hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">history_edu</span>
+                Class Logs
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-full text-on-surface-variant font-label-sm text-label-sm font-medium hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">code</span>
+                Coding Challenges
+            </a>
+<!-- Active Tab -->
+<a class="flex items-center gap-md px-md py-sm rounded-full text-primary font-label-sm text-label-sm font-bold bg-secondary-container" href="#">
+<span class="material-symbols-outlined icon-fill text-[20px]">visibility</span>
+                Monitoring
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-full text-on-surface-variant font-label-sm text-label-sm font-medium hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">assessment</span>
+                Reports
+            </a>
+</div>
+<!-- Bottom Profile Snippet (Optional context) -->
+<div class="mt-auto px-md pt-md border-t border-outline-variant flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-on-surface-variant overflow-hidden">
+<img alt="Teacher Portrait" class="w-full h-full object-cover" data-alt="A professional headshot of a female teacher in her late 30s with warm, approachable lighting. She is wearing a modern, smart-casual blazer in a muted tone. The background is a soft, out-of-focus modern classroom or office setting. The overall mood is confident, inviting, and professional, perfectly suited for an educational platform profile avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnso2Jvzbp1j90gb_oitCjIX7r85g9QeVwf0_UMeSAh4B91OQp2w26fHtOMBpBGBR4bcBrSIlg-CUr8bq30fzxM_8rqNDWE2CgZoftDeIkvS_NbhbD8PzME9emd2Vk5CdI281-kF9QA-y3eX1CJ2SH6JngXLKg1rmd1nhqdIEQyTBVP_aBaHfasuVL8aQJcuhRUw2XAOLdiuKYE0aUGCMFl-2c6c2bZwFIn1pdYyCp9ONh0iqns5eHTujbW8O9WsHYdOioWZOXmso"/>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface font-bold">Ms. Anderson</span>
+<span class="text-[12px] text-on-surface-variant">CS-101 Intro</span>
+</div>
+</div>
+</nav>
+<!-- Main Workspace -->
+<div class="flex-1 ml-[240px] flex flex-col h-full bg-surface-bright">
+<!-- TopAppBar (Shared Component) -->
+<header class="h-16 z-30 bg-surface flex items-center justify-between px-lg w-full border-b border-outline-variant shrink-0">
+<!-- Contextual Breadcrumb/Title Area -->
+<div class="flex items-center gap-md">
+<h1 class="font-headline-md text-headline-md font-bold text-on-surface">Live Monitoring Dashboard</h1>
+<span class="px-sm py-xs bg-primary-fixed rounded text-on-primary-fixed-variant font-label-sm text-label-sm">CS-101 Section A</span>
+</div>
+<!-- Actions -->
+<div class="flex items-center gap-md">
+<!-- Search Bar Placeholder -->
+<div class="relative hidden md:flex items-center">
+<span class="material-symbols-outlined absolute left-sm text-on-surface-variant text-[20px]">search</span>
+<input class="pl-xl pr-md py-sm rounded-full bg-surface-container-low border-none focus:ring-2 focus:ring-primary font-label-sm text-label-sm text-on-surface w-48 transition-all focus:w-64" placeholder="Search students..." type="text"/>
+</div>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors active:opacity-80">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors active:opacity-80">
+<span class="material-symbols-outlined">bolt</span>
+</button>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors active:opacity-80">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</header>
+<!-- Content Split Layout -->
+<div class="flex flex-1 overflow-hidden">
+<!-- Student Grid Area (Main Focus) -->
+<main class="flex-1 p-lg overflow-y-auto flex flex-col gap-lg bg-surface-bright">
+<!-- Toolbar -->
+<div class="flex items-center justify-between">
+<div class="flex gap-sm">
+<button class="px-md py-xs rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold">All (24)</button>
+<button class="px-md py-xs rounded-full border border-outline-variant text-on-surface-variant hover:bg-surface-container-low font-label-sm text-label-sm transition-colors">Active (18)</button>
+<button class="px-md py-xs rounded-full border border-outline-variant text-on-surface-variant hover:bg-surface-container-low font-label-sm text-label-sm transition-colors flex items-center gap-xs">
+                            Help Needed <span class="w-4 h-4 rounded-full bg-error text-on-error flex items-center justify-center text-[10px]">2</span>
+</button>
+</div>
+<div class="flex items-center gap-sm text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[18px]">grid_view</span>
+<span>Grid View</span>
+</div>
+</div>
+<!-- Bento Grid of Students -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-md">
+<!-- Card 1: Active Student (Normal) -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-md flex flex-col gap-md relative overflow-hidden group hover:border-primary-fixed-dim transition-colors">
+<!-- Header -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-label-sm text-label-sm font-bold">EL</div>
+<span class="font-student-card-title text-student-card-title text-on-surface">Emma Lin</span>
+</div>
+<!-- Status Indicator: Active -->
+<div class="flex items-center gap-xs px-sm py-[2px] rounded-full bg-surface-container-low border border-primary-fixed-dim">
+<div class="w-2 h-2 rounded-full bg-primary relative flex items-center justify-center">
+<div class="absolute w-4 h-4 rounded-full border border-primary opacity-30"></div>
+</div>
+<span class="font-label-sm text-label-sm text-primary font-bold text-[12px]">Active</span>
+</div>
+</div>
+<!-- Code Preview Thumbnail -->
+<div class="bg-inverse-surface rounded-lg p-sm h-32 flex flex-col relative overflow-hidden border border-outline">
+<!-- Tab bar mockup -->
+<div class="flex gap-sm border-b border-outline pb-xs mb-xs">
+<span class="text-on-surface-variant text-[10px] font-mono">main.py</span>
+</div>
+<!-- Code snippet visual -->
+<div class="font-mono text-[11px] leading-relaxed text-inverse-on-surface opacity-80 whitespace-pre">
+<span class="text-primary-fixed-dim">def</span> calculate_score(points):
+    <span class="text-tertiary-fixed-dim">if</span> points &gt; <span class="text-error-container">90</span>:
+        <span class="text-primary-fixed-dim">return</span> <span class="text-secondary-fixed-dim">"A"</span>
+<span class="text-tertiary-fixed-dim">elif</span> points &gt; <span class="text-error-container">80</span>:
+        <span class="text-primary-fixed-dim">return</span> <span class="text-secondary-fixed-dim">"B"</span>
+</div>
+<!-- Overlay actions on hover -->
+<div class="absolute inset-0 bg-inverse-surface/60 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="bg-primary text-on-primary font-label-sm text-label-sm py-xs px-md rounded-full shadow-sm hover:brightness-110 flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">visibility</span> View Screen
+                                </button>
+</div>
+</div>
+</div>
+<!-- Card 2: Help Requested (Alert State) -->
+<div class="bg-error-container/10 rounded-xl border border-error p-md flex flex-col gap-md relative overflow-hidden group shadow-[0_0_15px_rgba(186,26,26,0.05)]">
+<!-- Header -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-error text-on-error flex items-center justify-center font-label-sm text-label-sm font-bold">JD</div>
+<span class="font-student-card-title text-student-card-title text-on-surface">James Davis</span>
+</div>
+<!-- Status Indicator: Help -->
+<div class="flex items-center gap-xs px-sm py-[2px] rounded-full bg-error text-on-error">
+<span class="material-symbols-outlined text-[14px]">front_hand</span>
+<span class="font-label-sm text-label-sm font-bold text-[12px]">Help Needed</span>
+</div>
+</div>
+<!-- Code Preview Thumbnail -->
+<div class="bg-inverse-surface rounded-lg p-sm h-32 flex flex-col relative overflow-hidden border border-error/50">
+<!-- Tab bar mockup -->
+<div class="flex gap-sm border-b border-outline pb-xs mb-xs">
+<span class="text-on-surface-variant text-[10px] font-mono">loop_test.js</span>
+</div>
+<!-- Code snippet visual with simulated error line -->
+<div class="font-mono text-[11px] leading-relaxed text-inverse-on-surface opacity-80 whitespace-pre">
+<span class="text-primary-fixed-dim">for</span> (<span class="text-primary-fixed-dim">let</span> i = <span class="text-error-container">0</span>; i &lt; arr.length; i++) {
+<div class="bg-error/30 -mx-sm px-sm text-on-error">    console.log(arr[j]); <span class="text-error-container opacity-50">// ReferenceError: j is not defined</span></div>}
+                            </div>
+<!-- Overlay actions -->
+<div class="absolute bottom-sm right-sm flex gap-sm">
+<button class="bg-surface text-on-surface font-label-sm text-[12px] py-xs px-sm rounded hover:bg-surface-container transition-colors">Dismiss</button>
+<button class="bg-error text-on-error font-label-sm text-[12px] py-xs px-sm rounded hover:brightness-90 transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]">chat</span> Join Session
+                                </button>
+</div>
+</div>
+</div>
+<!-- Card 3: Idle Student -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-md flex flex-col gap-md relative overflow-hidden group opacity-80 hover:opacity-100 transition-opacity">
+<!-- Header -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center font-label-sm text-label-sm font-bold">SO</div>
+<span class="font-student-card-title text-student-card-title text-on-surface">Sarah O'Connor</span>
+</div>
+<!-- Status Indicator: Idle -->
+<div class="flex items-center gap-xs px-sm py-[2px] rounded-full bg-tertiary-container text-on-tertiary-container">
+<span class="material-symbols-outlined text-[14px]">timer</span>
+<span class="font-label-sm text-label-sm font-bold text-[12px]">Idle 5m</span>
+</div>
+</div>
+<!-- Code Preview Thumbnail (Faded out slightly) -->
+<div class="bg-inverse-surface rounded-lg p-sm h-32 flex flex-col relative overflow-hidden border border-outline opacity-60 grayscale-[50%]">
+<div class="flex gap-sm border-b border-outline pb-xs mb-xs">
+<span class="text-on-surface-variant text-[10px] font-mono">style.css</span>
+</div>
+<div class="font-mono text-[11px] leading-relaxed text-inverse-on-surface whitespace-pre">
+.container {
+    <span class="text-tertiary-fixed-dim">display</span>: flex;
+    <span class="text-tertiary-fixed-dim">justify-content</span>: center;
+    <span class="text-tertiary-fixed-dim">align-items</span>: center;
+}
+                            </div>
+</div>
+</div>
+<!-- Card 4: Active Student (Another variation) -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-md flex flex-col gap-md relative overflow-hidden group hover:border-primary-fixed-dim transition-colors">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-label-sm text-label-sm font-bold">MK</div>
+<span class="font-student-card-title text-student-card-title text-on-surface">Marcus King</span>
+</div>
+<div class="flex items-center gap-xs px-sm py-[2px] rounded-full bg-surface-container-low border border-primary-fixed-dim">
+<div class="w-2 h-2 rounded-full bg-primary relative flex items-center justify-center">
+<div class="absolute w-4 h-4 rounded-full border border-primary opacity-30"></div>
+</div>
+<span class="font-label-sm text-label-sm text-primary font-bold text-[12px]">Active</span>
+</div>
+</div>
+<div class="bg-inverse-surface rounded-lg p-sm h-32 flex flex-col relative overflow-hidden border border-outline">
+<div class="flex gap-sm border-b border-outline pb-xs mb-xs">
+<span class="text-on-surface-variant text-[10px] font-mono">index.html</span>
+</div>
+<div class="font-mono text-[11px] leading-relaxed text-inverse-on-surface opacity-80 whitespace-pre">
+&lt;<span class="text-primary-fixed-dim">div</span> <span class="text-tertiary-fixed-dim">class</span>=<span class="text-secondary-fixed-dim">"header"</span>&gt;
+    &lt;<span class="text-primary-fixed-dim">h1</span>&gt;Hello World&lt;/<span class="text-primary-fixed-dim">h1</span>&gt;
+&lt;/<span class="text-primary-fixed-dim">div</span>&gt;
+                            </div>
+</div>
+</div>
+<!-- Card 5: Away Student -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-md flex flex-col gap-md relative overflow-hidden group opacity-60 hover:opacity-100 transition-opacity">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-surface-variant text-on-surface-variant flex items-center justify-center font-label-sm text-label-sm font-bold">TP</div>
+<span class="font-student-card-title text-student-card-title text-on-surface">Tara Patel</span>
+</div>
+<div class="flex items-center gap-xs px-sm py-[2px] rounded-full border border-outline-variant text-outline">
+<span class="material-symbols-outlined text-[14px]">desktop_access_disabled</span>
+<span class="font-label-sm text-label-sm font-bold text-[12px]">Away</span>
+</div>
+</div>
+<div class="bg-surface-variant rounded-lg p-sm h-32 flex flex-col items-center justify-center border border-outline-variant text-on-surface-variant">
+<span class="material-symbols-outlined text-[32px] mb-sm opacity-50">screen_lock_portrait</span>
+<span class="font-label-sm text-[12px]">Screen Locked</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Side Panel: Classroom Overview -->
+<aside class="w-80 border-l border-outline-variant bg-surface-container-low overflow-y-auto hidden lg:flex flex-col">
+<div class="p-lg border-b border-outline-variant sticky top-0 bg-surface-container-low z-10 backdrop-blur-sm">
+<h2 class="font-headline-md text-[18px] font-bold text-on-surface">Classroom Overview</h2>
+<p class="font-body-md text-[14px] text-on-surface-variant">Session started 45m ago</p>
+</div>
+<div class="p-lg flex flex-col gap-lg">
+<!-- Stats Group -->
+<div class="flex flex-col gap-sm">
+<div class="bg-surface-container-lowest rounded-lg p-md border border-outline-variant flex items-center justify-between">
+<div class="flex items-center gap-sm text-on-surface">
+<span class="material-symbols-outlined text-primary">groups</span>
+<span class="font-label-sm text-label-sm font-medium">Total Online</span>
+</div>
+<span class="font-student-card-title text-[24px] text-primary font-bold">22<span class="text-[14px] text-on-surface-variant font-normal">/24</span></span>
+</div>
+<div class="grid grid-cols-2 gap-sm">
+<div class="bg-surface-container-lowest rounded-lg p-md border border-outline-variant flex flex-col justify-center">
+<span class="font-label-sm text-[12px] text-on-surface-variant mb-xs">Active Coding</span>
+<div class="flex items-center gap-sm">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<span class="font-student-card-title text-[20px] text-on-surface font-bold">18</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-lg p-md border border-outline-variant flex flex-col justify-center">
+<span class="font-label-sm text-[12px] text-on-surface-variant mb-xs">Idle / Away</span>
+<div class="flex items-center gap-sm">
+<div class="w-2 h-2 rounded-full bg-tertiary"></div>
+<span class="font-student-card-title text-[20px] text-on-surface font-bold">4</span>
+</div>
+</div>
+</div>
+</div>
+<hr class="border-outline-variant"/>
+<!-- Help Queue -->
+<div class="flex flex-col gap-md">
+<div class="flex items-center justify-between">
+<h3 class="font-label-sm text-label-sm font-bold text-on-surface uppercase tracking-wider">Help Queue</h3>
+<span class="px-xs py-[2px] bg-error-container text-on-error-container rounded text-[12px] font-bold">2 Waiting</span>
+</div>
+<!-- Queue Items -->
+<div class="flex flex-col gap-sm">
+<!-- Queue Item 1 -->
+<div class="bg-surface-container-lowest border-l-4 border-error rounded-r-lg p-md shadow-sm flex flex-col gap-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-xs">
+<div class="w-6 h-6 rounded-full bg-error text-on-error flex items-center justify-center text-[10px] font-bold">JD</div>
+<span class="font-label-sm text-[14px] font-bold text-on-surface">James Davis</span>
+</div>
+<span class="text-[10px] text-on-surface-variant">2m ago</span>
+</div>
+<p class="font-body-md text-[12px] text-on-surface-variant line-clamp-2">"I'm getting a ReferenceError on line 14 but I defined the variable earlier."</p>
+<div class="flex gap-sm mt-xs">
+<button class="flex-1 bg-surface-container text-on-surface py-xs rounded font-label-sm text-[12px] hover:bg-surface-variant transition-colors">Dismiss</button>
+<button class="flex-1 bg-primary text-on-primary py-xs rounded font-label-sm text-[12px] hover:brightness-110 transition-colors">Accept</button>
+</div>
+</div>
+<!-- Queue Item 2 -->
+<div class="bg-surface-container-lowest border-l-4 border-error rounded-r-lg p-md shadow-sm flex flex-col gap-sm opacity-80">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-xs">
+<div class="w-6 h-6 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-[10px] font-bold">AK</div>
+<span class="font-label-sm text-[14px] font-bold text-on-surface">Alex Kim</span>
+</div>
+<span class="text-[10px] text-on-surface-variant">5m ago</span>
+</div>
+<p class="font-body-md text-[12px] text-on-surface-variant line-clamp-2">"How do I push the array elements correctly?"</p>
+<div class="flex gap-sm mt-xs">
+<button class="flex-1 bg-surface-container text-on-surface py-xs rounded font-label-sm text-[12px] hover:bg-surface-variant transition-colors">Dismiss</button>
+<button class="flex-1 bg-primary text-on-primary py-xs rounded font-label-sm text-[12px] hover:brightness-110 transition-colors">Accept</button>
+</div>
+</div>
+</div>
+</div>
+<hr class="border-outline-variant"/>
+<!-- Quick Actions -->
+<div class="flex flex-col gap-sm">
+<button class="w-full py-sm px-md rounded border border-outline-variant text-on-surface-variant font-label-sm text-label-sm flex items-center justify-center gap-sm hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[18px]">volume_up</span> Announce to Class
+                        </button>
+<button class="w-full py-sm px-md rounded border border-outline-variant text-on-surface-variant font-label-sm text-label-sm flex items-center justify-center gap-sm hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[18px]">lock_clock</span> Lock All Screens
+                        </button>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</body></html>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { fullName, IUser } from '@cp/shared';
 import { useAuthStore } from '../stores/auth.store';
 
@@ -19,19 +20,19 @@ export function UserAvatar({ user, size = 'md' }: { user: IUser | null; size?: '
 }
 
 export function LogoutButton() {
+  const { t } = useTranslation();
   const clear = useAuthStore((s) => s.clear);
   return (
     <button
       type="button"
       onClick={() => {
         clear();
-        // hard navigate so all in-memory state resets
         window.location.assign('/login');
       }}
       className="flex items-center gap-sm px-md py-sm text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors text-label-sm"
     >
       <span className="material-symbols-outlined text-[20px]">logout</span>
-      Sign out
+      {t('common.signOut')}
     </button>
   );
 }

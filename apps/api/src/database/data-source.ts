@@ -4,6 +4,9 @@ import { DataSource } from 'typeorm';
 import { join } from 'node:path';
 
 import { User } from '../modules/users/user.entity';
+import { ClassEntity } from '../modules/classes/class.entity';
+import { ClassSession } from '../modules/classes/class-session.entity';
+import { Enrollment } from '../modules/classes/enrollment.entity';
 
 // Load env in CLI context (TypeORM CLI doesn't go through ConfigModule)
 loadEnv({ path: join(process.cwd(), 'apps/api/.env') });
@@ -24,7 +27,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USER ?? 'cp',
   password: process.env.DB_PASSWORD ?? 'cp',
   database: process.env.DB_NAME ?? 'cp',
-  entities: [User],
+  entities: [User, ClassEntity, ClassSession, Enrollment],
   migrations: [join(__dirname, 'migrations/*.{ts,js}')],
   synchronize: false,
   logging: ['error', 'warn'],

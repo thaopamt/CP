@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Teacher Portal - Coding Challenge Builder</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600&amp;family=Inter:wght@400&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed-dim": "#cfbcff",
+                        "surface-bright": "#fdf7ff",
+                        "surface-container": "#f2ecf4",
+                        "on-primary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#e7c365",
+                        "inverse-surface": "#322f35",
+                        "outline": "#7a7582",
+                        "tertiary": "#765b00",
+                        "on-tertiary-fixed": "#241a00",
+                        "primary": "#4f378a",
+                        "secondary-container": "#e1d4fd",
+                        "surface-container-highest": "#e6e0e9",
+                        "on-surface-variant": "#494551",
+                        "secondary": "#63597c",
+                        "on-primary-fixed": "#22005d",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#cdc0e9",
+                        "on-error": "#ffffff",
+                        "inverse-on-surface": "#f5eff7",
+                        "surface-variant": "#e6e0e9",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-container": "#e0d2ff",
+                        "on-error-container": "#93000a",
+                        "on-secondary-container": "#645a7d",
+                        "error": "#ba1a1a",
+                        "surface-tint": "#6750a4",
+                        "primary-fixed": "#e9ddff",
+                        "inverse-primary": "#cfbcff",
+                        "surface-container-high": "#ece6ee",
+                        "on-background": "#1d1b20",
+                        "on-secondary-fixed-variant": "#4b4263",
+                        "tertiary-container": "#c9a74d",
+                        "on-secondary-fixed": "#1f1635",
+                        "surface-container-low": "#f8f2fa",
+                        "outline-variant": "#cbc4d2",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed": "#e9ddff",
+                        "on-tertiary-container": "#503d00",
+                        "surface-dim": "#ded8e0",
+                        "tertiary-fixed": "#ffdf93",
+                        "on-tertiary-fixed-variant": "#594400",
+                        "on-primary-fixed-variant": "#4f378a",
+                        "on-surface": "#1d1b20",
+                        "background": "#fdf7ff",
+                        "surface": "#fdf7ff",
+                        "primary-container": "#6750a4"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "lg": "24px",
+                        "2xl": "48px",
+                        "3xl": "64px",
+                        "xl": "32px",
+                        "sm": "8px",
+                        "xs": "4px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Lexend"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Manrope"],
+                        "student-card-title": ["Lexend"],
+                        "display-xl": ["Manrope"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["14px", { "lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "student-card-title": ["20px", { "lineHeight": "1.2", "fontWeight": "600" }],
+                        "display-xl": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md h-screen overflow-hidden flex">
+<!-- SideNavBar -->
+<nav class="bg-surface-container dark:bg-surface-dim fixed left-0 top-0 h-full w-[240px] z-40 hidden md:flex flex-col py-lg px-md gap-sm">
+<div class="flex items-center gap-sm px-sm mb-lg">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-on-primary-container">school</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">EduStream</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Teacher Portal</p>
+</div>
+</div>
+<button class="bg-primary text-on-primary font-label-sm text-label-sm py-md px-lg rounded-full mb-lg hover:brightness-95 transition-all w-full flex items-center justify-center gap-sm">
+<span class="material-symbols-outlined">add</span> Start New Class
+        </button>
+<ul class="flex flex-col gap-xs flex-1">
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg hover:bg-surface-container-highest dark:hover:bg-surface-container transition-colors text-on-surface-variant dark:text-on-surface-variant font-medium" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                    Dashboard
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg hover:bg-surface-container-highest dark:hover:bg-surface-container transition-colors text-on-surface-variant dark:text-on-surface-variant font-medium" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+                    Schedule
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg hover:bg-surface-container-highest dark:hover:bg-surface-container transition-colors text-on-surface-variant dark:text-on-surface-variant font-medium" href="#">
+<span class="material-symbols-outlined" data-icon="how_to_reg">how_to_reg</span>
+                    Attendance
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg hover:bg-surface-container-highest dark:hover:bg-surface-container transition-colors text-on-surface-variant dark:text-on-surface-variant font-medium" href="#">
+<span class="material-symbols-outlined" data-icon="history_edu">history_edu</span>
+                    Class Logs
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg hover:bg-surface-container-highest dark:hover:bg-surface-container transition-colors text-primary dark:text-primary-fixed-dim font-bold border-r-4 border-primary bg-surface-container-highest" href="#">
+<span class="material-symbols-outlined" data-icon="code">code</span>
+                    Coding Challenges
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg hover:bg-surface-container-highest dark:hover:bg-surface-container transition-colors text-on-surface-variant dark:text-on-surface-variant font-medium" href="#">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+                    Monitoring
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg hover:bg-surface-container-highest dark:hover:bg-surface-container transition-colors text-on-surface-variant dark:text-on-surface-variant font-medium" href="#">
+<span class="material-symbols-outlined" data-icon="assessment">assessment</span>
+                    Reports
+                </a>
+</li>
+</ul>
+</nav>
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-surface-dim border-b border-outline-variant fixed top-0 right-0 w-[calc(100%-240px)] h-16 z-30 flex items-center justify-between px-lg hidden md:flex">
+<div class="flex items-center gap-sm">
+<!-- Search on left -->
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-sm text-on-surface-variant">search</span>
+<input class="pl-xl pr-sm py-sm bg-surface-container-lowest border border-outline-variant rounded-full text-label-sm font-label-sm focus:outline-none focus:ring-2 focus:ring-primary w-64" placeholder="Search..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-all p-sm rounded-full active:opacity-80 transition-opacity">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-all p-sm rounded-full active:opacity-80 transition-opacity">
+<span class="material-symbols-outlined" data-icon="bolt">bolt</span>
+</button>
+<button class="text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-all p-sm rounded-full active:opacity-80 transition-opacity">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary-container overflow-hidden ml-sm cursor-pointer border border-outline-variant">
+<img alt="Teacher Profile" class="w-full h-full object-cover" data-alt="A professional headshot of a smiling female teacher in her 30s. She is wearing a modern, tailored blazer over a light blouse. The background is a soft, blurred classroom setting with natural daylight filtering in, creating a warm and approachable aesthetic suitable for a modern educational platform." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA8JIXgoGh1YzlJ2WMolO9DNKmZYkYGm06IVSNRuj6ZcNyTgxPGGvIx66Vkd__KtfLlBKxoU-4rVibfHjYU7XovcPZunqC2M1w0qhrnZrljNnkyY-tWRd2h9j_ETlirAGe0Kn-vFjIX82tHK5B9BjVZm0kougszr3X0U57waYVcY3SxFduXSckeXS4o44l5by3bT1naIAyRZ1jqhZ0Csz7g5CiniL5LUVpCa4myvVr8KKSQzFyJivKlEgraNhBix9uONIfjUn_0BtU"/>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="ml-0 md:ml-[240px] pt-16 flex-1 h-full flex flex-col bg-surface-container-lowest">
+<!-- Header Actions -->
+<div class="flex items-center justify-between px-lg py-md border-b border-outline-variant bg-surface">
+<div class="flex items-center gap-md">
+<button class="text-on-surface-variant hover:bg-surface-container p-sm rounded-full transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h2 class="font-headline-md text-headline-md font-semibold text-on-surface">Build Challenge</h2>
+<div class="flex items-center gap-sm ml-lg">
+<span class="px-md py-xs bg-surface-variant text-on-surface-variant rounded-full font-label-sm text-label-sm border border-outline-variant">Draft</span>
+<span class="px-md py-xs bg-surface-variant text-on-surface-variant rounded-full font-label-sm text-label-sm border border-outline-variant flex items-center gap-xs"><span class="w-2 h-2 rounded-full bg-tertiary"></span> Auto-saved 2m ago</span>
+</div>
+</div>
+<div class="flex gap-sm">
+<button class="px-md py-sm bg-surface-container text-primary font-label-sm text-label-sm rounded-lg hover:bg-surface-container-high transition-colors font-medium border border-outline-variant">
+                    Save Draft
+                </button>
+<button class="px-lg py-sm bg-primary text-on-primary font-label-sm text-label-sm rounded-lg hover:brightness-95 transition-colors font-medium shadow-sm flex items-center gap-sm">
+<span class="material-symbols-outlined">publish</span> Publish
+                </button>
+</div>
+</div>
+<!-- Split Workspace -->
+<div class="flex-1 flex overflow-hidden">
+<!-- Left Panel: Metadata & Description -->
+<div class="w-1/2 flex flex-col border-r border-outline-variant bg-surface overflow-y-auto">
+<div class="p-lg flex flex-col gap-lg">
+<!-- Metadata Section -->
+<div class="bg-surface-container-low p-md rounded-xl border border-outline-variant">
+<div class="grid grid-cols-2 gap-md">
+<div class="col-span-2">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Challenge Title</label>
+<input class="w-full bg-surface border border-outline-variant rounded-lg px-md py-sm font-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g., Array Manipulation Mastery" type="text" value="Binary Search Tree Implementation"/>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Category</label>
+<div class="relative">
+<select class="w-full appearance-none bg-surface border border-outline-variant rounded-lg px-md py-sm pr-lg font-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary">
+<option>Data Structures</option>
+<option>Algorithms</option>
+<option>Basics</option>
+</select>
+<span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Difficulty</label>
+<div class="flex gap-xs bg-surface border border-outline-variant rounded-lg p-xs">
+<button class="flex-1 py-xs rounded text-label-sm font-label-sm hover:bg-surface-variant transition-colors text-on-surface-variant">Easy</button>
+<button class="flex-1 py-xs rounded text-label-sm font-label-sm bg-tertiary-container text-on-tertiary-container font-medium shadow-sm">Medium</button>
+<button class="flex-1 py-xs rounded text-label-sm font-label-sm hover:bg-surface-variant transition-colors text-on-surface-variant">Hard</button>
+</div>
+</div>
+<div class="col-span-2">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Tags</label>
+<div class="flex items-center gap-sm bg-surface border border-outline-variant rounded-lg px-md py-xs flex-wrap min-h-[44px]">
+<span class="px-sm py-xs bg-surface-container rounded flex items-center gap-xs text-label-sm font-label-sm text-on-surface"><span class="material-symbols-outlined text-[14px]">tag</span>Trees <button class="hover:text-error"><span class="material-symbols-outlined text-[14px]">close</span></button></span>
+<span class="px-sm py-xs bg-surface-container rounded flex items-center gap-xs text-label-sm font-label-sm text-on-surface"><span class="material-symbols-outlined text-[14px]">tag</span>Sorting <button class="hover:text-error"><span class="material-symbols-outlined text-[14px]">close</span></button></span>
+<input class="flex-1 bg-transparent border-none outline-none text-label-sm font-label-sm text-on-surface min-w-[100px]" placeholder="Add tag..." type="text"/>
+</div>
+</div>
+</div>
+</div>
+<!-- Markdown Editor Section -->
+<div class="flex-1 flex flex-col border border-outline-variant rounded-xl overflow-hidden min-h-[400px]">
+<div class="flex items-center justify-between px-md py-sm bg-surface-variant border-b border-outline-variant">
+<span class="font-label-sm text-label-sm text-on-surface font-medium flex items-center gap-xs"><span class="material-symbols-outlined text-[18px]">edit_document</span> Problem Description</span>
+<div class="flex gap-xs">
+<button class="p-xs hover:bg-surface-container rounded text-on-surface-variant transition-colors"><span class="material-symbols-outlined text-[18px]">format_bold</span></button>
+<button class="p-xs hover:bg-surface-container rounded text-on-surface-variant transition-colors"><span class="material-symbols-outlined text-[18px]">format_italic</span></button>
+<button class="p-xs hover:bg-surface-container rounded text-on-surface-variant transition-colors"><span class="material-symbols-outlined text-[18px]">code</span></button>
+<div class="w-px h-4 bg-outline-variant my-auto mx-xs"></div>
+<button class="px-sm py-xs bg-surface rounded text-label-sm font-label-sm text-on-surface border border-outline-variant shadow-sm flex items-center gap-xs"><span class="material-symbols-outlined text-[16px]">visibility</span> Preview</button>
+</div>
+</div>
+<textarea class="flex-1 w-full p-md bg-surface text-on-surface font-body-md resize-none focus:outline-none focus:ring-0 font-mono text-sm" placeholder="Write the problem description here in Markdown...">Implement a Binary Search Tree (BST) class with the following methods:
+
+1. `insert(value)`: Inserts a new value into the tree.
+2. `contains(value)`: Returns true if the value exists in the tree, false otherwise.
+3. `remove(value)`: Removes a value from the tree.
+
+**Constraints:**
+- Values will be unique integers.
+- The tree should maintain BST properties at all times.</textarea>
+</div>
+</div>
+</div>
+<!-- Right Panel: Testcases & Live IDE Preview -->
+<div class="w-1/2 flex flex-col bg-surface-container-lowest">
+<!-- Test Case Builder -->
+<div class="h-1/2 flex flex-col border-b border-outline-variant bg-surface">
+<div class="flex items-center justify-between px-md py-sm bg-surface-container-low border-b border-outline-variant">
+<span class="font-label-sm text-label-sm text-on-surface font-medium flex items-center gap-xs"><span class="material-symbols-outlined text-[18px]">fact_check</span> Test Cases</span>
+<button class="flex items-center gap-xs text-primary hover:text-primary-container transition-colors text-label-sm font-label-sm font-medium">
+<span class="material-symbols-outlined text-[18px]">add_circle</span> Add Test Case
+                        </button>
+</div>
+<div class="flex-1 overflow-y-auto p-md gap-md flex flex-col">
+<!-- Test Case Card -->
+<div class="border border-outline-variant rounded-lg bg-surface-container-lowest overflow-hidden shadow-sm">
+<div class="flex items-center justify-between px-md py-sm bg-surface-variant cursor-pointer group">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px] group-hover:text-primary transition-colors">drag_indicator</span>
+<span class="font-label-sm text-label-sm font-medium text-on-surface">Test Case 1 (Visible)</span>
+</div>
+<div class="flex items-center gap-sm">
+<label class="flex items-center gap-xs cursor-pointer">
+<input checked="" class="rounded border-outline-variant text-primary focus:ring-primary w-4 h-4" type="checkbox"/>
+<span class="text-label-sm text-on-surface-variant text-xs">Public</span>
+</label>
+<button class="text-on-surface-variant hover:text-error transition-colors p-xs rounded-full hover:bg-error-container">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</div>
+<div class="p-md grid grid-cols-2 gap-md bg-surface">
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs text-xs">Input</label>
+<textarea class="w-full bg-surface-container border border-outline-variant rounded p-sm font-mono text-xs focus:ring-1 focus:ring-primary outline-none resize-none h-20 text-on-surface">insert(10)
+insert(5)
+insert(15)
+contains(5)</textarea>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs text-xs">Expected Output</label>
+<textarea class="w-full bg-surface-container border border-outline-variant rounded p-sm font-mono text-xs focus:ring-1 focus:ring-primary outline-none resize-none h-20 text-on-surface">true</textarea>
+</div>
+</div>
+</div>
+<!-- Test Case Card (Hidden) -->
+<div class="border border-outline-variant rounded-lg bg-surface-container-lowest overflow-hidden opacity-80">
+<div class="flex items-center justify-between px-md py-sm bg-surface-variant cursor-pointer group">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px] group-hover:text-primary transition-colors">drag_indicator</span>
+<span class="font-label-sm text-label-sm font-medium text-on-surface">Test Case 2 (Hidden)</span>
+</div>
+<div class="flex items-center gap-sm">
+<label class="flex items-center gap-xs cursor-pointer">
+<input class="rounded border-outline-variant text-primary focus:ring-primary w-4 h-4" type="checkbox"/>
+<span class="text-label-sm text-on-surface-variant text-xs">Public</span>
+</label>
+<button class="text-on-surface-variant hover:text-error transition-colors p-xs rounded-full hover:bg-error-container">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</div>
+<div class="p-md grid grid-cols-2 gap-md bg-surface hidden">
+<!-- Collapsed content -->
+</div>
+</div>
+</div>
+</div>
+<!-- Live IDE Preview (Dark Theme mimic) -->
+<div class="h-1/2 flex flex-col bg-[#1e1e1e] text-[#d4d4d4]">
+<div class="flex items-center justify-between px-md py-sm bg-[#252526] border-b border-[#333333]">
+<span class="font-label-sm text-label-sm text-[#cccccc] font-medium flex items-center gap-xs"><span class="material-symbols-outlined text-[18px]">terminal</span> Starter Code Setup</span>
+<div class="flex items-center gap-md">
+<select class="bg-[#3c3c3c] border border-[#555555] rounded text-xs px-sm py-xs text-[#cccccc] outline-none">
+<option>JavaScript</option>
+<option>Python</option>
+<option>Java</option>
+</select>
+</div>
+</div>
+<div class="flex-1 p-md font-mono text-sm overflow-y-auto relative">
+<div class="absolute left-0 top-0 bottom-0 w-12 bg-[#1e1e1e] border-r border-[#333333] flex flex-col items-end py-md pr-sm text-[#858585] select-none">
+<span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+</div>
+<div class="pl-10">
+<pre><code><span class="text-[#569cd6]">class</span> <span class="text-[#4ec9b0]">BinarySearchTree</span> {
+    <span class="text-[#569cd6]">constructor</span>() {
+        <span class="text-[#569cd6]">this</span>.root = <span class="text-[#569cd6]">null</span>;
+    }
+
+    insert(value) {
+        <span class="text-[#6a9955]">// TODO: Implement insertion</span>
+    }
+
+    contains(value) {
+        <span class="text-[#6a9955]">// TODO: Implement search</span>
+    }
+}</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

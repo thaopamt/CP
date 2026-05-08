@@ -6,6 +6,7 @@ import { typeOrmConfig } from '../config/typeorm.config';
 import { envValidationSchema } from '../config/env.validation';
 import { AuthModule } from '../modules/auth/auth.module';
 import { UsersModule } from '../modules/users/users.module';
+import { ClassesModule } from '../modules/classes/classes.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { UsersModule } from '../modules/users/users.module';
     }),
     AuthModule,
     UsersModule,
+    ClassesModule,
   ],
 })
 export class AppModule {}

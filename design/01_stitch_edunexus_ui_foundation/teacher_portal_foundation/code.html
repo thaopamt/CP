@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Teacher Portal - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Lexend:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed-dim": "#e7c365",
+                    "surface-container-low": "#f8f2fa",
+                    "tertiary": "#765b00",
+                    "on-tertiary-fixed": "#241a00",
+                    "on-tertiary-fixed-variant": "#594400",
+                    "tertiary-fixed": "#ffdf93",
+                    "inverse-surface": "#322f35",
+                    "surface-bright": "#fdf7ff",
+                    "on-tertiary-container": "#503d00",
+                    "surface-dim": "#ded8e0",
+                    "primary": "#4f378a",
+                    "surface": "#fdf7ff",
+                    "error-container": "#ffdad6",
+                    "on-primary-fixed-variant": "#4f378a",
+                    "on-tertiary": "#ffffff",
+                    "primary-fixed-dim": "#cfbcff",
+                    "surface-container": "#f2ecf4",
+                    "primary-container": "#6750a4",
+                    "on-error": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "on-secondary-container": "#645a7d",
+                    "on-primary-container": "#e0d2ff",
+                    "tertiary-container": "#c9a74d",
+                    "surface-tint": "#6750a4",
+                    "secondary": "#63597c",
+                    "primary-fixed": "#e9ddff",
+                    "on-secondary-fixed": "#1f1635",
+                    "on-secondary": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "on-primary-fixed": "#22005d",
+                    "outline-variant": "#cbc4d2",
+                    "secondary-fixed": "#e9ddff",
+                    "on-secondary-fixed-variant": "#4b4263",
+                    "inverse-primary": "#cfbcff",
+                    "surface-container-highest": "#e6e0e9",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-variant": "#e6e0e9",
+                    "outline": "#7a7582",
+                    "background": "#fdf7ff",
+                    "on-surface-variant": "#494551",
+                    "inverse-on-surface": "#f5eff7",
+                    "on-background": "#1d1b20",
+                    "secondary-fixed-dim": "#cdc0e9",
+                    "surface-container-high": "#ece6ee",
+                    "on-surface": "#1d1b20",
+                    "error": "#ba1a1a",
+                    "secondary-container": "#e1d4fd"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xl": "32px",
+                    "sm": "8px",
+                    "xs": "4px",
+                    "lg": "24px",
+                    "md": "16px",
+                    "3xl": "64px",
+                    "2xl": "48px"
+            },
+            "fontFamily": {
+                    "headline-lg": [
+                            "manrope"
+                    ],
+                    "student-card-title": [
+                            "lexend"
+                    ],
+                    "body-md": [
+                            "inter"
+                    ],
+                    "body-lg": [
+                            "inter"
+                    ],
+                    "display-xl": [
+                            "manrope"
+                    ],
+                    "headline-md": [
+                            "manrope"
+                    ],
+                    "label-sm": [
+                            "lexend"
+                    ]
+            },
+            "fontSize": {
+                    "headline-lg": [
+                            "32px",
+                            {
+                                    "lineHeight": "1.2",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "student-card-title": [
+                            "20px",
+                            {
+                                    "lineHeight": "1.2",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-md": [
+                            "16px",
+                            {
+                                    "lineHeight": "1.5",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "body-lg": [
+                            "18px",
+                            {
+                                    "lineHeight": "1.6",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "display-xl": [
+                            "48px",
+                            {
+                                    "lineHeight": "1.1",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "800"
+                            }
+                    ],
+                    "headline-md": [
+                            "24px",
+                            {
+                                    "lineHeight": "1.3",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "label-sm": [
+                            "14px",
+                            {
+                                    "lineHeight": "1.4",
+                                    "letterSpacing": "0.01em",
+                                    "fontWeight": "500"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #fdf7ff; /* surface color */
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex flex-col md:flex-row">
+<!-- Mobile Top App Bar -->
+<header class="flex md:hidden justify-between items-center w-full px-md h-16 z-40 bg-surface shadow-sm fixed top-0 left-0">
+<div class="text-headline-md font-headline-md font-bold text-primary">EduPulse</div>
+<div class="flex items-center gap-sm">
+<button class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined">search</span>
+</button>
+<button class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold ml-2">
+                T
+            </div>
+</div>
+</header>
+<!-- Sidebar (Web) -->
+<aside class="hidden md:flex flex-col w-[280px] h-screen p-md gap-sm bg-surface-container-low border-r border-outline-variant fixed left-0 top-0 z-50">
+<div class="flex items-center gap-sm mb-lg px-2 pt-2">
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold text-headline-sm">
+                EP
+            </div>
+<div>
+<h2 class="text-headline-sm font-headline-sm font-extrabold text-primary">Teacher Portal</h2>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Classroom Management</p>
+</div>
+</div>
+<nav class="flex-1 flex flex-col gap-xs">
+<a class="flex items-center gap-md px-3 py-2 rounded-lg bg-primary-container text-on-primary-container font-bold translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-label-sm font-label-sm">Dashboard</span>
+</a>
+<a class="flex items-center gap-md px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200" href="#">
+<span class="material-symbols-outlined">event</span>
+<span class="text-label-sm font-label-sm">Schedule</span>
+</a>
+<a class="flex items-center gap-md px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="text-label-sm font-label-sm">My Classes</span>
+</a>
+<a class="flex items-center gap-md px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="text-label-sm font-label-sm">Assignments</span>
+</a>
+<a class="flex items-center gap-md px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200" href="#">
+<span class="material-symbols-outlined">grade</span>
+<span class="text-label-sm font-label-sm">Gradebook</span>
+</a>
+</nav>
+<div class="mt-auto">
+<a class="flex items-center gap-md px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-label-sm font-label-sm">Settings</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-[280px] pt-16 md:pt-0 pb-20 md:pb-0 px-md md:px-lg py-lg bg-surface">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-lg gap-md">
+<div>
+<h1 class="text-headline-lg font-headline-lg text-on-surface">Good morning, Mr. Davis</h1>
+<p class="text-body-lg font-body-lg text-on-surface-variant mt-xs">Here is your schedule and tasks for today, Tuesday, Oct 24.</p>
+</div>
+<div class="flex gap-sm w-full md:w-auto">
+<button class="flex-1 md:flex-none flex items-center justify-center gap-sm bg-primary text-on-primary px-4 py-2 rounded-lg font-label-sm text-label-sm hover:brightness-95 transition-all shadow-sm">
+<span class="material-symbols-outlined text-[20px]">how_to_reg</span>
+                    Add Attendance
+                </button>
+<button class="flex-1 md:flex-none flex items-center justify-center gap-sm bg-secondary-container text-on-secondary-container px-4 py-2 rounded-lg font-label-sm text-label-sm hover:brightness-95 transition-all shadow-sm">
+<span class="material-symbols-outlined text-[20px]">add_box</span>
+                    Create Quiz
+                </button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+<!-- Schedule Widget (Spans 8 cols) -->
+<section class="lg:col-span-8 bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-md shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+<div class="flex justify-between items-center border-b border-outline-variant pb-sm">
+<h2 class="text-headline-md font-headline-md text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">calendar_today</span>
+                        Today's Schedule
+                    </h2>
+<button class="text-label-sm font-label-sm text-primary hover:underline">View Week</button>
+</div>
+<div class="flex flex-col gap-sm overflow-y-auto pr-2" style="max-height: 400px;">
+<!-- Time Block 1 -->
+<div class="flex gap-md p-sm rounded-lg hover:bg-surface-container-low transition-colors group">
+<div class="flex flex-col w-20 text-right shrink-0">
+<span class="text-label-sm font-label-sm text-on-surface">08:00 AM</span>
+<span class="text-[12px] text-on-surface-variant">45 min</span>
+</div>
+<div class="w-1 bg-tertiary-container rounded-full shrink-0"></div>
+<div class="flex-1 bg-surface-container-lowest border border-outline-variant rounded-lg p-sm shadow-sm group-hover:border-tertiary-container transition-colors">
+<h3 class="text-body-md font-body-md font-bold text-on-surface">AP Physics C</h3>
+<p class="text-label-sm font-label-sm text-on-surface-variant flex items-center gap-xs mt-1">
+<span class="material-symbols-outlined text-[16px]">room</span> Room 302
+                            </p>
+</div>
+</div>
+<!-- Time Block 2 (Active/Current) -->
+<div class="flex gap-md p-sm rounded-lg bg-primary-container/10 border border-primary/20 relative">
+<div class="absolute -left-1 top-1/2 w-2 h-2 rounded-full bg-primary"></div>
+<div class="flex flex-col w-20 text-right shrink-0">
+<span class="text-label-sm font-label-sm text-primary font-bold">09:00 AM</span>
+<span class="text-[12px] text-primary/80">60 min</span>
+</div>
+<div class="w-1 bg-primary rounded-full shrink-0"></div>
+<div class="flex-1 bg-primary-container text-on-primary-container rounded-lg p-sm shadow-sm">
+<div class="flex justify-between items-start">
+<h3 class="text-body-md font-body-md font-bold">Advanced Chemistry</h3>
+<span class="bg-surface text-primary px-2 py-0.5 rounded text-[12px] font-bold">NOW</span>
+</div>
+<p class="text-label-sm font-label-sm flex items-center gap-xs mt-1 opacity-90">
+<span class="material-symbols-outlined text-[16px]">room</span> Lab 4B
+                            </p>
+</div>
+</div>
+<!-- Time Block 3 -->
+<div class="flex gap-md p-sm rounded-lg hover:bg-surface-container-low transition-colors group">
+<div class="flex flex-col w-20 text-right shrink-0">
+<span class="text-label-sm font-label-sm text-on-surface">10:15 AM</span>
+<span class="text-[12px] text-on-surface-variant">30 min</span>
+</div>
+<div class="w-1 bg-secondary-container rounded-full shrink-0"></div>
+<div class="flex-1 bg-surface-container-lowest border border-outline-variant rounded-lg p-sm shadow-sm border-dashed">
+<h3 class="text-body-md font-body-md font-bold text-on-surface">Planning Period</h3>
+<p class="text-label-sm font-label-sm text-on-surface-variant flex items-center gap-xs mt-1">
+<span class="material-symbols-outlined text-[16px]">chair</span> Faculty Lounge
+                            </p>
+</div>
+</div>
+</div>
+</section>
+<!-- Tasks Widget (Spans 4 cols) -->
+<section class="lg:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-md shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+<div class="flex justify-between items-center border-b border-outline-variant pb-sm">
+<h2 class="text-headline-md font-headline-md text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">checklist</span>
+                        Action Items
+                    </h2>
+</div>
+<div class="flex flex-col gap-sm">
+<!-- Task Item 1 -->
+<div class="flex items-start gap-sm p-sm rounded-lg hover:bg-surface-container-low transition-colors cursor-pointer border border-transparent hover:border-outline-variant">
+<input class="mt-1 rounded text-primary focus:ring-primary border-outline" type="checkbox"/>
+<div class="flex-1">
+<p class="text-body-md font-body-md text-on-surface leading-tight">Grade AP Physics Lab Reports</p>
+<p class="text-label-sm font-label-sm text-error mt-1 flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]">warning</span> Due Today
+                            </p>
+</div>
+</div>
+<!-- Task Item 2 -->
+<div class="flex items-start gap-sm p-sm rounded-lg hover:bg-surface-container-low transition-colors cursor-pointer border border-transparent hover:border-outline-variant">
+<input class="mt-1 rounded text-primary focus:ring-primary border-outline" type="checkbox"/>
+<div class="flex-1">
+<p class="text-body-md font-body-md text-on-surface leading-tight">Prepare Chemistry Midterm Draft</p>
+<p class="text-label-sm font-label-sm text-on-surface-variant mt-1">Due Tomorrow</p>
+</div>
+</div>
+<!-- Task Item 3 -->
+<div class="flex items-start gap-sm p-sm rounded-lg hover:bg-surface-container-low transition-colors cursor-pointer border border-transparent hover:border-outline-variant">
+<input class="mt-1 rounded text-primary focus:ring-primary border-outline" type="checkbox"/>
+<div class="flex-1">
+<p class="text-body-md font-body-md text-on-surface leading-tight">Review Student Accommodations List</p>
+<p class="text-label-sm font-label-sm text-on-surface-variant mt-1">Due Friday</p>
+</div>
+</div>
+</div>
+<button class="mt-auto w-full py-2 flex items-center justify-center gap-xs text-primary font-label-sm text-label-sm rounded-lg hover:bg-surface-container-low transition-colors border border-dashed border-primary">
+<span class="material-symbols-outlined text-[18px]">add</span> Add Task
+                </button>
+</section>
+</div>
+</main>
+<!-- Mobile Bottom Navigation -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-sm pb-safe pt-xs bg-surface/80 backdrop-blur-md border-t border-outline-variant shadow-[0_-4px_12px_rgba(0,0,0,0.05)] rounded-t-xl h-20">
+<a class="flex flex-col items-center justify-center text-primary font-bold px-4 py-1" href="#">
+<span class="material-symbols-outlined bg-primary-container text-on-primary-container rounded-full px-4 py-1">dashboard</span>
+<span class="text-[12px] mt-1">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1" href="#">
+<span class="material-symbols-outlined">event</span>
+<span class="text-[12px] mt-1">Schedule</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="text-[12px] mt-1">Tasks</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[12px] mt-1">Profile</span>
+</a>
+</nav>
+</body></html>

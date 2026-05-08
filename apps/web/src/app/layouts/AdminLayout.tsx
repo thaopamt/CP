@@ -1,13 +1,18 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
 import { LogoutButton, UserAvatar } from './_shared';
 
-const NAV = [
-  { to: '/admin', icon: 'dashboard', label: 'Dashboard', end: true },
-  { to: '/admin/users', icon: 'group', label: 'Users' },
-  { to: '/admin/classes', icon: 'school', label: 'Classes' },
-  { to: '/admin/reports', icon: 'analytics', label: 'Reports' },
-  { to: '/admin/settings', icon: 'settings', label: 'Settings' },
+const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
+  { to: '/admin', icon: 'dashboard', key: 'nav.admin.dashboard', end: true },
+  { to: '/admin/students', icon: 'groups', key: 'nav.admin.students' },
+  { to: '/admin/classes', icon: 'class', key: 'nav.admin.classes' },
+  { to: '/admin/courses', icon: 'menu_book', key: 'nav.admin.curriculum' },
+  { to: '/admin/schedule', icon: 'calendar_month', key: 'nav.admin.schedule' },
+  { to: '/admin/finance', icon: 'payments', key: 'nav.admin.finance' },
+  { to: '/admin/users', icon: 'group', key: 'nav.admin.users' },
+  { to: '/admin/settings', icon: 'settings', key: 'nav.admin.settings' },
 ];
 
 /**
@@ -15,19 +20,27 @@ const NAV = [
  * 280px fixed sidebar + thin top app bar, compact density.
  */
 export default function AdminLayout() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
+  const { pathname } = useLocation();
+  const current =
+    NAV.find((item) => (item.end ? pathname === item.to : pathname.startsWith(item.to)));
+  const currentLabel = current ? t(current.key) : t('nav.admin.dashboard');
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface text-on-surface font-inter">
-      {/* ─ Sidebar (280px) ─────────────────────────────────────── */}
       <nav className="hidden lg:flex flex-col w-[280px] h-screen p-md gap-sm bg-surface-container-low border-r border-outline-variant shrink-0 z-20">
         <div className="flex items-center gap-md px-sm py-lg">
           <div className="w-10 h-10 rounded-lg bg-primary text-on-primary grid place-items-center font-manrope font-extrabold">
             EN
           </div>
           <div>
-            <h1 className="text-label-sm font-extrabold text-primary leading-tight">Admin Portal</h1>
-            <p className="text-[12px] text-on-surface-variant opacity-80">Institutional Management</p>
+            <h1 className="text-label-sm font-extrabold text-primary leading-tight">
+              {t('brand.adminPortal')}
+            </h1>
+            <p className="text-[12px] text-on-surface-variant opacity-80">
+              {t('brand.portalSubtitleAdmin')}
+            </p>
           </div>
         </div>
 
@@ -47,7 +60,7 @@ export default function AdminLayout() {
               }
             >
               <span className="material-symbols-outlined">{item.icon}</span>
-              {item.label}
+              {t(item.key)}
             </NavLink>
           ))}
         </div>
@@ -55,17 +68,19 @@ export default function AdminLayout() {
         <LogoutButton />
       </nav>
 
-      {/* ─ Main area ─────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         <header className="flex justify-between items-center px-md md:px-lg h-16 bg-surface border-b border-outline-variant shrink-0 z-30">
           <div className="flex items-center gap-md">
-            <button className="lg:hidden p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors">
+            <button
+              className="lg:hidden p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors"
+              aria-label={t('common.more')}
+            >
               <span className="material-symbols-outlined">menu</span>
             </button>
             <div className="hidden sm:flex items-center gap-sm text-label-sm text-on-surface-variant">
-              <span>Admin</span>
+              <span>{t('topBar.breadcrumbAdmin')}</span>
               <span className="material-symbols-outlined text-[16px]">chevron_right</span>
-              <span className="text-on-surface font-semibold">Dashboard</span>
+              <span className="text-on-surface font-semibold">{currentLabel}</span>
             </div>
           </div>
           <div className="flex items-center gap-sm md:gap-md">
@@ -75,14 +90,18 @@ export default function AdminLayout() {
               </span>
               <input
                 type="text"
-                placeholder="Search across portal..."
+                placeholder={t('topBar.searchPortal')}
                 className="pl-10 pr-4 py-2 bg-surface-container-highest border-none rounded-full text-label-sm focus:ring-2 focus:ring-primary w-[240px] lg:w-[320px] outline-none"
               />
             </div>
-            <button className="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high relative">
+            <button
+              className="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high relative"
+              aria-label={t('topBar.notifications')}
+            >
               <span className="material-symbols-outlined">notifications</span>
               <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full" />
             </button>
+            <LanguageSwitcher />
             <UserAvatar user={user} size="sm" />
           </div>
         </header>

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Course Management Detail Page &amp; Curriculum Builder</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Lexend:wght@500;600&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface": "#fdf7ff",
+                        "tertiary-container": "#c9a74d",
+                        "background": "#fdf7ff",
+                        "tertiary": "#765b00",
+                        "inverse-surface": "#322f35",
+                        "primary-fixed-dim": "#cfbcff",
+                        "outline-variant": "#cbc4d2",
+                        "on-primary-container": "#e0d2ff",
+                        "on-secondary-fixed": "#1f1635",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-high": "#ece6ee",
+                        "surface-container-highest": "#e6e0e9",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed": "#ffdf93",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed": "#22005d",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#e9ddff",
+                        "surface-dim": "#ded8e0",
+                        "surface-tint": "#6750a4",
+                        "on-tertiary-container": "#503d00",
+                        "tertiary-fixed-dim": "#e7c365",
+                        "inverse-primary": "#cfbcff",
+                        "primary": "#4f378a",
+                        "surface-bright": "#fdf7ff",
+                        "on-surface-variant": "#494551",
+                        "on-background": "#1d1b20",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-container": "#e1d4fd",
+                        "error": "#ba1a1a",
+                        "secondary-fixed-dim": "#cdc0e9",
+                        "outline": "#7a7582",
+                        "surface-variant": "#e6e0e9",
+                        "secondary": "#63597c",
+                        "on-secondary-container": "#645a7d",
+                        "surface-container-low": "#f8f2fa",
+                        "on-tertiary-fixed": "#241a00",
+                        "secondary-fixed": "#e9ddff",
+                        "on-error-container": "#93000a",
+                        "on-surface": "#1d1b20",
+                        "on-tertiary-fixed-variant": "#594400",
+                        "inverse-on-surface": "#f5eff7",
+                        "on-secondary-fixed-variant": "#4b4263",
+                        "on-primary-fixed-variant": "#4f378a",
+                        "on-primary": "#ffffff",
+                        "surface-container": "#f2ecf4",
+                        "primary-container": "#6750a4"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "2xl": "48px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "3xl": "64px",
+                        "xs": "4px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "student-card-title": ["lexend"],
+                        "body-md": ["inter"],
+                        "headline-md": ["manrope"],
+                        "headline-lg": ["manrope"],
+                        "body-lg": ["inter"],
+                        "label-sm": ["lexend"],
+                        "display-xl": ["manrope"]
+                    },
+                    "fontSize": {
+                        "student-card-title": ["20px", { "lineHeight": "1.2", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "label-sm": ["14px", { "lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "display-xl": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="hidden lg:flex flex-col w-[280px] h-screen p-md gap-sm bg-surface-container-low border-r border-outline-variant fixed left-0 top-0 z-40">
+<div class="flex items-center gap-sm mb-lg px-sm">
+<img alt="Institution Logo" class="w-10 h-10 rounded-lg object-cover" data-alt="A small, square, stylized logo featuring an abstract geometric owl shape in deep purple (primary theme color) on a pristine white background. The logo is modern, minimalist, and perfectly fits an educational SaaS platform's branding. Soft, even lighting ensures crisp edges." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB5cxbZG6dGPatVFw9N05Vn9P-fdUqFbtoaTPbAghxpmMCJO1BUUpPIXFeyVcfDMsnboHpA1nqcgGoM1Hlk4fXcodJtW4vBCsaUq6_ZUK5d9m5eYWK8Fb-u_udnAH4Sbtw4bmP69Nrf4ciYRlGhwEfqR9SfH1yf0o7OkbT7q0Ml8gz7ajAmIz6C-9Cc8Co8g67V5c9OhY59EZutuDvxpMoVOpwkP9nNxJ02vF7OZak-gKdho-koYBXArRf08BN2GwfZCt5eZtZPXMw"/>
+<div>
+<h1 class="text-headline-sm font-headline-sm font-extrabold text-primary">Admin Portal</h1>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Institutional Management</p>
+</div>
+</div>
+<div class="flex flex-col gap-xs flex-1">
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="dashboard">dashboard</span>
+<span class="text-label-sm font-label-sm">Dashboard</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="school">school</span>
+<span class="text-label-sm font-label-sm">Classrooms</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="group">group</span>
+<span class="text-label-sm font-label-sm">Students</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg bg-primary-container text-on-primary-container font-bold translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="menu_book" data-weight="fill" style="font-variation-settings: 'FILL' 1;">menu_book</span>
+<span class="text-label-sm font-label-sm">Curriculum</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="analytics">analytics</span>
+<span class="text-label-sm font-label-sm">Analytics</span>
+</a>
+</div>
+<div class="mt-auto">
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
+<span class="text-label-sm font-label-sm">Settings</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 lg:ml-[280px] flex flex-col min-h-screen">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-md md:px-lg h-16 z-40 bg-surface shadow-sm sticky top-0">
+<div class="flex items-center gap-md lg:hidden">
+<span class="material-symbols-outlined text-on-surface" data-icon="menu">menu</span>
+<span class="text-headline-md font-headline-md font-bold text-primary">EduPulse</span>
+</div>
+<div class="hidden lg:flex items-center">
+<span class="text-headline-md font-headline-md font-bold text-primary">EduPulse</span>
+</div>
+<div class="flex items-center gap-sm">
+<div class="relative hidden md:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" data-icon="search">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant rounded-full text-body-md font-body-md focus:outline-none focus:ring-2 focus:ring-primary w-64" placeholder="Search..." type="text"/>
+</div>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<img alt="User profile" class="w-8 h-8 rounded-full border border-outline-variant object-cover ml-2" data-alt="A close-up, professional portrait of a male teacher in his late 30s with a neat beard, wearing a casual but smart navy blue button-down shirt. The background is a slightly blurred, bright, and modern classroom setting. Soft, natural daylight illuminates his face evenly, creating a friendly and approachable mood suitable for a premium educational platform avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_YwVGeg8Cb4MyGUMjjVw9eo0_nuVNzVwA49cUwqH8g1EPPp38RYfq_8JzW2pkBV8DTnD6Oe4GjN1MhGXLqPb0ShKrXEi-8dXZ5kcdQoJedE05S5Jwl3eu2T9REk3UrHinECyT7Qvb39YLimguWroQx9U4--Kd0QnRQYE6Iwi9LQTL8vdTjDbI_OVcZBoNcWqcI7nT1RGzX95bOAYPDmvXVvd8tbvkWu7FJbxyIwWE4SrmnKLi2HhudXDJcKGN7oIZQ8_C_DHSNNA"/>
+</div>
+</header>
+<!-- Page Content -->
+<main class="flex-1 p-md md:p-lg lg:p-xl overflow-y-auto bg-surface-container-lowest">
+<div class="flex items-center justify-between mb-lg">
+<div>
+<div class="flex items-center gap-xs text-label-sm font-label-sm text-on-surface-variant mb-2">
+<span class="hover:text-primary cursor-pointer transition-colors">Curriculum</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="hover:text-primary cursor-pointer transition-colors">Science Dept</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-on-surface font-semibold">Biology 101</span>
+</div>
+<h2 class="text-headline-lg font-headline-lg text-on-background flex items-center gap-sm">
+                        Advanced Cellular Biology
+                        <span class="bg-secondary-container text-on-secondary-container text-label-sm px-2 py-1 rounded-full align-middle font-normal">Draft</span>
+</h2>
+</div>
+<div class="flex gap-sm">
+<button class="px-4 py-2 border border-outline-variant text-on-surface rounded-lg font-label-sm hover:bg-surface-container-low transition-colors">Preview</button>
+<button class="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-sm hover:brightness-95 transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">publish</span>
+                        Publish Course
+                    </button>
+</div>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-lg items-start">
+<!-- Left Column: Course Overview (Bento Style) -->
+<div class="xl:col-span-4 flex flex-col gap-lg">
+<!-- Cover Image Card -->
+<div class="bg-surface rounded-xl border border-surface-variant overflow-hidden flex flex-col shadow-sm">
+<div class="h-48 w-full bg-surface-container relative">
+<img alt="Course Cover" class="w-full h-full object-cover" data-alt="A vivid, macro photograph of a microscope slide glowing under polarized light, revealing complex cellular structures in bright neon hues of purple, blue, and gold. The style is modern, scientific, and highly detailed, perfectly matching a high-end educational SaaS platform's aesthetic for an advanced biology course. The lighting is dramatic yet clean." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbsAyed8QsxOyLTsGp56fn9_4AljgFcMF2AHzq4xt0JIQt0mBgerP6_GCqot13yq2zlIRT5kiJhkJ1u5L-V-e6VYdY-FQWBB2tXFlgSTDkaK4U3CXU5TLndK53eAiayAyeb44kQJmYHfFYwtJOwhYo9WpQoaAh95CqwHL7Ly3zdS3TEH1zoXnz5zCgq9BxMs1tgzp_XH5xbsxqCG9_2vVZ1suNKqMIbxEZh5blIyhUz1X3zU9_bb2xywyzH8raPxnuAFt4mgUr4x4"/>
+<button class="absolute top-sm right-sm p-1.5 bg-surface/80 backdrop-blur-sm rounded-lg text-on-surface hover:bg-surface transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+</div>
+<div class="p-md flex flex-col gap-sm">
+<div class="flex items-center gap-sm text-label-sm font-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">schedule</span> 12 Weeks</span>
+<span>•</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">school</span> 4 Credits</span>
+</div>
+<p class="text-body-md font-body-md text-on-surface-variant">
+                                A comprehensive deep dive into cellular structures, metabolic pathways, and genetic mechanisms. Designed for advanced pre-med students.
+                            </p>
+</div>
+</div>
+<!-- Meta Details Bento Grid -->
+<div class="grid grid-cols-2 gap-sm">
+<div class="bg-surface rounded-xl border border-surface-variant p-md flex flex-col shadow-sm">
+<span class="text-label-sm font-label-sm text-on-surface-variant mb-1">Instructor</span>
+<div class="flex items-center gap-2 mt-auto">
+<img alt="Instructor Profile" class="w-8 h-8 rounded-full object-cover" data-alt="A clear, professional headshot of a female professor in her early 40s. She is smiling subtly and wearing glasses, dressed in a smart blazer over a crisp white shirt. The background is a bright, softly out-of-focus university library. The image is evenly lit, projecting warmth, intelligence, and academic authority suited for an educational platform." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCCwK-T3VOBdRroCtKBnorxa7VTNYV3tNm0vy93b1EvlvbriGcoIU8cIZQdoWM8eEnBKS_yrXVZcyrEHS3Ely40jJNy8EnchTb5-cf_ptuytN8uImAVMStEzvA9SmecuIFDgnjXvBMlEDv5SN-Kti1u6AhSRaHOo2JJgLTg3rbLjkh2QdfBSyivMkcAphna6hmasfNYUtRpFfXJGKaSFad2OmJwJAqL_Tsl5BRZ4YVX5zAfkLZ2uGKIhE5jipX1qLvG_pofrTWQFBg"/>
+<span class="text-body-md font-body-md font-medium text-on-surface">Dr. Sarah Jenkins</span>
+</div>
+</div>
+<div class="bg-surface rounded-xl border border-surface-variant p-md flex flex-col shadow-sm">
+<span class="text-label-sm font-label-sm text-on-surface-variant mb-1">Capacity</span>
+<div class="flex items-end gap-2 mt-auto">
+<span class="text-headline-md font-headline-md text-primary">24</span>
+<span class="text-body-md font-body-md text-on-surface-variant mb-1">/ 30 Enrolled</span>
+</div>
+</div>
+<div class="bg-surface rounded-xl border border-surface-variant p-md flex flex-col col-span-2 shadow-sm">
+<div class="flex justify-between items-center mb-sm">
+<span class="text-label-sm font-label-sm text-on-surface-variant">Prerequisites</span>
+<button class="text-primary hover:bg-primary-container/20 rounded-full p-1 transition-colors">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+<div class="flex flex-wrap gap-2">
+<span class="bg-surface-container px-2 py-1 rounded-md text-label-sm text-on-surface border border-outline-variant">BIO 100</span>
+<span class="bg-surface-container px-2 py-1 rounded-md text-label-sm text-on-surface border border-outline-variant">CHEM 101</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Visual Curriculum Builder -->
+<div class="xl:col-span-8 flex flex-col gap-md">
+<div class="flex justify-between items-center bg-surface-container-low p-md rounded-xl border border-surface-variant">
+<div>
+<h3 class="text-headline-md font-headline-md text-on-surface">Curriculum Builder</h3>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Drag and drop to reorder modules and lessons.</p>
+</div>
+<button class="px-4 py-2 bg-surface border border-outline-variant text-primary rounded-lg font-label-sm hover:bg-surface-container transition-colors flex items-center gap-2 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add_box</span>
+                            Add Module
+                        </button>
+</div>
+<!-- Builder Canvas -->
+<div class="flex flex-col gap-md">
+<!-- Module 1 -->
+<div class="bg-surface rounded-xl border border-surface-variant shadow-sm overflow-hidden">
+<!-- Module Header -->
+<div class="bg-surface-container-lowest border-b border-surface-variant p-md flex items-center gap-sm cursor-move group hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-outline-variant cursor-grab active:cursor-grabbing opacity-50 group-hover:opacity-100 transition-opacity">drag_indicator</span>
+<div class="flex-1 flex items-center gap-sm">
+<span class="bg-primary/10 text-primary font-bold text-label-sm px-2 py-1 rounded">M1</span>
+<h4 class="text-body-lg font-headline-md text-on-surface font-semibold">Cellular Foundations</h4>
+</div>
+<div class="flex items-center gap-xs">
+<span class="text-label-sm font-label-sm text-on-surface-variant mr-2">3 Lessons</span>
+<button class="p-1.5 text-on-surface-variant hover:bg-surface-container rounded-md transition-colors"><span class="material-symbols-outlined text-[20px]">edit</span></button>
+<button class="p-1.5 text-on-surface-variant hover:bg-surface-container rounded-md transition-colors"><span class="material-symbols-outlined text-[20px]">more_vert</span></button>
+<button class="p-1.5 text-on-surface-variant hover:bg-surface-container rounded-md transition-colors ml-2"><span class="material-symbols-outlined text-[20px] transform rotate-180">expand_more</span></button>
+</div>
+</div>
+<!-- Lessons List -->
+<div class="p-sm flex flex-col gap-xs bg-surface/50">
+<!-- Lesson Item -->
+<div class="flex items-center gap-sm p-sm rounded-lg border border-transparent hover:border-surface-variant hover:bg-surface-container-lowest transition-all group bg-surface shadow-sm">
+<span class="material-symbols-outlined text-outline-variant cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity">drag_indicator</span>
+<div class="w-8 h-8 rounded bg-secondary-container flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[18px]">play_circle</span>
+</div>
+<div class="flex-1">
+<p class="text-body-md font-body-md text-on-surface">1.1 Introduction to Prokaryotic Cells</p>
+</div>
+<div class="flex items-center gap-sm opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="text-label-sm text-outline">Video • 12m</span>
+<button class="p-1 text-on-surface-variant hover:bg-surface-container rounded"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+</div>
+</div>
+<!-- Lesson Item -->
+<div class="flex items-center gap-sm p-sm rounded-lg border border-transparent hover:border-surface-variant hover:bg-surface-container-lowest transition-all group bg-surface shadow-sm">
+<span class="material-symbols-outlined text-outline-variant cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity">drag_indicator</span>
+<div class="w-8 h-8 rounded bg-tertiary-container/30 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[18px]">description</span>
+</div>
+<div class="flex-1">
+<p class="text-body-md font-body-md text-on-surface">1.2 Organelle Functions Deep Dive</p>
+</div>
+<div class="flex items-center gap-sm opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="text-label-sm text-outline">Reading • 15m</span>
+<button class="p-1 text-on-surface-variant hover:bg-surface-container rounded"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+</div>
+</div>
+<!-- Add Lesson Drop zone -->
+<button class="mt-2 py-2 w-full border-2 border-dashed border-surface-variant rounded-lg text-label-sm font-label-sm text-on-surface-variant hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">add</span> Add Lesson or Quiz
+                                </button>
+</div>
+</div>
+<!-- Module 2 (Collapsed) -->
+<div class="bg-surface rounded-xl border border-surface-variant shadow-sm overflow-hidden">
+<div class="bg-surface-container-lowest p-md flex items-center gap-sm cursor-move group hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-outline-variant cursor-grab active:cursor-grabbing opacity-50 group-hover:opacity-100 transition-opacity">drag_indicator</span>
+<div class="flex-1 flex items-center gap-sm">
+<span class="bg-primary/10 text-primary font-bold text-label-sm px-2 py-1 rounded">M2</span>
+<h4 class="text-body-lg font-headline-md text-on-surface font-semibold">Energy &amp; Metabolism</h4>
+</div>
+<div class="flex items-center gap-xs">
+<span class="text-label-sm font-label-sm text-on-surface-variant mr-2">4 Lessons</span>
+<button class="p-1.5 text-on-surface-variant hover:bg-surface-container rounded-md transition-colors"><span class="material-symbols-outlined text-[20px]">edit</span></button>
+<button class="p-1.5 text-on-surface-variant hover:bg-surface-container rounded-md transition-colors"><span class="material-symbols-outlined text-[20px]">more_vert</span></button>
+<button class="p-1.5 text-on-surface-variant hover:bg-surface-container rounded-md transition-colors ml-2"><span class="material-symbols-outlined text-[20px]">expand_more</span></button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
