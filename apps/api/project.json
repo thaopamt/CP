@@ -1,0 +1,61 @@
+{
+  "name": "api",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/api/src",
+  "projectType": "application",
+  "tags": ["scope:api", "type:app"],
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/apps/api",
+        "main": "apps/api/src/main.ts",
+        "tsConfig": "apps/api/tsconfig.app.json",
+        "assets": ["apps/api/src/assets"],
+        "webpackConfig": "apps/api/webpack.config.js"
+      },
+      "configurations": {
+        "development": {},
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "dependsOn": ["build"],
+      "options": {
+        "buildTarget": "api:build",
+        "runBuildTargetDependencies": false
+      },
+      "configurations": {
+        "development": { "buildTarget": "api:build:development" },
+        "production": { "buildTarget": "api:build:production" }
+      }
+    },
+    "seed": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-users.ts",
+        "cwd": "."
+      }
+    },
+    "typeorm-generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx ./node_modules/typeorm/cli.js migration:generate -d apps/api/src/database/data-source.ts apps/api/src/database/migrations/{args.name}",
+        "cwd": "."
+      }
+    },
+    "typeorm-run": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx ./node_modules/typeorm/cli.js migration:run -d apps/api/src/database/data-source.ts",
+        "cwd": "."
+      }
+    }
+  }
+}
