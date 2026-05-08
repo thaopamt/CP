@@ -46,7 +46,7 @@ import { UpdateClassDto } from './dto/update-class.dto';
 @Controller('classes')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ClassesController implements CrudController<ClassEntity> {
-  constructor(public service: ClassesService) {}
+  constructor(public service: ClassesService) { }
 
   @Override('createOneBase')
   @Roles(UserRole.ADMIN)
@@ -55,13 +55,12 @@ export class ClassesController implements CrudController<ClassEntity> {
     return this.service.createWithSessions(dto);
   }
 
-  @Override('updateOneBase')
   @Roles(UserRole.ADMIN)
   @Patch(':id')
-  async updateOne(
+  async updateClass(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: any,
+    @Body() dto: UpdateClassDto,
   ): Promise<ClassEntity> {
-    throw new BadRequestException('I AM DEFINITELY CALLED!');
+    return this.service.updateWithSessions(id, dto);
   }
 }

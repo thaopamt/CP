@@ -1,0 +1,65 @@
+import { Body, Controller, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Crud, CrudController, Override } from '@dataui/crud';
+import { UserRole } from '@cp/shared';
+
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { StudentProfile } from './student-profile.entity';
+import { StudentsService } from './students.service';
+import { CreateStudentDto } from './dto/create-student.dto';
+import { UpdateStudentDto } from './dto/update-student.dto';
+
+/**
+ * RESTful surface for student profiles (StudentProfile entity, 1-1 User).
+ *
+ *   GET    /api/students            — list (any auth user)
+ *   GET    /api/students/:id        — one (eager: user + guardians)
+ *   POST   /api/students            — ADMIN — create User+Profile+Guardians atomically
+ *   PATCH  /api/students/:id        — ADMIN — partial update + replace guardians
+ *   DELETE /api/students/:id        — ADMIN — soft delete (cascades to User via FK)
+ */
+@Crud({
+  model: { type: StudentProfile },
+  dto: {
+    create: CreateStudentDto,
+    update: UpdateStudentDto,
+    replace: CreateStudentDto,
+  },
+  query: {
+    sort: [{ field: 'createdAt', order: 'DESC' }],
+    join: {
+      user: { eager: true },
+      guardians: { eager: true },
+    },
+  },
+  routes: {
+    exclude: ['updateOneBase'],
+    createOneBase: { decorators: [Roles(UserRole.ADMIN)] },
+    createManyBase: { decorators: [Roles(UserRole.ADMIN)] },
+    replaceOneBase: { decorators: [Roles(UserRole.ADMIN)] },
+    deleteOneBase: { decorators: [Roles(UserRole.ADMIN)] },
+  },
+  params: { id: { field: 'id', type: 'uuid', primary: true } },
+})
+@Controller('students')
+@UseGuards(JwtAuthGuard, RolesGuard)
+export class StudentsController implements CrudController<StudentProfile> {
+  constructor(public service: StudentsService) {}
+
+  @Override('createOneBase')
+  @Roles(UserRole.ADMIN)
+  @Post()
+  async createOne(@Body() dto: CreateStudentDto): Promise<StudentProfile> {
+    return this.service.createStudent(dto);
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Patch(':id')
+  async updateOne(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateStudentDto,
+  ): Promise<StudentProfile> {
+    return this.service.updateStudent(id, dto);
+  }
+}

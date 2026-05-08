@@ -29,7 +29,10 @@ const StudentLayout = lazy(() => import('./layouts/StudentLayout'));
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
 const AdminDashboard = lazy(() => import('./pages/admin/DashboardPage'));
 const AdminUsers = lazy(() => import('./pages/admin/UsersPage'));
-const AdminStudents = lazy(() => import('./pages/admin/StudentsPage'));
+const AdminStudents = lazy(() => import('./pages/admin/students/StudentsListPage'));
+const AdminStudentCreate = lazy(() => import('./pages/admin/students/StudentCreatePage'));
+const AdminStudentEdit = lazy(() => import('./pages/admin/students/StudentEditPage'));
+const AdminStudentProfile = lazy(() => import('./pages/admin/students/StudentProfilePage'));
 const AdminCourses = lazy(() => import('./pages/admin/CoursesPage'));
 const AdminSchedule = lazy(() => import('./pages/admin/SchedulePage'));
 const AdminFinance = lazy(() => import('./pages/admin/FinancePage'));
@@ -80,6 +83,9 @@ export default function App() {
               >
                 <Route index element={<AdminDashboard />} />
                 <Route path="students" element={<AdminStudents />} />
+                <Route path="students/new" element={<AdminStudentCreate />} />
+                <Route path="students/:studentId" element={<AdminStudentProfile />} />
+                <Route path="students/:studentId/edit" element={<AdminStudentEdit />} />
                 <Route path="classes" element={<AdminClassesList />} />
                 <Route path="classes/new" element={<AdminClassCreate />} />
                 <Route path="classes/:classId" element={<AdminClassDetail />} />

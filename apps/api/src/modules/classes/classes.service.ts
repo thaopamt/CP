@@ -9,6 +9,7 @@ import { ClassSession } from './class-session.entity';
 import { Enrollment } from './enrollment.entity';
 import { User } from '../users/user.entity';
 import { CreateClassDto } from './dto/create-class.dto';
+import { UpdateClassDto } from './dto/update-class.dto';
 
 @Injectable()
 export class ClassesService extends TypeOrmCrudService<ClassEntity> {
@@ -78,8 +79,7 @@ export class ClassesService extends TypeOrmCrudService<ClassEntity> {
    * Override the @Crud `updateOneBase` to support atomic updates to the
    * class entity along with replacing its sessions.
    */
-  async updateWithSessions(id: string, dto: import('./dto/update-class.dto').UpdateClassDto): Promise<ClassEntity> {
-    console.log('updateWithSessions called with dto:', dto);
+  async updateWithSessions(id: string, dto: UpdateClassDto): Promise<ClassEntity> {
     const cls = await this.repo.findOne({ where: { id } });
     if (!cls) throw new NotFoundException(`Class ${id} not found`);
 
@@ -102,24 +102,23 @@ export class ClassesService extends TypeOrmCrudService<ClassEntity> {
       if (dto.term !== undefined) patch.term = dto.term;
       if (dto.instructorId !== undefined) patch.instructorId = dto.instructorId ?? null;
 
-      patch.name = 'DEBUG NAME'; // FORCE UPDATE
-
       if (Object.keys(patch).length > 0) {
         await tx.getRepository(ClassEntity).update(id, patch);
       }
 
       if (dto.sessions) {
         await tx.getRepository(ClassSession).delete({ classId: id });
-        const rows = dto.sessions.map((s) =>
-          tx.getRepository(ClassSession).create({
-            classId: id,
-            dayOfWeek: s.dayOfWeek,
-            startTime: s.startTime,
-            endTime: s.endTime,
-            room: s.room ?? null,
-          }),
-        );
-        await tx.getRepository(ClassSession).save(rows);
+        
+        if (dto.sessions.length > 0) {
+          const rows = dto.sessions.map((s: any) => {
+            const { id: _id, version: _v, createdAt: _c, updatedAt: _u, deletedAt: _d, ...rest } = s;
+            return {
+              ...rest,
+              classId: id,
+            };
+          });
+          await tx.getRepository(ClassSession).save(rows);
+        }
       }
 
       const loaded = await tx.getRepository(ClassEntity).findOne({
