@@ -1,5 +1,5 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
-import { Crud, CrudController, Override } from '@dataui/crud';
+import { Body, Controller, Post, Patch, UseGuards, Param, ParseUUIDPipe, BadRequestException } from '@nestjs/common';
+import { Crud, CrudController, Override, ParsedRequest, CrudRequest, ParsedBody } from '@dataui/crud';
 import { UserRole } from '@cp/shared';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -8,6 +8,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { ClassEntity } from './class.entity';
 import { ClassesService } from './classes.service';
 import { CreateClassDto } from './dto/create-class.dto';
+import { UpdateClassDto } from './dto/update-class.dto';
 
 /**
  * RESTful surface for `classes` (course offerings, NOT curriculum).
@@ -21,6 +22,11 @@ import { CreateClassDto } from './dto/create-class.dto';
  */
 @Crud({
   model: { type: ClassEntity },
+  dto: {
+    create: CreateClassDto,
+    update: UpdateClassDto,
+    replace: CreateClassDto,
+  },
   query: {
     sort: [{ field: 'createdAt', order: 'DESC' }],
     join: {
@@ -29,9 +35,9 @@ import { CreateClassDto } from './dto/create-class.dto';
     },
   },
   routes: {
+    exclude: ['updateOneBase'],
     createOneBase: { decorators: [Roles(UserRole.ADMIN)] },
     createManyBase: { decorators: [Roles(UserRole.ADMIN)] },
-    updateOneBase: { decorators: [Roles(UserRole.ADMIN)] },
     replaceOneBase: { decorators: [Roles(UserRole.ADMIN)] },
     deleteOneBase: { decorators: [Roles(UserRole.ADMIN)] },
   },
@@ -42,15 +48,20 @@ import { CreateClassDto } from './dto/create-class.dto';
 export class ClassesController implements CrudController<ClassEntity> {
   constructor(public service: ClassesService) {}
 
-  /**
-   * Override the default `createOneBase` so we can validate against the
-   * `CreateClassDto` schema (which requires sessions[]) and run the
-   * write inside a transaction.
-   */
   @Override('createOneBase')
   @Roles(UserRole.ADMIN)
   @Post()
   async createOne(@Body() dto: CreateClassDto): Promise<ClassEntity> {
     return this.service.createWithSessions(dto);
+  }
+
+  @Override('updateOneBase')
+  @Roles(UserRole.ADMIN)
+  @Patch(':id')
+  async updateOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: any,
+  ): Promise<ClassEntity> {
+    throw new BadRequestException('I AM DEFINITELY CALLED!');
   }
 }

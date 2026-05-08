@@ -594,6 +594,15 @@ const vi: AppResources = {
             timeOrder: 'Giờ kết thúc phải sau giờ bắt đầu',
           },
         },
+        edit: {
+          title: 'Sửa lớp học',
+          subtitle: 'Cập nhật thông tin, lịch học hoặc sĩ số của lớp.',
+          actions: {
+            cancel: 'Huỷ',
+            saveChanges: 'Lưu thay đổi',
+          },
+          savedToast: 'Đã cập nhật lớp thành công.',
+        },
         detail: {
           backToClasses: 'Về danh sách lớp',
           editClass: 'Sửa lớp',

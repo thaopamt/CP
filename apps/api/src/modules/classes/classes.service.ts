@@ -75,6 +75,63 @@ export class ClassesService extends TypeOrmCrudService<ClassEntity> {
   }
 
   /**
+   * Override the @Crud `updateOneBase` to support atomic updates to the
+   * class entity along with replacing its sessions.
+   */
+  async updateWithSessions(id: string, dto: import('./dto/update-class.dto').UpdateClassDto): Promise<ClassEntity> {
+    console.log('updateWithSessions called with dto:', dto);
+    const cls = await this.repo.findOne({ where: { id } });
+    if (!cls) throw new NotFoundException(`Class ${id} not found`);
+
+    if (dto.instructorId) {
+      const instructor = await this.users.findOne({ where: { id: dto.instructorId } });
+      if (!instructor) {
+        throw new BadRequestException(`Instructor ${dto.instructorId} not found`);
+      }
+    }
+
+    return this.ds.transaction(async (tx) => {
+      const patch: Partial<ClassEntity> = {};
+      if (dto.name !== undefined) patch.name = dto.name;
+      if (dto.code !== undefined) patch.code = dto.code;
+      if (dto.department !== undefined) patch.department = dto.department;
+      if (dto.description !== undefined) patch.description = dto.description ?? null;
+      if (dto.room !== undefined) patch.room = dto.room ?? null;
+      if (dto.capacity !== undefined) patch.capacity = dto.capacity;
+      if (dto.status !== undefined) patch.status = dto.status;
+      if (dto.term !== undefined) patch.term = dto.term;
+      if (dto.instructorId !== undefined) patch.instructorId = dto.instructorId ?? null;
+
+      patch.name = 'DEBUG NAME'; // FORCE UPDATE
+
+      if (Object.keys(patch).length > 0) {
+        await tx.getRepository(ClassEntity).update(id, patch);
+      }
+
+      if (dto.sessions) {
+        await tx.getRepository(ClassSession).delete({ classId: id });
+        const rows = dto.sessions.map((s) =>
+          tx.getRepository(ClassSession).create({
+            classId: id,
+            dayOfWeek: s.dayOfWeek,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            room: s.room ?? null,
+          }),
+        );
+        await tx.getRepository(ClassSession).save(rows);
+      }
+
+      const loaded = await tx.getRepository(ClassEntity).findOne({
+        where: { id },
+        relations: ['sessions', 'instructor'],
+      });
+      if (!loaded) throw new NotFoundException();
+      return loaded;
+    });
+  }
+
+  /**
    * Recalculate the denormalized `enrolledCount` and bump status to FULL
    * when the class hits capacity. Called whenever an enrollment row is
    * inserted or removed.

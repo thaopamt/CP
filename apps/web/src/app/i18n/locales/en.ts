@@ -596,6 +596,15 @@ const en = {
             timeOrder: 'End time must be after start time',
           },
         },
+        edit: {
+          title: 'Edit Class',
+          subtitle: 'Update class information, schedule, or capacity.',
+          actions: {
+            cancel: 'Cancel',
+            saveChanges: 'Save changes',
+          },
+          savedToast: 'Class updated successfully.',
+        },
         detail: {
           backToClasses: 'Back to classes',
           editClass: 'Edit class',

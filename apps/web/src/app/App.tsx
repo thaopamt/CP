@@ -36,6 +36,7 @@ const AdminFinance = lazy(() => import('./pages/admin/FinancePage'));
 const AdminClassesList = lazy(() => import('./pages/admin/classes/ClassesListPage'));
 const AdminClassCreate = lazy(() => import('./pages/admin/classes/ClassCreatePage'));
 const AdminClassDetail = lazy(() => import('./pages/admin/classes/ClassDetailPage'));
+const AdminClassEdit = lazy(() => import('./pages/admin/classes/ClassEditPage'));
 const TeacherDashboard = lazy(() => import('./pages/teacher/DashboardPage'));
 const TeacherClasses = lazy(() => import('./pages/teacher/ClassesPage'));
 const TeacherAttendance = lazy(() => import('./pages/teacher/AttendancePage'));
@@ -82,6 +83,7 @@ export default function App() {
                 <Route path="classes" element={<AdminClassesList />} />
                 <Route path="classes/new" element={<AdminClassCreate />} />
                 <Route path="classes/:classId" element={<AdminClassDetail />} />
+                <Route path="classes/:classId/edit" element={<AdminClassEdit />} />
                 <Route path="courses" element={<AdminCourses />} />
                 <Route path="schedule" element={<AdminSchedule />} />
                 <Route path="finance" element={<AdminFinance />} />

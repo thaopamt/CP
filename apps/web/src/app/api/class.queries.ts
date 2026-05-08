@@ -53,6 +53,17 @@ export function useCreateClass() {
   });
 }
 
+export function useUpdateClass(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: Partial<ICreateClassPayload>) => classesApi.update(id, patch),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: classQueryKeys.detail(id) });
+      void qc.invalidateQueries({ queryKey: ['classes', 'list'] });
+    },
+  });
+}
+
 export function useDeleteClass() {
   const qc = useQueryClient();
   return useMutation({
