@@ -9,6 +9,10 @@ import { ClassSession } from '../modules/classes/class-session.entity';
 import { Enrollment } from '../modules/classes/enrollment.entity';
 import { StudentProfile } from '../modules/students/student-profile.entity';
 import { Guardian } from '../modules/students/guardian.entity';
+import { Assignment } from '../modules/assignments/assignment.entity';
+import { Course } from '../modules/courses/course.entity';
+import { CourseAssignment } from '../modules/courses/course-assignment.entity';
+import { ClassCourse } from '../modules/classes/class-course.entity';
 
 // Load env in CLI context (TypeORM CLI doesn't go through ConfigModule)
 loadEnv({ path: join(process.cwd(), 'apps/api/.env') });
@@ -29,7 +33,18 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USER ?? 'cp',
   password: process.env.DB_PASSWORD ?? 'cp',
   database: process.env.DB_NAME ?? 'cp',
-  entities: [User, ClassEntity, ClassSession, Enrollment, StudentProfile, Guardian],
+  entities: [
+    User,
+    ClassEntity,
+    ClassSession,
+    Enrollment,
+    StudentProfile,
+    Guardian,
+    Assignment,
+    Course,
+    CourseAssignment,
+    ClassCourse,
+  ],
   migrations: [join(__dirname, 'migrations/*.{ts,js}')],
   synchronize: false,
   logging: ['error', 'warn'],

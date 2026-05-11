@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar, Button, Icon, SearchBox } from '@cp/ui';
+import { EnrollmentStatus } from '@cp/shared';
 import { useStudentsList } from '../../../api/student.queries';
 
 interface AssignStudentsModalProps {
@@ -30,7 +31,7 @@ export function AssignStudentsModal({
     page: 1,
     limit: 50, // Fetch up to 50 for the modal
     search,
-    status: 'ACTIVE', // Only assign active students
+    status: EnrollmentStatus.ACTIVE, // Only assign active students
   });
 
   const students = data?.items ?? [];

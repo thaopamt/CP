@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Class Curriculum - EduAdmin Pro</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Lexend:wght@500;600&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed-dim": "#cdc0e9",
+                        "on-surface": "#1d1b20",
+                        "on-secondary-fixed": "#1f1635",
+                        "primary-fixed": "#e9ddff",
+                        "on-secondary-container": "#645a7d",
+                        "inverse-on-surface": "#f5eff7",
+                        "on-background": "#1d1b20",
+                        "primary-container": "#6750a4",
+                        "on-tertiary-fixed-variant": "#594400",
+                        "on-error-container": "#93000a",
+                        "surface-container-low": "#f8f2fa",
+                        "on-primary-fixed": "#22005d",
+                        "outline-variant": "#cbc4d2",
+                        "on-tertiary-fixed": "#241a00",
+                        "on-primary-fixed-variant": "#4f378a",
+                        "on-tertiary-container": "#503d00",
+                        "surface-tint": "#6750a4",
+                        "surface": "#fdf7ff",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#e7c365",
+                        "surface-container-highest": "#e6e0e9",
+                        "surface-variant": "#e6e0e9",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed": "#e9ddff",
+                        "inverse-surface": "#322f35",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-container": "#e0d2ff",
+                        "inverse-primary": "#cfbcff",
+                        "primary-fixed-dim": "#cfbcff",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#fdf7ff",
+                        "on-secondary-fixed-variant": "#4b4263",
+                        "secondary-container": "#e1d4fd",
+                        "surface-container": "#f2ecf4",
+                        "on-surface-variant": "#494551",
+                        "surface-dim": "#ded8e0",
+                        "tertiary": "#765b00",
+                        "primary": "#4f378a",
+                        "background": "#fdf7ff",
+                        "outline": "#7a7582",
+                        "tertiary-fixed": "#ffdf93",
+                        "error": "#ba1a1a",
+                        "tertiary-container": "#c9a74d",
+                        "surface-container-high": "#ece6ee",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#63597c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "lg": "24px",
+                        "xl": "32px",
+                        "md": "16px",
+                        "2xl": "48px",
+                        "xs": "4px",
+                        "sm": "8px",
+                        "3xl": "64px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["manrope"],
+                        "display-xl": ["manrope"],
+                        "label-sm": ["lexend"],
+                        "body-md": ["inter"],
+                        "student-card-title": ["lexend"],
+                        "headline-md": ["manrope"],
+                        "body-lg": ["inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "display-xl": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "label-sm": ["14px", { "lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "student-card-title": ["20px", { "lineHeight": "1.2", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md h-screen flex overflow-hidden">
+<!-- SideNavBar Component -->
+<nav class="bg-surface-container-low dark:bg-surface-dim border-r border-outline-variant dark:border-outline fixed left-0 top-0 h-full w-[280px] flex flex-col py-lg z-40">
+<div class="px-lg mb-xl flex items-center gap-md">
+<div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dataset</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md font-bold text-on-surface dark:text-inverse-on-surface">Curriculum</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Management Portal</p>
+</div>
+</div>
+<div class="px-lg mb-lg">
+<button class="w-full bg-primary hover:brightness-95 text-on-primary rounded-lg py-sm px-md flex items-center justify-center gap-sm font-label-sm text-label-sm transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.1)]">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                Create New Course
+            </button>
+</div>
+<div class="flex-1 overflow-y-auto px-sm space-y-xs">
+<a class="flex items-center gap-md text-on-surface-variant dark:text-surface-variant px-md py-sm hover:bg-surface-variant dark:hover:bg-on-surface-variant transition-all duration-150 rounded-lg font-label-sm text-label-sm" href="#">
+<span class="material-symbols-outlined">library_books</span>
+                Catalog
+            </a>
+<a class="flex items-center gap-md text-on-surface-variant dark:text-surface-variant px-md py-sm hover:bg-surface-variant dark:hover:bg-on-surface-variant transition-all duration-150 rounded-lg font-label-sm text-label-sm" href="#">
+<span class="material-symbols-outlined">account_tree</span>
+                Course Builder
+            </a>
+<a class="flex items-center gap-md bg-secondary-container dark:bg-secondary-fixed-variant text-on-secondary-container dark:text-on-secondary-fixed rounded-lg px-md py-sm font-semibold font-label-sm text-label-sm scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">subject</span>
+                Subjects
+            </a>
+<a class="flex items-center gap-md text-on-surface-variant dark:text-surface-variant px-md py-sm hover:bg-surface-variant dark:hover:bg-on-surface-variant transition-all duration-150 rounded-lg font-label-sm text-label-sm" href="#">
+<span class="material-symbols-outlined">menu_book</span>
+                Lessons
+            </a><a class="flex items-center gap-md text-on-surface-variant dark:text-surface-variant px-md py-sm hover:bg-surface-variant dark:hover:bg-on-surface-variant transition-all duration-150 rounded-lg font-label-sm text-label-sm" href="#">
+<span class="material-symbols-outlined">assignment</span>
+                Assignments
+            </a>
+<a class="flex items-center gap-md text-on-surface-variant dark:text-surface-variant px-md py-sm hover:bg-surface-variant dark:hover:bg-on-surface-variant transition-all duration-150 rounded-lg font-label-sm text-label-sm" href="#">
+<span class="material-symbols-outlined">route</span>
+                Learning Paths
+            </a>
+<a class="flex items-center gap-md text-on-surface-variant dark:text-surface-variant px-md py-sm hover:bg-surface-variant dark:hover:bg-on-surface-variant transition-all duration-150 rounded-lg font-label-sm text-label-sm" href="#">
+<span class="material-symbols-outlined">description</span>
+                Templates
+            </a>
+</div>
+<div class="mt-auto px-sm pt-md border-t border-outline-variant space-y-xs">
+<a class="flex items-center gap-md text-on-surface-variant dark:text-surface-variant px-md py-sm hover:bg-surface-variant dark:hover:bg-on-surface-variant transition-all duration-150 rounded-lg font-label-sm text-label-sm" href="#">
+<span class="material-symbols-outlined">help</span>
+                Support
+            </a>
+<a class="flex items-center gap-md text-on-surface-variant dark:text-surface-variant px-md py-sm hover:bg-surface-variant dark:hover:bg-on-surface-variant transition-all duration-150 rounded-lg font-label-sm text-label-sm" href="#">
+<span class="material-symbols-outlined">menu_book</span>
+                Documentation
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-[280px] flex flex-col h-full bg-surface-container-lowest">
+<!-- TopNavBar Component -->
+<header class="bg-surface-container-lowest dark:bg-surface-dim border-b border-outline-variant dark:border-outline w-full px-lg h-16 sticky top-0 z-50 flex justify-between items-center">
+<div class="flex items-center gap-xl h-full">
+<div class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed mr-xl">EduAdmin Pro</div>
+<div class="relative hidden md:flex items-center h-full">
+<span class="material-symbols-outlined absolute left-sm text-on-surface-variant">search</span>
+<input class="pl-xl pr-sm py-xs bg-surface-container rounded-lg border-none focus:ring-2 focus:ring-primary text-body-md font-body-md w-64" placeholder="Search curriculum..." type="text"/>
+</div>
+<nav class="hidden md:flex h-full gap-lg">
+<a class="text-on-surface-variant dark:text-surface-variant font-body-md text-body-md hover:text-primary dark:hover:text-primary-fixed-dim transition-colors duration-200 flex items-center h-full" href="#">Dashboard</a>
+<a class="text-primary dark:text-primary-fixed border-b-2 border-primary dark:border-primary-fixed font-semibold pb-1 font-body-md text-body-md opacity-80 flex items-center h-full pt-1" href="#">Curriculum</a>
+<a class="text-on-surface-variant dark:text-surface-variant font-body-md text-body-md hover:text-primary dark:hover:text-primary-fixed-dim transition-colors duration-200 flex items-center h-full" href="#">Faculty</a>
+<a class="text-on-surface-variant dark:text-surface-variant font-body-md text-body-md hover:text-primary dark:hover:text-primary-fixed-dim transition-colors duration-200 flex items-center h-full" href="#">Reports</a>
+<a class="text-on-surface-variant dark:text-surface-variant font-body-md text-body-md hover:text-primary dark:hover:text-primary-fixed-dim transition-colors duration-200 flex items-center h-full" href="#">Assignments</a></nav>
+</div>
+<div class="flex items-center gap-md">
+<button class="text-on-surface-variant hover:text-primary transition-colors duration-200 w-10 h-10 rounded-full hover:bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors duration-200 w-10 h-10 rounded-full hover:bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<img alt="Administrator Profile" class="w-8 h-8 rounded-full border border-outline-variant object-cover" data-alt="A professional headshot of a school administrator in a modern office setting. The lighting is soft and natural, creating a trustworthy and competent mood. The aesthetic is clean and corporate, fitting for a premium educational SaaS platform." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKL2FvvMlU2y5TXpIwS8AKnhwjqRl5hpfIs9xVjLUFeLldRxIE7AbEGa50AbCvwzsgBftaJBYbnRMSHuZ0ydPpRz9e4B__Tw97331JdYIGdQTyifH83c-fu5rjhMiIFvhD3rtdI6THIl5veQT6C6gljy09Zxcpa5EgGA9vHJTtkedMa3b7V1aoUI5PisTleFQZIDGwnJaCmnE6psqY_JdM2Aatek-_0blzE_cZruYLxzsZqL2hT_54BoLNysyICPNv9sO7WPouUK8"/>
+</div>
+</header>
+<!-- Canvas Content -->
+<div class="flex-1 overflow-y-auto p-xl">
+<!-- Page Header -->
+<div class="flex justify-between items-end mb-xl">
+<div>
+<div class="flex items-center gap-sm text-on-surface-variant font-label-sm text-label-sm mb-xs">
+<a class="hover:text-primary transition-colors" href="#">Subjects</a>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<a class="hover:text-primary transition-colors" href="#">Advanced Computer Science (CS401)</a>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Class Curriculum</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Define the learning sequence and manage assigned courses for this class.</p>
+</div>
+<div class="flex gap-sm">
+<button class="bg-surface-container hover:bg-surface-container-high text-on-surface rounded-lg py-sm px-md flex items-center gap-sm font-label-sm text-label-sm transition-colors border border-outline-variant">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+                        Student View
+                    </button>
+<button class="bg-primary hover:brightness-95 text-on-primary rounded-lg py-sm px-md flex items-center gap-sm font-label-sm text-label-sm transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.1)]">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                        Add Course
+                    </button>
+</div>
+</div>
+<div class="grid grid-cols-12 gap-lg">
+<!-- Main Sequence Area -->
+<div class="col-span-8 space-y-md">
+<!-- Search/Filter Bar -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-sm flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant ml-sm">search</span>
+<input class="flex-1 bg-transparent border-none focus:ring-0 text-body-md font-body-md text-on-surface placeholder:text-on-surface-variant" placeholder="Filter courses in curriculum..." type="text"/>
+<div class="w-px h-6 bg-outline-variant mx-sm"></div>
+<button class="text-on-surface-variant hover:text-primary p-sm rounded-md transition-colors flex items-center gap-xs font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+                            Filter
+                        </button>
+</div>
+<!-- Draggable List -->
+<div class="space-y-sm">
+<!-- Course Item 1: Prerequisite -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-md flex items-center gap-md group hover:border-primary transition-colors relative shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+<div class="cursor-grab text-outline hover:text-on-surface">
+<span class="material-symbols-outlined">drag_indicator</span>
+</div>
+<div class="w-12 h-12 rounded-md bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">terminal</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-sm mb-xs">
+<h3 class="font-student-card-title text-student-card-title text-on-surface truncate">Introduction to Algorithms</h3>
+<span class="bg-error-container text-on-error-container px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Prerequisite</span>
+</div>
+<div class="flex items-center gap-md text-on-surface-variant font-label-sm text-label-sm">
+<span class="flex items-center gap-xs"><span class="material-symbols-outlined text-[14px]">schedule</span> 4 Weeks</span>
+<span class="flex items-center gap-xs"><span class="material-symbols-outlined text-[14px]">star</span> 3 Credits</span>
+</div>
+</div>
+<div class="flex items-center gap-sm shrink-0">
+<label class="flex items-center cursor-pointer">
+<div class="relative">
+<input checked="" class="sr-only" type="checkbox"/>
+<div class="block bg-primary w-10 h-6 rounded-full"></div>
+<div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition transform translate-x-4"></div>
+</div>
+</label>
+<button class="p-xs text-on-surface-variant hover:text-on-surface rounded-md hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Course Item 2: Recommended Start -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-md flex items-center gap-md group hover:border-primary transition-colors relative shadow-[0_1px_2px_rgba(0,0,0,0.04)] border-l-4 border-l-tertiary-container">
+<div class="cursor-grab text-outline hover:text-on-surface">
+<span class="material-symbols-outlined">drag_indicator</span>
+</div>
+<div class="w-12 h-12 rounded-md bg-primary-container text-on-primary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">data_object</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-sm mb-xs">
+<h3 class="font-student-card-title text-student-card-title text-on-surface truncate">Data Structures &amp; Analysis</h3>
+<span class="bg-tertiary-container text-on-tertiary-container px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">start</span> Recommended Start
+                                    </span>
+</div>
+<div class="flex items-center gap-md text-on-surface-variant font-label-sm text-label-sm">
+<span class="flex items-center gap-xs"><span class="material-symbols-outlined text-[14px]">schedule</span> 6 Weeks</span>
+<span class="flex items-center gap-xs"><span class="material-symbols-outlined text-[14px]">star</span> 4 Credits</span>
+</div>
+</div>
+<div class="flex items-center gap-sm shrink-0">
+<label class="flex items-center cursor-pointer">
+<div class="relative">
+<input checked="" class="sr-only" type="checkbox"/>
+<div class="block bg-primary w-10 h-6 rounded-full"></div>
+<div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition transform translate-x-4"></div>
+</div>
+</label>
+<button class="p-xs text-on-surface-variant hover:text-on-surface rounded-md hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Sidebar Metadata -->
+<div class="col-span-4 space-y-lg">
+<!-- Progress Summary Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-lg shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+<h3 class="font-student-card-title text-student-card-title text-on-surface mb-md">Curriculum Summary</h3>
+<div class="space-y-sm mb-lg">
+<div class="flex justify-between items-center text-label-sm font-label-sm">
+<span class="text-on-surface-variant">Total Courses</span>
+<span class="text-on-surface font-semibold">5</span>
+</div>
+<div class="flex justify-between items-center text-label-sm font-label-sm">
+<span class="text-on-surface-variant">Estimated Duration</span>
+<span class="text-on-surface font-semibold">24 Weeks</span>
+</div>
+<div class="flex justify-between items-center text-label-sm font-label-sm">
+<span class="text-on-surface-variant">Total Credits</span>
+<span class="text-on-surface font-semibold">18 Credits</span>
+</div>
+</div>
+<div class="h-px w-full bg-outline-variant mb-md"></div>
+<h4 class="font-label-sm text-label-sm text-on-surface font-semibold mb-sm">Completion Logic</h4>
+<select class="w-full bg-surface-container border-outline-variant rounded-md text-body-md font-body-md text-on-surface focus:ring-primary focus:border-primary">
+<option>Strict Sequence (Linear)</option>
+<option>Flexible (Prerequisites Only)</option>
+<option>Open (Any Order)</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

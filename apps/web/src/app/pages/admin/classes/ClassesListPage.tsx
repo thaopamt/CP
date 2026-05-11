@@ -170,6 +170,15 @@ export default function ClassesListPage() {
           <div className="opacity-0 group-hover:opacity-100 inline-flex gap-xs transition-opacity">
             <button
               type="button"
+              onClick={() => navigate(`/admin/classes/${row.id}/curriculum`)}
+              className="p-1 rounded text-on-surface-variant hover:text-primary"
+              aria-label={t('pages.admin.classes.detail.manageCurriculum')}
+              title={t('pages.admin.classes.detail.manageCurriculum')}
+            >
+              <Icon name="library_books" size={18} />
+            </button>
+            <button
+              type="button"
               onClick={() => navigate(`/admin/classes/${row.id}`)}
               className="p-1 rounded text-on-surface-variant hover:text-primary"
               aria-label={t('common.viewAll')}

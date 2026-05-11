@@ -8,6 +8,8 @@ import { AuthModule } from '../modules/auth/auth.module';
 import { UsersModule } from '../modules/users/users.module';
 import { ClassesModule } from '../modules/classes/classes.module';
 import { StudentsModule } from '../modules/students/students.module';
+import { AssignmentsModule } from '../modules/assignments/assignments.module';
+import { CoursesModule } from '../modules/courses/courses.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { StudentsModule } from '../modules/students/students.module';
     }),
     AuthModule,
     UsersModule,
+    AssignmentsModule,
+    CoursesModule,
     ClassesModule,
     StudentsModule,
   ],

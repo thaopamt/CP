@@ -10,6 +10,7 @@
 import 'reflect-metadata';
 import * as bcrypt from 'bcryptjs';
 import {
+  AssignmentType,
   ClassDepartment,
   ClassStatus,
   DayOfWeek,
@@ -18,6 +19,7 @@ import {
   Gender,
   GuardianRelationship,
   PaymentStatus,
+  PublishStatus,
   UserRole,
 } from '@cp/shared';
 
@@ -28,6 +30,10 @@ import { ClassSession } from '../../modules/classes/class-session.entity';
 import { Enrollment } from '../../modules/classes/enrollment.entity';
 import { StudentProfile } from '../../modules/students/student-profile.entity';
 import { Guardian } from '../../modules/students/guardian.entity';
+import { Assignment } from '../../modules/assignments/assignment.entity';
+import { Course } from '../../modules/courses/course.entity';
+import { CourseAssignment } from '../../modules/courses/course-assignment.entity';
+import { ClassCourse } from '../../modules/classes/class-course.entity';
 
 const SEED_USERS = [
   { email: 'admin@cp.local', firstName: 'Ada', lastName: 'Admin', role: UserRole.ADMIN },
@@ -297,6 +303,195 @@ async function run() {
     );
     // eslint-disable-next-line no-console
     console.log(`+  profile ${seed.studentId} for ${seed.email} (${seed.guardians.length} guardian(s))`);
+  }
+
+  // ── Assignments + Courses + Class curriculum links ───────────────────────
+  const assignmentRepo = AppDataSource.getRepository(Assignment);
+  const courseRepo = AppDataSource.getRepository(Course);
+  const courseAssignmentRepo = AppDataSource.getRepository(CourseAssignment);
+  const classCourseRepo = AppDataSource.getRepository(ClassCourse);
+
+  const ASSIGNMENT_SEED: Array<{
+    title: string;
+    description: string;
+    type: AssignmentType;
+    difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+    subject: string;
+    points: number;
+    estimatedMinutes: number;
+  }> = [
+    {
+      title: 'Binary Search Tree Implementation',
+      description: 'Implement insertion, search, and traversal on a Binary Search Tree.',
+      type: AssignmentType.CODING,
+      difficulty: 'MEDIUM',
+      subject: 'Computer Science',
+      points: 50,
+      estimatedMinutes: 90,
+    },
+    {
+      title: 'Big-O Notation Quiz',
+      description: 'Multiple-choice quiz covering time and space complexity basics.',
+      type: AssignmentType.QUIZ,
+      difficulty: 'EASY',
+      subject: 'Computer Science',
+      points: 20,
+      estimatedMinutes: 30,
+    },
+    {
+      title: 'Sorting Algorithms Comparison',
+      description: 'Comparative essay on Quick Sort vs Merge Sort efficiency.',
+      type: AssignmentType.WRITING,
+      difficulty: 'HARD',
+      subject: 'Computer Science',
+      points: 80,
+      estimatedMinutes: 180,
+    },
+    {
+      title: 'Multivariable Calculus Problem Set',
+      description: 'Practice problems on partial derivatives and gradient vectors.',
+      type: AssignmentType.PROJECT,
+      difficulty: 'HARD',
+      subject: 'Mathematics',
+      points: 100,
+      estimatedMinutes: 240,
+    },
+    {
+      title: 'Vector Field Reading',
+      description: 'Read chapters 4-5 of the textbook on vector fields and line integrals.',
+      type: AssignmentType.READING,
+      difficulty: 'MEDIUM',
+      subject: 'Mathematics',
+      points: 15,
+      estimatedMinutes: 60,
+    },
+  ];
+
+  const assignmentsByTitle = new Map<string, Assignment>();
+  for (const seed of ASSIGNMENT_SEED) {
+    const existing = await assignmentRepo.findOne({ where: { title: seed.title } });
+    if (existing) {
+      assignmentsByTitle.set(seed.title, existing);
+      continue;
+    }
+    const saved = await assignmentRepo.save(
+      assignmentRepo.create({ ...seed, status: PublishStatus.PUBLISHED }),
+    );
+    assignmentsByTitle.set(seed.title, saved);
+    // eslint-disable-next-line no-console
+    console.log(`+  assignment "${seed.title}" (${seed.type}, ${seed.points}pts)`);
+  }
+
+  const COURSE_SEED: Array<{
+    code: string;
+    title: string;
+    description: string;
+    credits: number;
+    durationWeeks: number;
+    subject: string;
+    assignments: string[];
+  }> = [
+    {
+      code: 'CS-DS-01',
+      title: 'Advanced Data Structures',
+      description: 'A deep dive into trees, heaps, graphs, and their algorithms.',
+      credits: 3.0,
+      durationWeeks: 8,
+      subject: 'Computer Science',
+      assignments: [
+        'Big-O Notation Quiz',
+        'Binary Search Tree Implementation',
+        'Sorting Algorithms Comparison',
+      ],
+    },
+    {
+      code: 'MATH-301A',
+      title: 'Multivariable Calculus Foundations',
+      description: 'Foundations of vector calculus, partial derivatives, and integrals.',
+      credits: 3.0,
+      durationWeeks: 16,
+      subject: 'Mathematics',
+      assignments: ['Vector Field Reading', 'Multivariable Calculus Problem Set'],
+    },
+  ];
+
+  const coursesByCode = new Map<string, Course>();
+  for (const seed of COURSE_SEED) {
+    const existing = await courseRepo.findOne({ where: { code: seed.code } });
+    let course = existing;
+    if (!course) {
+      course = await courseRepo.save(
+        courseRepo.create({
+          code: seed.code,
+          title: seed.title,
+          description: seed.description,
+          credits: seed.credits,
+          durationWeeks: seed.durationWeeks,
+          subject: seed.subject,
+          status: PublishStatus.PUBLISHED,
+        }),
+      );
+      // eslint-disable-next-line no-console
+      console.log(`+  course ${seed.code} — ${seed.title}`);
+    }
+    coursesByCode.set(seed.code, course);
+
+    // Attach assignments in order
+    let order = 1;
+    let totalPoints = 0;
+    for (const title of seed.assignments) {
+      const a = assignmentsByTitle.get(title);
+      if (!a) continue;
+      const link = await courseAssignmentRepo.findOne({
+        where: { courseId: course.id, assignmentId: a.id },
+      });
+      if (!link) {
+        await courseAssignmentRepo.save(
+          courseAssignmentRepo.create({
+            courseId: course.id,
+            assignmentId: a.id,
+            orderIndex: order,
+          }),
+        );
+      }
+      order++;
+      totalPoints += a.points;
+    }
+    await courseRepo.update(
+      { id: course.id },
+      { assignmentCount: seed.assignments.length, totalPoints },
+    );
+  }
+
+  // Attach courses to seeded classes (MATH-301 gets MATH-301A; PHY-101 gets CS-DS-01)
+  const CLASS_COURSE_SEED: Array<{ classCode: string; courseCodes: string[] }> = [
+    { classCode: 'MATH-301', courseCodes: ['MATH-301A'] },
+    { classCode: 'PHY-101', courseCodes: ['CS-DS-01'] },
+  ];
+  for (const seed of CLASS_COURSE_SEED) {
+    const cls = await classRepo.findOne({ where: { code: seed.classCode } });
+    if (!cls) continue;
+    let order = 1;
+    for (const code of seed.courseCodes) {
+      const course = coursesByCode.get(code);
+      if (!course) continue;
+      const link = await classCourseRepo.findOne({
+        where: { classId: cls.id, courseId: course.id },
+      });
+      if (!link) {
+        await classCourseRepo.save(
+          classCourseRepo.create({
+            classId: cls.id,
+            courseId: course.id,
+            orderIndex: order,
+            isRequired: true,
+          }),
+        );
+        // eslint-disable-next-line no-console
+        console.log(`+  attached course ${code} to class ${seed.classCode}`);
+      }
+      order++;
+    }
   }
 
   // eslint-disable-next-line no-console

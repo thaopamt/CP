@@ -33,7 +33,10 @@ const AdminStudents = lazy(() => import('./pages/admin/students/StudentsListPage
 const AdminStudentCreate = lazy(() => import('./pages/admin/students/StudentCreatePage'));
 const AdminStudentEdit = lazy(() => import('./pages/admin/students/StudentEditPage'));
 const AdminStudentProfile = lazy(() => import('./pages/admin/students/StudentProfilePage'));
-const AdminCourses = lazy(() => import('./pages/admin/CoursesPage'));
+const AdminAssignmentsList = lazy(() => import('./pages/admin/assignments/AssignmentsListPage'));
+const AdminCoursesList = lazy(() => import('./pages/admin/courses/CoursesListPage'));
+const AdminCourseDetail = lazy(() => import('./pages/admin/courses/CourseDetailPage'));
+const AdminClassCurriculum = lazy(() => import('./pages/admin/classes/ClassCurriculumPage'));
 const AdminSchedule = lazy(() => import('./pages/admin/SchedulePage'));
 const AdminFinance = lazy(() => import('./pages/admin/FinancePage'));
 const AdminClassesList = lazy(() => import('./pages/admin/classes/ClassesListPage'));
@@ -93,7 +96,10 @@ export default function App() {
                 <Route path="classes/new" element={<AdminClassCreate />} />
                 <Route path="classes/:classId" element={<AdminClassDetail />} />
                 <Route path="classes/:classId/edit" element={<AdminClassEdit />} />
-                <Route path="courses" element={<AdminCourses />} />
+                <Route path="classes/:classId/curriculum" element={<AdminClassCurriculum />} />
+                <Route path="courses" element={<AdminCoursesList />} />
+                <Route path="courses/:courseId" element={<AdminCourseDetail />} />
+                <Route path="assignments" element={<AdminAssignmentsList />} />
                 <Route path="schedule" element={<AdminSchedule />} />
                 <Route path="finance" element={<AdminFinance />} />
                 <Route path="users" element={<AdminUsers />} />

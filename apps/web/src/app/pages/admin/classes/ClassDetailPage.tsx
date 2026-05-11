@@ -239,6 +239,13 @@ export default function ClassDetailPage() {
         title={`${cls.name} (${cls.code})`}
         actions={
           <>
+            <Button
+              variant="admin"
+              leadingIcon={<Icon name="library_books" size={18} />}
+              onClick={() => navigate(`/admin/classes/${classId}/curriculum`)}
+            >
+              {t('pages.admin.classes.detail.manageCurriculum')}
+            </Button>
             <Button variant="ghost" leadingIcon={<Icon name="edit" size={18} />} onClick={() => navigate(`/admin/classes/${classId}/edit`)}>
               {t('pages.admin.classes.detail.editClass')}
             </Button>
