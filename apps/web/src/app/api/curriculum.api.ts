@@ -10,6 +10,7 @@
 import {
   AssignmentType,
   IAssignmentDef,
+  ICodingConfig,
   IClassCourseLink,
   ICourse,
   ICourseAssignment,
@@ -41,6 +42,9 @@ interface ApiAssignment {
   points: number;
   estimatedMinutes: number | null;
   status: PublishStatus;
+  slug?: string | null;
+  tags?: string[];
+  codingConfig?: ICodingConfig | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -92,6 +96,9 @@ function toAssignment(a: ApiAssignment): IAssignmentDef {
     points: a.points,
     estimatedMinutes: a.estimatedMinutes ?? undefined,
     status: a.status,
+    slug: a.slug ?? undefined,
+    tags: a.tags ?? [],
+    codingConfig: a.codingConfig ?? undefined,
     createdAt: a.createdAt,
     updatedAt: a.updatedAt,
   };

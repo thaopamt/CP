@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
@@ -68,12 +69,20 @@ export default function AssignmentsListPage() {
   const columns: Column<IAssignmentDef>[] = useMemo(
     () => [
       {
+        key: 'slug',
+        header: t('pages.admin.assignmentsList.columns.code', 'Code'),
+        cell: (a) => (
+          <span className="font-mono text-sm text-on-surface-variant">
+            {a.slug || '-'}
+          </span>
+        ),
+      },
+      {
         key: 'title',
         header: t('pages.admin.assignmentsList.columns.title'),
         cell: (a) => (
-          <div className="min-w-0">
-            <div className="text-on-surface font-medium truncate">{a.title}</div>
-            <div className="text-[12px] text-on-surface-variant truncate">{a.description}</div>
+          <div className="min-w-0 max-w-[250px] lg:max-w-[400px]">
+            <div className="text-on-surface font-medium truncate" title={a.title}>{a.title}</div>
           </div>
         ),
       },
@@ -122,6 +131,13 @@ export default function AssignmentsListPage() {
         align: 'right',
         cell: (a) => (
           <div className="opacity-0 group-hover:opacity-100 inline-flex gap-xs transition-opacity">
+            <Link
+              to={`/admin/assignments/${a.id}`}
+              className="p-1 rounded text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center"
+              title="View Detail"
+            >
+              <Icon name="visibility" size={18} />
+            </Link>
             <button
               type="button"
               onClick={() => deleteAssignment.mutate(a.id)}
@@ -145,7 +161,7 @@ export default function AssignmentsListPage() {
         title={t('pages.admin.assignmentsList.title')}
         subtitle={t('pages.admin.assignmentsList.subtitle')}
         actions={
-          <Button variant="admin" leadingIcon={<Icon name="add" size={18} />} onClick={() => setCreating(true)}>
+          <Button variant="admin" leadingIcon={<Icon name="add" size={18} />} onClick={() => window.location.href = '/admin/assignments/new'}>
             {t('pages.admin.assignmentsList.create')}
           </Button>
         }

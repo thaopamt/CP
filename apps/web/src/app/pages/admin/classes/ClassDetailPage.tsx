@@ -25,7 +25,7 @@ import {
 import { useClass, useEnrollmentsByClass, useEnrollStudent, useDropEnrollment } from '../../../api/class.queries';
 import { AssignStudentsModal } from './AssignStudentsModal';
 import { RemoveStudentModal } from './RemoveStudentModal';
-import { useToast } from '../../../providers/ToastProvider';
+import { useToast } from '@cp/ui';
 
 type Tab = 'roster' | 'schedule' | 'activity';
 

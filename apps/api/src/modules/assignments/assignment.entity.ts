@@ -1,5 +1,5 @@
 import { Column, Entity, Index } from 'typeorm';
-import { AssignmentType, PublishStatus } from '@cp/shared';
+import { AssignmentType, ICodingConfig, PublishStatus } from '@cp/shared';
 
 import { BaseEntity } from '../../common/entities/base.entity';
 
@@ -28,6 +28,16 @@ export class Assignment extends BaseEntity {
 
   @Column({ type: 'int', nullable: true, name: 'estimated_minutes' })
   estimatedMinutes!: number | null;
+
+  @Index({ unique: true, where: 'slug IS NOT NULL' })
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  slug!: string | null;
+
+  @Column({ type: 'jsonb', nullable: true, default: '[]' })
+  tags!: string[];
+
+  @Column({ type: 'jsonb', nullable: true, name: 'coding_config' })
+  codingConfig!: ICodingConfig | null;
 
   @Index()
   @Column({ type: 'enum', enum: PublishStatus, default: PublishStatus.DRAFT })

@@ -34,6 +34,9 @@ const AdminStudentCreate = lazy(() => import('./pages/admin/students/StudentCrea
 const AdminStudentEdit = lazy(() => import('./pages/admin/students/StudentEditPage'));
 const AdminStudentProfile = lazy(() => import('./pages/admin/students/StudentProfilePage'));
 const AdminAssignmentsList = lazy(() => import('./pages/admin/assignments/AssignmentsListPage'));
+const AdminAssignmentCreate = lazy(() => import('./pages/admin/assignments/AssignmentCreatePage'));
+const AdminAssignmentDetail = lazy(() => import('./pages/admin/assignments/AssignmentDetailPage'));
+const AdminAssignmentEdit = lazy(() => import('./pages/admin/assignments/AssignmentEditPage'));
 const AdminCoursesList = lazy(() => import('./pages/admin/courses/CoursesListPage'));
 const AdminCourseDetail = lazy(() => import('./pages/admin/courses/CourseDetailPage'));
 const AdminClassCurriculum = lazy(() => import('./pages/admin/classes/ClassCurriculumPage'));
@@ -53,7 +56,7 @@ const StudentQuests = lazy(() => import('./pages/student/QuestsPage'));
 const StudentAssignments = lazy(() => import('./pages/student/AssignmentsPage'));
 const StudentWorkspace = lazy(() => import('./pages/student/WorkspacePage'));
 
-import { ToastProvider } from './providers/ToastProvider';
+import { ToastProvider } from '@cp/ui';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
@@ -100,6 +103,9 @@ export default function App() {
                 <Route path="courses" element={<AdminCoursesList />} />
                 <Route path="courses/:courseId" element={<AdminCourseDetail />} />
                 <Route path="assignments" element={<AdminAssignmentsList />} />
+                <Route path="assignments/new" element={<AdminAssignmentCreate />} />
+                <Route path="assignments/:id" element={<AdminAssignmentDetail />} />
+                <Route path="assignments/:id/edit" element={<AdminAssignmentEdit />} />
                 <Route path="schedule" element={<AdminSchedule />} />
                 <Route path="finance" element={<AdminFinance />} />
                 <Route path="users" element={<AdminUsers />} />

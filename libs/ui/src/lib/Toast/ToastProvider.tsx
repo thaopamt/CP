@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Icon } from '@cp/ui';
+import { Icon } from '../Icon/Icon';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 

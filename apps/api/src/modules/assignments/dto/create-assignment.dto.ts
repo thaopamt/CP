@@ -1,5 +1,5 @@
-import { IsEnum, IsIn, IsInt, IsOptional, IsString, Length, Min } from 'class-validator';
-import { AssignmentType, ICreateAssignmentDefPayload, PublishStatus } from '@cp/shared';
+import { IsArray, IsEnum, IsIn, IsInt, IsObject, IsOptional, IsString, Length, Min } from 'class-validator';
+import { AssignmentType, ICodingConfig, ICreateAssignmentDefPayload, PublishStatus } from '@cp/shared';
 
 export class CreateAssignmentDto implements ICreateAssignmentDefPayload {
   @IsString() @Length(1, 255)
@@ -22,6 +22,15 @@ export class CreateAssignmentDto implements ICreateAssignmentDefPayload {
 
   @IsOptional() @IsInt() @Min(0)
   estimatedMinutes?: number;
+
+  @IsOptional() @IsString() @Length(1, 255)
+  slug?: string;
+
+  @IsOptional() @IsArray() @IsString({ each: true })
+  tags?: string[];
+
+  @IsOptional() @IsObject()
+  codingConfig?: ICodingConfig;
 
   @IsOptional() @IsEnum(PublishStatus)
   status?: PublishStatus;
@@ -48,6 +57,15 @@ export class UpdateAssignmentDto implements Partial<ICreateAssignmentDefPayload>
 
   @IsOptional() @IsInt() @Min(0)
   estimatedMinutes?: number;
+
+  @IsOptional() @IsString() @Length(1, 255)
+  slug?: string;
+
+  @IsOptional() @IsArray() @IsString({ each: true })
+  tags?: string[];
+
+  @IsOptional() @IsObject()
+  codingConfig?: ICodingConfig;
 
   @IsOptional() @IsEnum(PublishStatus)
   status?: PublishStatus;

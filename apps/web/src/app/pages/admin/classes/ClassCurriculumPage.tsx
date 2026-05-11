@@ -9,6 +9,7 @@ import {
   SearchBox,
   StatusBadge,
 } from '@cp/ui';
+import { useToast } from '@cp/ui';
 import { IClassCourseLink, PublishStatus } from '@cp/shared';
 
 import { useClass } from '../../../api/class.queries';
@@ -24,6 +25,7 @@ export default function ClassCurriculumPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { classId } = useParams<{ classId: string }>();
+  const toast = useToast();
 
   const classQuery = useClass(classId);
   const linksQuery = useClassCourses(classId);
@@ -183,8 +185,14 @@ export default function ClassCurriculumPage() {
           alreadyAttachedIds={new Set(links.map((l) => l.course.id))}
           onClose={() => setPickerOpen(false)}
           onConfirm={async (ids) => {
-            await attach.mutateAsync(ids);
-            setPickerOpen(false);
+            try {
+              await attach.mutateAsync(ids);
+              setPickerOpen(false);
+              toast.success(t('pages.admin.classCurriculum.picker.success', 'Courses attached successfully.'));
+            } catch (err: any) {
+              console.error('Attach error:', err);
+              toast.error(err?.response?.data?.message || err.message || t('common.error', 'Failed to attach courses.'));
+            }
           }}
           isSubmitting={attach.isPending}
         />

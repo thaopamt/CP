@@ -85,7 +85,10 @@ export class CoursesService extends TypeOrmCrudService<Course> {
       );
       const saved = await junctionRepo.save(created);
       await this.recount(courseId, courseRepo, junctionRepo, assignmentRepo);
-      return [...existing, ...saved];
+      return junctionRepo.find({ 
+        where: { courseId, assignmentId: In(assignmentIds) },
+        relations: ['assignment']
+      });
     });
   }
 

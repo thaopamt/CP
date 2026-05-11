@@ -9,6 +9,7 @@ import {
   SearchBox,
   StatusBadge,
 } from '@cp/ui';
+import { useToast } from '@cp/ui';
 import {
   ASSIGNMENT_TYPE_ICON,
   ASSIGNMENT_TYPE_LABEL,
@@ -35,6 +36,7 @@ export default function CourseDetailPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { courseId } = useParams<{ courseId: string }>();
+  const toast = useToast();
 
   const courseQuery = useCourse(courseId);
   const assignmentsQuery = useCourseAssignments(courseId);
@@ -177,8 +179,14 @@ export default function CourseDetailPage() {
           alreadyAttachedIds={new Set(sequence.map((s) => s.assignment.id))}
           onClose={() => setPickerOpen(false)}
           onConfirm={async (ids) => {
-            await attach.mutateAsync(ids);
-            setPickerOpen(false);
+            try {
+              await attach.mutateAsync(ids);
+              setPickerOpen(false);
+              toast.success(t('pages.admin.courseDetail.picker.success', 'Assignments attached successfully.'));
+            } catch (err: any) {
+              console.error('Attach error:', err);
+              toast.error(err?.response?.data?.message || err.message || t('common.error', 'Failed to attach assignments.'));
+            }
           }}
           isSubmitting={attach.isPending}
         />

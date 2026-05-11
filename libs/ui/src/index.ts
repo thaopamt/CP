@@ -56,3 +56,5 @@ export * from './lib/Student/FeedbackItem';
 export * from './lib/Student/InstructionBlock';
 export * from './lib/Student/ConsoleOutput';
 export * from './lib/Student/TestResultRow';
+
+export * from './lib/Toast/ToastProvider';

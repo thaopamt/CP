@@ -63,7 +63,10 @@ export class ClassCoursesService {
         }),
       );
       const saved = await junctionRepo.save(created);
-      return [...existing, ...saved];
+      return junctionRepo.find({
+        where: { classId, courseId: In(courseIds) },
+        relations: ['course']
+      });
     });
   }
 

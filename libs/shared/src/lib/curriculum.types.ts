@@ -46,6 +46,23 @@ export enum PublishStatus {
   ARCHIVED = 'ARCHIVED',
 }
 
+export interface ICodingTestCase {
+  input: string;
+  output: string;
+  explanation?: string;
+  isHidden: boolean;
+}
+
+export interface ICodingConfig {
+  timeLimit?: number;
+  memoryLimit?: number;
+  outputLimit?: number;
+  checkerType?: 'standard' | 'exact' | 'custom';
+  allowedLanguages?: string[];
+  testCases?: ICodingTestCase[];
+}
+
+
 // ── Assignment definition (admin-managed library entry) ──────────────────
 //
 // Distinct from `IAssignment` in student.types which is the per-student
@@ -62,6 +79,9 @@ export interface IAssignmentDef {
   subject: string;          // e.g. "Mathematics" / "Computer Science"
   points: number;
   estimatedMinutes?: number;
+  slug?: string | null;
+  tags?: string[];
+  codingConfig?: ICodingConfig | null;
   status: PublishStatus;
   createdAt: string;
   updatedAt: string;
@@ -75,6 +95,9 @@ export interface ICreateAssignmentDefPayload {
   subject: string;
   points: number;
   estimatedMinutes?: number;
+  slug?: string;
+  tags?: string[];
+  codingConfig?: ICodingConfig;
   status?: PublishStatus;
 }
 
