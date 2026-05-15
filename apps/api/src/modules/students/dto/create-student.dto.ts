@@ -67,6 +67,9 @@ export class CreateStudentDto implements ICreateStudentPayload {
   @IsOptional() @IsString()
   homeAddress?: string;
 
+  @IsOptional() @IsString() @Length(1, 255)
+  school?: string;
+
   @IsInt() @Min(1) @Max(13)
   grade!: number;
 

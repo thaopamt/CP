@@ -1,4 +1,4 @@
-import { IsArray, IsEnum, IsIn, IsInt, IsObject, IsOptional, IsString, Length, Min } from 'class-validator';
+import { IsArray, IsEnum, IsIn, IsInt, IsObject, IsOptional, IsString, Length, Min, IsUUID } from 'class-validator';
 import { AssignmentType, ICodingConfig, ICreateAssignmentDefPayload, PublishStatus } from '@cp/shared';
 
 export class CreateAssignmentDto implements ICreateAssignmentDefPayload {
@@ -31,6 +31,9 @@ export class CreateAssignmentDto implements ICreateAssignmentDefPayload {
 
   @IsOptional() @IsObject()
   codingConfig?: ICodingConfig;
+
+  @IsOptional() @IsArray() @IsUUID('4', { each: true })
+  classIds?: string[];
 
   @IsOptional() @IsEnum(PublishStatus)
   status?: PublishStatus;
@@ -66,6 +69,9 @@ export class UpdateAssignmentDto implements Partial<ICreateAssignmentDefPayload>
 
   @IsOptional() @IsObject()
   codingConfig?: ICodingConfig;
+
+  @IsOptional() @IsArray() @IsUUID('4', { each: true })
+  classIds?: string[];
 
   @IsOptional() @IsEnum(PublishStatus)
   status?: PublishStatus;

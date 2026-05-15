@@ -24,6 +24,7 @@ export const curriculumKeys = {
   assignments: {
     list: (params: AssignmentsListParams) => ['assignments', 'list', params] as const,
     detail: (id: string) => ['assignments', 'detail', id] as const,
+    implicitClasses: (id: string) => ['assignments', 'implicit-classes', id] as const,
   },
   courses: {
     list: (params: CoursesListParams) => ['courses', 'list', params] as const,

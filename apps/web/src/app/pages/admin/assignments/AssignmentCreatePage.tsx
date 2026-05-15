@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '@cp/ui';
 import { useCreateAssignment } from '../../../api/curriculum.queries';
+import { useClassesList } from '../../../api/class.queries';
 import { AssignmentType, PublishStatus, ICodingTestCase } from '@cp/shared';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -12,6 +13,29 @@ export default function AssignmentCreatePage() {
   const navigate = useNavigate();
   const toast = useToast();
   const create = useCreateAssignment();
+  const { data: classesData } = useClassesList({ page: 1, limit: 100 });
+  const classes = classesData?.items || [];
+  const implicitClassIds: string[] = [];
+  const [classIds, setClassIds] = useState<string[]>([]);
+  const [classSearchText, setClassSearchText] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const filteredClasses = useMemo(() => {
+    const q = classSearchText.toLowerCase();
+    if (!q) return classes;
+    return classes.filter(c => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q));
+  }, [classes, classSearchText]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
   const [testCaseTab, setTestCaseTab] = useState<'upload' | 'manual'>('upload');
@@ -39,6 +63,7 @@ export default function AssignmentCreatePage() {
         subject: 'Programming',
         points: 100,
         status: PublishStatus.PUBLISHED,
+        classIds: classIds.length > 0 ? classIds : null,
         tags,
         codingConfig: {
           timeLimit,
@@ -304,7 +329,95 @@ export default function AssignmentCreatePage() {
                 <span className="material-symbols-outlined text-primary">sell</span>
                 Classification
               </h3>
-              
+
+              <div className="mb-md relative" ref={dropdownRef}>
+                <label className="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Visibility (Classes)</label>
+                <p className="text-[12px] text-on-surface-variant mb-xs">Select classes to restrict this assignment. Leave empty for global visibility.</p>
+
+                {/* Dropdown Trigger */}
+                <button
+                  type="button"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="w-full flex items-center justify-between bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm text-sm focus:outline-none focus:border-primary transition-colors text-left"
+                >
+                  <span className={classIds.length > 0 ? 'text-on-surface' : 'text-on-surface-variant'}>
+                    {classIds.length === 0 
+                      ? 'Global Visibility (All Classes)' 
+                      : `${classIds.length} class${classIds.length > 1 ? 'es' : ''} selected`}
+                  </span>
+                  <span className="material-symbols-outlined text-outline-variant text-lg">
+                    {isDropdownOpen ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+
+                {/* Dropdown Menu */}
+                {isDropdownOpen && (
+                  <div className="absolute z-50 mt-1 w-full bg-surface-container-lowest border border-outline-variant rounded-lg shadow-lg flex flex-col max-h-[300px] overflow-hidden">
+                    {/* Search Bar */}
+                    <div className="p-2 border-b border-outline-variant bg-surface-container-low sticky top-0 z-10">
+                      <div className="relative">
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-[18px]">search</span>
+                        <input
+                          type="text"
+                          placeholder="Search classes..."
+                          value={classSearchText}
+                          onChange={(e) => setClassSearchText(e.target.value)}
+                          className="w-full bg-surface-container-lowest border border-outline-variant rounded-md pl-9 pr-3 py-1.5 text-sm focus:outline-none focus:border-primary transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    {/* List */}
+                    <div className="overflow-y-auto divide-y divide-outline-variant">
+                      {classes.length === 0 && (
+                        <div className="p-4 text-center text-sm text-on-surface-variant flex flex-col items-center gap-1">
+                          <span className="material-symbols-outlined text-outline text-2xl">inbox</span>
+                          No classes available
+                        </div>
+                      )}
+                      {filteredClasses.map(c => {
+                          const isImplicit = implicitClassIds.includes(c.id);
+                          return (
+                            <label 
+                              key={c.id} 
+                              className={`flex items-start gap-3 p-3 cursor-pointer transition-colors hover:bg-surface-container-low ${classIds.includes(c.id) || isImplicit ? 'bg-primary-container/10' : ''} ${isImplicit ? 'opacity-70' : ''}`}
+                            >
+                              <div className="pt-0.5">
+                                <input 
+                                  type="checkbox" 
+                                  checked={classIds.includes(c.id) || isImplicit}
+                                  disabled={isImplicit}
+                                  onChange={(e) => {
+                                    if (e.target.checked) setClassIds([...classIds, c.id]);
+                                    else setClassIds(classIds.filter(id => id !== c.id));
+                                  }}
+                                  className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary focus:ring-offset-surface-container-lowest cursor-pointer disabled:cursor-not-allowed"
+                                />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium text-on-surface leading-tight flex items-center gap-2">
+                                  {c.name}
+                                  {isImplicit && (
+                                    <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
+                                      Via Course
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="text-[11px] text-on-surface-variant mt-0.5">{c.code} • {c.department}</span>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      {classes.length > 0 && filteredClasses.length === 0 && (
+                        <div className="p-4 text-center text-sm text-on-surface-variant">
+                          No matching classes found.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="mb-md">
                 <label className="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Difficulty</label>
                 <select value={difficulty} onChange={e => setDifficulty(e.target.value as any)} className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm text-body-md focus:outline-none focus:border-primary appearance-none">

@@ -16,8 +16,12 @@ import {
   ICourseAssignment,
   ICreateAssignmentDefPayload,
   ICreateCoursePayload,
+  ICreateCoursePayload,
   IReorderPayload,
   PublishStatus,
+  IAssignment,
+  AssignmentTab,
+  IFeedback,
 } from '@cp/shared';
 
 import { apiClient } from '../lib/api-client';
@@ -101,6 +105,21 @@ function toAssignment(a: ApiAssignment): IAssignmentDef {
     codingConfig: a.codingConfig ?? undefined,
     createdAt: a.createdAt,
     updatedAt: a.updatedAt,
+  };
+}
+
+function toStudentAssignment(a: ApiAssignment): IAssignment {
+  return {
+    id: a.id,
+    title: a.title,
+    description: a.description ?? '',
+    category: a.subject,
+    difficulty: a.difficulty as any,
+    icon: a.type === 'CODING' ? 'terminal' : 'quiz',
+    iconColor: 'text-primary',
+    xpReward: a.points,
+    dueAt: new Date(Date.now() + 7 * 24 * 60 * 60_000).toISOString(),
+    status: AssignmentTab.TODO,
   };
 }
 
@@ -232,6 +251,27 @@ export const assignmentsApi = {
 
   async remove(id: string): Promise<void> {
     await apiClient.delete(`/assignments/${id}`);
+  },
+
+  async myTasks(params: { page?: number, limit?: number, search?: string, category?: string, difficulty?: string, status?: string } = {}) {
+    const query: Record<string, any> = { page: params.page ?? 1, limit: params.limit ?? 10 };
+    if (params.search?.trim()) query.search = params.search.trim();
+    if (params.category && params.category !== 'all') query.category = params.category;
+    if (params.difficulty && params.difficulty !== 'all') query.difficulty = params.difficulty;
+    if (params.status && params.status !== 'all') query.status = params.status;
+
+    const { data } = await apiClient.get<{data: ApiAssignment[], total: number, page: number, pageCount: number}>('/assignments/me/tasks', { params: query });
+    return {
+      items: data.data.map(toStudentAssignment),
+      total: data.total,
+      page: data.page,
+      pageCount: data.pageCount
+    };
+  },
+
+  async myFeedback(): Promise<IFeedback[]> {
+    const { data } = await apiClient.get<IFeedback[]>('/assignments/me/feedback');
+    return data;
   },
 };
 

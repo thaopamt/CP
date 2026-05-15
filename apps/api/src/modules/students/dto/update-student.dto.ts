@@ -47,6 +47,9 @@ export class UpdateStudentDto {
   @IsOptional() @IsString()
   homeAddress?: string;
 
+  @IsOptional() @IsString() @Length(1, 255)
+  school?: string;
+
   @IsOptional() @IsInt() @Min(1) @Max(13)
   grade?: number;
 

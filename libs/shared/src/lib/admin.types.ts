@@ -172,6 +172,7 @@ export interface IStudentProfile {
   dateOfBirth?: string | null; // ISO date "YYYY-MM-DD"
   gender?: Gender | null;
   homeAddress?: string | null;
+  school?: string | null;
 
   /** Enrollment */
   grade: number;              // 9..12
@@ -214,6 +215,7 @@ export interface ICreateStudentPayload {
   dateOfBirth?: string;
   gender?: Gender;
   homeAddress?: string;
+  school?: string;
   grade: number;
   cohortYear?: number;
   startDate?: string;

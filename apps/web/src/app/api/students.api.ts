@@ -180,6 +180,10 @@ export const studentsApi = {
     return toStudent(data);
   },
 
+  async resetPassword(id: string, newPassword: string): Promise<void> {
+    await apiClient.post(`/students/${id}/reset-password`, { newPassword });
+  },
+
   async remove(id: string): Promise<void> {
     await apiClient.delete(`/students/${id}`);
   },

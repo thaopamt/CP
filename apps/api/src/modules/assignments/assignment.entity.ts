@@ -42,4 +42,7 @@ export class Assignment extends BaseEntity {
   @Index()
   @Column({ type: 'enum', enum: PublishStatus, default: PublishStatus.DRAFT })
   status!: PublishStatus;
+
+  @Column({ type: 'uuid', array: true, nullable: true, name: 'class_ids' })
+  classIds!: string[] | null;
 }

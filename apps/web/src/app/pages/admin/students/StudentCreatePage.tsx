@@ -31,6 +31,7 @@ type Draft = {
   dateOfBirth: string;
   gender: Gender;
   homeAddress: string;
+  school: string;
   grade: number;
   cohortYear: number;
   startDate: string;
@@ -48,6 +49,7 @@ const INITIAL: Draft = {
   dateOfBirth: '',
   gender: Gender.UNDISCLOSED,
   homeAddress: '',
+  school: '',
   grade: 9,
   cohortYear: new Date().getFullYear() + 4,
   startDate: '',
@@ -129,6 +131,7 @@ export default function StudentCreatePage() {
       dateOfBirth: draft.dateOfBirth || undefined,
       gender: draft.gender,
       homeAddress: draft.homeAddress.trim() || undefined,
+      school: draft.school.trim() || undefined,
       grade: draft.grade,
       cohortYear: draft.cohortYear,
       startDate: draft.startDate || undefined,
@@ -221,15 +224,19 @@ export default function StudentCreatePage() {
               className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
             />
           </FormField>
-          <SelectFilter
-            label={t('pages.admin.studentCreate.fields.gender')}
-            value={draft.gender}
-            onChange={(e) => patch({ gender: e.target.value as Gender })}
-            options={Object.values(Gender).map((g) => ({
-              value: g,
-              label: GENDER_LABEL[g],
-            }))}
-          />
+          <FormField label={t('pages.admin.studentCreate.fields.gender')}>
+            <select
+              value={draft.gender}
+              onChange={(e) => patch({ gender: e.target.value as Gender })}
+              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
+            >
+              {Object.values(Gender).map((g) => (
+                <option key={g} value={g}>
+                  {GENDER_LABEL[g]}
+                </option>
+              ))}
+            </select>
+          </FormField>
           <FormField
             label={t('pages.admin.studentCreate.fields.address')}
             className="md:col-span-2"
@@ -239,6 +246,17 @@ export default function StudentCreatePage() {
               value={draft.homeAddress}
               onChange={(e) => patch({ homeAddress: e.target.value })}
               className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none resize-none"
+            />
+          </FormField>
+          <FormField
+            label={t('pages.admin.studentCreate.fields.school', 'School')}
+            className="md:col-span-2"
+          >
+            <input
+              type="text"
+              value={draft.school}
+              onChange={(e) => patch({ school: e.target.value })}
+              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
             />
           </FormField>
         </div>
@@ -276,16 +294,19 @@ export default function StudentCreatePage() {
               </Button>
             </div>
           </FormField>
-          <SelectFilter
-            label={t('pages.admin.studentCreate.fields.accountStatus')}
-            value={draft.status}
-            onChange={(e) => patch({ status: e.target.value as EnrollmentStatus })}
-            options={[
-              { value: EnrollmentStatus.ACTIVE, label: ENROLLMENT_STATUS_LABEL[EnrollmentStatus.ACTIVE] },
-              { value: EnrollmentStatus.PENDING, label: ENROLLMENT_STATUS_LABEL[EnrollmentStatus.PENDING] },
-              { value: EnrollmentStatus.INACTIVE, label: ENROLLMENT_STATUS_LABEL[EnrollmentStatus.INACTIVE] },
-            ]}
-          />
+          <FormField label={t('pages.admin.studentCreate.fields.accountStatus')}>
+            <select
+              value={draft.status}
+              onChange={(e) => patch({ status: e.target.value as EnrollmentStatus })}
+              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
+            >
+              {[EnrollmentStatus.ACTIVE, EnrollmentStatus.PENDING, EnrollmentStatus.INACTIVE].map((s) => (
+                <option key={s} value={s}>
+                  {ENROLLMENT_STATUS_LABEL[s]}
+                </option>
+              ))}
+            </select>
+          </FormField>
         </div>
       </FormSection>
 
@@ -358,15 +379,19 @@ export default function StudentCreatePage() {
                   className="bg-surface-container-lowest border border-outline-variant rounded-md px-md py-sm focus:ring-2 focus:ring-primary outline-none"
                 />
               </FormField>
-              <SelectFilter
-                label={t('pages.admin.studentCreate.fields.relationship')}
-                value={g.relationship}
-                onChange={(e) => patchGuardian(i, { relationship: e.target.value as GuardianRelationship })}
-                options={Object.values(GuardianRelationship).map((r) => ({
-                  value: r,
-                  label: GUARDIAN_RELATIONSHIP_LABEL[r],
-                }))}
-              />
+              <FormField label={t('pages.admin.studentCreate.fields.relationship')}>
+                <select
+                  value={g.relationship}
+                  onChange={(e) => patchGuardian(i, { relationship: e.target.value as GuardianRelationship })}
+                  className="bg-surface-container-lowest border border-outline-variant rounded-md px-md py-sm focus:ring-2 focus:ring-primary outline-none"
+                >
+                  {Object.values(GuardianRelationship).map((r) => (
+                    <option key={r} value={r}>
+                      {GUARDIAN_RELATIONSHIP_LABEL[r]}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
               <FormField
                 label={t('pages.admin.studentCreate.fields.guardianPhone')}
                 required

@@ -43,6 +43,9 @@ export class StudentProfile extends BaseEntity {
   @Column({ type: 'text', name: 'home_address', nullable: true })
   homeAddress!: string | null;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  school!: string | null;
+
   // ── Enrollment ────────────────────────────────────────────────────
   @Index()
   @Column({ type: 'int' })

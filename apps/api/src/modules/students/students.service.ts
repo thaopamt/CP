@@ -64,6 +64,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
           dateOfBirth: dto.dateOfBirth ?? null,
           gender: dto.gender ?? null,
           homeAddress: dto.homeAddress ?? null,
+          school: dto.school ?? null,
           grade: dto.grade,
           cohortYear: dto.cohortYear ?? new Date().getFullYear() + (12 - dto.grade),
           startDate: dto.startDate ?? null,
@@ -122,6 +123,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       if (dto.dateOfBirth !== undefined) profilePatch.dateOfBirth = dto.dateOfBirth;
       if (dto.gender !== undefined) profilePatch.gender = dto.gender;
       if (dto.homeAddress !== undefined) profilePatch.homeAddress = dto.homeAddress;
+      if (dto.school !== undefined) profilePatch.school = dto.school;
       if (dto.grade !== undefined) profilePatch.grade = dto.grade;
       if (dto.cohortYear !== undefined) profilePatch.cohortYear = dto.cohortYear;
       if (dto.startDate !== undefined) profilePatch.startDate = dto.startDate;
@@ -157,6 +159,14 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       if (!loaded) throw new NotFoundException();
       return loaded;
     });
+  }
+
+  async resetPassword(studentId: string, newPassword: string): Promise<void> {
+    const profile = await this.repo.findOne({ where: { id: studentId } });
+    if (!profile) throw new NotFoundException(`Student ${studentId} not found`);
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.users.update({ id: profile.userId }, { passwordHash });
   }
 }
 

@@ -9,6 +9,7 @@ import { StudentProfile } from './student-profile.entity';
 import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 /**
  * RESTful surface for student profiles (StudentProfile entity, 1-1 User).
@@ -61,5 +62,15 @@ export class StudentsController implements CrudController<StudentProfile> {
     @Body() dto: UpdateStudentDto,
   ): Promise<StudentProfile> {
     return this.service.updateStudent(id, dto);
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Post(':id/reset-password')
+  async resetPassword(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: ResetPasswordDto,
+  ): Promise<{ success: boolean }> {
+    await this.service.resetPassword(id, dto.newPassword);
+    return { success: true };
   }
 }

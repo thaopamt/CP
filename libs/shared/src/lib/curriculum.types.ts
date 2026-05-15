@@ -82,6 +82,7 @@ export interface IAssignmentDef {
   slug?: string | null;
   tags?: string[];
   codingConfig?: ICodingConfig | null;
+  classIds?: string[] | null;
   status: PublishStatus;
   createdAt: string;
   updatedAt: string;
@@ -98,6 +99,7 @@ export interface ICreateAssignmentDefPayload {
   slug?: string;
   tags?: string[];
   codingConfig?: ICodingConfig;
+  classIds?: string[] | null;
   status?: PublishStatus;
 }
 

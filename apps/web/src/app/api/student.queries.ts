@@ -9,10 +9,13 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { ICreateStudentPayload } from '@cp/shared';
 
 import { StudentsListParams, studentsApi } from './students.api';
+import { assignmentsApi } from './curriculum.api';
 
 export const studentQueryKeys = {
   list: (params: StudentsListParams) => ['students', 'list', params] as const,
   detail: (id: string) => ['students', 'detail', id] as const,
+  myTasks: (params: any) => ['students', 'myTasks', params] as const,
+  myFeedback: () => ['students', 'myFeedback'] as const,
 };
 
 export function useStudentsList(params: StudentsListParams) {
@@ -53,6 +56,12 @@ export function useUpdateStudent(id: string) {
   });
 }
 
+export function useResetPasswordStudent(id: string) {
+  return useMutation({
+    mutationFn: (newPassword: string) => studentsApi.resetPassword(id, newPassword),
+  });
+}
+
 export function useDeleteStudent() {
   const qc = useQueryClient();
   return useMutation({
@@ -60,5 +69,20 @@ export function useDeleteStudent() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['students'] });
     },
+  });
+}
+
+export function useMyTasks(params: { page?: number, limit?: number, search?: string, category?: string, difficulty?: string, status?: string }) {
+  return useQuery({
+    queryKey: studentQueryKeys.myTasks(params),
+    queryFn: () => assignmentsApi.myTasks(params),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useMyFeedback() {
+  return useQuery({
+    queryKey: studentQueryKeys.myFeedback(),
+    queryFn: () => assignmentsApi.myFeedback(),
   });
 }

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -12,10 +13,12 @@ import {
   StatusBadge,
   TabPills,
   TrendBadge,
+  useToast,
 } from '@cp/ui';
 import { GENDER_LABEL, GUARDIAN_RELATIONSHIP_LABEL, IGuardian, ISubjectGrade } from '@cp/shared';
 
-import { useStudent } from '../../../api/student.queries';
+import { useStudent, useResetPasswordStudent } from '../../../api/student.queries';
+import { ResetPasswordModal } from './ResetPasswordModal';
 
 type Tab = 'academics' | 'courses' | 'attendance' | 'activity';
 
@@ -24,9 +27,12 @@ export default function StudentProfilePage() {
   const navigate = useNavigate();
   const { studentId: idParam } = useParams<{ studentId: string }>();
   const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
+  const toast = useToast();
 
   const studentQuery = useStudent(idParam);
   const [tab, setTab] = useState<Tab>('academics');
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const resetPassword = useResetPasswordStudent(idParam as string);
 
   const subjectGrades: ISubjectGrade[] = useMemo(
     () => [
@@ -120,7 +126,11 @@ export default function StudentProfilePage() {
             >
               {t('pages.admin.studentProfile.edit')}
             </Button>
-            <Button variant="ghost" leadingIcon={<Icon name="lock_reset" size={18} />}>
+            <Button 
+              variant="ghost" 
+              leadingIcon={<Icon name="lock_reset" size={18} />}
+              onClick={() => setIsResetModalOpen(true)}
+            >
               {t('pages.admin.studentProfile.resetPassword')}
             </Button>
             <Button variant="admin" leadingIcon={<Icon name="mail" size={18} />}>
@@ -159,6 +169,11 @@ export default function StudentProfilePage() {
                 icon="home"
                 label={t('pages.admin.studentProfile.demographics.address')}
                 value={s.homeAddress ?? '—'}
+              />
+              <Detail
+                icon="school"
+                label={t('pages.admin.studentProfile.demographics.school', 'School')}
+                value={s.school ?? '—'}
               />
               {s.gender && (
                 <Detail
@@ -287,6 +302,20 @@ export default function StudentProfilePage() {
           </div>
         </section>
       </div>
+      <ResetPasswordModal
+        isOpen={isResetModalOpen}
+        onClose={() => setIsResetModalOpen(false)}
+        isSubmitting={resetPassword.isPending}
+        onConfirm={async (newPassword) => {
+          try {
+            await resetPassword.mutateAsync(newPassword);
+            toast.success(t('pages.admin.studentProfile.resetPasswordSuccess', 'Password reset successfully'));
+            setIsResetModalOpen(false);
+          } catch (err) {
+            toast.error(t('pages.admin.studentProfile.resetPasswordError', 'Failed to reset password'));
+          }
+        }}
+      />
     </div>
   );
 }
