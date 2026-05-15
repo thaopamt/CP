@@ -55,6 +55,10 @@ const StudentDashboard = lazy(() => import('./pages/student/DashboardPage'));
 const StudentQuests = lazy(() => import('./pages/student/QuestsPage'));
 const StudentAssignments = lazy(() => import('./pages/student/AssignmentsPage'));
 const StudentWorkspace = lazy(() => import('./pages/student/WorkspacePage'));
+const StudentAssignmentDetail = lazy(() => import('./pages/student/AssignmentDetailPage'));
+const StudentClasses = lazy(() => import('./pages/student/ClassesPage'));
+const StudentClassDetail = lazy(() => import('./pages/student/ClassDetailPage'));
+const StudentCourseDetail = lazy(() => import('./pages/student/CourseDetailPage'));
 
 import { ToastProvider } from '@cp/ui';
 
@@ -137,7 +141,11 @@ export default function App() {
                 }
               >
                 <Route index element={<StudentDashboard />} />
+                <Route path="classes" element={<StudentClasses />} />
+                <Route path="classes/:classId" element={<StudentClassDetail />} />
+                <Route path="classes/:classId/courses/:courseId" element={<StudentCourseDetail />} />
                 <Route path="assignments" element={<StudentAssignments />} />
+                <Route path="assignments/:id" element={<StudentAssignmentDetail />} />
                 <Route path="workspace" element={<StudentWorkspace />} />
                 <Route path="workspace/:problemId" element={<StudentWorkspace />} />
                 <Route path="quests" element={<StudentQuests />} />

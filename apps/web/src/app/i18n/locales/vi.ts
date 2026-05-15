@@ -76,6 +76,7 @@ const vi: AppResources = {
     },
     student: {
       home: 'Trang chủ',
+      classes: 'Lớp học',
       assignments: 'Bài tập',
       workspace: 'Không gian code',
       quests: 'Nhiệm vụ',

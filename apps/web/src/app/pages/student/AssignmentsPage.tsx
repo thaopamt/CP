@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   AssignmentCard,
@@ -15,6 +16,7 @@ const PAGE_SIZE = 10;
 
 export default function StudentAssignmentsPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [category, setCategory] = useState<string>('all');
   const [difficulty, setDifficulty] = useState<DifficultyLevel | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -102,7 +104,7 @@ export default function StudentAssignmentsPage() {
           </div>
         ) : (
           <>
-            {visible.map((a) => <AssignmentCard key={a.id} assignment={a} />)}
+            {visible.map((a) => <AssignmentCard key={a.id} assignment={a} onAction={() => navigate(`/student/assignments/${a.id}`)} />)}
             {pageCount > 1 && (
               <div className="mt-md flex justify-center">
                 <Pagination page={page} pageCount={pageCount} onChange={setPage} />

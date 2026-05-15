@@ -53,6 +53,14 @@ export function useAssignment(id: string | undefined) {
   });
 }
 
+export function useImplicitClasses(id: string | undefined) {
+  return useQuery({
+    queryKey: id ? curriculumKeys.assignments.implicitClasses(id) : ['assignments', 'implicit-classes', 'noop'],
+    queryFn: () => assignmentsApi.getImplicitClasses(id as string),
+    enabled: !!id,
+  });
+}
+
 export function useCreateAssignment() {
   const qc = useQueryClient();
   return useMutation({

@@ -223,6 +223,17 @@ export const enrollmentsApi = {
     return data.data.map(toEnrollment);
   },
 
+  async listByStudent(studentId: string): Promise<IClassEnrollment[]> {
+    const { data } = await apiClient.get<CrudListResponse<ApiEnrollment>>('/enrollments', {
+      params: {
+        s: JSON.stringify({ studentId }),
+        limit: 100,
+        sort: 'createdAt,DESC',
+      },
+    });
+    return data.data.map(toEnrollment);
+  },
+
   async enroll(classId: string, studentId: string): Promise<IClassEnrollment> {
     const { data } = await apiClient.post<ApiEnrollment>('/enrollments/enroll', {
       classId,

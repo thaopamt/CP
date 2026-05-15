@@ -2,7 +2,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
-import { LogoutButton, UserAvatar } from './_shared';
+import { LogoutButton, UserAvatar, ThemeToggle } from './_shared';
 
 const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/admin', icon: 'dashboard', key: 'nav.admin.dashboard', end: true },
@@ -102,6 +102,7 @@ export default function AdminLayout() {
               <span className="material-symbols-outlined">notifications</span>
               <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full" />
             </button>
+            <ThemeToggle />
             <LanguageSwitcher />
             <UserAvatar user={user} size="sm" />
           </div>

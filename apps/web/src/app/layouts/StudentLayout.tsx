@@ -2,12 +2,12 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
-import { LogoutButton, UserAvatar } from './_shared';
+import { LogoutButton, UserAvatar, ThemeToggle } from './_shared';
 
 const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/student', icon: 'home', key: 'nav.student.home', end: true },
+  { to: '/student/classes', icon: 'school', key: 'nav.student.classes' },
   { to: '/student/assignments', icon: 'assignment', key: 'nav.student.assignments' },
-  { to: '/student/workspace', icon: 'code', key: 'nav.student.workspace' },
   { to: '/student/quests', icon: 'rocket_launch', key: 'nav.student.quests' },
   { to: '/student/me', icon: 'person', key: 'nav.student.me' },
 ];
@@ -78,6 +78,7 @@ export default function StudentLayout() {
           <button className="p-2 rounded-full hover:bg-surface-container-high" aria-label={t('topBar.notifications')}>
             <span className="material-symbols-outlined">notifications</span>
           </button>
+          <ThemeToggle />
           <LanguageSwitcher />
           <UserAvatar user={user} size="sm" />
         </div>
@@ -99,6 +100,7 @@ export default function StudentLayout() {
           <button className="p-2 rounded-full hover:bg-surface-container-high" aria-label={t('topBar.notifications')}>
             <span className="material-symbols-outlined">notifications</span>
           </button>
+          <ThemeToggle />
           <LanguageSwitcher />
           <UserAvatar user={user} size="sm" />
         </div>

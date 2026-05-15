@@ -253,6 +253,11 @@ export const assignmentsApi = {
     await apiClient.delete(`/assignments/${id}`);
   },
 
+  async getImplicitClasses(id: string): Promise<string[]> {
+    const { data } = await apiClient.get<string[]>(`/assignments/${id}/implicit-classes`);
+    return data;
+  },
+
   async myTasks(params: { page?: number, limit?: number, search?: string, category?: string, difficulty?: string, status?: string } = {}) {
     const query: Record<string, any> = { page: params.page ?? 1, limit: params.limit ?? 10 };
     if (params.search?.trim()) query.search = params.search.trim();

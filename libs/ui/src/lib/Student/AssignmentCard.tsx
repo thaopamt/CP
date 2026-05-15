@@ -35,8 +35,10 @@ export function AssignmentCard({ assignment, onAction, className }: AssignmentCa
     <article
       className={cn(
         'group relative bg-surface-container-lowest rounded-2xl border border-outline-variant/40 hover:shadow-elev-3 transition-all overflow-hidden',
+        onAction && 'cursor-pointer',
         className,
       )}
+      onClick={onAction}
     >
       <span
         className={cn(

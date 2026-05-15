@@ -78,6 +78,7 @@ const en = {
     },
     student: {
       home: 'Home',
+      classes: 'Classes',
       assignments: 'Assignments',
       workspace: 'Workspace',
       quests: 'Quests',

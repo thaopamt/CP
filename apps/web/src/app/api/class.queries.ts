@@ -16,6 +16,7 @@ export const classQueryKeys = {
   list: (params: ClassesListParams) => ['classes', 'list', params] as const,
   detail: (id: string) => ['classes', 'detail', id] as const,
   enrollmentsByClass: (classId: string) => ['enrollments', 'byClass', classId] as const,
+  enrollmentsByStudent: (studentId: string) => ['enrollments', 'byStudent', studentId] as const,
 };
 
 export function useClassesList(params: ClassesListParams) {
@@ -81,6 +82,7 @@ export function useEnrollStudent() {
       enrollmentsApi.enroll(vars.classId, vars.studentId),
     onSuccess: (_data, vars) => {
       void qc.invalidateQueries({ queryKey: classQueryKeys.enrollmentsByClass(vars.classId) });
+      void qc.invalidateQueries({ queryKey: classQueryKeys.enrollmentsByStudent(vars.studentId) });
       void qc.invalidateQueries({ queryKey: classQueryKeys.detail(vars.classId) });
       void qc.invalidateQueries({ queryKey: ['classes', 'list'] });
     },
@@ -96,5 +98,13 @@ export function useDropEnrollment(classId: string) {
       void qc.invalidateQueries({ queryKey: classQueryKeys.detail(classId) });
       void qc.invalidateQueries({ queryKey: ['classes', 'list'] });
     },
+  });
+}
+
+export function useEnrollmentsByStudent(studentId: string | undefined) {
+  return useQuery({
+    queryKey: studentId ? classQueryKeys.enrollmentsByStudent(studentId) : ['enrollments', 'noop'],
+    queryFn: () => enrollmentsApi.listByStudent(studentId as string),
+    enabled: !!studentId,
   });
 }

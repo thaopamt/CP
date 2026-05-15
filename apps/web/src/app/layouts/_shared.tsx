@@ -36,3 +36,22 @@ export function LogoutButton() {
     </button>
   );
 }
+
+import { useThemeStore } from '../stores/theme.store';
+
+export function ThemeToggle() {
+  const { isDark, toggleDark } = useThemeStore();
+  
+  return (
+    <button
+      onClick={toggleDark}
+      className="p-2 rounded-full hover:bg-surface-container-high transition-colors flex items-center justify-center text-on-surface-variant"
+      title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-label="Toggle theme"
+    >
+      <span className="material-symbols-outlined text-[20px]">
+        {isDark ? 'light_mode' : 'dark_mode'}
+      </span>
+    </button>
+  );
+}
