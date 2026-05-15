@@ -13,6 +13,7 @@ import { Assignment } from '../modules/assignments/assignment.entity';
 import { Course } from '../modules/courses/course.entity';
 import { CourseAssignment } from '../modules/courses/course-assignment.entity';
 import { ClassCourse } from '../modules/classes/class-course.entity';
+import { Submission, SubmissionTestResult } from '../modules/submissions/submission.entity';
 
 // Load env in CLI context (TypeORM CLI doesn't go through ConfigModule)
 loadEnv({ path: join(process.cwd(), 'apps/api/.env') });
@@ -44,6 +45,8 @@ export const AppDataSource = new DataSource({
     Course,
     CourseAssignment,
     ClassCourse,
+    Submission,
+    SubmissionTestResult,
   ],
   migrations: [join(__dirname, 'migrations/*.{ts,js}')],
   synchronize: false,

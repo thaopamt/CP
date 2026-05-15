@@ -1,0 +1,14 @@
+import { apiClient } from '../lib/api-client';
+import { ICodeExecutionRequest, ICodeExecutionResponse, ISubmitCodePayload, ISubmitCodeResponse } from '@cp/shared';
+
+export const submissionsApi = {
+  runCode: async (payload: ICodeExecutionRequest): Promise<ICodeExecutionResponse> => {
+    const { data } = await apiClient.post('/submissions/run', payload);
+    return data;
+  },
+
+  submitCode: async (payload: ISubmitCodePayload): Promise<ISubmitCodeResponse> => {
+    const { data } = await apiClient.post('/submissions/submit', payload);
+    return data;
+  },
+};

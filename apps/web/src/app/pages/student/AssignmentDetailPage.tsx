@@ -26,6 +26,7 @@ import 'prismjs/components/prism-python';
 import 'prismjs/components/prism-javascript';
 
 import { useAssignment } from '../../api/curriculum.queries';
+import { useRunCode, useSubmitCode } from '../../api/submissions.queries';
 
 /* ── Language config ──────────────────────────────────────────────── */
 const LANG_OPTIONS: { value: string; label: string; template: string }[] = [
@@ -43,6 +44,8 @@ export default function StudentAssignmentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: assignment, isLoading, isError } = useAssignment(id);
+  const runMutation = useRunCode();
+  const submitMutation = useSubmitCode();
 
   const [leftTab, setLeftTab] = useState<LeftTab>('description');
   const [bottomTab, setBottomTab] = useState<BottomTab>('testcase');
@@ -117,19 +120,89 @@ export default function StudentAssignmentDetailPage() {
     }
   }, [activeTestIdx]);
 
-  const handleRun = () => {
+  const handleRun = async () => {
     setRunning(true);
     setBottomTab('result');
-    setTimeout(() => {
-      setRunResult({
-        status: Math.random() > 0.5 ? 'accepted' : 'wrong',
-        stdout: customOutput || 'No output',
-        expected: customOutput || '',
-        runtime: `${(Math.random() * 100 + 10).toFixed(0)} ms`,
-        memory: `${(Math.random() * 10 + 5).toFixed(1)} MB`,
+    try {
+      const result = await runMutation.mutateAsync({
+        language,
+        code,
+        stdin: customInput,
       });
+
+      if (result.compile && result.compile.code !== 0) {
+        setRunResult({
+          status: 'error',
+          stdout: result.compile.stderr,
+          expected: customOutput || '',
+          runtime: 'N/A',
+          memory: 'N/A',
+        });
+      } else {
+        const actualOutput = result.run.stdout.trim();
+        const actualError = result.run.stderr.trim();
+        
+        let status: 'accepted' | 'wrong' | 'error' = 'accepted';
+        let stdout = actualOutput;
+        
+        if (result.run.code !== 0) {
+          status = 'error';
+          stdout = actualError || actualOutput || 'Runtime Error';
+        } else if (customOutput && actualOutput !== customOutput.trim()) {
+          status = 'wrong';
+        }
+
+        setRunResult({
+          status,
+          stdout: stdout || 'No output',
+          expected: customOutput || '',
+          runtime: 'N/A', // Piston doesn't easily expose this
+          memory: 'N/A',
+        });
+      }
+    } catch (err: any) {
+      setRunResult({
+        status: 'error',
+        stdout: err.message || 'Execution failed',
+        expected: '',
+        runtime: 'N/A',
+        memory: 'N/A',
+      });
+    } finally {
       setRunning(false);
-    }, 800);
+    }
+  };
+
+  const handleSubmit = async () => {
+    setRunning(true);
+    setLeftTab('submissions');
+    setBottomTab('result');
+    try {
+      const result = await submitMutation.mutateAsync({
+        assignmentId: id!,
+        language,
+        code,
+      });
+      const sub = result.submission;
+      
+      setRunResult({
+        status: sub.status === 'ACCEPTED' ? 'accepted' : sub.status === 'WRONG_ANSWER' ? 'wrong' : 'error',
+        stdout: `Passed: ${sub.passedCount} / ${sub.totalCount}`,
+        expected: '',
+        runtime: sub.totalExecutionTimeMs ? `${sub.totalExecutionTimeMs} ms` : 'N/A',
+        memory: sub.maxMemoryBytes ? `${(sub.maxMemoryBytes / 1024 / 1024).toFixed(1)} MB` : 'N/A',
+      });
+    } catch (err: any) {
+       setRunResult({
+        status: 'error',
+        stdout: err.message || 'Submission failed',
+        expected: '',
+        runtime: 'N/A',
+        memory: 'N/A',
+      });
+    } finally {
+      setRunning(false);
+    }
   };
 
   /* ── Loading / Error ────────────────────────────────────────────── */
@@ -195,8 +268,9 @@ export default function StudentAssignmentDetailPage() {
             Run
           </button>
           <button
+            onClick={handleSubmit}
             disabled={running}
-            className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded-md text-xs text-white font-medium transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 transition-colors text-xs font-semibold"
           >
             <Icon name="cloud_upload" size={14} />
             Submit
