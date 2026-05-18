@@ -9,6 +9,7 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/admin/students', icon: 'groups', key: 'nav.admin.students' },
   { to: '/admin/classes', icon: 'class', key: 'nav.admin.classes' },
   { to: '/admin/courses', icon: 'menu_book', key: 'nav.admin.courses' },
+  { to: '/admin/quests', icon: 'swords', key: 'Quests' },
   { to: '/admin/assignments', icon: 'assignment', key: 'nav.admin.assignments' },
   { to: '/admin/schedule', icon: 'calendar_month', key: 'nav.admin.schedule' },
   { to: '/admin/finance', icon: 'payments', key: 'nav.admin.finance' },

@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ExecutionService } from './execution.service';
 import { Submission, SubmissionTestResult } from './submission.entity';
 import { Assignment } from '../assignments/assignment.entity';
+import { QuestsService } from '../quests/quests.service';
 import { ICodeExecutionRequest, ISubmitCodePayload, SubmissionStatus } from '@cp/shared';
 
 @Controller('submissions')
@@ -16,6 +17,7 @@ export class SubmissionsController {
     private readonly submissionRepo: Repository<Submission>,
     @InjectRepository(Assignment)
     private readonly assignmentRepo: Repository<Assignment>,
+    private readonly questsService: QuestsService,
   ) {}
 
   @Post('run')
@@ -84,6 +86,13 @@ export class SubmissionsController {
       });
 
       await this.submissionRepo.save(submission);
+
+      if (submission.status === SubmissionStatus.ACCEPTED) {
+        // Trigger quest progress
+        await this.questsService.handleSubmissionAccepted(userId).catch(e => {
+          console.error('Failed to update quest progress:', e);
+        });
+      }
 
       return {
         submission,

@@ -2,14 +2,18 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { TypeOrmCrudService } from '@dataui/crud-typeorm';
 import * as bcrypt from 'bcryptjs';
-import { DataSource, Repository } from 'typeorm';
-import { EnrollmentStatus, UserRole } from '@cp/shared';
+import { DataSource, Repository, In, MoreThanOrEqual } from 'typeorm';
+import { EnrollmentStatus, UserRole, SubmissionStatus } from '@cp/shared';
 
 import { User } from '../users/user.entity';
 import { StudentProfile } from './student-profile.entity';
 import { Guardian } from './guardian.entity';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
+import { Enrollment } from '../classes/enrollment.entity';
+import { ClassCourse } from '../classes/class-course.entity';
+import { Assignment } from '../assignments/assignment.entity';
+import { Submission } from '../submissions/submission.entity';
 
 @Injectable()
 export class StudentsService extends TypeOrmCrudService<StudentProfile> {
@@ -170,62 +174,90 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
   }
 
   async getDashboardData(userId: string): Promise<any> {
-    const profile = await this.repo.findOne({ where: { userId } });
+    const profile = await this.repo.findOne({ where: { userId }, relations: ['user'] });
     if (!profile) throw new NotFoundException(`Student profile not found for user ${userId}`);
 
-    // Aggregate gamification fields and mock the arrays for the dashboard
+    // 1. Daily Quests
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const dailyQuestsCompleted = await this.ds.getRepository(Submission).count({
+      where: { userId, status: SubmissionStatus.ACCEPTED, createdAt: MoreThanOrEqual(startOfDay) },
+    });
+    const dailyQuestsTarget = 5;
+
+    // 2. Leaderboard
+    const topProfiles = await this.repo.find({
+      order: { xp: 'DESC' },
+      take: 10,
+      relations: ['user'],
+    });
+    const leaderboard = topProfiles.map((p, index) => ({
+      rank: index + 1,
+      name: p.userId === userId ? 'You' : `${p.user.firstName} ${p.user.lastName.charAt(0)}.`,
+      points: p.xp.toLocaleString(),
+      isMe: p.userId === userId,
+      avatarInitial: p.userId === userId ? 'Y' : p.user.firstName.charAt(0).toUpperCase(),
+    }));
+
+    // 3. Enrolled Courses
+    const enrollments = await this.ds.getRepository(Enrollment).find({ where: { studentId: userId } });
+    const classIds = enrollments.map(e => e.classId);
+    
+    let enrolledCourses: any[] = [];
+    if (classIds.length > 0) {
+      const classCourses = await this.ds.getRepository(ClassCourse).find({
+        where: { classId: In(classIds) },
+        relations: ['course'],
+      });
+      
+      // Deduplicate courses
+      const uniqueCourses = new Map();
+      classCourses.forEach(cc => {
+        if (!uniqueCourses.has(cc.course.id)) {
+          uniqueCourses.set(cc.course.id, {
+            id: cc.course.id,
+            title: cc.course.title,
+            progress: 0, // Mocked until progress calculation is implemented
+            colorGradient: 'from-cyan-500 to-blue-600',
+            icon: 'menu_book',
+          });
+        }
+      });
+      enrolledCourses = Array.from(uniqueCourses.values());
+    }
+
+    // 4. Active Quests (Assignments)
+    let activeQuests: any[] = [];
+    if (classIds.length > 0) {
+      // Postgres array overlap operator '&&'
+      const assignments = await this.ds.getRepository(Assignment)
+        .createQueryBuilder('a')
+        .where('a.classIds && ARRAY[:...classIds]::uuid[]', { classIds })
+        .limit(5)
+        .getMany();
+
+      activeQuests = assignments.map((a, idx) => ({
+        id: a.id,
+        title: a.title,
+        subject: a.subject || 'General',
+        icon: idx % 2 === 0 ? 'functions' : 'code',
+        duration: a.estimatedMinutes ? `${a.estimatedMinutes} mins` : '20 mins',
+        progress: 0, // Mocked until detailed submission progress is calculated
+        colorPrefix: idx % 2 === 0 ? 'emerald' : 'purple',
+      }));
+    }
+
     return {
       level: profile.level,
       xp: profile.xp,
       xpForNext: profile.level * 1000,
       streak: profile.streak,
       gems: profile.gems,
-      dailyQuestsCompleted: 3, // Mocked
-      dailyQuestsTarget: 5,    // Mocked
-      activeQuests: [
-        {
-          id: 'q1',
-          title: 'Linear Algebra Basics',
-          subject: 'Mathematics',
-          icon: 'functions',
-          duration: '45 mins',
-          progress: 75,
-          colorPrefix: 'emerald',
-        },
-        {
-          id: 'q2',
-          title: 'Intro to Python Arrays',
-          subject: 'Computer Science',
-          icon: 'code',
-          duration: '20 mins',
-          progress: 30,
-          colorPrefix: 'purple',
-        },
-      ],
-      enrolledCourses: [
-        {
-          id: 'c1',
-          title: 'Advanced Algorithms',
-          progress: 65,
-          colorGradient: 'from-cyan-500 to-blue-600',
-          icon: 'data_object',
-        },
-        {
-          id: 'c2',
-          title: 'Database Design',
-          progress: 15,
-          colorGradient: 'from-rose-500 to-orange-500',
-          icon: 'database',
-        },
-        {
-          id: 'c3',
-          title: 'Machine Learning 101',
-          progress: 80,
-          colorGradient: 'from-fuchsia-500 to-purple-600',
-          icon: 'smart_toy',
-        },
-      ],
-      achievements: [
+      dailyQuestsCompleted,
+      dailyQuestsTarget,
+      activeQuests,
+      enrolledCourses,
+      achievements: [ // Kept mocked as agreed
         {
           id: 'a1',
           icon: 'workspace_premium',
@@ -248,11 +280,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
           unlocked: false,
         },
       ],
-      leaderboard: [
-        { rank: 1, name: 'Alice W.', points: '3,240', isMe: false, avatarInitial: 'A' },
-        { rank: 2, name: 'You', points: '2,890', isMe: true, avatarInitial: 'Y' },
-        { rank: 3, name: 'John D.', points: '2,400', isMe: false, avatarInitial: 'J' },
-      ],
+      leaderboard,
     };
   }
 }

@@ -31,13 +31,6 @@ export interface IAchievement {
   unlocked: boolean;
 }
 
-// ── Quests (extends QuestCard's idea with extra metadata) ────────────────
-
-export enum QuestState {
-  NOT_STARTED = 'NOT_STARTED',
-  IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-}
 
 export enum DifficultyLevel {
   EASY = 'EASY',
@@ -50,22 +43,6 @@ export const DIFFICULTY_LABEL: Record<DifficultyLevel, string> = {
   [DifficultyLevel.MEDIUM]: 'Medium',
   [DifficultyLevel.HARD]: 'Hard',
 };
-
-export interface IQuest {
-  id: string;
-  title: string;
-  subject: string;
-  /** Material symbol icon name */
-  icon: string;
-  /** Tailwind classes for the icon container, e.g. "bg-primary-container text-primary" */
-  iconClass?: string;
-  difficulty: DifficultyLevel;
-  durationLabel: string;
-  state: QuestState;
-  /** 0–100 */
-  progress?: number;
-  xpReward?: number;
-}
 
 // ── Assignments / Feedback Hub ───────────────────────────────────────────
 

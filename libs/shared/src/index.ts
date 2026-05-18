@@ -9,3 +9,4 @@ export * from './lib/class.types';
 export * from './lib/curriculum.types';
 export * from './lib/submission.types';
 export * from './lib/types/dashboard.types';
+export * from './lib/types/quests.types';
