@@ -60,6 +60,7 @@ export interface ICodingConfig {
   checkerType?: 'standard' | 'exact' | 'custom';
   allowedLanguages?: string[];
   testCases?: ICodingTestCase[];
+  allowViewHiddenTestCases?: boolean;
 }
 
 

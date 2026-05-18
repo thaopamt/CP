@@ -14,6 +14,7 @@ import {
   ICreateStudentPayload,
   IGuardian,
   IStudentProfile,
+  IStudentDashboardData,
 } from '@cp/shared';
 
 import { apiClient } from '../lib/api-client';
@@ -186,5 +187,10 @@ export const studentsApi = {
 
   async remove(id: string): Promise<void> {
     await apiClient.delete(`/students/${id}`);
+  },
+
+  async getDashboard(): Promise<IStudentDashboardData> {
+    const { data } = await apiClient.get<IStudentDashboardData>('/student-dashboard');
+    return data;
   },
 };

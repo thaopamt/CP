@@ -77,6 +77,18 @@ export class StudentProfile extends BaseEntity {
   @Column({ type: 'int', default: 0, name: 'quests_completed' })
   questsCompleted!: number;
 
+  @Column({ type: 'int', default: 1 })
+  level!: number;
+
+  @Column({ type: 'int', default: 0 })
+  xp!: number;
+
+  @Column({ type: 'int', default: 0 })
+  gems!: number;
+
+  @Column({ type: 'int', default: 0 })
+  streak!: number;
+
   @Column({ type: 'varchar', length: 64, nullable: true, name: 'cohort_percentile' })
   cohortPercentile!: string | null;
 

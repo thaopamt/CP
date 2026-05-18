@@ -26,7 +26,7 @@ import 'prismjs/components/prism-python';
 import 'prismjs/components/prism-javascript';
 
 import { useAssignment } from '../../api/curriculum.queries';
-import { useRunCode, useSubmitCode } from '../../api/submissions.queries';
+import { useRunCode, useSubmitCode, useSubmissions } from '../../api/submissions.queries';
 
 /* ── Language config ──────────────────────────────────────────────── */
 const LANG_OPTIONS: { value: string; label: string; template: string }[] = [
@@ -44,6 +44,7 @@ export default function StudentAssignmentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: assignment, isLoading, isError } = useAssignment(id);
+  const { data: submissions = [] } = useSubmissions(assignment?.id || '');
   const runMutation = useRunCode();
   const submitMutation = useSubmitCode();
 
@@ -55,7 +56,11 @@ export default function StudentAssignmentDetailPage() {
   const [customInput, setCustomInput] = useState('');
   const [customOutput, setCustomOutput] = useState('');
   const [running, setRunning] = useState(false);
-  const [runResult, setRunResult] = useState<null | { status: 'accepted' | 'wrong' | 'error'; stdout: string; expected: string; runtime: string; memory: string }>(null);
+  const [runResults, setRunResults] = useState<null | {
+    overall: 'accepted' | 'wrong' | 'error';
+    cases: { status: 'accepted' | 'wrong' | 'error'; input: string; stdout: string; expected: string }[];
+  }>(null);
+  const [activeResultIdx, setActiveResultIdx] = useState(0);
 
   // Splitter state
   const [splitX, setSplitX] = useState(45); // % for left panel
@@ -123,50 +128,69 @@ export default function StudentAssignmentDetailPage() {
   const handleRun = async () => {
     setRunning(true);
     setBottomTab('result');
+    setActiveResultIdx(0);
     try {
-      const result = await runMutation.mutateAsync({
-        language,
-        code,
-        stdin: customInput,
-      });
+      const cases: { status: 'accepted' | 'wrong' | 'error'; input: string; stdout: string; expected: string }[] = [];
+      const testInputs = visibleTestCases.length > 0
+        ? visibleTestCases.map(tc => ({ input: tc.input, expected: tc.output }))
+        : [{ input: customInput, expected: customOutput }];
 
-      if (result.compile && result.compile.code !== 0) {
-        setRunResult({
-          status: 'error',
-          stdout: result.compile.stderr,
-          expected: customOutput || '',
-          runtime: 'N/A',
-          memory: 'N/A',
+      for (const tc of testInputs) {
+        const result = await runMutation.mutateAsync({
+          language,
+          code,
+          stdin: tc.input,
         });
-      } else {
+
+        if (result.compile && result.compile.code !== 0) {
+          cases.push({
+            status: 'error',
+            input: tc.input,
+            stdout: result.compile.stderr || 'Compilation Error',
+            expected: tc.expected || '',
+          });
+          // If compilation error, all subsequent cases will also fail
+          for (let j = cases.length; j < testInputs.length; j++) {
+            cases.push({
+              status: 'error',
+              input: testInputs[j].input,
+              stdout: result.compile.stderr || 'Compilation Error',
+              expected: testInputs[j].expected || '',
+            });
+          }
+          break;
+        }
+
         const actualOutput = result.run.stdout.trim();
         const actualError = result.run.stderr.trim();
-        
         let status: 'accepted' | 'wrong' | 'error' = 'accepted';
         let stdout = actualOutput;
-        
+
         if (result.run.code !== 0) {
           status = 'error';
           stdout = actualError || actualOutput || 'Runtime Error';
-        } else if (customOutput && actualOutput !== customOutput.trim()) {
+        } else if (tc.expected && actualOutput !== tc.expected.trim()) {
           status = 'wrong';
         }
 
-        setRunResult({
+        cases.push({
           status,
+          input: tc.input,
           stdout: stdout || 'No output',
-          expected: customOutput || '',
-          runtime: 'N/A', // Piston doesn't easily expose this
-          memory: 'N/A',
+          expected: tc.expected || '',
         });
       }
+
+      const allAccepted = cases.every(c => c.status === 'accepted');
+      const hasError = cases.some(c => c.status === 'error');
+      setRunResults({
+        overall: allAccepted ? 'accepted' : hasError ? 'error' : 'wrong',
+        cases,
+      });
     } catch (err: any) {
-      setRunResult({
-        status: 'error',
-        stdout: err.message || 'Execution failed',
-        expected: '',
-        runtime: 'N/A',
-        memory: 'N/A',
+      setRunResults({
+        overall: 'error',
+        cases: [{ status: 'error', input: customInput, stdout: err.message || 'Execution failed', expected: '' }],
       });
     } finally {
       setRunning(false);
@@ -179,30 +203,83 @@ export default function StudentAssignmentDetailPage() {
     setBottomTab('result');
     try {
       const result = await submitMutation.mutateAsync({
-        assignmentId: id!,
+        assignmentId: assignment?.id || id!,
         language,
         code,
       });
       const sub = result.submission;
+      const overallStatus = sub.status === 'ACCEPTED' ? 'accepted' as const : sub.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const;
       
-      setRunResult({
-        status: sub.status === 'ACCEPTED' ? 'accepted' : sub.status === 'WRONG_ANSWER' ? 'wrong' : 'error',
-        stdout: `Passed: ${sub.passedCount} / ${sub.totalCount}`,
-        expected: '',
-        runtime: sub.totalExecutionTimeMs ? `${sub.totalExecutionTimeMs} ms` : 'N/A',
-        memory: sub.maxMemoryBytes ? `${(sub.maxMemoryBytes / 1024 / 1024).toFixed(1)} MB` : 'N/A',
+      const cases = sub.testResults && sub.testResults.length > 0 
+        ? sub.testResults.map((tr) => {
+            const tc = assignment?.codingConfig?.testCases?.[tr.testCaseIndex];
+            const isHidden = tc?.isHidden;
+            const allowView = assignment?.codingConfig?.allowViewHiddenTestCases;
+            const hideDetails = isHidden && !allowView;
+            
+            return {
+              status: tr.status === 'ACCEPTED' ? 'accepted' as const : tr.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const,
+              input: hideDetails ? 'Hidden Test Case' : tc?.input || 'Hidden Test Case',
+              stdout: hideDetails ? '(Output hidden)' : tr.errorMessage || tr.actualOutput || 'No output',
+              expected: hideDetails ? '(Hidden Expected)' : tr.expectedOutput || '',
+            };
+          })
+        : [{
+            status: overallStatus,
+            input: '',
+            stdout: `Passed: ${sub.passedCount} / ${sub.totalCount}`,
+            expected: '',
+          }];
+
+      setRunResults({
+        overall: overallStatus,
+        cases,
       });
+      setActiveResultIdx(0);
     } catch (err: any) {
-       setRunResult({
-        status: 'error',
-        stdout: err.message || 'Submission failed',
-        expected: '',
-        runtime: 'N/A',
-        memory: 'N/A',
+       setRunResults({
+        overall: 'error',
+        cases: [{ status: 'error', input: '', stdout: err.message || 'Submission failed', expected: '' }],
       });
+      setActiveResultIdx(0);
     } finally {
       setRunning(false);
     }
+  };
+
+  const handleViewSubmission = (sub: any) => {
+    setCode(sub.code);
+    setLanguage(sub.language);
+    
+    const overallStatus = sub.status === 'ACCEPTED' ? 'accepted' as const : sub.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const;
+    
+    const cases = sub.testResults && sub.testResults.length > 0 
+      ? sub.testResults.map((tr: any) => {
+          const tc = assignment?.codingConfig?.testCases?.[tr.testCaseIndex];
+          const isHidden = tc?.isHidden;
+          const allowView = assignment?.codingConfig?.allowViewHiddenTestCases;
+          const hideDetails = isHidden && !allowView;
+          
+          return {
+            status: tr.status === 'ACCEPTED' ? 'accepted' as const : tr.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const,
+            input: hideDetails ? 'Hidden Test Case' : tc?.input || 'Hidden Test Case',
+            stdout: hideDetails ? '(Output hidden)' : tr.errorMessage || tr.actualOutput || 'No output',
+            expected: hideDetails ? '(Hidden Expected)' : tr.expectedOutput || '',
+          };
+        })
+      : [{
+          status: overallStatus,
+          input: '',
+          stdout: `Passed: ${sub.passedCount} / ${sub.totalCount}`,
+          expected: '',
+        }];
+
+    setRunResults({
+      overall: overallStatus,
+      cases,
+    });
+    setActiveResultIdx(0);
+    setBottomTab('result');
   };
 
   /* ── Loading / Error ────────────────────────────────────────────── */
@@ -397,10 +474,63 @@ export default function StudentAssignmentDetailPage() {
                 )}
               </div>
             ) : (
-              <div className="p-5 text-center text-gray-500">
-                <Icon name="history" size={48} className="mx-auto mb-3 text-gray-600" />
-                <p className="text-sm">No submissions yet.</p>
-                <p className="text-xs text-gray-600 mt-1">Your submission history will appear here.</p>
+              <div className="p-4 space-y-3">
+                {submissions.length > 0 ? (
+                  submissions.map((sub: any) => (
+                    <div 
+                      key={sub.id} 
+                      className="bg-[#1a1a2e] border border-white/5 rounded-lg p-3 hover:border-white/10 transition-colors cursor-pointer"
+                      onClick={() => handleViewSubmission(sub)}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                            sub.status === 'ACCEPTED' ? 'bg-emerald-500/10 text-emerald-400' :
+                            sub.status === 'WRONG_ANSWER' ? 'bg-red-500/10 text-red-400' :
+                            sub.status === 'PENDING' ? 'bg-blue-500/10 text-blue-400' :
+                            'bg-yellow-500/10 text-yellow-400'
+                          }`}>
+                            {sub.status === 'ACCEPTED' ? 'Accepted' :
+                             sub.status === 'WRONG_ANSWER' ? 'Wrong Answer' :
+                             sub.status === 'PENDING' ? 'Pending' :
+                             sub.status === 'TIME_LIMIT_EXCEEDED' ? 'Time Limit' :
+                             sub.status === 'MEMORY_LIMIT_EXCEEDED' ? 'Memory Limit' :
+                             sub.status === 'COMPILATION_ERROR' ? 'Compilation Error' :
+                             'Error'}
+                          </span>
+                          <span className="text-[11px] text-gray-500 font-mono">{sub.language}</span>
+                        </div>
+                        <span className="text-[10px] text-gray-500">
+                          {new Date(sub.createdAt.endsWith('Z') || sub.createdAt.includes('+') ? sub.createdAt : `${sub.createdAt}Z`).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-gray-400">
+                        <div className="flex items-center gap-1">
+                          <Icon name="check_circle" size={12} className="text-emerald-500" />
+                          {sub.passedCount} / {sub.totalCount} passed
+                        </div>
+                        {sub.totalExecutionTimeMs != null && (
+                          <div className="flex items-center gap-1">
+                            <Icon name="timer" size={12} />
+                            {sub.totalExecutionTimeMs} ms
+                          </div>
+                        )}
+                        {sub.maxMemoryBytes != null && (
+                          <div className="flex items-center gap-1">
+                            <Icon name="memory" size={12} />
+                            {(sub.maxMemoryBytes / 1024 / 1024).toFixed(1)} MB
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-5 text-center text-gray-500">
+                    <Icon name="history" size={48} className="mx-auto mb-3 text-gray-600" />
+                    <p className="text-sm">No submissions yet.</p>
+                    <p className="text-xs text-gray-600 mt-1">Your submission history will appear here.</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -505,7 +635,7 @@ export default function StudentAssignmentDetailPage() {
                     <span className="flex items-center gap-1.5"><Icon name="science" size={13} />Testcase</span>
                   ) : (
                     <span className="flex items-center gap-1.5">
-                      <Icon name={runResult ? (runResult.status === 'accepted' ? 'check_circle' : 'cancel') : 'terminal'} size={13} className={runResult?.status === 'accepted' ? 'text-emerald-400' : runResult?.status === 'wrong' ? 'text-red-400' : ''} />
+                      <Icon name={runResults ? (runResults.overall === 'accepted' ? 'check_circle' : 'cancel') : 'terminal'} size={13} className={runResults?.overall === 'accepted' ? 'text-emerald-400' : runResults?.overall === 'wrong' ? 'text-red-400' : ''} />
                       Result
                     </span>
                   )}
@@ -519,7 +649,7 @@ export default function StudentAssignmentDetailPage() {
               {bottomTab === 'testcase' ? (
                 <div>
                   {/* Test case pills */}
-                  <div className="flex items-center gap-1.5 mb-3">
+                  <div className="flex flex-wrap items-center gap-1.5 mb-3">
                     {visibleTestCases.map((_, i) => (
                       <button
                         key={i}
@@ -531,23 +661,32 @@ export default function StudentAssignmentDetailPage() {
                       </button>
                     ))}
                   </div>
-                  {/* Input / Expected */}
+                  {/* Input / Expected / Explanation */}
                   <div className="space-y-3">
                     <div>
-                      <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">Input =</label>
-                      <textarea
-                        value={customInput}
-                        onChange={e => setCustomInput(e.target.value)}
-                        className="w-full bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm font-mono text-gray-300 resize-none outline-none focus:border-emerald-500/50 min-h-[60px]"
-                        rows={3}
-                      />
+                      <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">Input</label>
+                      <pre className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm font-mono text-gray-300 whitespace-pre-wrap min-h-[40px]">{customInput.trim()}</pre>
                     </div>
                     <div>
-                      <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">Expected Output =</label>
-                      <pre className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm font-mono text-gray-400 whitespace-pre-wrap min-h-[40px]">
-                        {customOutput || '(empty)'}
-                      </pre>
+                      <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">Expected Output</label>
+                      <pre className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm font-mono text-gray-400 whitespace-pre-wrap min-h-[40px]">{customOutput.trim() || '(empty)'}</pre>
                     </div>
+                    {visibleTestCases[activeTestIdx]?.explanation && (
+                      <div>
+                        <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">Explanation</label>
+                        <div className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm text-gray-400 leading-relaxed
+                          prose prose-sm prose-invert max-w-none
+                          prose-p:text-gray-400 prose-p:my-1
+                          prose-code:text-emerald-300 prose-code:bg-white/5 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
+                          prose-pre:bg-[#0a0a18] prose-pre:border prose-pre:border-white/5 prose-pre:rounded-lg
+                          prose-strong:text-gray-200 prose-em:text-gray-300
+                          prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5">
+                          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                            {visibleTestCases[activeTestIdx].explanation}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -557,33 +696,66 @@ export default function StudentAssignmentDetailPage() {
                       <Icon name="progress_activity" size={16} className="animate-spin" />
                       Running…
                     </div>
-                  ) : runResult ? (
+                  ) : runResults ? (
                     <div>
-                      <div className={`text-lg font-bold mb-3 ${runResult.status === 'accepted' ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {runResult.status === 'accepted' ? '✓ Accepted' : '✗ Wrong Answer'}
+                      {/* Overall verdict */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className={`text-lg font-bold ${runResults.overall === 'accepted' ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {runResults.overall === 'accepted' ? '✓ Accepted' : runResults.overall === 'wrong' ? '✗ Wrong Answer' : '✗ Error'}
+                        </span>
+                        {runResults.cases.length > 1 && (
+                          <span className="text-xs text-gray-400">
+                            {runResults.cases.filter(c => c.status === 'accepted').length} / {runResults.cases.length} passed
+                          </span>
+                        )}
                       </div>
-                      <div className="flex gap-4 mb-4">
-                        <div className="text-xs text-gray-400">
-                          <span className="text-gray-500">Runtime:</span> <span className="text-white font-medium">{runResult.runtime}</span>
+
+                      {/* Per-case pills */}
+                      {runResults.cases.length > 1 && (
+                        <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                          {runResults.cases.map((c, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setActiveResultIdx(i)}
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors
+                                ${activeResultIdx === i ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
+                            >
+                              <Icon
+                                name={c.status === 'accepted' ? 'check_circle' : 'cancel'}
+                                size={12}
+                                className={c.status === 'accepted' ? 'text-emerald-400' : 'text-red-400'}
+                              />
+                              Case {i + 1}
+                            </button>
+                          ))}
                         </div>
-                        <div className="text-xs text-gray-400">
-                          <span className="text-gray-500">Memory:</span> <span className="text-white font-medium">{runResult.memory}</span>
+                      )}
+
+                      {/* Selected case detail */}
+                      {runResults.cases[activeResultIdx] && (
+                        <div className="space-y-3">
+                          {runResults.cases[activeResultIdx].input && (
+                            <div>
+                              <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">Input</span>
+                              <pre className="mt-1 bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm font-mono text-gray-300 whitespace-pre-wrap">{runResults.cases[activeResultIdx].input}</pre>
+                            </div>
+                          )}
+                          <div>
+                            <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">Output</span>
+                            <pre className={`mt-1 bg-[#1a1a2e] border rounded-lg p-2.5 text-sm font-mono whitespace-pre-wrap ${
+                              runResults.cases[activeResultIdx].status === 'accepted' ? 'border-emerald-500/20 text-emerald-300' :
+                              runResults.cases[activeResultIdx].status === 'wrong' ? 'border-red-500/20 text-red-300' :
+                              'border-white/5 text-gray-300'
+                            }`}>{runResults.cases[activeResultIdx].stdout}</pre>
+                          </div>
+                          {runResults.cases[activeResultIdx].expected && (
+                            <div>
+                              <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">Expected</span>
+                              <pre className="mt-1 bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm font-mono text-gray-300 whitespace-pre-wrap">{runResults.cases[activeResultIdx].expected}</pre>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      <div className="space-y-3">
-                        <div>
-                          <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">Input</span>
-                          <pre className="mt-1 bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm font-mono text-gray-300 whitespace-pre-wrap">{customInput}</pre>
-                        </div>
-                        <div>
-                          <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">Output</span>
-                          <pre className="mt-1 bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm font-mono text-gray-300 whitespace-pre-wrap">{runResult.stdout}</pre>
-                        </div>
-                        <div>
-                          <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">Expected</span>
-                          <pre className="mt-1 bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm font-mono text-gray-300 whitespace-pre-wrap">{runResult.expected}</pre>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   ) : (
                     <div className="text-sm text-gray-500 py-4 text-center">

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Req, Param } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req, Param } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -21,6 +21,17 @@ export class SubmissionsController {
   @Post('run')
   async runCode(@Body() payload: ICodeExecutionRequest) {
     return this.executionService.runCode(payload.language, payload.code, payload.stdin);
+  }
+
+  @Get('assignment/:assignmentId')
+  async getMySubmissions(@Req() req: any, @Param('assignmentId') assignmentId: string) {
+    const userId = req.user.sub;
+    const submissions = await this.submissionRepo.find({
+      where: { userId, assignmentId },
+      order: { createdAt: 'DESC' },
+      relations: ['testResults'],
+    });
+    return submissions;
   }
 
   @Post('submit')

@@ -1,4 +1,4 @@
-import { Body, Controller, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { Crud, CrudController, Override } from '@dataui/crud';
 import { UserRole } from '@cp/shared';
 
@@ -20,6 +20,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
  *   PATCH  /api/students/:id        — ADMIN — partial update + replace guardians
  *   DELETE /api/students/:id        — ADMIN — soft delete (cascades to User via FK)
  */
+
 @Crud({
   model: { type: StudentProfile },
   dto: {

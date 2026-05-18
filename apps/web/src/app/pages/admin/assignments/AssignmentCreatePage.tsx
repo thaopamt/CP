@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '@cp/ui';
 import { useCreateAssignment } from '../../../api/curriculum.queries';
@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import JSZip from 'jszip';
 
 export default function AssignmentCreatePage() {
   const navigate = useNavigate();
@@ -39,9 +40,99 @@ export default function AssignmentCreatePage() {
 
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
   const [testCaseTab, setTestCaseTab] = useState<'upload' | 'manual'>('upload');
+  const zipInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<ICodingTestCase[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+
+  /** Parse a ZIP or folder of .inp/.out .in/.out files into test cases */
+  const parseTestCaseFiles = useCallback(async (file: File) => {
+    setUploading(true);
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const fileMap = new Map<string, { inp?: string; out?: string }>();
+
+      for (const [path, entry] of Object.entries(zip.files)) {
+        if (entry.dir) continue;
+        const filename = path.split('/').pop() || '';
+        // Match patterns: 1.inp/1.out, 1.in/1.out, input1.txt/output1.txt, test1.in/test1.out
+        const match = filename.match(/^(?:input|test)?(\d+)\.(?:inp|in|txt)$/i)
+          || filename.match(/^(?:output|ans)?(\d+)\.(?:out|ans|txt)$/i);
+
+        if (!match) continue;
+        const num = match[1];
+        const isInput = /\.(inp|in)$/i.test(filename) || /^input/i.test(filename) || /^test.*\.in$/i.test(filename);
+        const isOutput = /\.(out|ans)$/i.test(filename) || /^output/i.test(filename) || /^ans/i.test(filename);
+
+        if (!fileMap.has(num)) fileMap.set(num, {});
+        const content = await entry.async('string');
+
+        if (isInput) fileMap.get(num)!.inp = content.trim();
+        else if (isOutput) fileMap.get(num)!.out = content.trim();
+      }
+
+      // Sort by number and create test cases
+      const sorted = Array.from(fileMap.entries())
+        .sort(([a], [b]) => parseInt(a) - parseInt(b));
+
+      const cases: ICodingTestCase[] = sorted
+        .filter(([, v]) => v.inp !== undefined) // must have input
+        .map(([, v]) => ({
+          input: v.inp || '',
+          output: v.out || '',
+          isHidden: true, // uploaded test cases are hidden (grading) by default
+        }));
+
+      if (cases.length === 0) {
+        toast.error('No valid test case files found. Expected patterns: 1.inp/1.out, 1.in/1.out, input1.txt/output1.txt');
+      } else {
+        setUploadedFiles(cases);
+        setTestCases(prev => [...prev, ...cases]);
+        toast.success(`Imported ${cases.length} test case${cases.length > 1 ? 's' : ''} from ZIP`);
+      }
+    } catch (err: any) {
+      toast.error('Failed to parse ZIP: ' + (err.message || 'Unknown error'));
+    } finally {
+      setUploading(false);
+    }
+  }, [toast]);
+
+  const handleZipDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file && (file.name.endsWith('.zip') || file.type === 'application/zip')) {
+      parseTestCaseFiles(file);
+    } else {
+      toast.error('Please drop a .zip file');
+    }
+  }, [parseTestCaseFiles, toast]);
+
+  const handleZipSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) parseTestCaseFiles(file);
+    e.target.value = ''; // reset so same file can be re-selected
+  }, [parseTestCaseFiles]);
 
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
+  const [slugAutoMode, setSlugAutoMode] = useState(true);
+
+  const slugify = (text: string) =>
+    text
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+
+  const handleTitleChange = (value: string) => {
+    setTitle(value);
+    if (slugAutoMode) {
+      setSlug(slugify(value));
+    }
+  };
   const [description, setDescription] = useState('');
   const [difficulty, setDifficulty] = useState<'EASY' | 'MEDIUM' | 'HARD'>('MEDIUM');
   const [tags, setTags] = useState<string[]>([]);
@@ -50,6 +141,7 @@ export default function AssignmentCreatePage() {
   const [memoryLimit, setMemoryLimit] = useState(256);
   const [outputLimit, setOutputLimit] = useState(10);
   const [checkerType, setCheckerType] = useState<'standard' | 'exact' | 'custom'>('standard');
+  const [allowViewHiddenTestCases, setAllowViewHiddenTestCases] = useState(false);
   const [testCases, setTestCases] = useState<ICodingTestCase[]>([{ input: '', output: '', isHidden: false }]);
 
   const handlePublish = async () => {
@@ -70,6 +162,7 @@ export default function AssignmentCreatePage() {
           memoryLimit,
           outputLimit,
           checkerType,
+          allowViewHiddenTestCases,
           allowedLanguages: ['C++ 20', 'Java 17', 'Python 3', 'JavaScript'],
           testCases
         }
@@ -127,19 +220,41 @@ export default function AssignmentCreatePage() {
                   <input
                     type="text"
                     value={title}
-                    onChange={e => setTitle(e.target.value)}
+                    onChange={e => handleTitleChange(e.target.value)}
                     className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm text-body-md focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     placeholder="e.g., Two Sum"
                   />
                 </div>
                 <div>
-                  <label className="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Problem Code (Slug)</label>
+                  <label className="block font-label-sm text-label-sm text-on-surface-variant mb-xs">
+                    Problem Code (Slug)
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = !slugAutoMode;
+                        setSlugAutoMode(next);
+                        if (next) setSlug(slugify(title));
+                      }}
+                      className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full border transition-colors ${
+                        slugAutoMode
+                          ? 'bg-primary/10 text-primary border-primary/30'
+                          : 'bg-surface-container-low text-on-surface-variant border-outline-variant'
+                      }`}
+                      title={slugAutoMode ? 'Click to edit manually' : 'Click to auto-generate'}
+                    >
+                      {slugAutoMode ? '\uD83D\uDD17 Auto' : '\u270F\uFE0F Manual'}
+                    </button>
+                  </label>
                   <input
                     type="text"
                     value={slug}
-                    onChange={e => setSlug(e.target.value)}
-                    className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm text-body-md focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    onChange={e => {
+                      setSlug(e.target.value);
+                      setSlugAutoMode(false);
+                    }}
+                    className={`w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm text-body-md focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary ${slugAutoMode ? 'text-on-surface-variant' : ''}`}
                     placeholder="e.g., two-sum"
+                    readOnly={slugAutoMode}
                   />
                 </div>
               </div>
@@ -250,17 +365,16 @@ export default function AssignmentCreatePage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block font-label-sm text-xs text-on-surface-variant mb-xs">Explanation (Optional)</label>
-                    <input
-                      type="text"
+                    <label className="block font-label-sm text-xs text-on-surface-variant mb-xs">Explanation (Optional · Markdown supported)</label>
+                    <textarea
                       value={tc.explanation || ''}
                       onChange={(e) => {
                         const newTc = [...testCases];
                         newTc[idx].explanation = e.target.value;
                         setTestCases(newTc);
                       }}
-                      className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-1 text-sm focus:outline-none focus:border-primary"
-                      placeholder="Explanation for the test case"
+                      className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg p-sm text-sm font-mono focus:outline-none focus:border-primary h-20 resize-y"
+                      placeholder="Supports **bold**, *italic*, `code`, math $x^2$, etc."
                     />
                   </div>
                   <div className="mt-sm flex items-center gap-xs">
@@ -309,14 +423,78 @@ export default function AssignmentCreatePage() {
               </div>
 
               {testCaseTab === 'upload' && (
-                <div className="border-2 border-dashed border-outline-variant rounded-lg p-xl flex flex-col items-center justify-center text-center bg-surface-container-low hover:bg-surface-container transition-colors cursor-pointer">
-                  <span className="material-symbols-outlined text-4xl text-outline-variant mb-sm">cloud_upload</span>
-                  <p className="font-label-sm text-on-surface mb-xs">Click to upload or drag and drop</p>
-                  <p className="text-xs text-on-surface-variant">ZIP file containing .in and .out files</p>
+                <div>
+                  {/* Hidden file input */}
+                  <input
+                    ref={zipInputRef}
+                    type="file"
+                    accept=".zip"
+                    className="hidden"
+                    onChange={handleZipSelect}
+                  />
+
+                  {/* Drop zone */}
+                  <div
+                    onClick={() => zipInputRef.current?.click()}
+                    onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={handleZipDrop}
+                    className={`border-2 border-dashed rounded-lg p-xl flex flex-col items-center justify-center text-center transition-colors cursor-pointer ${
+                      dragOver
+                        ? 'border-primary bg-primary-container/20'
+                        : 'border-outline-variant bg-surface-container-low hover:bg-surface-container'
+                    }`}
+                  >
+                    {uploading ? (
+                      <>
+                        <span className="material-symbols-outlined text-4xl text-primary mb-sm animate-spin">progress_activity</span>
+                        <p className="font-label-sm text-on-surface">Parsing ZIP file...</p>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-4xl text-outline-variant mb-sm">cloud_upload</span>
+                        <p className="font-label-sm text-on-surface mb-xs">Click to upload or drag and drop</p>
+                        <p className="text-xs text-on-surface-variant">ZIP containing paired files: <code className="bg-surface-variant px-1 rounded">1.inp/1.out</code>, <code className="bg-surface-variant px-1 rounded">1.in/1.out</code>, or <code className="bg-surface-variant px-1 rounded">input1.txt/output1.txt</code></p>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Upload result summary */}
+                  {uploadedFiles.length > 0 && (
+                    <div className="mt-md p-md bg-primary-container/10 border border-primary/20 rounded-lg">
+                      <div className="flex items-center justify-between mb-sm">
+                        <div className="flex items-center gap-sm">
+                          <span className="material-symbols-outlined text-primary text-lg">check_circle</span>
+                          <span className="font-label-sm text-on-surface font-bold">{uploadedFiles.length} test case{uploadedFiles.length > 1 ? 's' : ''} imported</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTestCases(prev => prev.filter(tc => !uploadedFiles.includes(tc)));
+                            setUploadedFiles([]);
+                          }}
+                          className="text-error hover:bg-error-container p-1 rounded transition-colors text-xs flex items-center gap-1"
+                        >
+                          <span className="material-symbols-outlined text-sm">delete</span>
+                          Clear Uploaded
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-xs">
+                        {uploadedFiles.map((tc, i) => (
+                          <div key={i} className="bg-surface-container-lowest rounded px-sm py-xs text-xs font-mono">
+                            <span className="text-on-surface-variant">#{i + 1}:</span>
+                            <span className="text-on-surface ml-1">{tc.input.substring(0, 20)}{tc.input.length > 20 ? '…' : ''}</span>
+                            <span className="text-primary ml-1">→</span>
+                            <span className="text-on-surface ml-1">{tc.output.substring(0, 15)}{tc.output.length > 15 ? '…' : ''}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               {testCaseTab === 'manual' && (
-                <p className="text-sm text-on-surface-variant">Manual entry form will appear here.</p>
+                <p className="text-sm text-on-surface-variant">Use the Sample Test Cases section above to add test cases manually.</p>
               )}
             </section>
           </div>
@@ -515,6 +693,22 @@ export default function AssignmentCreatePage() {
                 </div>
               </div>
               
+              {/* View hidden testcases option */}
+              <div className="mt-md pt-md border-t border-outline-variant">
+                <label className="flex items-center gap-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={allowViewHiddenTestCases}
+                    onChange={(e) => setAllowViewHiddenTestCases(e.target.checked)}
+                    className="w-4 h-4 text-primary bg-surface-container border-outline-variant rounded focus:ring-primary focus:ring-2"
+                  />
+                  <div>
+                    <span className="block text-sm font-medium text-on-surface">Allow Viewing Hidden Test Cases</span>
+                    <span className="block text-xs text-on-surface-variant mt-0.5">Students can view inputs/outputs of hidden cases after submitting code</span>
+                  </div>
+                </label>
+              </div>
+
               <div className="mt-md pt-md border-t border-outline-variant">
                 <button className="w-full px-md py-sm rounded-lg bg-surface-container-low text-primary hover:bg-primary-container hover:text-on-primary-container transition-colors font-label-sm text-sm flex items-center justify-center gap-xs">
                   <span className="material-symbols-outlined text-sm">code_blocks</span>

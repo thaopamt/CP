@@ -11,4 +11,9 @@ export const submissionsApi = {
     const { data } = await apiClient.post('/submissions/submit', payload);
     return data;
   },
+
+  getSubmissions: async (assignmentId: string): Promise<any[]> => {
+    const { data } = await apiClient.get(`/submissions/assignment/${assignmentId}`);
+    return data;
+  },
 };

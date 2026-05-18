@@ -168,6 +168,93 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
     const passwordHash = await bcrypt.hash(newPassword, 10);
     await this.users.update({ id: profile.userId }, { passwordHash });
   }
+
+  async getDashboardData(userId: string): Promise<any> {
+    const profile = await this.repo.findOne({ where: { userId } });
+    if (!profile) throw new NotFoundException(`Student profile not found for user ${userId}`);
+
+    // Aggregate gamification fields and mock the arrays for the dashboard
+    return {
+      level: profile.level,
+      xp: profile.xp,
+      xpForNext: profile.level * 1000,
+      streak: profile.streak,
+      gems: profile.gems,
+      dailyQuestsCompleted: 3, // Mocked
+      dailyQuestsTarget: 5,    // Mocked
+      activeQuests: [
+        {
+          id: 'q1',
+          title: 'Linear Algebra Basics',
+          subject: 'Mathematics',
+          icon: 'functions',
+          duration: '45 mins',
+          progress: 75,
+          colorPrefix: 'emerald',
+        },
+        {
+          id: 'q2',
+          title: 'Intro to Python Arrays',
+          subject: 'Computer Science',
+          icon: 'code',
+          duration: '20 mins',
+          progress: 30,
+          colorPrefix: 'purple',
+        },
+      ],
+      enrolledCourses: [
+        {
+          id: 'c1',
+          title: 'Advanced Algorithms',
+          progress: 65,
+          colorGradient: 'from-cyan-500 to-blue-600',
+          icon: 'data_object',
+        },
+        {
+          id: 'c2',
+          title: 'Database Design',
+          progress: 15,
+          colorGradient: 'from-rose-500 to-orange-500',
+          icon: 'database',
+        },
+        {
+          id: 'c3',
+          title: 'Machine Learning 101',
+          progress: 80,
+          colorGradient: 'from-fuchsia-500 to-purple-600',
+          icon: 'smart_toy',
+        },
+      ],
+      achievements: [
+        {
+          id: 'a1',
+          icon: 'workspace_premium',
+          label: 'Top of the Class',
+          caption: 'Ranked #1 this week',
+          unlocked: true,
+        },
+        {
+          id: 'a2',
+          icon: 'bolt',
+          label: 'Lightning Fast',
+          caption: 'Solved in under 5 mins',
+          unlocked: true,
+        },
+        {
+          id: 'a3',
+          icon: 'military_tech',
+          label: 'Code Master',
+          caption: 'Completed 50 quests',
+          unlocked: false,
+        },
+      ],
+      leaderboard: [
+        { rank: 1, name: 'Alice W.', points: '3,240', isMe: false, avatarInitial: 'A' },
+        { rank: 2, name: 'You', points: '2,890', isMe: true, avatarInitial: 'Y' },
+        { rank: 3, name: 'John D.', points: '2,400', isMe: false, avatarInitial: 'J' },
+      ],
+    };
+  }
 }
 
 /** "STU-{cohortYear}-{4-digit random}" */

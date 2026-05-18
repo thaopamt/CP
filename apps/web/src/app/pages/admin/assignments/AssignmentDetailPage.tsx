@@ -141,7 +141,12 @@ export default function AssignmentDetailPage() {
                       </div>
                       {tc.explanation && (
                         <div className="mt-sm pt-sm border-t border-outline-variant/50">
-                          <p className="text-sm italic text-on-surface-variant">Explanation: {tc.explanation}</p>
+                          <p className="font-label-sm text-xs text-on-surface-variant mb-xs">Explanation</p>
+                          <div className="prose prose-sm max-w-none text-on-surface-variant">
+                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                              {tc.explanation}
+                            </ReactMarkdown>
+                          </div>
                         </div>
                       )}
                     </div>

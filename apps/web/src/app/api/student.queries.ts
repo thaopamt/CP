@@ -14,6 +14,7 @@ import { assignmentsApi } from './curriculum.api';
 export const studentQueryKeys = {
   list: (params: StudentsListParams) => ['students', 'list', params] as const,
   detail: (id: string) => ['students', 'detail', id] as const,
+  dashboard: () => ['students', 'dashboard'] as const,
   myTasks: (params: any) => ['students', 'myTasks', params] as const,
   myFeedback: () => ['students', 'myFeedback'] as const,
 };
@@ -84,5 +85,12 @@ export function useMyFeedback() {
   return useQuery({
     queryKey: studentQueryKeys.myFeedback(),
     queryFn: () => assignmentsApi.myFeedback(),
+  });
+}
+
+export function useStudentDashboard() {
+  return useQuery({
+    queryKey: studentQueryKeys.dashboard(),
+    queryFn: () => studentsApi.getDashboard(),
   });
 }

@@ -6,56 +6,81 @@ import { ICodeExecutionResponse, SubmissionStatus } from '@cp/shared';
 @Injectable()
 export class ExecutionService {
   private readonly logger = new Logger(ExecutionService.name);
-  // Default to public Piston API for now, can be configured via env later
-  private readonly pistonApiUrl = process.env.PISTON_API_URL || 'http://localhost:2000/api/v2/piston/execute';
+  private readonly pistonApiUrl = process.env.PISTON_API_URL || 'http://localhost:2000/api/v2/execute';
+
+  /**
+   * Map frontend language names to Piston-compatible language + version.
+   */
+  private mapLanguage(language: string): { lang: string; version: string } {
+    const l = language.toLowerCase();
+    if (l === 'python' || l === 'py') {
+      return { lang: 'python', version: '3.10.0' };
+    }
+    if (l === 'c++' || l === 'cpp') {
+      return { lang: 'c++', version: '10.2.0' };
+    }
+    if (l === 'java') {
+      return { lang: 'java', version: '15.0.2' };
+    }
+    if (l === 'javascript' || l === 'js') {
+      // JavaScript not installed yet — fallback to python for now
+      return { lang: 'python', version: '3.10.0' };
+    }
+    // Default fallback
+    return { lang: l, version: '*' };
+  }
 
   /**
    * Execute code simply (for Run Code)
    */
   async runCode(language: string, code: string, stdin?: string): Promise<ICodeExecutionResponse> {
-    try {
-      // Piston language mappings (ensure we map common names to piston names)
-      let pistonLang = language.toLowerCase();
-      let pistonVersion = '*'; // use latest
-      
-      if (pistonLang === 'python') {
-        pistonVersion = '3.10.0';
-      } else if (pistonLang === 'javascript' || pistonLang === 'js' || pistonLang === 'typescript' || pistonLang === 'ts') {
-        pistonLang = 'typescript'; // Piston runs JS/TS with deno or typescript
-        pistonVersion = '5.0.3';
-      } else if (pistonLang === 'c++' || pistonLang === 'cpp') {
-        pistonLang = 'c++';
-        pistonVersion = '10.2.0';
-      }
+    const { lang, version } = this.mapLanguage(language);
 
+    try {
       const response = await axios.post(this.pistonApiUrl, {
-        language: pistonLang,
-        version: pistonVersion,
-        files: [
-          {
-            content: code,
-          },
-        ],
+        language: lang,
+        version: version,
+        files: [{ content: code }],
         stdin: stdin || '',
       });
 
-      return response.data as ICodeExecutionResponse;
+      const data = response.data;
+
+      // Normalize response — Piston returns cpu_time/wall_time/memory at run level
+      return {
+        language: data.language,
+        version: data.version,
+        compile: data.compile ? {
+          stdout: data.compile.stdout || '',
+          stderr: data.compile.stderr || '',
+          code: data.compile.code ?? 0,
+          signal: data.compile.signal,
+          output: data.compile.output || '',
+        } : undefined,
+        run: {
+          stdout: data.run.stdout || '',
+          stderr: data.run.stderr || '',
+          code: data.run.code ?? 0,
+          signal: data.run.signal,
+          output: data.run.output || '',
+        },
+      } as ICodeExecutionResponse;
     } catch (error: any) {
-      if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
-        this.logger.warn(`Local Piston API not found at ${this.pistonApiUrl}. Using mock execution.`);
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        this.logger.warn(`Piston API not reachable at ${this.pistonApiUrl}. Using mock.`);
         return {
           language,
           version: 'mock',
           run: {
-            stdout: 'Mock output: Local Piston API is not running. Please start the Docker container:\n docker run -p 2000:2000 -d piston/piston',
+            stdout: '⚠️ Piston API is not running.\nStart it with: docker compose -f docker/piston/docker-compose.yml up -d',
             stderr: '',
             code: 0,
             signal: null,
-            output: 'Mock output...'
-          }
-        };
+            output: '',
+          },
+        } as ICodeExecutionResponse;
       }
-      this.logger.error(`Failed to execute code in ${language}: ${error.message}`);
+      this.logger.error(`Execution failed (${language}): ${error.message}`);
       throw new Error('Code execution failed: ' + (error.response?.data?.message || error.message));
     }
   }
@@ -66,24 +91,25 @@ export class ExecutionService {
   async gradeSubmission(assignment: Assignment, language: string, code: string) {
     const config = assignment.codingConfig;
     if (!config || !config.testCases || config.testCases.length === 0) {
-      this.logger.warn(`Assignment ${assignment.id} has no test cases configured. Returning mock success.`);
+      this.logger.warn(`Assignment ${assignment.id} has no test cases. Running code once as acceptance.`);
+      // Run code once without stdin — if it compiles and runs, mark accepted
+      const res = await this.runCode(language, code, '');
+      const hasError = (res.compile && res.compile.code !== 0) || res.run.code !== 0;
       return {
-        status: SubmissionStatus.ACCEPTED,
-        passedCount: 1,
+        status: hasError ? SubmissionStatus.RUNTIME_ERROR : SubmissionStatus.ACCEPTED,
+        passedCount: hasError ? 0 : 1,
         totalCount: 1,
-        maxMemory: 1024,
-        totalTime: 42,
-        testResults: [
-          {
-            testCaseIndex: 0,
-            status: SubmissionStatus.ACCEPTED,
-            expectedOutput: 'Mock Output',
-            actualOutput: 'Mock Output',
-            errorMessage: null,
-            executionTimeMs: 42,
-            memoryBytes: 1024,
-          }
-        ],
+        maxMemory: 0,
+        totalTime: 0,
+        testResults: [{
+          testCaseIndex: 0,
+          status: hasError ? SubmissionStatus.RUNTIME_ERROR : SubmissionStatus.ACCEPTED,
+          expectedOutput: '(no test cases)',
+          actualOutput: res.run.stdout || res.run.stderr || '',
+          errorMessage: res.compile?.stderr || res.run.stderr || null,
+          executionTimeMs: 0,
+          memoryBytes: 0,
+        }],
       };
     }
 
@@ -95,10 +121,8 @@ export class ExecutionService {
 
     for (let i = 0; i < config.testCases.length; i++) {
       const testCase = config.testCases[i];
-      
       const res = await this.runCode(language, code, testCase.input);
-      
-      // Determine pass/fail
+
       let status = SubmissionStatus.ACCEPTED;
       let actualOutput = res.run.stdout;
       let errorMsg = res.run.stderr;
@@ -111,10 +135,10 @@ export class ExecutionService {
         status = SubmissionStatus.RUNTIME_ERROR;
         finalStatus = status;
       } else {
-        // Compare output
+        // Compare output (trim trailing whitespace/newlines)
         const expected = testCase.output.trim();
         const actual = actualOutput.trim();
-        
+
         if (expected !== actual) {
           status = SubmissionStatus.WRONG_ANSWER;
           if (finalStatus === SubmissionStatus.ACCEPTED) {
@@ -129,9 +153,9 @@ export class ExecutionService {
         testCaseIndex: i,
         status,
         expectedOutput: testCase.output,
-        actualOutput: actualOutput,
-        errorMessage: errorMsg,
-        executionTimeMs: 0, // Piston free tier doesn't easily expose this in standard run, mock or parse if needed
+        actualOutput,
+        errorMessage: errorMsg || null,
+        executionTimeMs: 0,
         memoryBytes: 0,
       });
     }
