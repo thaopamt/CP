@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TypeOrmCrudService } from '@dataui/crud-typeorm';
 import { DataSource, Repository } from 'typeorm';
@@ -60,7 +60,7 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
       const sq = await sqRepo.findOne({ where: { id: studentQuestId, userId }, relations: ['quest'] });
       if (!sq) throw new NotFoundException('Quest progress not found');
       if (sq.status !== StudentQuestStatus.COMPLETED) {
-        throw new Error('Quest is not ready to be claimed');
+        throw new BadRequestException('Quest is not ready to be claimed');
       }
 
       // Mark claimed

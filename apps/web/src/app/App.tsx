@@ -49,6 +49,7 @@ const AdminClassEdit = lazy(() => import('./pages/admin/classes/ClassEditPage'))
 const AdminQuestsList = lazy(() => import('./pages/admin/quests/QuestsListPage'));
 const AdminQuestCreate = lazy(() => import('./pages/admin/quests/QuestCreatePage'));
 const AdminQuestEdit = lazy(() => import('./pages/admin/quests/QuestEditPage'));
+const LiveMonitorPage = lazy(() => import('./pages/admin/monitor/LiveMonitorPage'));
 const TeacherDashboard = lazy(() => import('./pages/teacher/DashboardPage'));
 const TeacherClasses = lazy(() => import('./pages/teacher/ClassesPage'));
 const TeacherAttendance = lazy(() => import('./pages/teacher/AttendancePage'));
@@ -119,6 +120,7 @@ export default function App() {
                 <Route path="quests" element={<AdminQuestsList />} />
                 <Route path="quests/new" element={<AdminQuestCreate />} />
                 <Route path="quests/:id/edit" element={<AdminQuestEdit />} />
+                <Route path="monitor" element={<LiveMonitorPage />} />
               </Route>
 
               {/* ── Teacher portal ───────────────────────────────────── */}

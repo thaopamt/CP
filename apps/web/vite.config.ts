@@ -11,9 +11,14 @@ export default defineConfig({
     host: 'localhost',
     proxy: {
       // Vite proxies /api → :3000 in dev, sidestepping CORS preflight headaches
+      // Vite proxies /api → :3000 in dev, sidestepping CORS preflight headaches
       '/api': {
         target: process.env.VITE_API_TARGET ?? 'http://localhost:3000',
         changeOrigin: true,
+      },
+      '/socket.io': {
+        target: process.env.VITE_API_TARGET ?? 'http://localhost:3000',
+        ws: true,
       },
     },
   },

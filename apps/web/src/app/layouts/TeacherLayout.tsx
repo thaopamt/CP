@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
 import { LogoutButton, UserAvatar, ThemeToggle } from './_shared';
+import GlobalChatWidget from '../components/GlobalChatWidget';
 
 const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/teacher', icon: 'dashboard', key: 'nav.teacher.dashboard', end: true },
@@ -115,6 +116,7 @@ export default function TeacherLayout() {
           </NavLink>
         ))}
       </nav>
+      <GlobalChatWidget />
     </div>
   );
 }

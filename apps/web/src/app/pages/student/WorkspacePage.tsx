@@ -24,6 +24,7 @@ import 'prismjs/components/prism-javascript';
 
 import { useAssignment } from '../../api/curriculum.queries';
 import { useRunCode, useSubmitCode, useSubmissions } from '../../api/submissions.queries';
+import { useLiveCodingSync } from '../../hooks/useLiveCodingSync';
 
 /* ── Language config ──────────────────────────────────────────────── */
 const LANG_OPTIONS: { value: string; label: string; template: string }[] = [
@@ -63,6 +64,9 @@ export default function StudentWorkspacePage() {
   const [splitX, setSplitX] = useState(45); // % for left panel
   const [splitY, setSplitY] = useState(60); // % for code editor vs bottom
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Kích hoạt Live Coding Sync
+  useLiveCodingSync(problemId, code, language);
 
   const handleLanguageChange = (val: string) => {
     setLanguage(val);

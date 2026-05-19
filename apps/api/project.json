@@ -43,6 +43,13 @@
         "cwd": "."
       }
     },
+    "seed:quests": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-quests.ts",
+        "cwd": "."
+      }
+    },
     "typeorm-generate": {
       "executor": "nx:run-commands",
       "options": {

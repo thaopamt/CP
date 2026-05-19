@@ -3,17 +3,19 @@ import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
 import { LogoutButton, UserAvatar, ThemeToggle } from './_shared';
+import GlobalChatWidget from '../components/GlobalChatWidget';
 
 const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/admin', icon: 'dashboard', key: 'nav.admin.dashboard', end: true },
   { to: '/admin/students', icon: 'groups', key: 'nav.admin.students' },
   { to: '/admin/classes', icon: 'class', key: 'nav.admin.classes' },
   { to: '/admin/courses', icon: 'menu_book', key: 'nav.admin.courses' },
-  { to: '/admin/quests', icon: 'swords', key: 'Quests' },
+  { to: '/admin/quests', icon: 'swords', key: 'nav.admin.quests' },
   { to: '/admin/assignments', icon: 'assignment', key: 'nav.admin.assignments' },
   { to: '/admin/schedule', icon: 'calendar_month', key: 'nav.admin.schedule' },
   { to: '/admin/finance', icon: 'payments', key: 'nav.admin.finance' },
   { to: '/admin/users', icon: 'group', key: 'nav.admin.users' },
+  { to: '/admin/monitor', icon: 'screen_share', key: 'nav.admin.monitor' },
   { to: '/admin/settings', icon: 'settings', key: 'nav.admin.settings' },
 ];
 
@@ -113,6 +115,7 @@ export default function AdminLayout() {
           <Outlet />
         </main>
       </div>
+      <GlobalChatWidget />
     </div>
   );
 }

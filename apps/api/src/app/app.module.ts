@@ -12,6 +12,8 @@ import { AssignmentsModule } from '../modules/assignments/assignments.module';
 import { CoursesModule } from '../modules/courses/courses.module';
 import { SubmissionsModule } from '../modules/submissions/submissions.module';
 import { QuestsModule } from '../modules/quests/quests.module';
+import { LiveMonitorModule } from '../modules/live-monitor/live-monitor.module';
+import { ChatModule } from '../modules/chat/chat.module';
 
 @Module({
   imports: [
@@ -32,6 +34,9 @@ import { QuestsModule } from '../modules/quests/quests.module';
     StudentsModule,
     SubmissionsModule,
     QuestsModule,
+    LiveMonitorModule,
+    ChatModule,
   ],
 })
 export class AppModule {}
+

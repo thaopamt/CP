@@ -1,0 +1,20 @@
+Starting Live Monitor E2E Test...
+[Admin] Connected with ID: JikxLNi1_vBUQWX1AAAD
+[Admin] Received active students list: 0 students online
+
+[Student] Connected with ID: 3mL11mHu_1KFR8OzAAAF
+[Student] Joining workspace and emitting initial code...
+[Admin] Received active students list: 1 students online
+[Admin] Found test student in list. Sending 'admin_watch_student'...
+
+[Student] Typing new code...
+
+[Admin] Received code_update for test_student_123 (javascript):
+----------------------------------------
+// Initial code
+function solve() {
+  console.log('Hello from test!');
+}
+----------------------------------------
+
+Test Completed successfully!
