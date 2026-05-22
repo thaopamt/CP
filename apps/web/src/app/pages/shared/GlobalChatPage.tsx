@@ -432,7 +432,10 @@ export default function GlobalChatPage() {
             </button>
           ))}
         </div>
-        <form onSubmit={handleSubmit} className="flex items-end gap-sm">
+        <form
+          onSubmit={handleSubmit}
+          className="flex items-center gap-sm rounded-xl bg-surface-container-low px-sm py-xs shadow-inner transition-colors focus-within:bg-surface-container-high"
+        >
           <label className="sr-only" htmlFor="global-chat-input">
             {t('globalChat.input.label')}
           </label>
@@ -447,15 +450,15 @@ export default function GlobalChatPage() {
                 void submitCurrentMessage();
               }
             }}
-            rows={2}
+            rows={1}
             maxLength={MAX_MESSAGE_LENGTH + 100}
             placeholder={t('globalChat.input.placeholder')}
-            className="max-h-32 min-h-[48px] flex-1 resize-none rounded-lg border border-outline-variant bg-surface-container-low px-md py-sm text-body-md outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="max-h-32 min-h-[40px] flex-1 resize-none border-0 bg-transparent px-sm py-sm text-body-md leading-6 outline-none ring-0 focus:border-0 focus:outline-none focus:ring-0"
           />
           <Button
             type="submit"
             disabled={!canSend}
-            className="min-h-[48px] min-w-[48px] px-md"
+            className="h-10 min-h-10 w-10 min-w-10 shrink-0 rounded-full p-0"
             aria-label={t('globalChat.actions.send')}
           >
             <Icon name="send" size={20} />

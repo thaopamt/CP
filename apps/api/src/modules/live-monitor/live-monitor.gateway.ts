@@ -9,14 +9,21 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 
+type StudentPresenceStatus = 'online' | 'idle' | 'away' | 'coding';
+
 export interface ActiveStudent {
   socketId: string;
   studentId: string;
-  problemId: string;
+  problemId?: string;
   studentName?: string;
   language?: string;
   code?: string;
   lastActive: number;
+  status?: StudentPresenceStatus;
+  currentPath?: string;
+  isTabVisible?: boolean;
+  isWindowFocused?: boolean;
+  idleForMs?: number;
 }
 
 @WebSocketGateway({
@@ -31,6 +38,8 @@ export class LiveMonitorGateway implements OnGatewayConnection, OnGatewayDisconn
 
   // Track active student sessions: socketId -> ActiveStudent
   private activeStudents = new Map<string, ActiveStudent>();
+  // Track student portal presence even when they are not in the coding workspace.
+  private onlineStudents = new Map<string, ActiveStudent>();
   // Track admin socket IDs for global broadcast
   private adminSockets = new Set<string>();
 
@@ -41,13 +50,46 @@ export class LiveMonitorGateway implements OnGatewayConnection, OnGatewayDisconn
   handleDisconnect(client: Socket) {
     console.log(`LiveMonitor: Client disconnected: ${client.id}`);
     this.adminSockets.delete(client.id);
+    this.onlineStudents.delete(client.id);
     if (this.activeStudents.has(client.id)) {
       this.activeStudents.delete(client.id);
-      this.broadcastActiveStudents();
     }
+    this.broadcastActiveStudents();
   }
 
   // ---- Student Events ----
+
+  @SubscribeMessage('student_online')
+  handleStudentOnline(
+    @MessageBody()
+    data: {
+      studentId: string;
+      studentName?: string;
+      currentPath?: string;
+      status?: StudentPresenceStatus;
+      isTabVisible?: boolean;
+      isWindowFocused?: boolean;
+      idleForMs?: number;
+    },
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (!data?.studentId) return;
+    const status = this.normalizePresenceStatus(data.status);
+
+    this.onlineStudents.set(client.id, {
+      socketId: client.id,
+      studentId: data.studentId,
+      studentName: data.studentName,
+      currentPath: data.currentPath,
+      status,
+      isTabVisible: data.isTabVisible,
+      isWindowFocused: data.isWindowFocused,
+      idleForMs: data.idleForMs,
+      lastActive: Date.now(),
+    });
+
+    this.broadcastActiveStudents();
+  }
 
   @SubscribeMessage('join_workspace')
   handleJoinWorkspace(
@@ -67,6 +109,10 @@ export class LiveMonitorGateway implements OnGatewayConnection, OnGatewayDisconn
       problemId: data.problemId,
       studentName: data.studentName,
       language: data.language,
+      status: 'coding',
+      isTabVisible: true,
+      isWindowFocused: true,
+      idleForMs: 0,
       lastActive: Date.now(),
     });
 
@@ -108,11 +154,8 @@ export class LiveMonitorGateway implements OnGatewayConnection, OnGatewayDisconn
     // Join a global admin room for grid-view updates
     client.join('admin_global');
 
-    // Send the current list of active students (including their latest code snapshots) to the admin
-    const studentsWithCode = Array.from(this.activeStudents.values()).map((s) => ({
-      ...s,
-    }));
-    client.emit('active_students_list', studentsWithCode);
+    // Send coding students plus online-only students to the admin.
+    client.emit('active_students_list', this.getMonitorStudents());
   }
 
   @SubscribeMessage('admin_watch_student')
@@ -150,7 +193,43 @@ export class LiveMonitorGateway implements OnGatewayConnection, OnGatewayDisconn
 
   // ---- Helper ----
   private broadcastActiveStudents() {
-    const list = Array.from(this.activeStudents.values());
+    const list = this.getMonitorStudents();
     this.server.emit('active_students_list', list);
+  }
+
+  private getMonitorStudents(): ActiveStudent[] {
+    const presenceByStudentId = new Map<string, ActiveStudent>();
+    for (const presence of this.onlineStudents.values()) {
+      const existing = presenceByStudentId.get(presence.studentId);
+      if (!existing || existing.lastActive < presence.lastActive) {
+        presenceByStudentId.set(presence.studentId, presence);
+      }
+    }
+
+    const codingStudents = Array.from(this.activeStudents.values()).map((student) => {
+      const presence = presenceByStudentId.get(student.studentId);
+      const presenceStatus = this.normalizePresenceStatus(presence?.status);
+      return {
+        ...student,
+        currentPath: presence?.currentPath ?? student.currentPath,
+        isTabVisible: presence?.isTabVisible ?? student.isTabVisible,
+        isWindowFocused: presence?.isWindowFocused ?? student.isWindowFocused,
+        idleForMs: presence?.idleForMs ?? student.idleForMs,
+        status: presenceStatus === 'online' ? ('coding' as const) : presenceStatus,
+      };
+    });
+    const codingStudentIds = new Set(codingStudents.map((student) => student.studentId));
+    const onlineOnlyStudents = Array.from(this.onlineStudents.values())
+      .filter((student) => !codingStudentIds.has(student.studentId))
+      .map((student) => ({
+        ...student,
+        status: this.normalizePresenceStatus(student.status),
+      }));
+
+    return [...codingStudents, ...onlineOnlyStudents].sort((a, b) => b.lastActive - a.lastActive);
+  }
+
+  private normalizePresenceStatus(status?: StudentPresenceStatus): Exclude<StudentPresenceStatus, 'coding'> {
+    return status === 'away' || status === 'idle' ? status : 'online';
   }
 }

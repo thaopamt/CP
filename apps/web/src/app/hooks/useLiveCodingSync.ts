@@ -1,13 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { useAuthStore } from '../stores/auth.store';
+import { fullName } from '@cp/shared';
 
-// Thay vì nối với API_URL có thể mang prefix '/api', ta dùng trực tiếp root nếu chạy dev server có proxy
-const SOCKET_URL = import.meta.env.VITE_API_URL?.startsWith('http') 
-  ? import.meta.env.VITE_API_URL 
-  : import.meta.env.PROD 
-    ? '' // In production, same domain
-    : 'http://localhost:3000';
+import { resolveSocketNamespace } from '../lib/socket-url';
+import { useAuthStore } from '../stores/auth.store';
 
 export function useLiveCodingSync(
   problemId: string | undefined,
@@ -30,7 +26,7 @@ export function useLiveCodingSync(
 
     // Khởi tạo connection
     // Ensure we don't prepend '/api' to the namespace
-    const socketUrl = SOCKET_URL ? `${SOCKET_URL}/live-monitor` : '/live-monitor';
+    const socketUrl = resolveSocketNamespace('/live-monitor');
     const socket = io(socketUrl, {
       transports: ['websocket'],
     });
@@ -42,7 +38,7 @@ export function useLiveCodingSync(
       socket.emit('join_workspace', {
         studentId: user.id,
         problemId: problemId,
-        studentName: user.name || user.email,
+        studentName: fullName(user) || user.email,
         language: languageRef.current,
       });
       

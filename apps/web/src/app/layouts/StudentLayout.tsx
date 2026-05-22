@@ -1,7 +1,8 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
+import { useStudentLivePresence } from '../hooks/useStudentLivePresence';
 import { GlobalChatRealtimeBridge, GlobalChatUnreadBadge, LogoutButton, UserAvatar, ThemeToggle } from './_shared';
 
 const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
@@ -26,6 +27,9 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
 export default function StudentLayout() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
+  const location = useLocation();
+
+  useStudentLivePresence(location.pathname);
 
   return (
     <div className="min-h-screen bg-surface text-on-surface font-inter">

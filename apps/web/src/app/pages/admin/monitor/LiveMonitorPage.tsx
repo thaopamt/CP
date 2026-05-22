@@ -11,20 +11,21 @@ import 'prismjs/components/prism-java';
 import 'prismjs/components/prism-python';
 import 'prismjs/components/prism-javascript';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL?.startsWith('http')
-  ? import.meta.env.VITE_API_URL
-  : import.meta.env.PROD
-    ? ''
-    : 'http://localhost:3000';
+import { resolveSocketNamespace } from '../../../lib/socket-url';
 
 interface ActiveStudent {
   socketId: string;
   studentId: string;
-  problemId: string;
+  problemId?: string;
   studentName?: string;
   language?: string;
   code?: string;
   lastActive: number;
+  status?: 'online' | 'idle' | 'away' | 'coding';
+  currentPath?: string;
+  isTabVisible?: boolean;
+  isWindowFocused?: boolean;
+  idleForMs?: number;
 }
 
 /* ── Syntax highlight helper ─────────────────────────────────── */
@@ -89,7 +90,7 @@ function DetailModal({
                 {student.studentName || student.studentId}
               </div>
               <div className="text-[11px] text-gray-400 flex items-center gap-2">
-                <span>Problem: {student.problemId.substring(0, 8)}…</span>
+                <span>Problem: {student.problemId?.substring(0, 8) ?? 'N/A'}…</span>
                 <span className="px-1.5 py-0.5 rounded bg-white/5 font-mono uppercase text-[10px]">
                   {language}
                 </span>
@@ -148,7 +149,7 @@ export default function LiveMonitorPage() {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    const socketUrl = SOCKET_URL ? `${SOCKET_URL}/live-monitor` : '/live-monitor';
+    const socketUrl = resolveSocketNamespace('/live-monitor');
     const socket = io(socketUrl, { transports: ['websocket'] });
     socketRef.current = socket;
 
@@ -162,6 +163,7 @@ export default function LiveMonitorPage() {
       setCodeMap((prev) => {
         const next = { ...prev };
         for (const s of list) {
+          if (!s.problemId) continue;
           const key = `${s.studentId}_${s.problemId}`;
           if (s.code && !next[key]) {
             next[key] = { code: s.code, language: s.language || 'javascript' };
@@ -183,6 +185,7 @@ export default function LiveMonitorPage() {
   }, []);
 
   const handleOpenDetail = useCallback((student: ActiveStudent) => {
+    if (!student.problemId) return;
     setSelectedStudent(student);
     // Also watch the specific room for this student
     if (socketRef.current) {
@@ -194,7 +197,7 @@ export default function LiveMonitorPage() {
   }, []);
 
   const handleCloseDetail = useCallback(() => {
-    if (selectedStudent && socketRef.current) {
+    if (selectedStudent?.problemId && socketRef.current) {
       socketRef.current.emit('admin_unwatch_student', {
         studentId: selectedStudent.studentId,
         problemId: selectedStudent.problemId,
@@ -204,8 +207,13 @@ export default function LiveMonitorPage() {
   }, [selectedStudent]);
 
   const selectedKey = selectedStudent
-    ? `${selectedStudent.studentId}_${selectedStudent.problemId}`
+    ? `${selectedStudent.studentId}_${selectedStudent.problemId ?? ''}`
     : '';
+
+  const codingCount = students.filter((student) => student.status === 'coding' && !!student.problemId).length;
+  const onlineCount = students.filter((student) => student.status === 'online').length;
+  const idleCount = students.filter((student) => student.status === 'idle').length;
+  const awayCount = students.filter((student) => student.status === 'away').length;
 
   return (
     <div className="flex flex-col h-full bg-gray-50 dark:bg-[#0a0a0a]">
@@ -224,7 +232,19 @@ export default function LiveMonitorPage() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
             </span>
-            {students.length} học sinh đang online
+            {students.length} học sinh online
+          </span>
+          <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">
+            {codingCount} đang làm bài
+          </span>
+          <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+            {onlineCount} đang hoạt động
+          </span>
+          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+            {idleCount} tạm ngưng
+          </span>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-500/10 dark:text-slate-300">
+            {awayCount} tab khác
           </span>
         </div>
       </div>
@@ -239,28 +259,34 @@ export default function LiveMonitorPage() {
             <div className="text-center">
               <p className="text-base font-medium text-gray-500 dark:text-gray-400">Không có học sinh nào online</p>
               <p className="text-sm text-gray-400 dark:text-gray-600 mt-1">
-                Khi học sinh mở bài tập và bắt đầu code, họ sẽ xuất hiện ở đây
+                Khi học sinh mở portal hoặc bắt đầu code, họ sẽ xuất hiện ở đây
               </p>
             </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {students.map((student) => {
-              const key = `${student.studentId}_${student.problemId}`;
+              const hasWorkspace = !!student.problemId;
+              const isActivelyCoding = student.status === 'coding' && hasWorkspace;
+              const key = hasWorkspace ? `${student.studentId}_${student.problemId}` : student.studentId;
               const snapshot = codeMap[key];
               const displayCode = snapshot?.code || student.code || '';
               const displayLang = snapshot?.language || student.language || 'javascript';
               const initial = (student.studentName || student.studentId).charAt(0).toUpperCase();
               const timeSinceActive = Date.now() - student.lastActive;
               const isRecent = timeSinceActive < 10_000; // active within 10s
+              const presence = getPresenceMeta(student);
 
               return (
                 <button
                   key={student.socketId}
                   onClick={() => handleOpenDetail(student)}
-                  className="group relative flex flex-col bg-white dark:bg-[#141420] rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm
-                    hover:shadow-lg hover:border-violet-300 dark:hover:border-violet-700 hover:scale-[1.02]
-                    transition-all duration-200 overflow-hidden text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                  className={`group relative flex flex-col bg-white dark:bg-[#141420] rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm
+                    transition-all duration-200 overflow-hidden text-left focus:outline-none ${
+                      hasWorkspace
+                      ? 'cursor-pointer hover:shadow-lg hover:border-violet-300 dark:hover:border-violet-700 hover:scale-[1.02] focus:ring-2 focus:ring-violet-500/40'
+                      : 'cursor-default'
+                    }`}
                 >
                   {/* Card header */}
                   <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-gray-100 dark:border-white/5">
@@ -272,16 +298,29 @@ export default function LiveMonitorPage() {
                         {student.studentName || student.studentId}
                       </div>
                       <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
-                        {student.problemId.length > 20
-                          ? student.problemId.substring(0, 20) + '…'
-                          : student.problemId}
+                        {hasWorkspace
+                          ? student.problemId && student.problemId.length > 20
+                            ? student.problemId.substring(0, 20) + '…'
+                            : student.problemId
+                          : student.currentPath || 'Đang ở portal học sinh'}
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400">
-                        {displayLang}
+                      <span
+                        className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                          isActivelyCoding
+                            ? 'bg-violet-100 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300'
+                            : presence.badgeClass
+                        }`}
+                      >
+                        {isActivelyCoding ? 'Đang làm bài' : presence.label}
                       </span>
-                      {isRecent && (
+                      {hasWorkspace && (
+                        <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400">
+                          {displayLang}
+                        </span>
+                      )}
+                      {isActivelyCoding && isRecent && (
                         <span className="relative flex h-2 w-2" title="Đang gõ code">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                           <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -290,21 +329,40 @@ export default function LiveMonitorPage() {
                     </div>
                   </div>
 
-                  {/* Code preview */}
-                  <div className="h-36 overflow-hidden bg-[#0d0d1a] relative">
-                    <CodePreview code={displayCode} language={displayLang} />
-                    {/* Fade overlay at bottom */}
-                    <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[#0d0d1a] to-transparent pointer-events-none" />
-                    {/* Hover overlay */}
-                    <div className="absolute inset-0 bg-violet-600/0 group-hover:bg-violet-600/10 transition-colors flex items-center justify-center">
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="px-3 py-1.5 rounded-lg bg-white/10 backdrop-blur-sm text-white text-xs font-medium flex items-center gap-1.5 shadow-lg">
-                          <Icon name="visibility" size={14} />
-                          Xem chi tiết
+                  {hasWorkspace ? (
+                    <div className="h-36 overflow-hidden bg-[#0d0d1a] relative">
+                      <CodePreview code={displayCode} language={displayLang} />
+                      <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[#0d0d1a] to-transparent pointer-events-none" />
+                      <div className="absolute inset-0 bg-violet-600/0 group-hover:bg-violet-600/10 transition-colors flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="px-3 py-1.5 rounded-lg bg-white/10 backdrop-blur-sm text-white text-xs font-medium flex items-center gap-1.5 shadow-lg">
+                            <Icon name="visibility" size={14} />
+                            Xem chi tiết
+                          </div>
                         </div>
                       </div>
+                      {!isActivelyCoding && (
+                        <div className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+                          {presence.label}
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  ) : (
+                    <div className={`flex h-36 flex-col items-center justify-center gap-2 ${presence.panelClass}`}>
+                      <Icon name={presence.icon} size={34} />
+                      <div className="text-center">
+                        <p className="text-sm font-semibold">{presence.title}</p>
+                        <p className="mt-1 text-xs opacity-80">
+                          {presence.description}
+                        </p>
+                        {student.status === 'idle' && typeof student.idleForMs === 'number' && (
+                          <p className="mt-1 text-[11px] opacity-70">
+                            Không thao tác {formatDuration(student.idleForMs)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -323,4 +381,44 @@ export default function LiveMonitorPage() {
       )}
     </div>
   );
+}
+
+function getPresenceMeta(student: ActiveStudent) {
+  switch (student.status) {
+    case 'away':
+      return {
+        label: 'Tab khác',
+        title: 'Đang ở tab khác',
+        description: 'Tab hệ thống đang ẩn hoặc mất focus',
+        icon: 'visibility_off',
+        badgeClass: 'bg-slate-100 text-slate-700 dark:bg-slate-500/10 dark:text-slate-300',
+        panelClass: 'bg-slate-50 text-slate-700 dark:bg-slate-500/5 dark:text-slate-300',
+      };
+    case 'idle':
+      return {
+        label: 'Tạm ngưng',
+        title: 'Không thao tác',
+        description: 'Vẫn mở portal nhưng chưa hoạt động gần đây',
+        icon: 'schedule',
+        badgeClass: 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300',
+        panelClass: 'bg-amber-50 text-amber-700 dark:bg-amber-500/5 dark:text-amber-300',
+      };
+    default:
+      return {
+        label: 'Online',
+        title: 'Đang hoạt động',
+        description: 'Đang ở portal học sinh, chưa mở tab làm bài',
+        icon: 'computer',
+        badgeClass: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+        panelClass: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/5 dark:text-emerald-300',
+      };
+  }
+}
+
+function formatDuration(ms: number) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes > 0) return `${minutes} phút`;
+  return `${seconds} giây`;
 }

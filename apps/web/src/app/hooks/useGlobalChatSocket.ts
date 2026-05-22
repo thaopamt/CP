@@ -11,8 +11,7 @@ import { useToast } from '@cp/ui';
 
 import { useAuthStore } from '../stores/auth.store';
 import { useGlobalChatStore } from '../stores/globalChat.store';
-
-const SOCKET_ROOT = resolveSocketRoot();
+import { resolveSocketNamespace } from '../lib/socket-url';
 
 type MessageListener = (message: GlobalChatMessage) => void;
 type SentListener = (payload: GlobalChatSentPayload) => void;
@@ -104,7 +103,7 @@ function ensureGlobalChatSocket(token: string, userId: string) {
   disconnectGlobalChatSocket();
   socketToken = token;
   currentUserId = userId;
-  const socketUrl = SOCKET_ROOT ? `${SOCKET_ROOT}/global-chat` : '/global-chat';
+  const socketUrl = resolveSocketNamespace('/global-chat');
   socket = io(socketUrl, {
     transports: ['websocket'],
     auth: { token },
@@ -152,24 +151,6 @@ function ensureGlobalChatSocket(token: string, userId: string) {
   });
 
   return socket;
-}
-
-function resolveSocketRoot() {
-  const explicitSocketUrl = import.meta.env.VITE_SOCKET_URL;
-  if (typeof explicitSocketUrl === 'string' && explicitSocketUrl.trim()) {
-    return normalizeSocketRoot(explicitSocketUrl);
-  }
-
-  const apiUrl = import.meta.env.VITE_API_URL;
-  if (typeof apiUrl === 'string' && apiUrl.startsWith('http')) {
-    return normalizeSocketRoot(apiUrl);
-  }
-
-  return '';
-}
-
-function normalizeSocketRoot(value: string) {
-  return value.trim().replace(/\/api\/?$/, '').replace(/\/$/, '');
 }
 
 function disconnectGlobalChatSocket() {
