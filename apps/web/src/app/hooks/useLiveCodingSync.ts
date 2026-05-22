@@ -5,21 +5,30 @@ import { fullName } from '@cp/shared';
 import { resolveSocketNamespace } from '../lib/socket-url';
 import { useAuthStore } from '../stores/auth.store';
 
+type ProblemExample = {
+  input: string;
+  output: string;
+  explanation?: string;
+};
+
 export function useLiveCodingSync(
   problemId: string | undefined,
   code: string,
   language: string,
+  problem?: { title?: string; description?: string; examples?: ProblemExample[] },
 ) {
   const socketRef = useRef<Socket | null>(null);
   const { user } = useAuthStore();
   
   const codeRef = useRef(code);
   const languageRef = useRef(language);
+  const problemRef = useRef(problem);
 
   useEffect(() => {
     codeRef.current = code;
     languageRef.current = language;
-  }, [code, language]);
+    problemRef.current = problem;
+  }, [code, language, problem]);
 
   useEffect(() => {
     if (!problemId || !user) return;
@@ -38,6 +47,9 @@ export function useLiveCodingSync(
       socket.emit('join_workspace', {
         studentId: user.id,
         problemId: problemId,
+        problemTitle: problemRef.current?.title,
+        problemDescription: problemRef.current?.description,
+        problemExamples: problemRef.current?.examples,
         studentName: fullName(user) || user.email,
         language: languageRef.current,
       });
@@ -57,6 +69,18 @@ export function useLiveCodingSync(
       socketRef.current = null;
     };
   }, [problemId, user]);
+
+  useEffect(() => {
+    if (!socketRef.current?.connected || !problemId || !user) return;
+
+    socketRef.current.emit('workspace_metadata', {
+      studentId: user.id,
+      problemId,
+      problemTitle: problem?.title,
+      problemDescription: problem?.description,
+      problemExamples: problem?.examples,
+    });
+  }, [problemId, problem?.title, problem?.description, problem?.examples, user]);
 
   // Sync code change (nên debounce nếu có thể, nhưng hiện tại gọi trực tiếp)
   useEffect(() => {

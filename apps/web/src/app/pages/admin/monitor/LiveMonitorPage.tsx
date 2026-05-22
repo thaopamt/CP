@@ -2,6 +2,9 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Icon, PageHeader } from '@cp/ui';
 import Editor from 'react-simple-code-editor';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
 import 'prismjs/components/prism-clike';
@@ -10,6 +13,7 @@ import 'prismjs/components/prism-cpp';
 import 'prismjs/components/prism-java';
 import 'prismjs/components/prism-python';
 import 'prismjs/components/prism-javascript';
+import 'katex/dist/katex.min.css';
 
 import { resolveSocketNamespace } from '../../../lib/socket-url';
 
@@ -17,6 +21,13 @@ interface ActiveStudent {
   socketId: string;
   studentId: string;
   problemId?: string;
+  problemTitle?: string;
+  problemDescription?: string;
+  problemExamples?: Array<{
+    input: string;
+    output: string;
+    explanation?: string;
+  }>;
   studentName?: string;
   language?: string;
   code?: string;
@@ -78,7 +89,7 @@ function DetailModal({
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="relative w-[90vw] max-w-5xl h-[80vh] flex flex-col bg-[#0d0d1a] rounded-2xl overflow-hidden shadow-2xl border border-white/10 animate-in fade-in zoom-in-95">
+      <div className="relative w-[94vw] max-w-7xl h-[84vh] flex flex-col bg-[#0d0d1a] rounded-2xl overflow-hidden shadow-2xl border border-white/10 animate-in fade-in zoom-in-95">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 bg-[#1e1e3a] border-b border-white/10 shrink-0">
           <div className="flex items-center gap-3">
@@ -89,8 +100,10 @@ function DetailModal({
               <div className="text-sm font-semibold text-white">
                 {student.studentName || student.studentId}
               </div>
-              <div className="text-[11px] text-gray-400 flex items-center gap-2">
-                <span>Problem: {student.problemId?.substring(0, 8) ?? 'N/A'}…</span>
+              <div className="text-[11px] text-gray-400 flex flex-wrap items-center gap-2">
+                <span className="max-w-[46vw] truncate">
+                  {student.problemTitle || `Problem: ${student.problemId?.substring(0, 8) ?? 'N/A'}…`}
+                </span>
                 <span className="px-1.5 py-0.5 rounded bg-white/5 font-mono uppercase text-[10px]">
                   {language}
                 </span>
@@ -114,20 +127,86 @@ function DetailModal({
           </div>
         </div>
 
-        {/* Code editor (read-only) */}
-        <div className="flex-1 overflow-auto">
-          <Editor
-            value={code || '// Waiting for code...'}
-            onValueChange={() => {}}
-            highlight={(c) => highlightCode(c, language)}
-            padding={16}
-            className="w-full min-h-full font-mono text-[13px] bg-transparent text-gray-300 outline-none"
-            textareaClassName="pointer-events-none"
-            style={{
-              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-              lineHeight: '20px',
-            }}
-          />
+        <div className="flex-1 min-h-0 grid grid-cols-[minmax(320px,38%)_1fr]">
+          {/* Problem statement */}
+          <aside className="min-h-0 overflow-y-auto border-r border-white/10 bg-[#15152a]">
+            <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-white/10 bg-[#15152a]/95 px-4 py-3 backdrop-blur">
+              <Icon name="description" size={18} className="text-emerald-400" />
+              <div className="min-w-0">
+                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Đề bài</div>
+                <div className="truncate text-sm font-semibold text-white">
+                  {student.problemTitle || 'Chưa có tiêu đề đề bài'}
+                </div>
+              </div>
+            </div>
+            <div className="p-4">
+              {student.problemDescription ? (
+                <div
+                  className="prose prose-invert prose-sm max-w-none
+                    prose-headings:text-white prose-headings:font-semibold
+                    prose-code:text-emerald-300 prose-code:bg-white/5 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[13px] prose-code:before:content-none prose-code:after:content-none
+                    prose-pre:bg-[#0d0d1a] prose-pre:border prose-pre:border-white/5 prose-pre:rounded-lg
+                    prose-strong:text-white prose-a:text-emerald-400
+                    prose-p:text-gray-300 prose-li:text-gray-300 prose-td:text-gray-300
+                    prose-th:text-gray-200 prose-th:bg-white/5
+                    prose-table:border-collapse [&_th]:border [&_th]:border-white/10 [&_th]:px-3 [&_th]:py-1.5
+                    [&_td]:border [&_td]:border-white/10 [&_td]:px-3 [&_td]:py-1.5"
+                >
+                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                    {student.problemDescription}
+                  </ReactMarkdown>
+                </div>
+              ) : !student.problemExamples?.length ? (
+                <div className="flex h-44 flex-col items-center justify-center rounded-xl border border-dashed border-white/10 text-center text-gray-500">
+                  <Icon name="article" size={32} />
+                  <p className="mt-2 text-sm font-medium">Chưa nhận được nội dung đề bài</p>
+                  <p className="mt-1 max-w-[240px] text-xs">
+                    Khi học sinh mở bài tập, đề bài sẽ được đồng bộ lên màn hình monitor.
+                  </p>
+                </div>
+              ) : null}
+
+              {!!student.problemExamples?.length && (
+                <div className="mt-5 space-y-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Ví dụ</h3>
+                  {student.problemExamples.map((example, index) => (
+                    <div key={index} className="rounded-lg border border-white/10 bg-[#0d0d1a] p-3">
+                      <div className="mb-2 text-xs font-semibold text-white">Example {index + 1}</div>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-[10px] font-semibold uppercase text-gray-500">Input</span>
+                          <pre className="mt-1 whitespace-pre-wrap rounded bg-white/5 p-2 text-xs text-gray-300">{example.input || '(empty)'}</pre>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-semibold uppercase text-gray-500">Output</span>
+                          <pre className="mt-1 whitespace-pre-wrap rounded bg-white/5 p-2 text-xs text-gray-300">{example.output || '(empty)'}</pre>
+                        </div>
+                        {example.explanation && (
+                          <p className="text-xs leading-5 text-gray-400">{example.explanation}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </aside>
+
+          {/* Code editor (read-only) */}
+          <div className="min-h-0 overflow-auto">
+            <Editor
+              value={code || '// Waiting for code...'}
+              onValueChange={() => {}}
+              highlight={(c) => highlightCode(c, language)}
+              padding={16}
+              className="w-full min-h-full font-mono text-[13px] bg-transparent text-gray-300 outline-none"
+              textareaClassName="pointer-events-none"
+              style={{
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                lineHeight: '20px',
+              }}
+            />
+          </div>
         </div>
 
         {/* Footer stats */}
@@ -206,8 +285,15 @@ export default function LiveMonitorPage() {
     setSelectedStudent(null);
   }, [selectedStudent]);
 
-  const selectedKey = selectedStudent
-    ? `${selectedStudent.studentId}_${selectedStudent.problemId ?? ''}`
+  const selectedStudentLive = selectedStudent
+    ? students.find(
+        (student) =>
+          student.studentId === selectedStudent.studentId &&
+          student.problemId === selectedStudent.problemId,
+      ) ?? selectedStudent
+    : null;
+  const selectedKey = selectedStudentLive
+    ? `${selectedStudentLive.studentId}_${selectedStudentLive.problemId ?? ''}`
     : '';
 
   const codingCount = students.filter((student) => student.status === 'coding' && !!student.problemId).length;
@@ -276,6 +362,7 @@ export default function LiveMonitorPage() {
               const timeSinceActive = Date.now() - student.lastActive;
               const isRecent = timeSinceActive < 10_000; // active within 10s
               const presence = getPresenceMeta(student);
+              const hasProblemDetails = !!student.problemDescription || !!student.problemExamples?.length;
 
               return (
                 <button
@@ -299,9 +386,7 @@ export default function LiveMonitorPage() {
                       </div>
                       <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
                         {hasWorkspace
-                          ? student.problemId && student.problemId.length > 20
-                            ? student.problemId.substring(0, 20) + '…'
-                            : student.problemId
+                          ? student.problemTitle || student.problemId
                           : student.currentPath || 'Đang ở portal học sinh'}
                       </div>
                     </div>
@@ -330,8 +415,23 @@ export default function LiveMonitorPage() {
                   </div>
 
                   {hasWorkspace ? (
-                    <div className="h-36 overflow-hidden bg-[#0d0d1a] relative">
-                      <CodePreview code={displayCode} language={displayLang} />
+                    <div className="h-44 overflow-hidden bg-[#0d0d1a] relative">
+                      {hasProblemDetails && (
+                        <div className="border-b border-white/5 bg-[#15152a] px-3 py-2">
+                          <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-400">
+                            <Icon name="description" size={12} />
+                            Đề bài
+                          </div>
+                          <p className="line-clamp-2 text-[11px] leading-4 text-gray-300">
+                            {student.problemDescription
+                              ? toPlainText(student.problemDescription)
+                              : `${student.problemExamples?.length ?? 0} ví dụ input/output`}
+                          </p>
+                        </div>
+                      )}
+                      <div className={hasProblemDetails ? 'h-28 overflow-hidden' : 'h-full overflow-hidden'}>
+                        <CodePreview code={displayCode} language={displayLang} />
+                      </div>
                       <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[#0d0d1a] to-transparent pointer-events-none" />
                       <div className="absolute inset-0 bg-violet-600/0 group-hover:bg-violet-600/10 transition-colors flex items-center justify-center">
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity">
@@ -371,11 +471,11 @@ export default function LiveMonitorPage() {
       </div>
 
       {/* Detail modal */}
-      {selectedStudent && (
+      {selectedStudentLive && (
         <DetailModal
-          student={selectedStudent}
+          student={selectedStudentLive}
           code={codeMap[selectedKey]?.code || ''}
-          language={codeMap[selectedKey]?.language || selectedStudent.language || 'javascript'}
+          language={codeMap[selectedKey]?.language || selectedStudentLive.language || 'javascript'}
           onClose={handleCloseDetail}
         />
       )}
@@ -421,4 +521,15 @@ function formatDuration(ms: number) {
   const seconds = totalSeconds % 60;
   if (minutes > 0) return `${minutes} phút`;
   return `${seconds} giây`;
+}
+
+function toPlainText(markdown: string) {
+  return markdown
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/!\[[^\]]*]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]+)]\([^)]*\)/g, '$1')
+    .replace(/[#>*_~|\[\]-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }

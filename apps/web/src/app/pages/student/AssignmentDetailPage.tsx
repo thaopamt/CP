@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { DifficultyBadge, Icon } from '@cp/ui';
 import {
@@ -8,6 +8,7 @@ import {
   DifficultyLevel,
   SupportedLanguage,
   ICodingTestCase,
+  ICodeExecutionResponse,
 } from '@cp/shared';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -39,7 +40,7 @@ const LANG_OPTIONS: { value: string; label: string; template: string }[] = [
 
 /* ── Tabs for left panel ──────────────────────────────────────────── */
 type LeftTab = 'description' | 'submissions';
-type BottomTab = 'testcase' | 'result';
+type BottomTab = 'testcase' | 'terminal' | 'result';
 
 export default function StudentAssignmentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -56,6 +57,10 @@ export default function StudentAssignmentDetailPage() {
   const [activeTestIdx, setActiveTestIdx] = useState(0);
   const [customInput, setCustomInput] = useState('');
   const [customOutput, setCustomOutput] = useState('');
+  const [terminalInput, setTerminalInput] = useState('');
+  const [terminalResult, setTerminalResult] = useState<ICodeExecutionResponse | null>(null);
+  const [terminalError, setTerminalError] = useState('');
+  const [terminalRunning, setTerminalRunning] = useState(false);
   const [running, setRunning] = useState(false);
   const [runResults, setRunResults] = useState<null | {
     overall: 'accepted' | 'wrong' | 'error';
@@ -67,9 +72,24 @@ export default function StudentAssignmentDetailPage() {
   const [splitX, setSplitX] = useState(45); // % for left panel
   const [splitY, setSplitY] = useState(60); // % for code editor vs bottom
   const containerRef = useRef<HTMLDivElement>(null);
+  const liveProblemExamples = useMemo(
+    () =>
+      assignment?.codingConfig?.testCases
+        ?.filter((tc) => !tc.isHidden)
+        .map((tc) => ({
+          input: tc.input,
+          output: tc.output,
+          explanation: tc.explanation,
+        })),
+    [assignment?.codingConfig?.testCases],
+  );
 
   // Kích hoạt Live Coding Sync
-  useLiveCodingSync(id, code, language);
+  useLiveCodingSync(id, code, language, {
+    title: assignment?.title,
+    description: assignment?.description,
+    examples: liveProblemExamples,
+  });
 
   const handleLanguageChange = (val: string) => {
     setLanguage(val);
@@ -119,6 +139,7 @@ export default function StudentAssignmentDetailPage() {
     if (visibleTestCases.length > 0 && !customInput) {
       setCustomInput(visibleTestCases[0].input);
       setCustomOutput(visibleTestCases[0].output);
+      setTerminalInput(visibleTestCases[0].input);
     }
   }, [visibleTestCases.length]);
 
@@ -128,6 +149,31 @@ export default function StudentAssignmentDetailPage() {
       setCustomOutput(visibleTestCases[activeTestIdx].output);
     }
   }, [activeTestIdx]);
+
+  const handleUseCaseInTerminal = () => {
+    setTerminalInput(customInput);
+    setBottomTab('terminal');
+  };
+
+  const handleRunTerminal = async () => {
+    setTerminalRunning(true);
+    setTerminalError('');
+    setTerminalResult(null);
+    setBottomTab('terminal');
+
+    try {
+      const result = await runMutation.mutateAsync({
+        language,
+        code,
+        stdin: terminalInput,
+      });
+      setTerminalResult(result);
+    } catch (err: any) {
+      setTerminalError(err?.response?.data?.message || err?.message || 'Execution failed');
+    } finally {
+      setTerminalRunning(false);
+    }
+  };
 
   const handleRun = async () => {
     setRunning(true);
@@ -349,8 +395,16 @@ export default function StudentAssignmentDetailPage() {
             Run
           </button>
           <button
+            onClick={handleRunTerminal}
+            disabled={terminalRunning}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2a2a4a] hover:bg-[#353560] border border-white/10 rounded-md text-xs text-gray-300 transition-colors disabled:opacity-50"
+          >
+            <Icon name="terminal" size={14} className="text-cyan-400" />
+            Terminal
+          </button>
+          <button
             onClick={handleSubmit}
-            disabled={running}
+            disabled={running || terminalRunning}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 transition-colors text-xs font-semibold"
           >
             <Icon name="cloud_upload" size={14} />
@@ -628,7 +682,7 @@ export default function StudentAssignmentDetailPage() {
           <div style={{ height: `${100 - splitY}%` }} className="flex flex-col min-h-0 bg-[#0d0d1a] border-t border-white/5">
             {/* Tabs */}
             <div className="flex items-center gap-0 border-b border-white/5 bg-[#1e1e3a] shrink-0">
-              {(['testcase', 'result'] as BottomTab[]).map(tab => (
+              {(['testcase', 'terminal', 'result'] as BottomTab[]).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setBottomTab(tab)}
@@ -637,6 +691,11 @@ export default function StudentAssignmentDetailPage() {
                 >
                   {tab === 'testcase' ? (
                     <span className="flex items-center gap-1.5"><Icon name="science" size={13} />Testcase</span>
+                  ) : tab === 'terminal' ? (
+                    <span className="flex items-center gap-1.5">
+                      <Icon name="terminal" size={13} className={terminalResult ? getTerminalStatus(terminalResult).iconClass : 'text-cyan-400'} />
+                      Terminal
+                    </span>
                   ) : (
                     <span className="flex items-center gap-1.5">
                       <Icon name={runResults ? (runResults.overall === 'accepted' ? 'check_circle' : 'cancel') : 'terminal'} size={13} className={runResults?.overall === 'accepted' ? 'text-emerald-400' : runResults?.overall === 'wrong' ? 'text-red-400' : ''} />
@@ -668,7 +727,16 @@ export default function StudentAssignmentDetailPage() {
                   {/* Input / Expected / Explanation */}
                   <div className="space-y-3">
                     <div>
-                      <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">Input</label>
+                      <div className="mb-1.5 flex items-center justify-between gap-2">
+                        <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider block">Input</label>
+                        <button
+                          onClick={handleUseCaseInTerminal}
+                          className="inline-flex items-center gap-1 rounded bg-cyan-500/10 px-2 py-1 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/20"
+                        >
+                          <Icon name="terminal" size={12} />
+                          Dùng trong Terminal
+                        </button>
+                      </div>
                       <pre className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm font-mono text-gray-300 whitespace-pre-wrap min-h-[40px]">{customInput.trim()}</pre>
                     </div>
                     <div>
@@ -692,6 +760,74 @@ export default function StudentAssignmentDetailPage() {
                       </div>
                     )}
                   </div>
+                </div>
+              ) : bottomTab === 'terminal' ? (
+                <div className="grid h-full min-h-[220px] grid-cols-1 gap-3 lg:grid-cols-[42%_1fr]">
+                  <section className="flex min-h-0 flex-col rounded-xl border border-white/10 bg-[#111123] overflow-hidden">
+                    <div className="flex items-center justify-between border-b border-white/10 bg-[#1a1a2e] px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <Icon name="keyboard" size={14} className="text-cyan-400" />
+                        <span className="text-xs font-semibold text-gray-300">Standard Input</span>
+                      </div>
+                      <button
+                        onClick={() => setTerminalInput('')}
+                        className="text-[11px] text-gray-500 hover:text-gray-300"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    <textarea
+                      value={terminalInput}
+                      onChange={(event) => setTerminalInput(event.target.value)}
+                      spellCheck={false}
+                      placeholder={'Nhập testcase/stdin ở đây...\nVí dụ:\n5\n1 2 3 4 5'}
+                      className="min-h-0 flex-1 resize-none bg-transparent p-3 font-mono text-sm leading-5 text-gray-200 outline-none placeholder:text-gray-600"
+                    />
+                    <div className="flex items-center justify-between border-t border-white/10 px-3 py-2">
+                      <span className="text-[11px] text-gray-600">
+                        {terminalInput.split('\n').length} dòng · {terminalInput.length} ký tự
+                      </span>
+                      <button
+                        onClick={handleRunTerminal}
+                        disabled={terminalRunning}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-cyan-500/15 px-3 py-1.5 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/25 disabled:opacity-50"
+                      >
+                        <Icon name={terminalRunning ? 'progress_activity' : 'play_arrow'} size={14} className={terminalRunning ? 'animate-spin' : ''} />
+                        Chạy Terminal
+                      </button>
+                    </div>
+                  </section>
+
+                  <section className="flex min-h-0 flex-col rounded-xl border border-white/10 bg-[#05050d] overflow-hidden">
+                    <div className="flex items-center justify-between border-b border-white/10 bg-[#111123] px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <Icon name="terminal" size={14} className="text-cyan-400" />
+                        <span className="text-xs font-semibold text-gray-300">Terminal Output</span>
+                      </div>
+                      {terminalResult && (
+                        <span className={`rounded px-2 py-0.5 text-[11px] font-semibold ${getTerminalStatus(terminalResult).badgeClass}`}>
+                          {getTerminalStatus(terminalResult).label}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-h-0 flex-1 overflow-auto p-3 font-mono text-xs leading-5">
+                      {terminalRunning ? (
+                        <div className="flex items-center gap-2 text-gray-400">
+                          <Icon name="progress_activity" size={15} className="animate-spin" />
+                          Compiling and running...
+                        </div>
+                      ) : terminalError ? (
+                        <pre className="whitespace-pre-wrap text-red-300">{terminalError}</pre>
+                      ) : terminalResult ? (
+                        <TerminalOutput result={terminalResult} />
+                      ) : (
+                        <div className="text-gray-600">
+                          <div className="text-gray-500">$ run {language}</div>
+                          <div className="mt-2">Nhập stdin bên trái rồi bấm Chạy Terminal để xem stdout, stderr và lỗi biên dịch.</div>
+                        </div>
+                      )}
+                    </div>
+                  </section>
                 </div>
               ) : (
                 <div>
@@ -774,4 +910,136 @@ export default function StudentAssignmentDetailPage() {
       </div>
     </div>
   );
+}
+
+function TerminalOutput({ result }: { result: ICodeExecutionResponse }) {
+  const status = getTerminalStatus(result);
+  const compile = result.compile;
+  const run = result.run;
+  const compileFailed = !!compile && compile.code !== 0;
+  const runMeta = [
+    `exit code: ${run.code}`,
+    run.signal ? `signal: ${run.signal}` : '',
+    run.status ? `status: ${run.status}` : '',
+    run.wall_time != null ? `wall: ${run.wall_time}ms` : '',
+    run.cpu_time != null ? `cpu: ${run.cpu_time}ms` : '',
+    run.memory != null ? `memory: ${formatBytes(run.memory)}` : '',
+  ].filter(Boolean);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <span className={`h-2 w-2 rounded-full ${status.dotClass}`} />
+        <span className={status.textClass}>{status.label}</span>
+      </div>
+
+      {compile && (
+        <div>
+          <div className="mb-1 text-gray-500">$ compile {result.language}</div>
+          <pre className={`whitespace-pre-wrap rounded-lg border p-2 ${
+            compileFailed ? 'border-red-500/20 bg-red-500/5 text-red-200' : 'border-emerald-500/20 bg-emerald-500/5 text-emerald-200'
+          }`}>
+            {compileFailed ? `Compilation failed with exit code ${compile.code}` : 'Compilation succeeded'}
+          </pre>
+          {compile.stdout && <TerminalBlock title="compiler stdout" tone="muted" value={compile.stdout} />}
+          {compile.stderr && <TerminalBlock title="compiler stderr" tone="error" value={compile.stderr} />}
+          {compile.output && compile.output !== compile.stdout && compile.output !== compile.stderr && (
+            <TerminalBlock title="compiler output" tone={compileFailed ? 'error' : 'muted'} value={compile.output} />
+          )}
+        </div>
+      )}
+
+      {!compileFailed && (
+        <div>
+          <div className="mb-1 text-gray-500">$ run</div>
+          <pre className="whitespace-pre-wrap rounded-lg border border-white/10 bg-white/[0.03] p-2 text-gray-400">
+            {runMeta.join(' · ') || 'process finished'}
+          </pre>
+          {run.stdout && <TerminalBlock title="stdout" tone="success" value={run.stdout} />}
+          {run.stderr && <TerminalBlock title="stderr" tone="error" value={run.stderr} />}
+          {run.message && <TerminalBlock title="message" tone={status.kind === 'success' ? 'muted' : 'error'} value={run.message} />}
+          {run.output && !run.stdout && !run.stderr && <TerminalBlock title="output" tone={status.kind === 'success' ? 'success' : 'error'} value={run.output} />}
+          {!run.stdout && !run.stderr && !run.output && !run.message && (
+            <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-white/10 bg-white/[0.03] p-2 text-gray-500">
+              No output
+            </pre>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TerminalBlock({
+  title,
+  tone,
+  value,
+}: {
+  title: string;
+  tone: 'success' | 'error' | 'muted';
+  value: string;
+}) {
+  const toneClass =
+    tone === 'success'
+      ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-200'
+      : tone === 'error'
+        ? 'border-red-500/20 bg-red-500/5 text-red-200'
+        : 'border-white/10 bg-white/[0.03] text-gray-300';
+
+  return (
+    <div className="mt-2">
+      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-600">{title}</div>
+      <pre className={`whitespace-pre-wrap rounded-lg border p-2 ${toneClass}`}>{value}</pre>
+    </div>
+  );
+}
+
+function getTerminalStatus(result: ICodeExecutionResponse) {
+  if (result.compile && result.compile.code !== 0) {
+    return {
+      kind: 'error',
+      label: 'Compilation Error',
+      iconClass: 'text-red-400',
+      badgeClass: 'bg-red-500/10 text-red-300',
+      textClass: 'font-semibold text-red-300',
+      dotClass: 'bg-red-400',
+    };
+  }
+
+  if (result.run.status === 'TO' || result.run.signal) {
+    return {
+      kind: 'error',
+      label: 'Runtime Error',
+      iconClass: 'text-amber-400',
+      badgeClass: 'bg-amber-500/10 text-amber-300',
+      textClass: 'font-semibold text-amber-300',
+      dotClass: 'bg-amber-400',
+    };
+  }
+
+  if (result.run.code !== 0) {
+    return {
+      kind: 'error',
+      label: 'Runtime Error',
+      iconClass: 'text-red-400',
+      badgeClass: 'bg-red-500/10 text-red-300',
+      textClass: 'font-semibold text-red-300',
+      dotClass: 'bg-red-400',
+    };
+  }
+
+  return {
+    kind: 'success',
+    label: 'Finished',
+    iconClass: 'text-emerald-400',
+    badgeClass: 'bg-emerald-500/10 text-emerald-300',
+    textClass: 'font-semibold text-emerald-300',
+    dotClass: 'bg-emerald-400',
+  };
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }

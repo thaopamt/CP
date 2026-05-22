@@ -10,11 +10,19 @@ import {
 import { Server, Socket } from 'socket.io';
 
 type StudentPresenceStatus = 'online' | 'idle' | 'away' | 'coding';
+type ProblemExample = {
+  input: string;
+  output: string;
+  explanation?: string;
+};
 
 export interface ActiveStudent {
   socketId: string;
   studentId: string;
   problemId?: string;
+  problemTitle?: string;
+  problemDescription?: string;
+  problemExamples?: ProblemExample[];
   studentName?: string;
   language?: string;
   code?: string;
@@ -93,7 +101,16 @@ export class LiveMonitorGateway implements OnGatewayConnection, OnGatewayDisconn
 
   @SubscribeMessage('join_workspace')
   handleJoinWorkspace(
-    @MessageBody() data: { studentId: string; problemId: string; studentName?: string; language?: string },
+    @MessageBody()
+    data: {
+      studentId: string;
+      problemId: string;
+      problemTitle?: string;
+      problemDescription?: string;
+      problemExamples?: ProblemExample[];
+      studentName?: string;
+      language?: string;
+    },
     @ConnectedSocket() client: Socket,
   ) {
     console.log(`LiveMonitor: Student ${data.studentId} joined workspace ${data.problemId}`);
@@ -102,13 +119,19 @@ export class LiveMonitorGateway implements OnGatewayConnection, OnGatewayDisconn
     const roomName = `workspace_${data.studentId}_${data.problemId}`;
     client.join(roomName);
 
+    const existing = this.activeStudents.get(client.id);
+
     // Save state
     this.activeStudents.set(client.id, {
+      ...existing,
       socketId: client.id,
       studentId: data.studentId,
       problemId: data.problemId,
+      problemTitle: data.problemTitle ?? existing?.problemTitle,
+      problemDescription: data.problemDescription ?? existing?.problemDescription,
+      problemExamples: data.problemExamples ?? existing?.problemExamples,
       studentName: data.studentName,
-      language: data.language,
+      language: data.language ?? existing?.language,
       status: 'coding',
       isTabVisible: true,
       isWindowFocused: true,
@@ -116,6 +139,28 @@ export class LiveMonitorGateway implements OnGatewayConnection, OnGatewayDisconn
       lastActive: Date.now(),
     });
 
+    this.broadcastActiveStudents();
+  }
+
+  @SubscribeMessage('workspace_metadata')
+  handleWorkspaceMetadata(
+    @MessageBody()
+    data: {
+      studentId: string;
+      problemId: string;
+      problemTitle?: string;
+      problemDescription?: string;
+      problemExamples?: ProblemExample[];
+    },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const student = this.activeStudents.get(client.id);
+    if (!student || student.studentId !== data.studentId || student.problemId !== data.problemId) return;
+
+    student.problemTitle = data.problemTitle ?? student.problemTitle;
+    student.problemDescription = data.problemDescription ?? student.problemDescription;
+    student.problemExamples = data.problemExamples ?? student.problemExamples;
+    student.lastActive = Date.now();
     this.broadcastActiveStudents();
   }
 
