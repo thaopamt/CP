@@ -63,6 +63,7 @@ const StudentAssignmentDetail = lazy(() => import('./pages/student/AssignmentDet
 const StudentClasses = lazy(() => import('./pages/student/ClassesPage'));
 const StudentClassDetail = lazy(() => import('./pages/student/ClassDetailPage'));
 const StudentCourseDetail = lazy(() => import('./pages/student/CourseDetailPage'));
+const GlobalChatPage = lazy(() => import('./pages/shared/GlobalChatPage'));
 
 import { ToastProvider } from '@cp/ui';
 
@@ -121,6 +122,7 @@ export default function App() {
                 <Route path="quests/new" element={<AdminQuestCreate />} />
                 <Route path="quests/:id/edit" element={<AdminQuestEdit />} />
                 <Route path="monitor" element={<LiveMonitorPage />} />
+                <Route path="chat" element={<GlobalChatPage />} />
               </Route>
 
               {/* ── Teacher portal ───────────────────────────────────── */}
@@ -135,6 +137,7 @@ export default function App() {
                 <Route index element={<TeacherDashboard />} />
                 <Route path="attendance" element={<TeacherAttendance />} />
                 <Route path="monitoring" element={<TeacherMonitoring />} />
+                <Route path="chat" element={<GlobalChatPage />} />
                 <Route path="challenges" element={<TeacherChallenges />} />
                 <Route path="classes" element={<TeacherClasses />} />
               </Route>
@@ -157,6 +160,7 @@ export default function App() {
                 <Route path="workspace" element={<StudentWorkspace />} />
                 <Route path="workspace/:problemId" element={<StudentWorkspace />} />
                 <Route path="quests" element={<StudentQuests />} />
+                <Route path="chat" element={<GlobalChatPage />} />
               </Route>
 
               {/* Default — send user to their own portal home */}

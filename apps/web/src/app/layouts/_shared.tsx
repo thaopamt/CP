@@ -1,6 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { fullName, IUser } from '@cp/shared';
+import { useGlobalChatSocket } from '../hooks/useGlobalChatSocket';
 import { useAuthStore } from '../stores/auth.store';
+import { useGlobalChatStore } from '../stores/globalChat.store';
 
 /**
  * Initials avatar shared by all three portal top bars.
@@ -53,5 +55,29 @@ export function ThemeToggle() {
         {isDark ? 'light_mode' : 'dark_mode'}
       </span>
     </button>
+  );
+}
+
+export function GlobalChatRealtimeBridge() {
+  useGlobalChatSocket();
+  return null;
+}
+
+export function GlobalChatUnreadBadge({ compact = false }: { compact?: boolean }) {
+  const unreadCount = useGlobalChatStore((s) => s.unreadCount);
+  if (unreadCount <= 0) return null;
+
+  const label = unreadCount > 99 ? '99+' : String(unreadCount);
+  return (
+    <span
+      className={
+        compact
+          ? 'absolute -right-1 -top-1 min-w-5 rounded-full bg-error px-1 text-center text-[10px] font-bold leading-5 text-on-error'
+          : 'ml-auto min-w-6 rounded-full bg-error px-2 text-center text-[11px] font-bold leading-5 text-on-error'
+      }
+      aria-label={`${label} unread chat messages`}
+    >
+      {label}
+    </span>
   );
 }

@@ -23,12 +23,14 @@ export class User
   @Column({ type: 'varchar', length: 80, name: 'last_name' })
   lastName!: string;
 
+  @Index()
   @Column({ type: 'enum', enum: UserRole, default: UserRole.STUDENT })
   role!: UserRole;
 
   @Column({ type: 'text', name: 'avatar_url', nullable: true })
   avatarUrl!: string | null;
 
+  @Index()
   @Column({ type: 'boolean', default: true, name: 'is_active' })
   isActive!: boolean;
 }

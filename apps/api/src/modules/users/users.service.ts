@@ -23,4 +23,16 @@ export class UsersService extends TypeOrmCrudService<User> {
       .where('u.email = :email', { email })
       .getOne();
   }
+
+  async findActiveById(id: string): Promise<User | null> {
+    return this.repo.findOne({
+      where: { id, isActive: true },
+    });
+  }
+
+  async findById(id: string): Promise<User | null> {
+    return this.repo.findOne({
+      where: { id },
+    });
+  }
 }

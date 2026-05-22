@@ -14,6 +14,10 @@ import { Course } from '../modules/courses/course.entity';
 import { CourseAssignment } from '../modules/courses/course-assignment.entity';
 import { ClassCourse } from '../modules/classes/class-course.entity';
 import { Submission, SubmissionTestResult } from '../modules/submissions/submission.entity';
+import { AuditLogEntity } from '../modules/global-chat/entities/audit-log.entity';
+import { GlobalChatMessageEntity } from '../modules/global-chat/entities/global-chat-message.entity';
+import { GlobalChatMessageReadEntity } from '../modules/global-chat/entities/global-chat-message-read.entity';
+import { NotificationEntity } from '../modules/global-chat/entities/global-chat-notification.entity';
 
 // Load env in CLI context (TypeORM CLI doesn't go through ConfigModule)
 loadEnv({ path: join(process.cwd(), 'apps/api/.env') });
@@ -47,6 +51,10 @@ export const AppDataSource = new DataSource({
     ClassCourse,
     Submission,
     SubmissionTestResult,
+    GlobalChatMessageEntity,
+    GlobalChatMessageReadEntity,
+    NotificationEntity,
+    AuditLogEntity,
   ],
   migrations: [join(__dirname, 'migrations/*.{ts,js}')],
   synchronize: false,

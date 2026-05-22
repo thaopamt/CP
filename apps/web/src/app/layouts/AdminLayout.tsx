@@ -2,8 +2,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
-import { LogoutButton, UserAvatar, ThemeToggle } from './_shared';
-import GlobalChatWidget from '../components/GlobalChatWidget';
+import { GlobalChatRealtimeBridge, GlobalChatUnreadBadge, LogoutButton, UserAvatar, ThemeToggle } from './_shared';
 
 const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/admin', icon: 'dashboard', key: 'nav.admin.dashboard', end: true },
@@ -16,6 +15,7 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/admin/finance', icon: 'payments', key: 'nav.admin.finance' },
   { to: '/admin/users', icon: 'group', key: 'nav.admin.users' },
   { to: '/admin/monitor', icon: 'screen_share', key: 'nav.admin.monitor' },
+  { to: '/admin/chat', icon: 'forum', key: 'nav.admin.globalChat' },
   { to: '/admin/settings', icon: 'settings', key: 'nav.admin.settings' },
 ];
 
@@ -33,6 +33,7 @@ export default function AdminLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface text-on-surface font-inter">
+      <GlobalChatRealtimeBridge />
       <nav className="hidden lg:flex flex-col w-[280px] h-screen p-md gap-sm bg-surface-container-low border-r border-outline-variant shrink-0 z-20">
         <div className="flex items-center gap-md px-sm py-lg">
           <div className="w-10 h-10 rounded-lg bg-primary text-on-primary grid place-items-center font-manrope font-extrabold">
@@ -64,7 +65,8 @@ export default function AdminLayout() {
               }
             >
               <span className="material-symbols-outlined">{item.icon}</span>
-              {t(item.key)}
+              <span className="truncate">{t(item.key)}</span>
+              {item.to.endsWith('/chat') && <GlobalChatUnreadBadge />}
             </NavLink>
           ))}
         </div>
@@ -115,7 +117,6 @@ export default function AdminLayout() {
           <Outlet />
         </main>
       </div>
-      <GlobalChatWidget />
     </div>
   );
 }

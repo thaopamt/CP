@@ -13,7 +13,7 @@ import { CoursesModule } from '../modules/courses/courses.module';
 import { SubmissionsModule } from '../modules/submissions/submissions.module';
 import { QuestsModule } from '../modules/quests/quests.module';
 import { LiveMonitorModule } from '../modules/live-monitor/live-monitor.module';
-import { ChatModule } from '../modules/chat/chat.module';
+import { GlobalChatModule } from '../modules/global-chat/global-chat.module';
 
 @Module({
   imports: [
@@ -35,8 +35,7 @@ import { ChatModule } from '../modules/chat/chat.module';
     SubmissionsModule,
     QuestsModule,
     LiveMonitorModule,
-    ChatModule,
+    GlobalChatModule,
   ],
 })
 export class AppModule {}
-

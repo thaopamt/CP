@@ -2,14 +2,14 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
-import { LogoutButton, UserAvatar, ThemeToggle } from './_shared';
-import GlobalChatWidget from '../components/GlobalChatWidget';
+import { GlobalChatRealtimeBridge, GlobalChatUnreadBadge, LogoutButton, UserAvatar, ThemeToggle } from './_shared';
 
 const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/student', icon: 'home', key: 'nav.student.home', end: true },
   { to: '/student/classes', icon: 'school', key: 'nav.student.classes' },
   { to: '/student/assignments', icon: 'assignment', key: 'nav.student.assignments' },
   { to: '/student/quests', icon: 'rocket_launch', key: 'nav.student.quests' },
+  { to: '/student/chat', icon: 'forum', key: 'nav.student.globalChat' },
   { to: '/student/me', icon: 'person', key: 'nav.student.me' },
 ];
 
@@ -29,6 +29,7 @@ export default function StudentLayout() {
 
   return (
     <div className="min-h-screen bg-surface text-on-surface font-inter">
+      <GlobalChatRealtimeBridge />
       {/* Sidebar — full height on desktop */}
       <nav className="hidden md:flex flex-col w-[240px] lg:w-[280px] fixed top-0 bottom-0 left-0 p-md gap-sm bg-surface-container-lowest border-r border-outline-variant z-50">
         {/* Brand block — parity with Admin/Teacher */}
@@ -62,7 +63,8 @@ export default function StudentLayout() {
               }
             >
               <span className="material-symbols-outlined">{item.icon}</span>
-              {t(item.key)}
+              <span className="truncate">{t(item.key)}</span>
+              {item.to.endsWith('/chat') && <GlobalChatUnreadBadge />}
             </NavLink>
           ))}
         </div>
@@ -127,11 +129,13 @@ export default function StudentLayout() {
               ].join(' ')
             }
           >
-            <span className="material-symbols-outlined">{item.icon}</span>
+            <span className="relative">
+              <span className="material-symbols-outlined">{item.icon}</span>
+              {item.to.endsWith('/chat') && <GlobalChatUnreadBadge compact />}
+            </span>
           </NavLink>
         ))}
       </nav>
-      <GlobalChatWidget />
     </div>
   );
 }

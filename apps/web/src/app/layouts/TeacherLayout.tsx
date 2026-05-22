@@ -2,13 +2,13 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
-import { LogoutButton, UserAvatar, ThemeToggle } from './_shared';
-import GlobalChatWidget from '../components/GlobalChatWidget';
+import { GlobalChatRealtimeBridge, GlobalChatUnreadBadge, LogoutButton, UserAvatar, ThemeToggle } from './_shared';
 
 const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/teacher', icon: 'dashboard', key: 'nav.teacher.dashboard', end: true },
   { to: '/teacher/attendance', icon: 'how_to_reg', key: 'nav.teacher.attendance' },
   { to: '/teacher/monitoring', icon: 'visibility', key: 'nav.teacher.liveClassroom' },
+  { to: '/teacher/chat', icon: 'forum', key: 'nav.teacher.globalChat' },
   { to: '/teacher/challenges', icon: 'code', key: 'nav.teacher.challenges' },
   { to: '/teacher/classes', icon: 'school', key: 'nav.teacher.myClasses' },
   { to: '/teacher/gradebook', icon: 'grading', key: 'nav.teacher.gradebook' },
@@ -29,6 +29,7 @@ export default function TeacherLayout() {
 
   return (
     <div className="min-h-screen bg-surface text-on-surface font-inter">
+      <GlobalChatRealtimeBridge />
       <nav className="hidden md:flex flex-col w-[280px] h-screen fixed top-0 left-0 p-md gap-sm bg-surface-container-low border-r border-outline-variant z-50">
         <div className="flex items-center gap-md px-sm py-lg">
           <div className="w-10 h-10 rounded-lg bg-primary text-on-primary grid place-items-center font-manrope font-extrabold">
@@ -59,7 +60,8 @@ export default function TeacherLayout() {
               }
             >
               <span className="material-symbols-outlined">{item.icon}</span>
-              {t(item.key)}
+              <span className="truncate">{t(item.key)}</span>
+              {item.to.endsWith('/chat') && <GlobalChatUnreadBadge />}
             </NavLink>
           ))}
         </div>
@@ -111,12 +113,14 @@ export default function TeacherLayout() {
               ].join(' ')
             }
           >
-            <span className="material-symbols-outlined">{item.icon}</span>
+            <span className="relative">
+              <span className="material-symbols-outlined">{item.icon}</span>
+              {item.to.endsWith('/chat') && <GlobalChatUnreadBadge compact />}
+            </span>
             {t(item.key)}
           </NavLink>
         ))}
       </nav>
-      <GlobalChatWidget />
     </div>
   );
 }
