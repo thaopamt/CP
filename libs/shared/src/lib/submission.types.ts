@@ -25,6 +25,16 @@ export interface ICodeExecutionResponse {
     code: number;
     signal: string | null;
     output: string;
+    /** CPU time in milliseconds (from Piston) */
+    cpu_time?: number | null;
+    /** Wall-clock time in milliseconds (from Piston) */
+    wall_time?: number | null;
+    /** Memory used in bytes (from Piston) */
+    memory?: number | null;
+    /** Piston message (e.g. timeout reason) */
+    message?: string | null;
+    /** Piston status code: 'TO' = timeout, 'RE' = runtime error, etc. */
+    status?: string | null;
   };
   compile?: {
     stdout: string;

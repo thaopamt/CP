@@ -1,8 +1,8 @@
-version: '3.8'
-
 services:
   piston:
-    image: ghcr.io/engineer-man/piston
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: piston_api
     restart: unless-stopped
     ports:

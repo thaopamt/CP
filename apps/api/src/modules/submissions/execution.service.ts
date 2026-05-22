@@ -3,6 +3,11 @@ import axios from 'axios';
 import { Assignment } from '../assignments/assignment.entity';
 import { ICodeExecutionResponse, SubmissionStatus } from '@cp/shared';
 
+/** Default limits when not specified by the assignment */
+const DEFAULT_TIME_LIMIT_S = 5;          // 5 seconds
+const DEFAULT_MEMORY_LIMIT_KB = 256_000; // 256 MB
+const DEFAULT_COMPILE_TIMEOUT_MS = 10_000; // 10 seconds for compilation
+
 @Injectable()
 export class ExecutionService {
   private readonly logger = new Logger(ExecutionService.name);
@@ -31,22 +36,51 @@ export class ExecutionService {
   }
 
   /**
-   * Execute code simply (for Run Code)
+   * Execute code with optional time/memory limits.
+   *
+   * @param language     - Frontend language name (e.g. 'cpp', 'python')
+   * @param code         - Source code to execute
+   * @param stdin        - Standard input for the program
+   * @param timeLimitMs  - Maximum wall-clock time for the **run** phase (ms).
+   *                       Piston will SIGKILL the process if exceeded.
+   * @param memoryLimitKb - Maximum memory in KB (Piston `memory_limit`).
    */
-  async runCode(language: string, code: string, stdin?: string): Promise<ICodeExecutionResponse> {
+  async runCode(
+    language: string,
+    code: string,
+    stdin?: string,
+    timeLimitMs?: number,
+    memoryLimitKb?: number,
+  ): Promise<ICodeExecutionResponse> {
     const { lang, version } = this.mapLanguage(language);
 
-    try {
-      const response = await axios.post(this.pistonApiUrl, {
-        language: lang,
-        version: version,
-        files: [{ content: code }],
-        stdin: stdin || '',
-      });
+    // Build Piston request payload
+    const pistonPayload: Record<string, any> = {
+      language: lang,
+      version: version,
+      files: [{ content: code }],
+      stdin: stdin || '',
+    };
 
+    // Set run timeout (Piston expects milliseconds)
+    if (timeLimitMs && timeLimitMs > 0) {
+      pistonPayload.run_timeout = timeLimitMs;
+    }
+
+    // Set compile timeout — always generous
+    pistonPayload.compile_timeout = DEFAULT_COMPILE_TIMEOUT_MS;
+
+    // Set memory limit (Piston expects bytes)
+    if (memoryLimitKb && memoryLimitKb > 0) {
+      pistonPayload.run_memory_limit = memoryLimitKb * 1024;
+      pistonPayload.compile_memory_limit = memoryLimitKb * 1024;
+    }
+
+    try {
+      const response = await axios.post(this.pistonApiUrl, pistonPayload);
       const data = response.data;
 
-      // Normalize response — Piston returns cpu_time/wall_time/memory at run level
+      // Normalize response — include cpu_time/wall_time/memory from Piston
       return {
         language: data.language,
         version: data.version,
@@ -63,6 +97,12 @@ export class ExecutionService {
           code: data.run.code ?? 0,
           signal: data.run.signal,
           output: data.run.output || '',
+          // Piston provides these extra fields
+          cpu_time: data.run.cpu_time ?? null,
+          wall_time: data.run.wall_time ?? null,
+          memory: data.run.memory ?? null,
+          message: data.run.message ?? null,
+          status: data.run.status ?? null,
         },
       } as ICodeExecutionResponse;
     } catch (error: any) {
@@ -78,7 +118,7 @@ export class ExecutionService {
             signal: null,
             output: '',
           },
-        } as ICodeExecutionResponse;
+        };
       }
       this.logger.error(`Execution failed (${language}): ${error.message}`);
       throw new Error('Code execution failed: ' + (error.response?.data?.message || error.message));
@@ -86,29 +126,53 @@ export class ExecutionService {
   }
 
   /**
-   * Grade a submission against an assignment's test cases
+   * Grade a submission against an assignment's test cases.
+   * Checks for TLE based on codingConfig.timeLimit (seconds).
    */
   async gradeSubmission(assignment: Assignment, language: string, code: string) {
     const config = assignment.codingConfig;
+
+    // Resolve limits from assignment config
+    const timeLimitS = config?.timeLimit ?? DEFAULT_TIME_LIMIT_S;
+    const timeLimitMs = timeLimitS * 1000;
+    const memoryLimitKb = config?.memoryLimit
+      ? config.memoryLimit * 1024  // config stores MB → convert to KB
+      : DEFAULT_MEMORY_LIMIT_KB;
+
     if (!config || !config.testCases || config.testCases.length === 0) {
       this.logger.warn(`Assignment ${assignment.id} has no test cases. Running code once as acceptance.`);
       // Run code once without stdin — if it compiles and runs, mark accepted
-      const res = await this.runCode(language, code, '');
+      const res = await this.runCode(language, code, '', timeLimitMs, memoryLimitKb);
       const hasError = (res.compile && res.compile.code !== 0) || res.run.code !== 0;
+
+      // Check for TLE via Piston signal or status
+      const isTLE = this.isTimeLimitExceeded(res, timeLimitMs);
+
+      let status: SubmissionStatus;
+      if (isTLE) {
+        status = SubmissionStatus.TIME_LIMIT_EXCEEDED;
+      } else if (hasError) {
+        status = SubmissionStatus.RUNTIME_ERROR;
+      } else {
+        status = SubmissionStatus.ACCEPTED;
+      }
+
+      const wallTimeMs = res.run.wall_time ?? 0;
+
       return {
-        status: hasError ? SubmissionStatus.RUNTIME_ERROR : SubmissionStatus.ACCEPTED,
-        passedCount: hasError ? 0 : 1,
+        status,
+        passedCount: status === SubmissionStatus.ACCEPTED ? 1 : 0,
         totalCount: 1,
-        maxMemory: 0,
-        totalTime: 0,
+        maxMemory: res.run.memory ?? 0,
+        totalTime: wallTimeMs,
         testResults: [{
           testCaseIndex: 0,
-          status: hasError ? SubmissionStatus.RUNTIME_ERROR : SubmissionStatus.ACCEPTED,
+          status,
           expectedOutput: '(no test cases)',
           actualOutput: res.run.stdout || res.run.stderr || '',
           errorMessage: res.compile?.stderr || res.run.stderr || null,
-          executionTimeMs: 0,
-          memoryBytes: 0,
+          executionTimeMs: wallTimeMs,
+          memoryBytes: res.run.memory ?? 0,
         }],
       };
     }
@@ -121,19 +185,40 @@ export class ExecutionService {
 
     for (let i = 0; i < config.testCases.length; i++) {
       const testCase = config.testCases[i];
-      const res = await this.runCode(language, code, testCase.input);
+      const res = await this.runCode(language, code, testCase.input, timeLimitMs, memoryLimitKb);
 
       let status = SubmissionStatus.ACCEPTED;
       let actualOutput = res.run.stdout;
       let errorMsg = res.run.stderr;
 
-      if (res.compile && res.compile.code !== 0) {
+      // Extract timing/memory from Piston response
+      const wallTimeMs = res.run.wall_time ?? 0;
+      const memoryBytes = res.run.memory ?? 0;
+
+      // Track aggregate stats
+      totalTime += wallTimeMs;
+      if (memoryBytes > maxMemory) {
+        maxMemory = memoryBytes;
+      }
+
+      // Check for TLE first — takes priority over other errors
+      const isTLE = this.isTimeLimitExceeded(res, timeLimitMs);
+
+      if (isTLE) {
+        status = SubmissionStatus.TIME_LIMIT_EXCEEDED;
+        errorMsg = `Time Limit Exceeded: execution took ${wallTimeMs}ms (limit: ${timeLimitMs}ms)`;
+        if (finalStatus === SubmissionStatus.ACCEPTED) {
+          finalStatus = SubmissionStatus.TIME_LIMIT_EXCEEDED;
+        }
+      } else if (res.compile && res.compile.code !== 0) {
         status = SubmissionStatus.COMPILATION_ERROR;
         errorMsg = res.compile.stderr;
         finalStatus = status;
       } else if (res.run.code !== 0) {
         status = SubmissionStatus.RUNTIME_ERROR;
-        finalStatus = status;
+        if (finalStatus === SubmissionStatus.ACCEPTED) {
+          finalStatus = SubmissionStatus.RUNTIME_ERROR;
+        }
       } else {
         // Compare output (trim trailing whitespace/newlines)
         const expected = testCase.output.trim();
@@ -155,8 +240,8 @@ export class ExecutionService {
         expectedOutput: testCase.output,
         actualOutput,
         errorMessage: errorMsg || null,
-        executionTimeMs: 0,
-        memoryBytes: 0,
+        executionTimeMs: wallTimeMs,
+        memoryBytes: memoryBytes,
       });
     }
 
@@ -168,5 +253,34 @@ export class ExecutionService {
       totalTime,
       testResults,
     };
+  }
+
+  /**
+   * Determine if a Piston execution result indicates Time Limit Exceeded.
+   *
+   * Piston signals TLE in several ways:
+   * 1. `run.status === 'TO'` (timeout)
+   * 2. `run.signal === 'SIGKILL'` with `run.message` containing 'Time'
+   * 3. `run.wall_time >= timeLimitMs` (wall time exceeded the limit)
+   */
+  private isTimeLimitExceeded(res: ICodeExecutionResponse, timeLimitMs: number): boolean {
+    const run = res.run;
+
+    // Piston timeout status
+    if (run.status === 'TO') {
+      return true;
+    }
+
+    // SIGKILL from timeout
+    if (run.signal === 'SIGKILL' && run.message?.toLowerCase().includes('time')) {
+      return true;
+    }
+
+    // Wall time exceeded the limit (with small tolerance for overhead)
+    if (run.wall_time != null && run.wall_time > timeLimitMs) {
+      return true;
+    }
+
+    return false;
   }
 }
