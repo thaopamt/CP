@@ -7,51 +7,60 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, execSync, ChildProcess } from 'child_process';
 import { Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
+/** Piston Docker container name */
+const CONTAINER = process.env.PISTON_CONTAINER || 'piston_api';
+/** Path to Piston-installed GCC */
+const GCC_BIN = '/piston/packages/gcc/10.2.0/bin/g++';
+/** Path to Piston-installed Python */
+const PYTHON_BIN = '/piston/packages/python/3.10.0/bin/python3';
+/** Path to Piston-installed Java */
+const JAVA_HOME = '/piston/packages/java/15.0.2';
+
 /**
  * Language configuration for compilation and execution inside the Piston container.
- * We use `docker exec -i piston_api` to run commands directly.
+ * All paths are container-internal paths.
  */
 const LANG_CONFIG: Record<string, {
   ext: string;
-  compile?: (src: string, out: string) => string[];
-  run: (src: string, out: string) => string[];
+  compile?: (containerDir: string) => string[];
+  run: (containerDir: string) => string[];
 }> = {
   cpp: {
     ext: 'cpp',
-    compile: (src, out) => ['g++', '-std=c++20', '-O2', '-o', out, src],
-    run: (_src, out) => [out],
+    compile: (dir) => [GCC_BIN, '-std=c++20', '-O2', '-o', `${dir}/main`, `${dir}/main.cpp`],
+    run: (dir) => [`${dir}/main`],
   },
   'c++': {
     ext: 'cpp',
-    compile: (src, out) => ['g++', '-std=c++20', '-O2', '-o', out, src],
-    run: (_src, out) => [out],
-  },
-  java: {
-    ext: 'java',
-    compile: (src, _out) => ['javac', src],
-    run: (src, _out) => ['java', '-cp', path.dirname(src), 'Main'],
+    compile: (dir) => [GCC_BIN, '-std=c++20', '-O2', '-o', `${dir}/main`, `${dir}/main.cpp`],
+    run: (dir) => [`${dir}/main`],
   },
   python: {
     ext: 'py',
-    run: (src) => ['python3', src],
+    run: (dir) => [PYTHON_BIN, `${dir}/main.py`],
   },
   py: {
     ext: 'py',
-    run: (src) => ['python3', src],
+    run: (dir) => [PYTHON_BIN, `${dir}/main.py`],
+  },
+  java: {
+    ext: 'java',
+    compile: (dir) => [`${JAVA_HOME}/bin/javac`, `${dir}/Main.java`],
+    run: (dir) => [`${JAVA_HOME}/bin/java`, '-cp', dir, 'Main'],
   },
   javascript: {
     ext: 'js',
-    run: (src) => ['node', src],
+    run: (dir) => ['node', `${dir}/main.js`],
   },
   js: {
     ext: 'js',
-    run: (src) => ['node', src],
+    run: (dir) => ['node', `${dir}/main.js`],
   },
 };
 
@@ -66,6 +75,8 @@ export class InteractiveExecGateway implements OnGatewayDisconnect {
   private readonly logger = new Logger(InteractiveExecGateway.name);
   /** Active processes per client socket */
   private processes = new Map<string, ChildProcess>();
+  /** Temp dirs to clean up */
+  private tmpDirs = new Map<string, string>();
 
   handleDisconnect(client: Socket) {
     this.killProcess(client.id);
@@ -86,43 +97,64 @@ export class InteractiveExecGateway implements OnGatewayDisconnect {
       return;
     }
 
-    // Create a temp directory for the source file
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'exec_'));
-    const srcFile = path.join(tmpDir, `main.${config.ext}`);
-    const outFile = path.join(tmpDir, 'main');
-    fs.writeFileSync(srcFile, data.code, 'utf-8');
+    // Use Java-specific filename if needed
+    const fileName = langKey === 'java' ? `Main.${config.ext}` : `main.${config.ext}`;
+
+    // 1. Write source to a local temp file
+    const localTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'exec_'));
+    const localSrcFile = path.join(localTmpDir, fileName);
+    fs.writeFileSync(localSrcFile, data.code, 'utf-8');
+
+    // 2. Create a directory inside the container and copy the source file
+    const containerDir = `/tmp/exec_${client.id.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
+    try {
+      execSync(`docker exec ${CONTAINER} mkdir -p ${containerDir}`, { timeout: 5000 });
+      execSync(`docker cp ${localSrcFile} ${CONTAINER}:${containerDir}/${fileName}`, { timeout: 5000 });
+    } catch (err: any) {
+      client.emit('exec_error', { message: `Failed to prepare container: ${err.message}` });
+      this.cleanupLocal(localTmpDir);
+      return;
+    }
+
+    // Clean up local temp immediately — file is now in container
+    this.cleanupLocal(localTmpDir);
+    this.tmpDirs.set(client.id, containerDir);
 
     try {
       // ── Compile phase ──────────────────────────────────────────
       if (config.compile) {
-        const compileCmd = config.compile(srcFile, outFile);
+        const compileArgs = config.compile(containerDir);
         client.emit('exec_stdout', { data: `Compiling...\n` });
 
         const compileResult = await new Promise<{ code: number; stderr: string }>((resolve) => {
           let stderr = '';
-          const proc = spawn(compileCmd[0], compileCmd.slice(1), {
-            timeout: 15000,
+          const proc = spawn('docker', ['exec', CONTAINER, ...compileArgs], {
+            timeout: 30000,
+          });
+          proc.stdout.on('data', (chunk: Buffer) => {
+            // Some compilers write to stdout too
+            stderr += chunk.toString();
           });
           proc.stderr.on('data', (chunk: Buffer) => {
             stderr += chunk.toString();
           });
           proc.on('close', (code) => resolve({ code: code ?? 1, stderr }));
-          proc.on('error', () => resolve({ code: 1, stderr: 'Compilation process error' }));
+          proc.on('error', (e) => resolve({ code: 1, stderr: e.message }));
         });
 
         if (compileResult.code !== 0) {
           client.emit('exec_stderr', { data: compileResult.stderr });
           client.emit('exec_exit', { code: compileResult.code, phase: 'compile' });
-          this.cleanup(tmpDir);
+          this.cleanupContainer(containerDir);
+          this.tmpDirs.delete(client.id);
           return;
         }
       }
 
-      // ── Run phase ──────────────────────────────────────────────
-      const runCmd = config.run(srcFile, outFile);
-      const proc = spawn(runCmd[0], runCmd.slice(1), {
-        cwd: tmpDir,
-        timeout: 30000, // 30s max
+      // ── Run phase (interactive — stdin piped) ──────────────────
+      const runArgs = config.run(containerDir);
+      const proc = spawn('docker', ['exec', '-i', CONTAINER, ...runArgs], {
+        timeout: 60000, // 60s max for interactive sessions
       });
 
       this.processes.set(client.id, proc);
@@ -138,19 +170,22 @@ export class InteractiveExecGateway implements OnGatewayDisconnect {
       proc.on('close', (code, signal) => {
         client.emit('exec_exit', { code: code ?? -1, signal });
         this.processes.delete(client.id);
-        this.cleanup(tmpDir);
+        this.cleanupContainer(containerDir);
+        this.tmpDirs.delete(client.id);
       });
 
       proc.on('error', (err) => {
         client.emit('exec_error', { message: err.message });
         this.processes.delete(client.id);
-        this.cleanup(tmpDir);
+        this.cleanupContainer(containerDir);
+        this.tmpDirs.delete(client.id);
       });
 
       client.emit('exec_started', {});
     } catch (err: any) {
       client.emit('exec_error', { message: err.message || 'Unknown error' });
-      this.cleanup(tmpDir);
+      this.cleanupContainer(containerDir);
+      this.tmpDirs.delete(client.id);
     }
   }
 
@@ -176,11 +211,25 @@ export class InteractiveExecGateway implements OnGatewayDisconnect {
       proc.kill('SIGKILL');
       this.processes.delete(clientId);
     }
+    // Cleanup container dir
+    const containerDir = this.tmpDirs.get(clientId);
+    if (containerDir) {
+      this.cleanupContainer(containerDir);
+      this.tmpDirs.delete(clientId);
+    }
   }
 
-  private cleanup(dir: string) {
+  private cleanupLocal(dir: string) {
     try {
       fs.rmSync(dir, { recursive: true, force: true });
+    } catch {
+      // ignore
+    }
+  }
+
+  private cleanupContainer(containerDir: string) {
+    try {
+      execSync(`docker exec ${CONTAINER} rm -rf ${containerDir}`, { timeout: 5000 });
     } catch {
       // ignore cleanup errors
     }
