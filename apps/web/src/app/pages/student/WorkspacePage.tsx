@@ -256,27 +256,27 @@ export default function StudentWorkspacePage() {
       });
       const sub = result.submission;
       const overallStatus = sub.status === 'ACCEPTED' ? 'accepted' as const : sub.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const;
-      
-      const cases = sub.testResults && sub.testResults.length > 0 
+
+      const cases = sub.testResults && sub.testResults.length > 0
         ? sub.testResults.map((tr) => {
-            const tc = assignment?.codingConfig?.testCases?.[tr.testCaseIndex];
-            const isHidden = tc?.isHidden;
-            const allowView = assignment?.codingConfig?.allowViewHiddenTestCases;
-            const hideDetails = isHidden && !allowView;
-            
-            return {
-              status: tr.status === 'ACCEPTED' ? 'accepted' as const : tr.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const,
-              input: hideDetails ? 'Hidden Test Case' : tc?.input || 'Hidden Test Case',
-              stdout: hideDetails ? '(Output hidden)' : tr.errorMessage || tr.actualOutput || 'No output',
-              expected: hideDetails ? '(Hidden Expected)' : tr.expectedOutput || '',
-            };
-          })
+          const tc = assignment?.codingConfig?.testCases?.[tr.testCaseIndex];
+          const isHidden = tc?.isHidden;
+          const allowView = assignment?.codingConfig?.allowViewHiddenTestCases;
+          const hideDetails = isHidden && !allowView;
+
+          return {
+            status: tr.status === 'ACCEPTED' ? 'accepted' as const : tr.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const,
+            input: hideDetails ? 'Hidden Test Case' : tc?.input || 'Hidden Test Case',
+            stdout: hideDetails ? '(Output hidden)' : tr.errorMessage || tr.actualOutput || 'No output',
+            expected: hideDetails ? '(Hidden Expected)' : tr.expectedOutput || '',
+          };
+        })
         : [{
-            status: overallStatus,
-            input: '',
-            stdout: `Passed: ${sub.passedCount} / ${sub.totalCount}`,
-            expected: '',
-          }];
+          status: overallStatus,
+          input: '',
+          stdout: `Passed: ${sub.passedCount} / ${sub.totalCount}`,
+          expected: '',
+        }];
 
       setRunResults({
         overall: overallStatus,
@@ -284,7 +284,7 @@ export default function StudentWorkspacePage() {
       });
       setActiveResultIdx(0);
     } catch (err: any) {
-       setRunResults({
+      setRunResults({
         overall: 'error',
         cases: [{ status: 'error', input: '', stdout: err.message || 'Submission failed', expected: '' }],
       });
@@ -297,29 +297,29 @@ export default function StudentWorkspacePage() {
   const handleViewSubmission = (sub: any) => {
     setCode(sub.code);
     setLanguage(sub.language);
-    
+
     const overallStatus = sub.status === 'ACCEPTED' ? 'accepted' as const : sub.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const;
-    
-    const cases = sub.testResults && sub.testResults.length > 0 
+
+    const cases = sub.testResults && sub.testResults.length > 0
       ? sub.testResults.map((tr: any) => {
-          const tc = assignment?.codingConfig?.testCases?.[tr.testCaseIndex];
-          const isHidden = tc?.isHidden;
-          const allowView = assignment?.codingConfig?.allowViewHiddenTestCases;
-          const hideDetails = isHidden && !allowView;
-          
-          return {
-            status: tr.status === 'ACCEPTED' ? 'accepted' as const : tr.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const,
-            input: hideDetails ? 'Hidden Test Case' : tc?.input || 'Hidden Test Case',
-            stdout: hideDetails ? '(Output hidden)' : tr.errorMessage || tr.actualOutput || 'No output',
-            expected: hideDetails ? '(Hidden Expected)' : tr.expectedOutput || '',
-          };
-        })
+        const tc = assignment?.codingConfig?.testCases?.[tr.testCaseIndex];
+        const isHidden = tc?.isHidden;
+        const allowView = assignment?.codingConfig?.allowViewHiddenTestCases;
+        const hideDetails = isHidden && !allowView;
+
+        return {
+          status: tr.status === 'ACCEPTED' ? 'accepted' as const : tr.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const,
+          input: hideDetails ? 'Hidden Test Case' : tc?.input || 'Hidden Test Case',
+          stdout: hideDetails ? '(Output hidden)' : tr.errorMessage || tr.actualOutput || 'No output',
+          expected: hideDetails ? '(Hidden Expected)' : tr.expectedOutput || '',
+        };
+      })
       : [{
-          status: overallStatus,
-          input: '',
-          stdout: `Passed: ${sub.passedCount} / ${sub.totalCount}`,
-          expected: '',
-        }];
+        status: overallStatus,
+        input: '',
+        stdout: `Passed: ${sub.passedCount} / ${sub.totalCount}`,
+        expected: '',
+      }];
 
     setRunResults({
       overall: overallStatus,
@@ -532,26 +532,25 @@ export default function StudentWorkspacePage() {
               <div className="p-4 space-y-3">
                 {submissions.length > 0 ? (
                   submissions.map((sub: any) => (
-                    <div 
-                      key={sub.id} 
+                    <div
+                      key={sub.id}
                       className="bg-[#1a1a2e] border border-white/5 rounded-lg p-3 hover:border-white/10 transition-colors cursor-pointer"
                       onClick={() => handleViewSubmission(sub)}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-                            sub.status === 'ACCEPTED' ? 'bg-emerald-500/10 text-emerald-400' :
-                            sub.status === 'WRONG_ANSWER' ? 'bg-red-500/10 text-red-400' :
-                            sub.status === 'PENDING' ? 'bg-blue-500/10 text-blue-400' :
-                            'bg-yellow-500/10 text-yellow-400'
-                          }`}>
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded ${sub.status === 'ACCEPTED' ? 'bg-emerald-500/10 text-emerald-400' :
+                              sub.status === 'WRONG_ANSWER' ? 'bg-red-500/10 text-red-400' :
+                                sub.status === 'PENDING' ? 'bg-blue-500/10 text-blue-400' :
+                                  'bg-yellow-500/10 text-yellow-400'
+                            }`}>
                             {sub.status === 'ACCEPTED' ? 'Accepted' :
-                             sub.status === 'WRONG_ANSWER' ? 'Wrong Answer' :
-                             sub.status === 'PENDING' ? 'Pending' :
-                             sub.status === 'TIME_LIMIT_EXCEEDED' ? 'Time Limit' :
-                             sub.status === 'MEMORY_LIMIT_EXCEEDED' ? 'Memory Limit' :
-                             sub.status === 'COMPILATION_ERROR' ? 'Compilation Error' :
-                             'Error'}
+                              sub.status === 'WRONG_ANSWER' ? 'Wrong Answer' :
+                                sub.status === 'PENDING' ? 'Pending' :
+                                  sub.status === 'TIME_LIMIT_EXCEEDED' ? 'Time Limit' :
+                                    sub.status === 'MEMORY_LIMIT_EXCEEDED' ? 'Memory Limit' :
+                                      sub.status === 'COMPILATION_ERROR' ? 'Compilation Error' :
+                                        'Error'}
                           </span>
                           <span className="text-[11px] text-gray-500 font-mono">{sub.language}</span>
                         </div>
@@ -624,33 +623,33 @@ export default function StudentWorkspacePage() {
                     <div key={i} className="text-right text-[11px] leading-[20px] text-gray-600 font-mono">{i + 1}</div>
                   ))}
                 </div>
-                  {/* Syntax highlighted editor */}
-                  <div className="flex-1 min-w-0 bg-[#0d0d1a]">
-                    <Editor
-                      value={code}
-                      onValueChange={code => setCode(code)}
-                      highlight={code => {
-                        const grammar = Prism.languages[language === 'cpp' ? 'cpp' : language] || Prism.languages.javascript;
-                        return Prism.highlight(code, grammar, language);
-                      }}
-                      padding={12}
-                      className="editor-container"
-                      textareaClassName="focus:outline-none"
-                      style={{
-                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                        fontSize: 13,
-                        lineHeight: '20px',
-                        backgroundColor: 'transparent',
-                        minHeight: '100%',
-                        color: '#d4d4d4', // fallback color
-                      }}
-                    />
-                  </div>
+                {/* Syntax highlighted editor */}
+                <div className="flex-1 min-w-0 bg-[#0d0d1a]">
+                  <Editor
+                    value={code}
+                    onValueChange={code => setCode(code)}
+                    highlight={code => {
+                      const grammar = Prism.languages[language === 'cpp' ? 'cpp' : language] || Prism.languages.javascript;
+                      return Prism.highlight(code, grammar, language);
+                    }}
+                    padding={12}
+                    className="editor-container"
+                    textareaClassName="focus:outline-none"
+                    style={{
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                      fontSize: 13,
+                      lineHeight: '20px',
+                      backgroundColor: 'transparent',
+                      minHeight: '100%',
+                      color: '#d4d4d4', // fallback color
+                    }}
+                  />
                 </div>
               </div>
+            </div>
 
-              {/* Add some global CSS overrides for the editor to ensure it fills the space properly */}
-              <style>{`
+            {/* Add some global CSS overrides for the editor to ensure it fills the space properly */}
+            <style>{`
                 .editor-container {
                   min-height: 100%;
                 }
@@ -663,7 +662,7 @@ export default function StudentWorkspacePage() {
                   background: transparent !important;
                 }
               `}</style>
-            </div>
+          </div>
 
           {/* ── Vertical Splitter ──────────────────────────────────── */}
           <div
@@ -730,8 +729,6 @@ export default function StudentWorkspacePage() {
                           onClick={handleUseCaseInTerminal}
                           className="inline-flex items-center gap-1 rounded bg-cyan-500/10 px-2 py-1 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/20"
                         >
-                          <Icon name="terminal" size={12} />
-                          Dùng trong Terminal
                         </button>
                       </div>
                       <pre className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm font-mono text-gray-300 whitespace-pre-wrap min-h-[40px]">{customInput.trim()}</pre>
@@ -879,11 +876,10 @@ export default function StudentWorkspacePage() {
                           )}
                           <div>
                             <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">Output</span>
-                            <pre className={`mt-1 bg-[#1a1a2e] border rounded-lg p-2.5 text-sm font-mono whitespace-pre-wrap ${
-                              runResults.cases[activeResultIdx].status === 'accepted' ? 'border-emerald-500/20 text-emerald-300' :
-                              runResults.cases[activeResultIdx].status === 'wrong' ? 'border-red-500/20 text-red-300' :
-                              'border-white/5 text-gray-300'
-                            }`}>{runResults.cases[activeResultIdx].stdout}</pre>
+                            <pre className={`mt-1 bg-[#1a1a2e] border rounded-lg p-2.5 text-sm font-mono whitespace-pre-wrap ${runResults.cases[activeResultIdx].status === 'accepted' ? 'border-emerald-500/20 text-emerald-300' :
+                                runResults.cases[activeResultIdx].status === 'wrong' ? 'border-red-500/20 text-red-300' :
+                                  'border-white/5 text-gray-300'
+                              }`}>{runResults.cases[activeResultIdx].stdout}</pre>
                           </div>
                           {runResults.cases[activeResultIdx].expected && (
                             <div>
@@ -933,9 +929,8 @@ function TerminalOutput({ result }: { result: ICodeExecutionResponse }) {
       {compile && (
         <div>
           <div className="mb-1 text-gray-500">$ compile {result.language}</div>
-          <pre className={`whitespace-pre-wrap rounded-lg border p-2 ${
-            compileFailed ? 'border-red-500/20 bg-red-500/5 text-red-200' : 'border-emerald-500/20 bg-emerald-500/5 text-emerald-200'
-          }`}>
+          <pre className={`whitespace-pre-wrap rounded-lg border p-2 ${compileFailed ? 'border-red-500/20 bg-red-500/5 text-red-200' : 'border-emerald-500/20 bg-emerald-500/5 text-emerald-200'
+            }`}>
             {compileFailed ? `Compilation failed with exit code ${compile.code}` : 'Compilation succeeded'}
           </pre>
           {compile.stdout && <TerminalBlock title="compiler stdout" tone="muted" value={compile.stdout} />}

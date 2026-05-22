@@ -11,6 +11,7 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/teacher/chat', icon: 'forum', key: 'nav.teacher.globalChat' },
   { to: '/teacher/challenges', icon: 'code', key: 'nav.teacher.challenges' },
   { to: '/teacher/classes', icon: 'school', key: 'nav.teacher.myClasses' },
+  { to: '/teacher/submissions', icon: 'history', key: 'nav.teacher.submissions' },
   { to: '/teacher/gradebook', icon: 'grading', key: 'nav.teacher.gradebook' },
 ];
 

@@ -16,6 +16,7 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/admin/users', icon: 'group', key: 'nav.admin.users' },
   { to: '/admin/monitor', icon: 'screen_share', key: 'nav.admin.monitor' },
   { to: '/admin/chat', icon: 'forum', key: 'nav.admin.globalChat' },
+  { to: '/admin/submissions', icon: 'history', key: 'nav.admin.submissions' },
   { to: '/admin/settings', icon: 'settings', key: 'nav.admin.settings' },
 ];
 

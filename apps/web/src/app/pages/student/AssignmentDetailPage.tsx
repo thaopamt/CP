@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { DifficultyBadge, Icon } from '@cp/ui';
 import {
   AssignmentType,
@@ -29,6 +29,7 @@ import 'prismjs/components/prism-javascript';
 import { useAssignment } from '../../api/curriculum.queries';
 import { useRunCode, useSubmitCode, useSubmissions } from '../../api/submissions.queries';
 import { useLiveCodingSync } from '../../hooks/useLiveCodingSync';
+import { useInteractiveExec } from '../../hooks/useInteractiveExec';
 
 /* ── Language config ──────────────────────────────────────────────── */
 const LANG_OPTIONS: { value: string; label: string; template: string }[] = [
@@ -38,6 +39,8 @@ const LANG_OPTIONS: { value: string; label: string; template: string }[] = [
   { value: 'javascript', label: 'JavaScript', template: '// Your code here\nconst readline = require("readline");\nconst rl = readline.createInterface({ input: process.stdin });\n\nrl.on("line", (line) => {\n    \n});\n' },
 ];
 
+const LANG_ICON_MAP: Record<string, string> = { cpp: 'C++', java: 'Java', python: 'Python', javascript: 'JS' };
+
 /* ── Tabs for left panel ──────────────────────────────────────────── */
 type LeftTab = 'description' | 'submissions';
 type BottomTab = 'testcase' | 'terminal' | 'result';
@@ -45,15 +48,55 @@ type BottomTab = 'testcase' | 'terminal' | 'result';
 export default function StudentAssignmentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: assignment, isLoading, isError } = useAssignment(id);
   const { data: submissions = [] } = useSubmissions(assignment?.id || '');
   const runMutation = useRunCode();
   const submitMutation = useSubmitCode();
 
+  // ── Submission code from navigation state ("View Problem" from SubmissionsPage) ──
+  const navState = location.state as { submissionCode?: string; submissionLang?: string } | null;
+
+  // ── LocalStorage draft key ──
+  const draftKey = `code-draft-${id}`;
+
+  // ── Initialize code & language from: navState > localStorage draft > default template ──
+  const [language, setLanguage] = useState(() => {
+    if (navState?.submissionLang) return navState.submissionLang;
+    try {
+      const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
+      if (draft?.language) return draft.language;
+    } catch { /* ignore */ }
+    return LANG_OPTIONS[0].value;
+  });
+  const [code, setCode] = useState(() => {
+    if (navState?.submissionCode) return navState.submissionCode;
+    try {
+      const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
+      if (draft?.code) return draft.code;
+    } catch { /* ignore */ }
+    return LANG_OPTIONS[0].template;
+  });
+
+  // ── Clear navState after reading (so refreshing doesn't re-apply submission code) ──
+  useEffect(() => {
+    if (navState?.submissionCode) {
+      window.history.replaceState({}, '');
+    }
+  }, []);
+
+  // ── Auto-save code to localStorage (debounced 500ms) ──
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify({ code, language }));
+      } catch { /* ignore quota errors */ }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [code, language, draftKey]);
+
   const [leftTab, setLeftTab] = useState<LeftTab>('description');
   const [bottomTab, setBottomTab] = useState<BottomTab>('testcase');
-  const [language, setLanguage] = useState(LANG_OPTIONS[0].value);
-  const [code, setCode] = useState(LANG_OPTIONS[0].template);
   const [activeTestIdx, setActiveTestIdx] = useState(0);
   const [customInput, setCustomInput] = useState('');
   const [customOutput, setCustomOutput] = useState('');
@@ -61,12 +104,32 @@ export default function StudentAssignmentDetailPage() {
   const [terminalResult, setTerminalResult] = useState<ICodeExecutionResponse | null>(null);
   const [terminalError, setTerminalError] = useState('');
   const [terminalRunning, setTerminalRunning] = useState(false);
+  const [terminalHistory, setTerminalHistory] = useState<{ stdin: string; result?: ICodeExecutionResponse; error?: string }[]>([]);
+  const [terminalMultiline, setTerminalMultiline] = useState(false);
   const [running, setRunning] = useState(false);
   const [runResults, setRunResults] = useState<null | {
     overall: 'accepted' | 'wrong' | 'error';
     cases: { status: 'accepted' | 'wrong' | 'error'; input: string; stdout: string; expected: string }[];
   }>(null);
   const [activeResultIdx, setActiveResultIdx] = useState(0);
+  const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
+
+  // Interactive execution (WebSocket)
+  const interactiveExec = useInteractiveExec();
+
+  // Terminal refs
+  const terminalBodyRef = useRef<HTMLDivElement>(null);
+  const terminalInputRef = useRef<HTMLInputElement>(null);
+  const inputHistoryRef = useRef<string[]>([]);
+  const inputHistoryIdxRef = useRef(-1);
+
+  // Auto-scroll terminal body when new output arrives
+  useEffect(() => {
+    const el = terminalBodyRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [interactiveExec.lines]);
 
   // Splitter state
   const [splitX, setSplitX] = useState(45); // % for left panel
@@ -156,23 +219,44 @@ export default function StudentAssignmentDetailPage() {
   };
 
   const handleRunTerminal = async () => {
-    setTerminalRunning(true);
-    setTerminalError('');
-    setTerminalResult(null);
     setBottomTab('terminal');
 
-    try {
-      const result = await runMutation.mutateAsync({
-        language,
-        code,
-        stdin: terminalInput,
-      });
-      setTerminalResult(result);
-    } catch (err: any) {
-      setTerminalError(err?.response?.data?.message || err?.message || 'Execution failed');
-    } finally {
-      setTerminalRunning(false);
+    if (!terminalMultiline) {
+      // ── Interactive mode: use WebSocket ──
+      interactiveExec.start(language, code);
+      setTerminalInput('');
+      setTimeout(() => terminalInputRef.current?.focus(), 100);
+    } else {
+      // ── Batch/Text mode: use HTTP API (Piston) ──
+      const stdin = terminalInput;
+      setTerminalRunning(true);
+      setTerminalError('');
+      setTerminalResult(null);
+
+      try {
+        const result = await runMutation.mutateAsync({ language, code, stdin });
+        setTerminalResult(result);
+        setTerminalHistory(prev => [...prev, { stdin, result }]);
+      } catch (err: any) {
+        const errorMsg = err?.response?.data?.message || err?.message || 'Execution failed';
+        setTerminalError(errorMsg);
+        setTerminalHistory(prev => [...prev, { stdin, error: errorMsg }]);
+      } finally {
+        setTerminalRunning(false);
+        setTimeout(() => {
+          terminalBodyRef.current?.scrollTo({ top: terminalBodyRef.current.scrollHeight, behavior: 'smooth' });
+        }, 50);
+      }
     }
+  };
+
+  const handleSendStdin = () => {
+    if (!terminalInput.trim() || !interactiveExec.running) return;
+    interactiveExec.sendStdin(terminalInput);
+    inputHistoryRef.current.push(terminalInput);
+    inputHistoryIdxRef.current = -1;
+    setTerminalInput('');
+    setTimeout(() => terminalInputRef.current?.focus(), 50);
   };
 
   const handleRun = async () => {
@@ -250,7 +334,7 @@ export default function StudentAssignmentDetailPage() {
   const handleSubmit = async () => {
     setRunning(true);
     setLeftTab('submissions');
-    setBottomTab('result');
+    setSelectedSubmission(null);
     try {
       const result = await submitMutation.mutateAsync({
         assignmentId: assignment?.id || id!,
@@ -258,36 +342,11 @@ export default function StudentAssignmentDetailPage() {
         code,
       });
       const sub = result.submission;
-      const overallStatus = sub.status === 'ACCEPTED' ? 'accepted' as const : sub.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const;
-      
-      const cases = sub.testResults && sub.testResults.length > 0 
-        ? sub.testResults.map((tr) => {
-            const tc = assignment?.codingConfig?.testCases?.[tr.testCaseIndex];
-            const isHidden = tc?.isHidden;
-            const allowView = assignment?.codingConfig?.allowViewHiddenTestCases;
-            const hideDetails = isHidden && !allowView;
-            
-            return {
-              status: tr.status === 'ACCEPTED' ? 'accepted' as const : tr.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const,
-              input: hideDetails ? 'Hidden Test Case' : tc?.input || 'Hidden Test Case',
-              stdout: hideDetails ? '(Output hidden)' : tr.errorMessage || tr.actualOutput || 'No output',
-              expected: hideDetails ? '(Hidden Expected)' : tr.expectedOutput || '',
-            };
-          })
-        : [{
-            status: overallStatus,
-            input: '',
-            stdout: `Passed: ${sub.passedCount} / ${sub.totalCount}`,
-            expected: '',
-          }];
-
-      setRunResults({
-        overall: overallStatus,
-        cases,
-      });
-      setActiveResultIdx(0);
+      // Auto-select the new submission to show detail view
+      setSelectedSubmission(sub);
     } catch (err: any) {
-       setRunResults({
+      setBottomTab('result');
+      setRunResults({
         overall: 'error',
         cases: [{ status: 'error', input: '', stdout: err.message || 'Submission failed', expected: '' }],
       });
@@ -298,38 +357,7 @@ export default function StudentAssignmentDetailPage() {
   };
 
   const handleViewSubmission = (sub: any) => {
-    setCode(sub.code);
-    setLanguage(sub.language);
-    
-    const overallStatus = sub.status === 'ACCEPTED' ? 'accepted' as const : sub.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const;
-    
-    const cases = sub.testResults && sub.testResults.length > 0 
-      ? sub.testResults.map((tr: any) => {
-          const tc = assignment?.codingConfig?.testCases?.[tr.testCaseIndex];
-          const isHidden = tc?.isHidden;
-          const allowView = assignment?.codingConfig?.allowViewHiddenTestCases;
-          const hideDetails = isHidden && !allowView;
-          
-          return {
-            status: tr.status === 'ACCEPTED' ? 'accepted' as const : tr.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const,
-            input: hideDetails ? 'Hidden Test Case' : tc?.input || 'Hidden Test Case',
-            stdout: hideDetails ? '(Output hidden)' : tr.errorMessage || tr.actualOutput || 'No output',
-            expected: hideDetails ? '(Hidden Expected)' : tr.expectedOutput || '',
-          };
-        })
-      : [{
-          status: overallStatus,
-          input: '',
-          stdout: `Passed: ${sub.passedCount} / ${sub.totalCount}`,
-          expected: '',
-        }];
-
-    setRunResults({
-      overall: overallStatus,
-      cases,
-    });
-    setActiveResultIdx(0);
-    setBottomTab('result');
+    setSelectedSubmission(sub);
   };
 
   /* ── Loading / Error ────────────────────────────────────────────── */
@@ -531,30 +559,195 @@ export default function StudentAssignmentDetailPage() {
                   </div>
                 )}
               </div>
+            ) : selectedSubmission ? (
+              /* ── Submission Detail View ──────────────────────────── */
+              <div className="p-4 space-y-4">
+                {/* Back button */}
+                <button
+                  onClick={() => setSelectedSubmission(null)}
+                  className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors mb-2"
+                >
+                  <Icon name="arrow_back" size={14} />
+                  Back to submissions
+                </button>
+
+                {/* Submission header */}
+                <div className="bg-[#1a1a2e] border border-white/5 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded ${selectedSubmission.status === 'ACCEPTED' ? 'bg-emerald-500/10 text-emerald-400' :
+                        selectedSubmission.status === 'WRONG_ANSWER' ? 'bg-red-500/10 text-red-400' :
+                          selectedSubmission.status === 'PENDING' ? 'bg-blue-500/10 text-blue-400' :
+                            selectedSubmission.status === 'TIME_LIMIT_EXCEEDED' ? 'bg-amber-500/10 text-amber-400' :
+                              selectedSubmission.status === 'MEMORY_LIMIT_EXCEEDED' ? 'bg-orange-500/10 text-orange-400' :
+                                selectedSubmission.status === 'COMPILATION_ERROR' ? 'bg-purple-500/10 text-purple-400' :
+                                  'bg-yellow-500/10 text-yellow-400'
+                        }`}>
+                        {selectedSubmission.status === 'ACCEPTED' ? 'Accepted' :
+                          selectedSubmission.status === 'WRONG_ANSWER' ? 'Wrong Answer' :
+                            selectedSubmission.status === 'PENDING' ? 'Pending' :
+                              selectedSubmission.status === 'TIME_LIMIT_EXCEEDED' ? 'Time Limit Exceeded' :
+                                selectedSubmission.status === 'MEMORY_LIMIT_EXCEEDED' ? 'Memory Limit Exceeded' :
+                                  selectedSubmission.status === 'COMPILATION_ERROR' ? 'Compilation Error' :
+                                    selectedSubmission.status === 'RUNTIME_ERROR' ? 'Runtime Error' :
+                                      'Error'}
+                      </span>
+                      <span className="text-[11px] text-gray-500 font-mono">{selectedSubmission.language}</span>
+                    </div>
+                    <span className="text-[10px] text-gray-500">
+                      {new Date(selectedSubmission.createdAt.endsWith('Z') || selectedSubmission.createdAt.includes('+') ? selectedSubmission.createdAt : `${selectedSubmission.createdAt}Z`).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-gray-400">
+                    <div className="flex items-center gap-1">
+                      <Icon name="check_circle" size={12} className="text-emerald-500" />
+                      {selectedSubmission.passedCount} / {selectedSubmission.totalCount} passed
+                    </div>
+                    {selectedSubmission.totalExecutionTimeMs != null && (
+                      <div className="flex items-center gap-1">
+                        <Icon name="timer" size={12} />
+                        {selectedSubmission.totalExecutionTimeMs} ms
+                      </div>
+                    )}
+                    {selectedSubmission.maxMemoryBytes != null && (
+                      <div className="flex items-center gap-1">
+                        <Icon name="memory" size={12} />
+                        {(selectedSubmission.maxMemoryBytes / 1024 / 1024).toFixed(1)} MB
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Code preview */}
+                <div>
+                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Icon name="code" size={13} className="text-emerald-400" />
+                    Source Code
+                  </h4>
+                  <div className="bg-[#0d0d1a] rounded-lg border border-white/5 overflow-hidden">
+                    <div className="max-h-[300px] overflow-auto">
+                      <pre className="p-3 text-[12px] font-mono leading-5 text-gray-300 whitespace-pre overflow-x-auto">
+                        <code
+                          dangerouslySetInnerHTML={{
+                            __html: (() => {
+                              const grammar = Prism.languages[selectedSubmission.language === 'cpp' ? 'cpp' : selectedSubmission.language] || Prism.languages.javascript;
+                              return Prism.highlight(selectedSubmission.code, grammar, selectedSubmission.language);
+                            })()
+                          }}
+                        />
+                      </pre>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Test case results */}
+                <div>
+                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Icon name="science" size={13} className="text-cyan-400" />
+                    Test Cases ({selectedSubmission.passedCount}/{selectedSubmission.totalCount})
+                  </h4>
+                  <div className="space-y-2">
+                    {selectedSubmission.testResults && selectedSubmission.testResults.length > 0 ? (
+                      selectedSubmission.testResults.map((tr: any, idx: number) => {
+                        const tc = assignment?.codingConfig?.testCases?.[tr.testCaseIndex];
+                        const isHidden = tc?.isHidden;
+                        const allowView = assignment?.codingConfig?.allowViewHiddenTestCases;
+                        const hideDetails = isHidden && !allowView;
+                        const isAccepted = tr.status === 'ACCEPTED';
+                        const isWrong = tr.status === 'WRONG_ANSWER';
+                        const isTLE = tr.status === 'TIME_LIMIT_EXCEEDED';
+                        const isCE = tr.status === 'COMPILATION_ERROR';
+                        const isRE = tr.status === 'RUNTIME_ERROR';
+
+                        const statusIcon = isAccepted ? 'check_circle' : isWrong ? 'cancel' : isTLE ? 'timer_off' : isCE ? 'code_off' : isRE ? 'error' : 'warning';
+                        const statusColor = isAccepted ? 'text-emerald-400' : isWrong ? 'text-red-400' : isTLE ? 'text-amber-400' : isCE ? 'text-purple-400' : 'text-rose-400';
+                        const statusBg = isAccepted ? 'border-emerald-500/20' : isWrong ? 'border-red-500/20' : isTLE ? 'border-amber-500/20' : isCE ? 'border-purple-500/20' : 'border-rose-500/20';
+                        const statusLabel = isAccepted ? 'Accepted' : isWrong ? 'Wrong Answer' : isTLE ? 'TLE' : isCE ? 'CE' : isRE ? 'RE' : tr.status;
+
+                        return (
+                          <div key={idx} className={`bg-[#1a1a2e] border ${statusBg} rounded-lg p-3`}>
+                            {/* Test case header */}
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <Icon name={statusIcon} size={15} className={statusColor} />
+                                <span className="text-xs font-semibold text-gray-300">
+                                  {hideDetails ? `Test #${tr.testCaseIndex + 1} (Hidden)` : `Test #${tr.testCaseIndex + 1}`}
+                                </span>
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isAccepted ? 'bg-emerald-500/10 text-emerald-400' : isWrong ? 'bg-red-500/10 text-red-400' : isTLE ? 'bg-amber-500/10 text-amber-400' : isCE ? 'bg-purple-500/10 text-purple-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                                  {statusLabel}
+                                </span>
+                              </div>
+                              {tr.executionTimeMs != null && (
+                                <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                                  <Icon name="timer" size={10} />{tr.executionTimeMs}ms
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Test case details (only for non-hidden) */}
+                            {!hideDetails && !isAccepted && (
+                              <div className="mt-2 space-y-2">
+                                {tc?.input && (
+                                  <div>
+                                    <span className="text-[10px] text-gray-500 font-semibold uppercase">Input:</span>
+                                    <pre className="text-[11px] font-mono text-gray-400 mt-0.5 whitespace-pre-wrap bg-[#0d0d1a] rounded px-2 py-1 max-h-[80px] overflow-auto">{tc.input}</pre>
+                                  </div>
+                                )}
+                                {tr.expectedOutput && (
+                                  <div>
+                                    <span className="text-[10px] text-gray-500 font-semibold uppercase">Expected:</span>
+                                    <pre className="text-[11px] font-mono text-gray-400 mt-0.5 whitespace-pre-wrap bg-[#0d0d1a] rounded px-2 py-1 max-h-[80px] overflow-auto">{tr.expectedOutput}</pre>
+                                  </div>
+                                )}
+                                {tr.actualOutput && (
+                                  <div>
+                                    <span className="text-[10px] text-gray-500 font-semibold uppercase">Your Output:</span>
+                                    <pre className="text-[11px] font-mono text-gray-400 mt-0.5 whitespace-pre-wrap bg-[#0d0d1a] rounded px-2 py-1 max-h-[80px] overflow-auto">{tr.actualOutput}</pre>
+                                  </div>
+                                )}
+                                {tr.errorMessage && (
+                                  <div>
+                                    <span className="text-[10px] text-red-400 font-semibold uppercase">Error:</span>
+                                    <pre className="text-[11px] font-mono text-red-300 mt-0.5 whitespace-pre-wrap bg-red-500/5 rounded px-2 py-1 max-h-[80px] overflow-auto">{tr.errorMessage}</pre>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="bg-[#1a1a2e] border border-white/5 rounded-lg p-3 text-xs text-gray-500">
+                        No test result details available.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             ) : (
+              /* ── Submissions List View ──────────────────────────── */
               <div className="p-4 space-y-3">
                 {submissions.length > 0 ? (
                   submissions.map((sub: any) => (
-                    <div 
-                      key={sub.id} 
+                    <div
+                      key={sub.id}
                       className="bg-[#1a1a2e] border border-white/5 rounded-lg p-3 hover:border-white/10 transition-colors cursor-pointer"
                       onClick={() => handleViewSubmission(sub)}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-                            sub.status === 'ACCEPTED' ? 'bg-emerald-500/10 text-emerald-400' :
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded ${sub.status === 'ACCEPTED' ? 'bg-emerald-500/10 text-emerald-400' :
                             sub.status === 'WRONG_ANSWER' ? 'bg-red-500/10 text-red-400' :
-                            sub.status === 'PENDING' ? 'bg-blue-500/10 text-blue-400' :
-                            'bg-yellow-500/10 text-yellow-400'
-                          }`}>
+                              sub.status === 'PENDING' ? 'bg-blue-500/10 text-blue-400' :
+                                'bg-yellow-500/10 text-yellow-400'
+                            }`}>
                             {sub.status === 'ACCEPTED' ? 'Accepted' :
-                             sub.status === 'WRONG_ANSWER' ? 'Wrong Answer' :
-                             sub.status === 'PENDING' ? 'Pending' :
-                             sub.status === 'TIME_LIMIT_EXCEEDED' ? 'Time Limit' :
-                             sub.status === 'MEMORY_LIMIT_EXCEEDED' ? 'Memory Limit' :
-                             sub.status === 'COMPILATION_ERROR' ? 'Compilation Error' :
-                             'Error'}
+                              sub.status === 'WRONG_ANSWER' ? 'Wrong Answer' :
+                                sub.status === 'PENDING' ? 'Pending' :
+                                  sub.status === 'TIME_LIMIT_EXCEEDED' ? 'Time Limit' :
+                                    sub.status === 'MEMORY_LIMIT_EXCEEDED' ? 'Memory Limit' :
+                                      sub.status === 'COMPILATION_ERROR' ? 'Compilation Error' :
+                                        'Error'}
                           </span>
                           <span className="text-[11px] text-gray-500 font-mono">{sub.language}</span>
                         </div>
@@ -627,33 +820,33 @@ export default function StudentAssignmentDetailPage() {
                     <div key={i} className="text-right text-[11px] leading-[20px] text-gray-600 font-mono">{i + 1}</div>
                   ))}
                 </div>
-                  {/* Syntax highlighted editor */}
-                  <div className="flex-1 min-w-0 bg-[#0d0d1a]">
-                    <Editor
-                      value={code}
-                      onValueChange={code => setCode(code)}
-                      highlight={code => {
-                        const grammar = Prism.languages[language === 'cpp' ? 'cpp' : language] || Prism.languages.javascript;
-                        return Prism.highlight(code, grammar, language);
-                      }}
-                      padding={12}
-                      className="editor-container"
-                      textareaClassName="focus:outline-none"
-                      style={{
-                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                        fontSize: 13,
-                        lineHeight: '20px',
-                        backgroundColor: 'transparent',
-                        minHeight: '100%',
-                        color: '#d4d4d4', // fallback color
-                      }}
-                    />
-                  </div>
+                {/* Syntax highlighted editor */}
+                <div className="flex-1 min-w-0 bg-[#0d0d1a]">
+                  <Editor
+                    value={code}
+                    onValueChange={code => setCode(code)}
+                    highlight={code => {
+                      const grammar = Prism.languages[language === 'cpp' ? 'cpp' : language] || Prism.languages.javascript;
+                      return Prism.highlight(code, grammar, language);
+                    }}
+                    padding={12}
+                    className="editor-container"
+                    textareaClassName="focus:outline-none"
+                    style={{
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                      fontSize: 13,
+                      lineHeight: '20px',
+                      backgroundColor: 'transparent',
+                      minHeight: '100%',
+                      color: '#d4d4d4', // fallback color
+                    }}
+                  />
                 </div>
               </div>
+            </div>
 
-              {/* Add some global CSS overrides for the editor to ensure it fills the space properly */}
-              <style>{`
+            {/* Add some global CSS overrides for the editor to ensure it fills the space properly */}
+            <style>{`
                 .editor-container {
                   min-height: 100%;
                 }
@@ -666,7 +859,7 @@ export default function StudentAssignmentDetailPage() {
                   background: transparent !important;
                 }
               `}</style>
-            </div>
+          </div>
 
           {/* ── Vertical Splitter ──────────────────────────────────── */}
           <div
@@ -733,8 +926,6 @@ export default function StudentAssignmentDetailPage() {
                           onClick={handleUseCaseInTerminal}
                           className="inline-flex items-center gap-1 rounded bg-cyan-500/10 px-2 py-1 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/20"
                         >
-                          <Icon name="terminal" size={12} />
-                          Dùng trong Terminal
                         </button>
                       </div>
                       <pre className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm font-mono text-gray-300 whitespace-pre-wrap min-h-[40px]">{customInput.trim()}</pre>
@@ -762,72 +953,216 @@ export default function StudentAssignmentDetailPage() {
                   </div>
                 </div>
               ) : bottomTab === 'terminal' ? (
-                <div className="grid h-full min-h-[220px] grid-cols-1 gap-3 lg:grid-cols-[42%_1fr]">
-                  <section className="flex min-h-0 flex-col rounded-xl border border-white/10 bg-[#111123] overflow-hidden">
-                    <div className="flex items-center justify-between border-b border-white/10 bg-[#1a1a2e] px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <Icon name="keyboard" size={14} className="text-cyan-400" />
-                        <span className="text-xs font-semibold text-gray-300">Standard Input</span>
+                <div className="flex h-full min-h-[220px] flex-col overflow-hidden" style={{ background: '#000' }}>
+                  {/* ── Terminal toolbar ────────────────────────────── */}
+                  <div className="flex items-center justify-between px-3 py-1 shrink-0" style={{ background: '#1e1e1e', borderBottom: '1px solid #333' }}>
+                    <div className="flex items-center gap-3">
+                      {/* Traffic lights */}
+                      <div className="flex gap-1.5">
+                        <span className="w-[10px] h-[10px] rounded-full" style={{ background: '#ff5f56' }} />
+                        <span className="w-[10px] h-[10px] rounded-full" style={{ background: '#ffbd2e' }} />
+                        <span className="w-[10px] h-[10px] rounded-full" style={{ background: '#27c93f' }} />
                       </div>
-                      <button
-                        onClick={() => setTerminalInput('')}
-                        className="text-[11px] text-gray-500 hover:text-gray-300"
-                      >
-                        Clear
-                      </button>
+                      {/* Toolbar buttons */}
+                      <div className="flex items-center gap-1 text-[11px]">
+                        {interactiveExec.running ? (
+                          <button
+                            onClick={() => interactiveExec.kill()}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold transition-colors"
+                            style={{ background: '#d32f2f', color: '#fff' }}
+                          >
+                            <Icon name="stop" size={12} />
+                            Stop
+                          </button>
+                        ) : (
+                          <button
+                            onClick={handleRunTerminal}
+                            disabled={terminalRunning}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold transition-colors disabled:opacity-40"
+                            style={{ background: '#2ea043', color: '#fff' }}
+                          >
+                            <Icon name="play_arrow" size={12} />
+                            Run
+                          </button>
+                        )}
+                        <button
+                          onClick={() => { interactiveExec.clearLines(); setTerminalHistory([]); setTerminalResult(null); setTerminalError(''); }}
+                          className="px-2 py-0.5 rounded text-[11px] transition-colors"
+                          style={{ color: '#888', background: 'transparent' }}
+                          onMouseEnter={e => (e.currentTarget.style.color = '#ccc')}
+                          onMouseLeave={e => (e.currentTarget.style.color = '#888')}
+                        >
+                          Clear
+                        </button>
+                      </div>
                     </div>
-                    <textarea
-                      value={terminalInput}
-                      onChange={(event) => setTerminalInput(event.target.value)}
-                      spellCheck={false}
-                      placeholder={'Nhập testcase/stdin ở đây...\nVí dụ:\n5\n1 2 3 4 5'}
-                      className="min-h-0 flex-1 resize-none bg-transparent p-3 font-mono text-sm leading-5 text-gray-200 outline-none placeholder:text-gray-600"
-                    />
-                    <div className="flex items-center justify-between border-t border-white/10 px-3 py-2">
-                      <span className="text-[11px] text-gray-600">
-                        {terminalInput.split('\n').length} dòng · {terminalInput.length} ký tự
-                      </span>
-                      <button
-                        onClick={handleRunTerminal}
-                        disabled={terminalRunning}
-                        className="inline-flex items-center gap-1.5 rounded-md bg-cyan-500/15 px-3 py-1.5 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/25 disabled:opacity-50"
-                      >
-                        <Icon name={terminalRunning ? 'progress_activity' : 'play_arrow'} size={14} className={terminalRunning ? 'animate-spin' : ''} />
-                        Chạy Terminal
-                      </button>
+                    {/* Input mode toggle */}
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] uppercase tracking-wider" style={{ color: '#666' }}>stdin:</span>
+                      <label className="flex items-center gap-1 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="termMode"
+                          checked={!terminalMultiline}
+                          onChange={() => setTerminalMultiline(false)}
+                          className="accent-green-500"
+                          style={{ width: 12, height: 12 }}
+                        />
+                        <span className="text-[11px]" style={{ color: !terminalMultiline ? '#ccc' : '#666' }}>Interactive</span>
+                      </label>
+                      <label className="flex items-center gap-1 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="termMode"
+                          checked={terminalMultiline}
+                          onChange={() => setTerminalMultiline(true)}
+                          className="accent-green-500"
+                          style={{ width: 12, height: 12 }}
+                        />
+                        <span className="text-[11px]" style={{ color: terminalMultiline ? '#ccc' : '#666' }}>Text</span>
+                      </label>
                     </div>
-                  </section>
+                  </div>
 
-                  <section className="flex min-h-0 flex-col rounded-xl border border-white/10 bg-[#05050d] overflow-hidden">
-                    <div className="flex items-center justify-between border-b border-white/10 bg-[#111123] px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <Icon name="terminal" size={14} className="text-cyan-400" />
-                        <span className="text-xs font-semibold text-gray-300">Terminal Output</span>
-                      </div>
-                      {terminalResult && (
-                        <span className={`rounded px-2 py-0.5 text-[11px] font-semibold ${getTerminalStatus(terminalResult).badgeClass}`}>
-                          {getTerminalStatus(terminalResult).label}
+                  {/* ── Text stdin mode (batch) ────────────────────── */}
+                  {terminalMultiline && (
+                    <div style={{ background: '#111', borderBottom: '1px solid #333' }}>
+                      <div className="flex items-center justify-between px-3 py-1">
+                        <span className="text-[10px] uppercase tracking-wider" style={{ color: '#555' }}>Standard Input</span>
+                        <span className="text-[10px]" style={{ color: '#444' }}>
+                          {terminalInput.split('\n').length} lines · {terminalInput.length} chars
                         </span>
-                      )}
+                      </div>
+                      <textarea
+                        value={terminalInput}
+                        onChange={(e) => setTerminalInput(e.target.value)}
+                        spellCheck={false}
+                        placeholder="Enter input to program here..."
+                        className="w-full resize-none outline-none font-mono text-[13px] leading-5 px-3 pb-2"
+                        style={{ background: '#111', color: '#e0e0e0', height: 70 }}
+                      />
                     </div>
-                    <div className="min-h-0 flex-1 overflow-auto p-3 font-mono text-xs leading-5">
-                      {terminalRunning ? (
-                        <div className="flex items-center gap-2 text-gray-400">
-                          <Icon name="progress_activity" size={15} className="animate-spin" />
-                          Compiling and running...
+                  )}
+
+                  {/* ── Terminal body ── */}
+                  <div
+                    ref={terminalBodyRef}
+                    className="flex-1 min-h-0 overflow-auto px-3 py-2 font-mono text-[13px] leading-[1.6] cursor-text"
+                    style={{ background: '#000', color: '#e0e0e0' }}
+                    onClick={() => terminalInputRef.current?.focus()}
+                  >
+                    {/* Interactive mode output */}
+                    {!terminalMultiline ? (
+                      interactiveExec.lines.length === 0 && !interactiveExec.running ? (
+                        <div style={{ color: '#555' }}>
+                          <div className="mt-1" style={{ color: '#555', fontSize: 12 }}>
+                            Bấm Run để chạy. Khi chương trình cần nhập (cin, scanf, input), gõ trực tiếp ở dưới rồi bấm Enter.
+                          </div>
                         </div>
-                      ) : terminalError ? (
-                        <pre className="whitespace-pre-wrap text-red-300">{terminalError}</pre>
-                      ) : terminalResult ? (
-                        <TerminalOutput result={terminalResult} />
                       ) : (
-                        <div className="text-gray-600">
-                          <div className="text-gray-500">$ run {language}</div>
-                          <div className="mt-2">Nhập stdin bên trái rồi bấm Chạy Terminal để xem stdout, stderr và lỗi biên dịch.</div>
-                        </div>
-                      )}
+                        interactiveExec.lines.map((line, idx) => {
+                          const colorMap: Record<string, string> = {
+                            stdout: '#e0e0e0',
+                            stderr: '#ff6b9d',
+                            stdin: '#27c93f',
+                            system: '#27c93f',
+                            error: '#ff4444',
+                          };
+                          return (
+                            <pre key={idx} className="whitespace-pre-wrap" style={{ color: colorMap[line.type] || '#e0e0e0', margin: 0 }}>
+                              {line.text}
+                            </pre>
+                          );
+                        })
+                      )
+                    ) : (
+                      /* Text/batch mode output */
+                      <>
+                        {terminalHistory.length === 0 && !terminalRunning && (
+                          <div style={{ color: '#555' }}>
+                            <div className="mt-1" style={{ color: '#555', fontSize: 12 }}>
+                              Nhập stdin ở trên rồi bấm Run để chạy code.
+                            </div>
+                          </div>
+                        )}
+                        {terminalHistory.map((entry, idx) => (
+                          <div key={idx}>
+                            {entry.result?.compile && entry.result.compile.code !== 0 && (
+                              <pre className="whitespace-pre-wrap" style={{ color: '#f44' }}>{entry.result.compile.output}</pre>
+                            )}
+                            {entry.result?.run?.stdout && (
+                              <pre className="whitespace-pre-wrap" style={{ color: '#e0e0e0' }}>{entry.result.run.stdout}</pre>
+                            )}
+                            {entry.stdin && (
+                              <pre className="whitespace-pre-wrap" style={{ color: '#27c93f' }}>{entry.stdin}</pre>
+                            )}
+                            {entry.result?.run?.stderr && (
+                              <pre className="whitespace-pre-wrap" style={{ color: '#f4a' }}>{entry.result.run.stderr}</pre>
+                            )}
+                            {entry.error && (
+                              <pre className="whitespace-pre-wrap" style={{ color: '#f44' }}>{entry.error}</pre>
+                            )}
+                            {entry.result && (
+                              <div className="mt-1" style={{ color: '#27c93f', fontSize: 12 }}>
+                                ...Program finished with exit code {entry.result.run?.code ?? '?'}
+                                {entry.result.run?.wall_time != null && <span style={{ color: '#555' }}> ({entry.result.run.wall_time}ms)</span>}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        {terminalRunning && (
+                          <div className="flex items-center gap-2" style={{ color: '#888', fontSize: 12 }}>
+                            <Icon name="progress_activity" size={13} className="animate-spin" />
+                            Compiling and executing...
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* ── Input line ── */}
+                  {!terminalMultiline && (
+                    <div className="flex items-center gap-0 shrink-0" style={{ background: '#000', borderTop: '1px solid #222' }}>
+                      <input
+                        ref={terminalInputRef}
+                        type="text"
+                        value={terminalInput}
+                        onChange={(e) => setTerminalInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (interactiveExec.running) {
+                              handleSendStdin();
+                            } else {
+                              handleRunTerminal();
+                            }
+                          }
+                          if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            if (inputHistoryRef.current.length > 0) {
+                              const newIdx = Math.min(inputHistoryIdxRef.current + 1, inputHistoryRef.current.length - 1);
+                              inputHistoryIdxRef.current = newIdx;
+                              setTerminalInput(inputHistoryRef.current[inputHistoryRef.current.length - 1 - newIdx]);
+                            }
+                          }
+                          if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            if (inputHistoryIdxRef.current > 0) {
+                              const newIdx = inputHistoryIdxRef.current - 1;
+                              inputHistoryIdxRef.current = newIdx;
+                              setTerminalInput(inputHistoryRef.current[inputHistoryRef.current.length - 1 - newIdx]);
+                            } else {
+                              inputHistoryIdxRef.current = -1;
+                              setTerminalInput('');
+                            }
+                          }
+                        }}
+                        placeholder={interactiveExec.running ? 'Nhập input rồi bấm Enter...' : ''}
+                        className="flex-1 outline-none font-mono text-[13px] px-3 py-1.5"
+                        style={{ background: '#000', color: '#27c93f', caretColor: '#27c93f' }}
+                      />
                     </div>
-                  </section>
+                  )}
                 </div>
               ) : (
                 <div>
@@ -882,11 +1217,10 @@ export default function StudentAssignmentDetailPage() {
                           )}
                           <div>
                             <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">Output</span>
-                            <pre className={`mt-1 bg-[#1a1a2e] border rounded-lg p-2.5 text-sm font-mono whitespace-pre-wrap ${
-                              runResults.cases[activeResultIdx].status === 'accepted' ? 'border-emerald-500/20 text-emerald-300' :
+                            <pre className={`mt-1 bg-[#1a1a2e] border rounded-lg p-2.5 text-sm font-mono whitespace-pre-wrap ${runResults.cases[activeResultIdx].status === 'accepted' ? 'border-emerald-500/20 text-emerald-300' :
                               runResults.cases[activeResultIdx].status === 'wrong' ? 'border-red-500/20 text-red-300' :
-                              'border-white/5 text-gray-300'
-                            }`}>{runResults.cases[activeResultIdx].stdout}</pre>
+                                'border-white/5 text-gray-300'
+                              }`}>{runResults.cases[activeResultIdx].stdout}</pre>
                           </div>
                           {runResults.cases[activeResultIdx].expected && (
                             <div>
@@ -936,9 +1270,8 @@ function TerminalOutput({ result }: { result: ICodeExecutionResponse }) {
       {compile && (
         <div>
           <div className="mb-1 text-gray-500">$ compile {result.language}</div>
-          <pre className={`whitespace-pre-wrap rounded-lg border p-2 ${
-            compileFailed ? 'border-red-500/20 bg-red-500/5 text-red-200' : 'border-emerald-500/20 bg-emerald-500/5 text-emerald-200'
-          }`}>
+          <pre className={`whitespace-pre-wrap rounded-lg border p-2 ${compileFailed ? 'border-red-500/20 bg-red-500/5 text-red-200' : 'border-emerald-500/20 bg-emerald-500/5 text-emerald-200'
+            }`}>
             {compileFailed ? `Compilation failed with exit code ${compile.code}` : 'Compilation succeeded'}
           </pre>
           {compile.stdout && <TerminalBlock title="compiler stdout" tone="muted" value={compile.stdout} />}

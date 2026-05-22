@@ -1,12 +1,14 @@
-import { Controller, Post, Get, Body, UseGuards, Req, Param } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req, Param, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { ExecutionService } from './execution.service';
 import { Submission, SubmissionTestResult } from './submission.entity';
 import { Assignment } from '../assignments/assignment.entity';
 import { QuestsService } from '../quests/quests.service';
-import { ICodeExecutionRequest, ISubmitCodePayload, SubmissionStatus } from '@cp/shared';
+import { ICodeExecutionRequest, ISubmitCodePayload, SubmissionStatus, UserRole } from '@cp/shared';
 
 @Controller('submissions')
 @UseGuards(JwtAuthGuard)
@@ -23,6 +25,36 @@ export class SubmissionsController {
   @Post('run')
   async runCode(@Body() payload: ICodeExecutionRequest) {
     return this.executionService.runCode(payload.language, payload.code, payload.stdin);
+  }
+
+  /**
+   * Student: get all own submissions across all assignments.
+   */
+  @Get('my')
+  async getAllMySubmissions(@Req() req: any) {
+    const userId = req.user.sub;
+    const submissions = await this.submissionRepo.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+      relations: ['testResults', 'assignment'],
+      take: 200,
+    });
+    return submissions;
+  }
+
+  /**
+   * Admin / Teacher: get all submissions from all students.
+   */
+  @Get('all')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  async getAllSubmissions() {
+    const submissions = await this.submissionRepo.find({
+      order: { createdAt: 'DESC' },
+      relations: ['testResults', 'assignment', 'user'],
+      take: 200,
+    });
+    return submissions;
   }
 
   @Get('assignment/:assignmentId')

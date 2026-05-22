@@ -16,4 +16,16 @@ export const submissionsApi = {
     const { data } = await apiClient.get(`/submissions/assignment/${assignmentId}`);
     return data;
   },
+
+  /** Student: get all own submissions across all assignments */
+  getAllMySubmissions: async (): Promise<any[]> => {
+    const { data } = await apiClient.get('/submissions/my');
+    return data;
+  },
+
+  /** Admin/Teacher: get all submissions from all students */
+  getAllSubmissions: async (): Promise<any[]> => {
+    const { data } = await apiClient.get('/submissions/all');
+    return data;
+  },
 };

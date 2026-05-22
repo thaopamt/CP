@@ -14,6 +14,8 @@ export function useSubmitCode() {
     mutationFn: (payload: ISubmitCodePayload) => submissionsApi.submitCode(payload),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['submissions', variables.assignmentId] });
+      queryClient.invalidateQueries({ queryKey: ['submissions-all-my'] });
+      queryClient.invalidateQueries({ queryKey: ['submissions-all'] });
     },
   });
 }
@@ -23,5 +25,21 @@ export function useSubmissions(assignmentId: string) {
     queryKey: ['submissions', assignmentId],
     queryFn: () => submissionsApi.getSubmissions(assignmentId),
     enabled: !!assignmentId,
+  });
+}
+
+/** Student: get all own submissions across all assignments */
+export function useAllMySubmissions() {
+  return useQuery({
+    queryKey: ['submissions-all-my'],
+    queryFn: () => submissionsApi.getAllMySubmissions(),
+  });
+}
+
+/** Admin/Teacher: get all submissions from all students */
+export function useAllSubmissions() {
+  return useQuery({
+    queryKey: ['submissions-all'],
+    queryFn: () => submissionsApi.getAllSubmissions(),
   });
 }
