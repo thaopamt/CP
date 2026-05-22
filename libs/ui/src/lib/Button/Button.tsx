@@ -13,11 +13,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const VARIANT: Record<Variant, string> = {
   // Flat solid — Admin/Teacher Material 3 button
-  admin: 'bg-primary text-on-primary hover:brightness-95 active:scale-[0.98]',
-  teacher: 'bg-primary text-on-primary hover:brightness-95 active:scale-[0.98]',
+  admin: 'bg-primary text-white hover:brightness-95 active:scale-[0.98]',
+  teacher: 'bg-primary text-white hover:brightness-95 active:scale-[0.98]',
   // 3D skeuomorphic — Student portal
   student:
-    'bg-primary text-on-primary shadow-btn-3d active:translate-y-[2px] active:shadow-none transition-transform',
+    'bg-primary text-white shadow-btn-3d active:translate-y-[2px] active:shadow-none transition-transform',
   ghost: 'bg-transparent text-on-surface-variant hover:bg-surface-container-highest',
   outline:
     'bg-transparent border-2 border-outline-variant text-on-surface-variant hover:bg-surface-container-highest',

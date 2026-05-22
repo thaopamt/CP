@@ -80,8 +80,8 @@
     --color-background: #141218;
     --color-on-background: #e6e0e9;
 
-    --color-primary: #d0bcff;
-    --color-on-primary: #381e72;
+    --color-primary: #7c5dfa;
+    --color-on-primary: #ffffff;
     --color-primary-container: #4f378b;
     --color-on-primary-container: #eaddff;
     --color-inverse-primary: #6750a4;
@@ -126,5 +126,10 @@
   /* Material Symbols defaults */
   .material-symbols-outlined {
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+
+  /* Ensure all primary buttons and elements with bg-primary have beautiful white text/icons for excellent legibility */
+  .bg-primary {
+    color: #ffffff !important;
   }
 }
