@@ -230,17 +230,26 @@ fi
 # Deploy with docker compose
 info "Building Docker images (lần đầu sẽ mất vài phút)..."
 cd "$APP_DIR"
-sudo -u "$ACTUAL_USER" docker compose -f "$COMPOSE_FILE" build
+sudo -u "$ACTUAL_USER" docker compose -f "$COMPOSE_FILE" --env-file .env build
 
 info "Starting services..."
-sudo -u "$ACTUAL_USER" docker compose -f "$COMPOSE_FILE" up -d
+sudo -u "$ACTUAL_USER" docker compose -f "$COMPOSE_FILE" --env-file .env up -d
 
 info "Đợi PostgreSQL khởi động..."
-timeout 60 bash -c "until docker exec cp_postgres pg_isready -U ${DB_USER:-cp} 2>/dev/null; do sleep 2; done" || warn "PostgreSQL timeout — kiểm tra logs"
+for i in {1..30}; do
+  if docker exec cp_postgres pg_isready -U ${DB_USER:-cp} 2>/dev/null; then
+    success "PostgreSQL đã sẵn sàng"
+    break
+  fi
+  if [ $i -eq 30 ]; then
+    warn "PostgreSQL timeout — kiểm tra logs"
+  fi
+  sleep 2
+done
 success "Tất cả services đã chạy"
 
 echo ""
-sudo -u "$ACTUAL_USER" docker compose -f "$COMPOSE_FILE" ps
+sudo -u "$ACTUAL_USER" docker compose -f "$COMPOSE_FILE" --env-file .env ps
 echo ""
 
 # ══════════════════════════════════════════════════════════════════════
