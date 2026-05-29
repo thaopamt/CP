@@ -31,7 +31,7 @@ export class Submission {
   @JoinColumn({ name: 'assignmentId' })
   assignment!: Assignment;
 
-  @Column()
+  @Column({ type: 'varchar' })
   language!: string;
 
   @Column({ type: 'text' })

@@ -18,6 +18,8 @@ import { AuditLogEntity } from '../modules/global-chat/entities/audit-log.entity
 import { GlobalChatMessageEntity } from '../modules/global-chat/entities/global-chat-message.entity';
 import { GlobalChatMessageReadEntity } from '../modules/global-chat/entities/global-chat-message-read.entity';
 import { NotificationEntity } from '../modules/global-chat/entities/global-chat-notification.entity';
+import { Quest } from '../modules/quests/quest.entity';
+import { StudentQuest } from '../modules/quests/student-quest.entity';
 
 // Load env in CLI context (TypeORM CLI doesn't go through ConfigModule)
 loadEnv({ path: join(process.cwd(), 'apps/api/.env') });
@@ -55,10 +57,11 @@ export const AppDataSource = new DataSource({
     GlobalChatMessageReadEntity,
     NotificationEntity,
     AuditLogEntity,
+    Quest,
+    StudentQuest,
   ],
   migrations: [join(__dirname, 'migrations/*.{ts,js}')],
   synchronize: false,
   logging: ['error', 'warn'],
 });
 
-export default AppDataSource;

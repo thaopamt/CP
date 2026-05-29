@@ -53,14 +53,21 @@
     "typeorm-generate": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "tsx ./node_modules/typeorm/cli.js migration:generate -d apps/api/src/database/data-source.ts apps/api/src/database/migrations/{args.name}",
+        "command": "tsx --tsconfig tsconfig.base.json ./node_modules/typeorm/cli.js migration:generate -d apps/api/src/database/data-source.ts apps/api/src/database/migrations/{args.name}",
         "cwd": "."
       }
     },
     "typeorm-run": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "tsx ./node_modules/typeorm/cli.js migration:run -d apps/api/src/database/data-source.ts",
+        "command": "tsx --tsconfig tsconfig.base.json ./node_modules/typeorm/cli.js migration:run -d apps/api/src/database/data-source.ts",
+        "cwd": "."
+      }
+    },
+    "typeorm-sync": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx --tsconfig tsconfig.base.json ./node_modules/typeorm/cli.js schema:sync -d apps/api/src/database/data-source.ts",
         "cwd": "."
       }
     }
