@@ -1,6 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Icon, StatusBadge, useToast } from '@cp/ui';
+import {
+  Icon,
+  Button,
+  Avatar,
+  StatusBadge,
+  useToast,
+  useConfirm,
+} from '@cp/ui';
 import { DayOfWeek, IStudentScheduleSession, ICreateStudentSchedulePayload } from '@cp/shared';
 
 import {
@@ -270,9 +277,16 @@ export default function StudentScheduleTab({ studentId }: Props) {
     [editingSession, addSession, updateSession, toast, t],
   );
 
+  const confirm = useConfirm();
+
   const handleDelete = useCallback(
     async (sessionId: string) => {
-      if (!confirm(t(`${pfx}.deleteConfirm`))) return;
+      const ok = await confirm({
+        title: t('common.confirmDelete', 'Xác nhận xoá'),
+        message: t(`${pfx}.deleteConfirm`),
+        intent: 'danger'
+      });
+      if (!ok) return;
       try {
         await deleteSession.mutateAsync(sessionId);
         toast.success(t(`${pfx}.deletedToast`));
@@ -280,18 +294,23 @@ export default function StudentScheduleTab({ studentId }: Props) {
         toast.error(err?.response?.data?.message || err.message || 'Error');
       }
     },
-    [deleteSession, toast, t],
+    [deleteSession, toast, t, confirm],
   );
 
   const handleClearAll = useCallback(async () => {
-    if (!confirm(t(`${pfx}.resetConfirm`))) return;
+    const ok = await confirm({
+      title: t('common.confirmDelete', 'Xác nhận xoá'),
+      message: t(`${pfx}.resetConfirm`),
+      intent: 'warning'
+    });
+    if (!ok) return;
     try {
       await clearCustom.mutateAsync();
       toast.success(t(`${pfx}.clearedToast`));
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err.message || 'Error');
     }
-  }, [clearCustom, toast, t]);
+  }, [clearCustom, toast, t, confirm]);
 
   // Loading state
   if (scheduleQuery.isLoading) {

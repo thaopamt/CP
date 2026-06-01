@@ -14,6 +14,7 @@ import {
   Pagination,
   SearchBox,
   SelectFilter,
+  useConfirm,
 } from '@cp/ui';
 import {
   ClassDepartment,
@@ -33,7 +34,8 @@ export default function ClassesListPage() {
 
   const [search, setSearch] = useState('');
   const [department, setDepartment] = useState<'all' | ClassDepartment>('all');
-  const [status, setStatus] = useState<'all' | ClassStatus>('all');
+  const [status, setStatus] = useState<ClassStatus | 'all'>('all');
+  const confirm = useConfirm();
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
 
@@ -187,7 +189,14 @@ export default function ClassesListPage() {
             </button>
             <button
               type="button"
-              onClick={() => deleteClass.mutate(row.id)}
+              onClick={async () => {
+                const ok = await confirm({
+                  title: t('common.confirmDelete', 'Confirm Delete'),
+                  message: t('pages.admin.classesList.deleteConfirm', 'Are you sure you want to delete this class?'),
+                  intent: 'danger'
+                });
+                if (ok) deleteClass.mutate(row.id);
+              }}
               className="p-1 rounded text-on-surface-variant hover:text-error"
               aria-label={t('common.delete')}
               disabled={deleteClass.isPending}

@@ -8,6 +8,7 @@ import {
   PageHeader,
   SearchBox,
   StatusBadge,
+  useConfirm,
 } from '@cp/ui';
 import { useToast } from '@cp/ui';
 import {
@@ -45,6 +46,7 @@ export default function CourseDetailPage() {
   const reorder = useReorderCourseAssignments(courseId ?? '');
 
   const [pickerOpen, setPickerOpen] = useState(false);
+  const confirm = useConfirm();
 
   if (courseQuery.isLoading) {
     return (
@@ -164,7 +166,14 @@ export default function CourseDetailPage() {
                 isLast={idx === sequence.length - 1}
                 onMoveUp={() => moveUp(idx)}
                 onMoveDown={() => moveDown(idx)}
-                onDetach={() => detach.mutate(row.id)}
+                onDetach={async () => {
+                  const ok = await confirm({
+                    title: t('common.confirmDelete', 'Confirm'),
+                    message: t('pages.admin.courseDetail.detachConfirm', 'Are you sure you want to remove this assignment from the course?'),
+                    intent: 'danger'
+                  });
+                  if (ok) detach.mutate(row.id);
+                }}
                 detaching={detach.isPending}
                 reordering={reorder.isPending}
               />

@@ -13,6 +13,7 @@ import {
   SearchBox,
   SelectFilter,
   StatusBadge,
+  useConfirm,
 } from '@cp/ui';
 import { ICourse, ICreateCoursePayload, PublishStatus } from '@cp/shared';
 
@@ -27,6 +28,7 @@ const PAGE_SIZE = 10;
 export default function CoursesListPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const confirm = useConfirm();
 
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<PublishStatus | 'all'>('all');
@@ -121,7 +123,14 @@ export default function CoursesListPage() {
             </button>
             <button
               type="button"
-              onClick={() => deleteCourse.mutate(c.id)}
+              onClick={async () => {
+                const ok = await confirm({
+                  title: t('common.confirmDelete', 'Confirm Delete'),
+                  message: t('pages.admin.coursesList.deleteConfirm', 'Are you sure you want to delete this course?'),
+                  intent: 'danger'
+                });
+                if (ok) deleteCourse.mutate(c.id);
+              }}
               className="p-1 rounded text-on-surface-variant hover:text-error"
               aria-label={t('common.delete')}
               disabled={deleteCourse.isPending}

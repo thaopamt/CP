@@ -58,3 +58,6 @@ export * from './lib/Student/ConsoleOutput';
 export * from './lib/Student/TestResultRow';
 
 export * from './lib/Toast/ToastProvider';
+export * from './lib/Modal/ConfirmModal';
+export * from './lib/Modal/AlertModal';
+export * from './lib/Modal/useConfirm';

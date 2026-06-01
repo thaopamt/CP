@@ -66,7 +66,7 @@ const StudentCourseDetail = lazy(() => import('./pages/student/CourseDetailPage'
 const GlobalChatPage = lazy(() => import('./pages/shared/GlobalChatPage'));
 const SubmissionsPage = lazy(() => import('./pages/shared/SubmissionsPage'));
 
-import { ToastProvider } from '@cp/ui';
+import { ToastProvider, ConfirmProvider } from '@cp/ui';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
@@ -82,9 +82,10 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
-          <ToastProvider />
-          <Suspense fallback={<Loading />}>
+        <ConfirmProvider>
+          <BrowserRouter>
+            <ToastProvider />
+            <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center">Loading...</div>}>
             <Routes>
               {/* ── Public ───────────────────────────────────────────── */}
               <Route element={<PublicLayout />}>
@@ -172,7 +173,8 @@ export default function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
-        </BrowserRouter>
+          </BrowserRouter>
+        </ConfirmProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

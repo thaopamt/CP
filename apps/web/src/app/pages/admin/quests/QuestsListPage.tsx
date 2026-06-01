@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Button, Icon, PageHeader, DataTable, StatusBadge, TabPills } from '@cp/ui';
+import { Button, Icon, PageHeader, DataTable, StatusBadge, TabPills, useConfirm } from '@cp/ui';
 import { QuestType, IQuest } from '@cp/shared';
 import { useQuests, useDeleteQuest } from '../../../api/quests.queries';
 
@@ -20,6 +20,7 @@ export default function QuestsListPage() {
   const deleteMutation = useDeleteQuest();
   const [tab, setTab] = useState<QuestTab>('all');
   const [search, setSearch] = useState('');
+  const confirm = useConfirm();
 
   const questList: IQuest[] = quests?.data || [];
 
@@ -116,8 +117,13 @@ export default function QuestsListPage() {
             size="sm"
             leadingIcon={<Icon name="delete" size={16} />}
             className="text-error hover:bg-error/10"
-            onClick={() => {
-              if (window.confirm(t('pages.admin.questsList.deleteConfirm'))) {
+            onClick={async () => {
+              const ok = await confirm({
+                title: t('common.confirmDelete', 'Confirm'),
+                message: t('pages.admin.questsList.deleteConfirm'),
+                intent: 'danger'
+              });
+              if (ok) {
                 deleteMutation.mutate(q.id);
               }
             }}

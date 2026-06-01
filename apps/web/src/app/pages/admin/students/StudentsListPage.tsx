@@ -14,6 +14,7 @@ import {
   Pagination,
   SearchBox,
   SelectFilter,
+  useConfirm,
 } from '@cp/ui';
 import { ENROLLMENT_STATUS_LABEL, EnrollmentStatus, IStudentProfile } from '@cp/shared';
 
@@ -33,6 +34,7 @@ export default function StudentsListPage() {
 
   const [search, setSearch] = useState('');
   const [grade, setGrade] = useState<number | 'all'>('all');
+  const confirm = useConfirm();
   const [status, setStatus] = useState<EnrollmentStatus | 'all'>('all');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
@@ -130,7 +132,14 @@ export default function StudentsListPage() {
             </button>
             <button
               type="button"
-              onClick={() => deleteStudent.mutate(s.id)}
+              onClick={async () => {
+                const ok = await confirm({
+                  title: t('common.confirmDelete', 'Confirm Delete'),
+                  message: t('pages.admin.studentsList.deleteConfirm', 'Are you sure you want to deactivate/delete this student?'),
+                  intent: 'danger'
+                });
+                if (ok) deleteStudent.mutate(s.id);
+              }}
               className="p-1 rounded text-on-surface-variant hover:text-error"
               aria-label={t('common.delete')}
               disabled={deleteStudent.isPending}

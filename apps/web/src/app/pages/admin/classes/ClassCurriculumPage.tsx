@@ -8,6 +8,7 @@ import {
   PageHeader,
   SearchBox,
   StatusBadge,
+  useConfirm,
 } from '@cp/ui';
 import { useToast } from '@cp/ui';
 import { IClassCourseLink, PublishStatus } from '@cp/shared';
@@ -34,6 +35,7 @@ export default function ClassCurriculumPage() {
   const reorder = useReorderClassCourses(classId ?? '');
 
   const [pickerOpen, setPickerOpen] = useState(false);
+  const confirm = useConfirm();
 
   if (classQuery.isLoading) {
     return (
@@ -170,7 +172,14 @@ export default function ClassCurriculumPage() {
                 isLast={idx === links.length - 1}
                 onMoveUp={() => moveUp(idx)}
                 onMoveDown={() => moveDown(idx)}
-                onDetach={() => detach.mutate(link.id)}
+                onDetach={async () => {
+                  const ok = await confirm({
+                    title: t('common.confirmDelete', 'Confirm Delete'),
+                    message: t('pages.admin.classCurriculum.detachConfirm', 'Are you sure you want to remove this assignment from the class?'),
+                    intent: 'danger'
+                  });
+                  if (ok) detach.mutate(link.id);
+                }}
                 onOpen={() => navigate(`/admin/courses/${link.course.id}`)}
                 detaching={detach.isPending}
                 reordering={reorder.isPending}

@@ -7,7 +7,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { useAssignment, useDeleteAssignment } from '../../../api/curriculum.queries';
-import { useToast } from '@cp/ui';
+import { useToast, useConfirm } from '@cp/ui';
 
 const DIFFICULTY_TONE: Record<'EASY' | 'MEDIUM' | 'HARD', 'success' | 'warning' | 'error'> = {
   EASY: 'success',
@@ -23,9 +23,15 @@ export default function AssignmentDetailPage() {
 
   const { data: assignment, isLoading, isError, error } = useAssignment(id);
   const deleteAssignment = useDeleteAssignment();
+  const confirm = useConfirm();
 
   const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this assignment?')) {
+    const ok = await confirm({
+      title: t('common.confirmDelete', 'Confirm'),
+      message: 'Are you sure you want to delete this assignment?',
+      intent: 'danger'
+    });
+    if (ok) {
       try {
         if (id) {
           await deleteAssignment.mutateAsync(id);

@@ -13,6 +13,7 @@ import {
   SearchBox,
   SelectFilter,
   StatusBadge,
+  useConfirm,
 } from '@cp/ui';
 import {
   ASSIGNMENT_TYPE_ICON,
@@ -41,6 +42,7 @@ export default function AssignmentsListPage() {
   const { t } = useTranslation();
 
   const [search, setSearch] = useState('');
+  const confirm = useConfirm();
   const [type, setType] = useState<AssignmentType | 'all'>('all');
   const [difficulty, setDifficulty] = useState<'EASY' | 'MEDIUM' | 'HARD' | 'all'>('all');
   const [page, setPage] = useState(1);
@@ -140,7 +142,14 @@ export default function AssignmentsListPage() {
             </Link>
             <button
               type="button"
-              onClick={() => deleteAssignment.mutate(a.id)}
+              onClick={async () => {
+                const ok = await confirm({
+                  title: t('common.confirmDelete', 'Confirm Delete'),
+                  message: t('pages.admin.assignmentsList.deleteConfirm', 'Are you sure you want to delete this assignment?'),
+                  intent: 'danger'
+                });
+                if (ok) deleteAssignment.mutate(a.id);
+              }}
               className="p-1 rounded text-on-surface-variant hover:text-error"
               aria-label={t('common.delete')}
               disabled={deleteAssignment.isPending}

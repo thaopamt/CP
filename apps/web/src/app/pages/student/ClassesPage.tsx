@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Button, Icon, StatusBadge } from '@cp/ui';
+import { Button, Icon, StatusBadge, useConfirm, useAlert } from '@cp/ui';
 import { EnrollmentLifecycle } from '@cp/shared';
 import { useAuthStore } from '../../stores/auth.store';
 import { useEnrollmentsByStudent, useDropEnrollment } from '../../api/class.queries';
@@ -26,16 +26,28 @@ export default function StudentClassesPage() {
   const { data: enrollments, isLoading, isError } = useEnrollmentsByStudent(user?.id);
   const dropMutation = useDropEnrollment(''); // Provide a dummy id, we'll pass the actual classId to invalidate
 
+  const confirm = useConfirm();
+  const alert = useAlert();
+
   const handleDrop = async (enrollmentId: string) => {
-    if (window.confirm(t('Are you sure you want to drop this class?'))) {
+    const ok = await confirm({
+      title: t('common.confirmDelete', 'Confirm'),
+      message: t('Are you sure you want to drop this class?'),
+      intent: 'danger'
+    });
+    if (ok) {
       await dropMutation.mutateAsync(enrollmentId);
     }
   };
 
-  const handleJoinClass = () => {
+  const handleJoinClass = async () => {
     const code = window.prompt(t('Enter class code to join:'));
     if (code) {
-      alert(`Backend integration needed to join class via code: ${code}`);
+      await alert({
+        title: t('common.notice', 'Notice'),
+        message: `Backend integration needed to join class via code: ${code}`,
+        intent: 'primary'
+      });
     }
   };
 
