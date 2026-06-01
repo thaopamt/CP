@@ -15,7 +15,7 @@ import {
   TrendBadge,
   useToast,
 } from '@cp/ui';
-import { GENDER_LABEL, GUARDIAN_RELATIONSHIP_LABEL, IGuardian, ISubjectGrade } from '@cp/shared';
+import { GENDER_LABEL, IGuardian, ISubjectGrade } from '@cp/shared';
 
 import { useStudent, useResetPasswordStudent } from '../../../api/student.queries';
 import { ResetPasswordModal } from './ResetPasswordModal';
@@ -90,8 +90,6 @@ export default function StudentProfilePage() {
         eyebrow={
           <div className="flex items-center gap-sm text-label-sm text-on-surface-variant">
             <span>{t('pages.admin.studentProfile.gradeShort', { grade: s.grade })}</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-outline-variant" />
-            <span>{t('pages.admin.studentProfile.cohortOf', { year: s.cohortYear })}</span>
           </div>
         }
         title={
@@ -164,11 +162,6 @@ export default function StudentProfilePage() {
                 icon="mail"
                 label={t('pages.admin.studentProfile.demographics.email')}
                 value={s.email}
-              />
-              <Detail
-                icon="home"
-                label={t('pages.admin.studentProfile.demographics.address')}
-                value={s.homeAddress ?? '—'}
               />
               <Detail
                 icon="school"
@@ -353,7 +346,7 @@ function GuardianRow({ guardian: g }: { guardian: IGuardian }) {
           )}
         </div>
         <div className="text-[12px] text-on-surface-variant">
-          {GUARDIAN_RELATIONSHIP_LABEL[g.relationship]} · {g.phoneNumber}
+          {g.phoneNumber}
         </div>
       </div>
       <a

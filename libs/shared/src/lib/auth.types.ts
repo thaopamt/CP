@@ -2,7 +2,7 @@ import { UserRole } from './user-role.enum';
 import { IUser } from './user.interface';
 
 export interface LoginRequest {
-  email: string;
+  email: string; // can be email or username
   password: string;
 }
 

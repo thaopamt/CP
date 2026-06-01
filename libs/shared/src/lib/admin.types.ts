@@ -166,6 +166,7 @@ export interface IStudentProfile {
   firstName: string;
   lastName: string;
   email: string;
+  username?: string | null;
   avatarUrl?: string | null;
 
   /** Demographics */
@@ -210,6 +211,7 @@ export interface ICreateStudentPayload {
   firstName: string;
   lastName: string;
   email: string;
+  username?: string;
   password: string;
   studentId?: string;         // auto-generated server-side if absent
   dateOfBirth?: string;

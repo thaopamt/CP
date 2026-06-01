@@ -12,6 +12,10 @@ export class User
   @Column({ type: 'varchar', length: 255 })
   email!: string;
 
+  @Index({ unique: true })
+  @Column({ type: 'varchar', length: 80, nullable: true })
+  username!: string | null;
+
   // `select: false` — never returned by default queries.
   // The auth service explicitly addSelect()s this column to verify a login.
   @Column({ type: 'varchar', length: 255, name: 'password_hash', select: false })

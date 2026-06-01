@@ -233,7 +233,12 @@ export class GlobalChatService {
       .andWhere('message.senderId != :userId', { userId: activeUser.id })
       .andWhere('message.deletedAt IS NULL');
 
-    if (read?.lastReadAt) {
+    if (read?.lastReadMessageId) {
+      qb.andWhere(
+        'message.createdAt > (SELECT m.created_at FROM global_chat_messages m WHERE m.id = :lastReadMessageId)',
+        { lastReadMessageId: read.lastReadMessageId },
+      );
+    } else if (read?.lastReadAt) {
       qb.andWhere('message.createdAt > :lastReadAt', { lastReadAt: read.lastReadAt });
     }
 

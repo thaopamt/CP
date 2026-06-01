@@ -10,7 +10,7 @@ import {
 import { useToast } from '@cp/ui';
 
 import { useAuthStore } from '../stores/auth.store';
-import { useGlobalChatStore } from '../stores/globalChat.store';
+import { useGlobalChatStore, OnlineUser } from '../stores/globalChat.store';
 import { resolveSocketNamespace } from '../lib/socket-url';
 
 type MessageListener = (message: GlobalChatMessage) => void;
@@ -82,6 +82,9 @@ export function useGlobalChatSocket(options: UseGlobalChatSocketOptions = {}) {
       sendTyping: (isTyping: boolean) => {
         socket?.emit('global_chat:typing', { isTyping });
       },
+      sendChatFocus: (focused: boolean) => {
+        socket?.emit('global_chat:chat_focus', { focused });
+      },
     }),
     [isConnected],
   );
@@ -148,6 +151,10 @@ function ensureGlobalChatSocket(token: string, userId: string) {
 
   socket.on('global_chat:typing', (payload: { userId: string; name: string; isTyping: boolean }) => {
     for (const listener of listeners.typing) listener(payload);
+  });
+
+  socket.on('global_chat:online_users', (users: OnlineUser[]) => {
+    useGlobalChatStore.getState().setOnlineUsers(users);
   });
 
   return socket;

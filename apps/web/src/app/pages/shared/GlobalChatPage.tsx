@@ -17,7 +17,7 @@ import {
   useGlobalChatSocket,
 } from '../../hooks/useGlobalChatSocket';
 import { useAuthStore } from '../../stores/auth.store';
-import { useGlobalChatStore } from '../../stores/globalChat.store';
+import { useGlobalChatStore, OnlineUser } from '../../stores/globalChat.store';
 
 const MAX_MESSAGE_LENGTH = 2000;
 const EMOJI_OPTIONS = ['👍', '👏', '❤️', '😊', '🔥', '✅', '💡', '🚀'];
@@ -37,7 +37,9 @@ export default function GlobalChatPage() {
   const setChatOpen = useGlobalChatStore((s) => s.setChatOpen);
   const setUnreadCount = useGlobalChatStore((s) => s.setUnreadCount);
   const isConnected = useGlobalChatStore((s) => s.isConnected);
+  const onlineUsers = useGlobalChatStore((s) => s.onlineUsers);
   const [messages, setMessages] = useState<UiMessage[]>([]);
+  const [showOnlinePanel, setShowOnlinePanel] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -152,11 +154,13 @@ export default function GlobalChatPage() {
 
   useEffect(() => {
     setChatOpen(true);
+    socket.sendChatFocus(true);
     void loadInitialMessages();
     return () => {
       setChatOpen(false);
+      socket.sendChatFocus(false);
     };
-  }, [loadInitialMessages, setChatOpen]);
+  }, [loadInitialMessages, setChatOpen, socket]);
 
   useEffect(() => {
     const list = listRef.current;
@@ -319,7 +323,8 @@ export default function GlobalChatPage() {
   const canSend = input.trim().length > 0 && !isTooLong;
 
   return (
-    <section className="mx-auto flex h-[calc(100vh-8rem)] min-h-[620px] max-w-5xl flex-col overflow-hidden rounded-lg border border-outline-variant bg-surface shadow-elev-1">
+    <div className="mx-auto flex h-[calc(100vh-8rem)] min-h-[620px] max-w-6xl gap-0 overflow-hidden">
+    <section className="flex flex-1 min-w-0 flex-col overflow-hidden rounded-l-lg border border-outline-variant bg-surface shadow-elev-1">
       <header className="flex items-center justify-between gap-md border-b border-outline-variant px-md py-sm md:px-lg">
         <div className="min-w-0">
           <h1 className="font-manrope text-headline-md font-extrabold text-on-surface">
@@ -329,8 +334,24 @@ export default function GlobalChatPage() {
             {isConnected ? t('globalChat.status.connected') : t('globalChat.status.connecting')}
           </p>
         </div>
-        <div className="grid h-10 w-10 place-items-center rounded-full bg-primary-container text-on-primary-container">
-          <Icon name="forum" size={22} />
+        <div className="flex items-center gap-sm">
+          <button
+            type="button"
+            onClick={() => setShowOnlinePanel((prev) => !prev)}
+            className={[
+              'relative flex items-center gap-xs rounded-full px-sm py-xs text-label-sm font-semibold transition-colors',
+              showOnlinePanel
+                ? 'bg-primary-container text-on-primary-container'
+                : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest',
+            ].join(' ')}
+            title="Danh sách online"
+          >
+            <Icon name="group" size={18} />
+            <span>{onlineUsers.length}</span>
+          </button>
+          <div className="grid h-10 w-10 place-items-center rounded-full bg-primary-container text-on-primary-container">
+            <Icon name="forum" size={22} />
+          </div>
         </div>
       </header>
 
@@ -469,6 +490,12 @@ export default function GlobalChatPage() {
         </div>
       </div>
     </section>
+
+    {/* Online Users Panel */}
+    {showOnlinePanel && (
+      <OnlineUsersPanel users={onlineUsers} currentUserId={user?.id} />
+    )}
+    </div>
   );
 }
 
@@ -702,4 +729,118 @@ function formatTime(value: string, locale: string) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(value));
+}
+
+function OnlineUsersPanel({
+  users,
+  currentUserId,
+}: {
+  users: OnlineUser[];
+  currentUserId?: string;
+}) {
+  const { t } = useTranslation();
+
+  // Sort: inChat users first, then by name
+  const sorted = useMemo(
+    () => [...users].sort((a, b) => {
+      if (a.inChat !== b.inChat) return a.inChat ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    }),
+    [users],
+  );
+
+  return (
+    <aside className="flex w-64 flex-col border-y border-r border-outline-variant bg-surface-container-lowest rounded-r-lg shadow-elev-1 overflow-hidden">
+      <header className="flex items-center gap-sm border-b border-outline-variant px-md py-sm">
+        <div className="relative">
+          <Icon name="group" size={20} className="text-primary" />
+          <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-green-500 ring-2 ring-surface-container-lowest" />
+        </div>
+        <h2 className="font-manrope text-label-md font-bold text-on-surface">
+          {t('globalChat.onlineUsers', 'Đang online')}
+        </h2>
+        <span className="ml-auto rounded-full bg-primary-container px-2 py-0.5 text-[11px] font-bold text-on-primary-container">
+          {users.length}
+        </span>
+      </header>
+
+      <div className="flex-1 overflow-y-auto px-sm py-sm">
+        {users.length === 0 ? (
+          <p className="py-lg text-center text-label-sm text-on-surface-variant italic">
+            Chưa có ai online
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-xs">
+            {sorted.map((u) => {
+              const initials = u.name
+                .split(' ')
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((p) => p[0])
+                .join('')
+                .toUpperCase();
+              const isMe = u.id === currentUserId;
+              const dotColor = u.inChat ? 'bg-green-500' : 'bg-yellow-400';
+
+              return (
+                <li
+                  key={u.id}
+                  className={[
+                    'flex items-center gap-sm rounded-lg px-sm py-xs transition-colors',
+                    isMe
+                      ? 'bg-primary-container/30'
+                      : 'hover:bg-surface-container-high',
+                  ].join(' ')}
+                >
+                  <span className="relative shrink-0">
+                    <Avatar initials={initials} src={u.avatarUrl} size="sm" />
+                    <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full ${dotColor} ring-2 ring-surface-container-lowest`} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-xs">
+                      <span className="truncate text-label-sm font-medium text-on-surface">
+                        {u.name}
+                        {isMe && (
+                          <span className="ml-xs text-[11px] text-on-surface-variant">
+                            (bạn)
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    {u.role === 'admin' && (
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-secondary">
+                        Admin
+                      </span>
+                    )}
+                    {u.role === 'teacher' && (
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-tertiary">
+                        Giáo viên
+                      </span>
+                    )}
+                    {u.role === 'student' && (
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">
+                        Học sinh
+                      </span>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      {/* Legend */}
+      <div className="border-t border-outline-variant/50 px-md py-xs flex items-center gap-md text-[10px] text-on-surface-variant">
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
+          Đang chat
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-2 w-2 rounded-full bg-yellow-400" />
+          Online
+        </span>
+      </div>
+    </aside>
+  );
 }

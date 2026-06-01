@@ -52,6 +52,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       const user = await userRepo.save(
         userRepo.create({
           email: dto.email,
+          username: dto.username || null,
           firstName: dto.firstName,
           lastName: dto.lastName,
           role: UserRole.STUDENT,
@@ -110,13 +111,14 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       const guardianRepo = tx.getRepository(Guardian);
 
       // User-side updates
-      if (dto.firstName || dto.lastName || dto.email) {
+      if (dto.firstName || dto.lastName || dto.email || dto.username !== undefined) {
         await userRepo.update(
           { id: profile.userId },
           {
             ...(dto.firstName ? { firstName: dto.firstName } : {}),
             ...(dto.lastName ? { lastName: dto.lastName } : {}),
             ...(dto.email ? { email: dto.email } : {}),
+            ...(dto.username !== undefined ? { username: dto.username || null } : {}),
           },
         );
       }

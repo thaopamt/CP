@@ -35,6 +35,9 @@ export class UpdateStudentDto {
   @IsOptional() @IsEmail()
   email?: string;
 
+  @IsOptional() @IsString() @Length(3, 80)
+  username?: string;
+
   @IsOptional() @IsString() @Length(1, 32)
   studentId?: string;
 

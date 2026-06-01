@@ -61,9 +61,9 @@ export default function LoginPage() {
           </div>
 
           <label className="flex flex-col gap-xs">
-            <span className="text-label-sm text-on-surface-variant">{t('auth.emailLabel')}</span>
+            <span className="text-label-sm text-on-surface-variant">{t('auth.emailLabel')} / Username</span>
             <input
-              type="email"
+              type="text"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}

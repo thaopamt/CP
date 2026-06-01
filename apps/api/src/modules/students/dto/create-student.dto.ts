@@ -51,6 +51,9 @@ export class CreateStudentDto implements ICreateStudentPayload {
   @IsEmail()
   email!: string;
 
+  @IsOptional() @IsString() @Length(3, 80)
+  username?: string;
+
   @IsString() @Length(6, 128)
   password!: string;
 

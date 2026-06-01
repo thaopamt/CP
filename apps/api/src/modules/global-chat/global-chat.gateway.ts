@@ -23,6 +23,14 @@ import { GlobalChatService } from './global-chat.service';
 
 const GLOBAL_CHAT_ROOM = 'global_chat';
 
+export interface OnlineUser {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  role: string;
+  inChat: boolean;
+}
+
 type AuthenticatedSocket = Socket & {
   data: {
     user?: User;
@@ -41,6 +49,7 @@ export class GlobalChatGateway implements OnGatewayConnection, OnGatewayDisconne
   server!: Server;
 
   private readonly userSocketCounts = new Map<string, number>();
+  private readonly onlineUserInfo = new Map<string, OnlineUser>();
   private readonly socketAuth = new WeakMap<Socket, Promise<User>>();
 
   constructor(
@@ -60,6 +69,7 @@ export class GlobalChatGateway implements OnGatewayConnection, OnGatewayDisconne
     const userId = client.data.user?.id;
     if (userId) {
       this.decrementUserSocket(userId);
+      this.broadcastOnlineUsers();
     }
   }
 
@@ -67,7 +77,28 @@ export class GlobalChatGateway implements OnGatewayConnection, OnGatewayDisconne
   async handleJoin(@ConnectedSocket() client: AuthenticatedSocket) {
     const user = await this.requireSocketUser(client);
     client.join(GLOBAL_CHAT_ROOM);
+    this.onlineUserInfo.set(user.id, {
+      id: user.id,
+      name: `${user.firstName} ${user.lastName}`.trim(),
+      avatarUrl: user.avatarUrl,
+      role: user.role,
+      inChat: false,
+    });
     await this.emitUnreadCount(user.id);
+    this.broadcastOnlineUsers();
+  }
+
+  @SubscribeMessage('global_chat:chat_focus')
+  async handleChatFocus(
+    @MessageBody() data: { focused: boolean },
+    @ConnectedSocket() client: AuthenticatedSocket,
+  ) {
+    const user = await this.requireSocketUser(client);
+    const existing = this.onlineUserInfo.get(user.id);
+    if (existing) {
+      existing.inChat = !!data?.focused;
+      this.broadcastOnlineUsers();
+    }
   }
 
   @SubscribeMessage('global_chat:message:new')
@@ -212,9 +243,16 @@ export class GlobalChatGateway implements OnGatewayConnection, OnGatewayDisconne
     const next = (this.userSocketCounts.get(userId) ?? 1) - 1;
     if (next <= 0) {
       this.userSocketCounts.delete(userId);
+      this.onlineUserInfo.delete(userId);
     } else {
       this.userSocketCounts.set(userId, next);
     }
+  }
+
+  private broadcastOnlineUsers() {
+    if (!this.server) return;
+    const users = Array.from(this.onlineUserInfo.values());
+    this.server.to(GLOBAL_CHAT_ROOM).emit('global_chat:online_users', users);
   }
 
   private userRoom(userId: string): string {

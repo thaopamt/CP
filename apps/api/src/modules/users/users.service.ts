@@ -15,12 +15,13 @@ export class UsersService extends TypeOrmCrudService<User> {
    * Login flow needs the password hash, which the entity has marked
    * `select: false`. We pull it explicitly via addSelect() and never
    * leak it through other call sites.
+   * Accepts email OR username as the identifier.
    */
-  async findByEmailWithPassword(email: string): Promise<User | null> {
+  async findByEmailWithPassword(identifier: string): Promise<User | null> {
     return this.repo
       .createQueryBuilder('u')
       .addSelect('u.passwordHash')
-      .where('u.email = :email', { email })
+      .where('u.email = :identifier OR u.username = :identifier', { identifier })
       .getOne();
   }
 

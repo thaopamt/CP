@@ -30,6 +30,7 @@ interface CrudListResponse<T> {
 interface ApiUser {
   id: string;
   email: string;
+  username?: string | null;
   firstName: string;
   lastName: string;
   avatarUrl?: string | null;
@@ -89,6 +90,7 @@ function toStudent(s: ApiStudentProfile): IStudentProfile {
     firstName: s.user.firstName,
     lastName: s.user.lastName,
     email: s.user.email,
+    username: s.user.username ?? null,
     avatarUrl: s.user.avatarUrl ?? null,
     dateOfBirth: s.dateOfBirth,
     gender: s.gender,
