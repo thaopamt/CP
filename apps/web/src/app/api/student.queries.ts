@@ -94,3 +94,13 @@ export function useStudentDashboard() {
     queryFn: () => studentsApi.getDashboard(),
   });
 }
+
+export function useUpdateDefaultLanguage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (language: string) => studentsApi.updatePreferences({ defaultLanguage: language }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: studentQueryKeys.dashboard() });
+    },
+  });
+}

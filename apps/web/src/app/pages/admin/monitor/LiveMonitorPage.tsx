@@ -16,6 +16,9 @@ import 'prismjs/components/prism-javascript';
 import 'katex/dist/katex.min.css';
 
 import { resolveSocketNamespace } from '../../../lib/socket-url';
+import RemoteCursors, { type RemoteCursor } from '../../../components/RemoteCursors';
+import { useAuthStore } from '../../../stores/auth.store';
+import { fullName } from '@cp/shared';
 
 interface ActiveStudent {
   socketId: string;
@@ -68,13 +71,25 @@ function DetailModal({
   student,
   code,
   language,
+  studentCursorOffset,
   onClose,
+  socketRef,
+  onAdminCodeChange,
 }: {
   student: ActiveStudent;
   code: string;
   language: string;
+  studentCursorOffset?: number;
   onClose: () => void;
+  socketRef: React.RefObject<Socket | null>;
+  onAdminCodeChange: (studentId: string, problemId: string, code: string, language: string) => void;
 }) {
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isLocalChangeRef = useRef(false);
+  const { user } = useAuthStore();
+  const adminName = user ? (fullName(user) || user.email) : 'Admin';
+
   // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -83,6 +98,94 @@ function DetailModal({
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
+
+  // Handle admin typing — emit immediately, no debounce
+  const handleCodeChange = (newCode: string) => {
+    isLocalChangeRef.current = true;
+    // Update parent codeMap immediately
+    if (student.problemId) {
+      onAdminCodeChange(student.studentId, student.problemId, newCode, language);
+    }
+    // Emit to server immediately
+    if (socketRef.current && student.problemId) {
+      // Get cursor position from textarea
+      const textarea = editorContainerRef.current?.querySelector('textarea');
+      const cursorOffset = textarea?.selectionStart ?? 0;
+      socketRef.current.emit('admin_code_edit', {
+        studentId: student.studentId,
+        problemId: student.problemId,
+        code: newCode,
+        language,
+        cursorOffset,
+        adminName,
+      });
+    }
+  };
+
+  // Track admin cursor movement (clicks, arrow keys, etc.)
+  useEffect(() => {
+    const container = editorContainerRef.current;
+    if (!container) return;
+
+    const emitCursor = () => {
+      const textarea = container.querySelector('textarea');
+      if (!textarea || !socketRef.current || !student.problemId) return;
+      socketRef.current.emit('admin_cursor_move', {
+        studentId: student.studentId,
+        problemId: student.problemId,
+        cursorOffset: textarea.selectionStart ?? 0,
+        adminName,
+      });
+    };
+
+    // Track cursor changes via multiple events
+    const onSelect = () => emitCursor();
+    const onClick = () => emitCursor();
+    const onKeyUp = (e: KeyboardEvent) => {
+      // Only emit for navigation keys, not typing (typing already handled in handleCodeChange)
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) {
+        emitCursor();
+      }
+    };
+
+    container.addEventListener('click', onClick);
+    container.addEventListener('keyup', onKeyUp);
+    document.addEventListener('selectionchange', onSelect);
+
+    return () => {
+      container.removeEventListener('click', onClick);
+      container.removeEventListener('keyup', onKeyUp);
+      document.removeEventListener('selectionchange', onSelect);
+    };
+  }, [student.studentId, student.problemId, socketRef]);
+
+  // Save and restore cursor position when code is updated from student (remote)
+  useEffect(() => {
+    if (isLocalChangeRef.current) {
+      isLocalChangeRef.current = false;
+      return;
+    }
+    // Remote code update — preserve cursor position
+    const textarea = editorContainerRef.current?.querySelector('textarea');
+    if (textarea) {
+      const pos = textarea.selectionStart;
+      // React will update the textarea value, then we restore cursor
+      requestAnimationFrame(() => {
+        const clampedPos = Math.min(pos, code.length);
+        textarea.setSelectionRange(clampedPos, clampedPos);
+      });
+    }
+  }, [code]);
+
+  // Student cursor for RemoteCursors overlay
+  const remoteCursors: RemoteCursor[] = [];
+  if (typeof studentCursorOffset === 'number') {
+    remoteCursors.push({
+      name: student.studentName || 'Học sinh',
+      offset: studentCursorOffset,
+      color: '#34d399', // emerald
+    });
+  }
 
   return (
     <div
@@ -110,7 +213,7 @@ function DetailModal({
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-medium">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -192,20 +295,30 @@ function DetailModal({
             </div>
           </aside>
 
-          {/* Code editor (read-only) */}
-          <div className="min-h-0 overflow-auto">
-            <Editor
-              value={code || '// Waiting for code...'}
-              onValueChange={() => {}}
-              highlight={(c) => highlightCode(c, language)}
-              padding={16}
-              className="w-full min-h-full font-mono text-[13px] bg-transparent text-gray-300 outline-none"
-              textareaClassName="pointer-events-none"
-              style={{
-                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                lineHeight: '20px',
-              }}
-            />
+          {/* Code editor with remote cursors */}
+          <div ref={scrollContainerRef} className="min-h-0 overflow-auto relative">
+            <div ref={editorContainerRef} style={{ position: 'relative' }}>
+              <Editor
+                value={code || '// Waiting for code...'}
+                onValueChange={handleCodeChange}
+                highlight={(c) => highlightCode(c, language)}
+                padding={16}
+                className="w-full min-h-full font-mono text-[13px] bg-transparent text-gray-300 outline-none"
+                textareaClassName="focus:outline-none"
+                style={{
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                  lineHeight: '20px',
+                }}
+              />
+              <RemoteCursors
+                cursors={remoteCursors}
+                code={code || ''}
+                scrollContainerRef={scrollContainerRef}
+                lineHeight={20}
+                paddingTop={16}
+                paddingLeft={16}
+              />
+            </div>
           </div>
         </div>
 
@@ -223,7 +336,7 @@ function DetailModal({
 export default function LiveMonitorPage() {
   const [students, setStudents] = useState<ActiveStudent[]>([]);
   // Per-student code snapshots: key = `${studentId}_${problemId}`
-  const [codeMap, setCodeMap] = useState<Record<string, { code: string; language: string }>>({});
+  const [codeMap, setCodeMap] = useState<Record<string, { code: string; language: string; cursorOffset?: number }>>({});
   const [selectedStudent, setSelectedStudent] = useState<ActiveStudent | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
@@ -252,11 +365,11 @@ export default function LiveMonitorPage() {
       });
     });
 
-    socket.on('code_update', (data: { studentId: string; problemId: string; code: string; language: string }) => {
+    socket.on('code_update', (data: { studentId: string; problemId: string; code: string; language: string; cursorOffset?: number }) => {
       const key = `${data.studentId}_${data.problemId}`;
       setCodeMap((prev) => ({
         ...prev,
-        [key]: { code: data.code, language: data.language },
+        [key]: { code: data.code, language: data.language, cursorOffset: data.cursorOffset },
       }));
     });
 
@@ -284,6 +397,14 @@ export default function LiveMonitorPage() {
     }
     setSelectedStudent(null);
   }, [selectedStudent]);
+
+  const handleAdminCodeChange = useCallback((studentId: string, problemId: string, code: string, language: string) => {
+    const key = `${studentId}_${problemId}`;
+    setCodeMap((prev) => ({
+      ...prev,
+      [key]: { code, language, cursorOffset: prev[key]?.cursorOffset },
+    }));
+  }, []);
 
   const selectedStudentLive = selectedStudent
     ? students.find(
@@ -476,7 +597,10 @@ export default function LiveMonitorPage() {
           student={selectedStudentLive}
           code={codeMap[selectedKey]?.code || ''}
           language={codeMap[selectedKey]?.language || selectedStudentLive.language || 'javascript'}
+          studentCursorOffset={codeMap[selectedKey]?.cursorOffset}
           onClose={handleCloseDetail}
+          socketRef={socketRef}
+          onAdminCodeChange={handleAdminCodeChange}
         />
       )}
     </div>

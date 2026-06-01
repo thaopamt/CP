@@ -166,7 +166,7 @@ export class LiveMonitorGateway implements OnGatewayConnection, OnGatewayDisconn
 
   @SubscribeMessage('code_change')
   handleCodeChange(
-    @MessageBody() data: { studentId: string; problemId: string; code: string; language: string },
+    @MessageBody() data: { studentId: string; problemId: string; code: string; language: string; cursorOffset?: number },
     @ConnectedSocket() client: Socket,
   ) {
     const student = this.activeStudents.get(client.id);
@@ -181,6 +181,7 @@ export class LiveMonitorGateway implements OnGatewayConnection, OnGatewayDisconn
       problemId: data.problemId,
       code: data.code,
       language: data.language,
+      cursorOffset: data.cursorOffset,
     };
 
     // Broadcast to admins watching this specific student room
@@ -234,6 +235,68 @@ export class LiveMonitorGateway implements OnGatewayConnection, OnGatewayDisconn
     const roomName = `workspace_${data.studentId}_${data.problemId}`;
     client.leave(roomName);
     console.log(`LiveMonitor: Admin stopped watching ${roomName}`);
+  }
+
+  @SubscribeMessage('admin_code_edit')
+  handleAdminCodeEdit(
+    @MessageBody()
+    data: {
+      studentId: string;
+      problemId: string;
+      code: string;
+      language: string;
+      cursorOffset?: number;
+      adminName?: string;
+    },
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (!data?.studentId || !data?.problemId) return;
+
+    // 1. Update server-side state so the snapshot stays current
+    const student = Array.from(this.activeStudents.values()).find(
+      (s) => s.studentId === data.studentId && s.problemId === data.problemId,
+    );
+    if (student) {
+      student.code = data.code;
+      student.language = data.language;
+      student.lastActive = Date.now();
+    }
+
+    const roomName = `workspace_${data.studentId}_${data.problemId}`;
+    const payload = {
+      studentId: data.studentId,
+      problemId: data.problemId,
+      code: data.code,
+      language: data.language,
+      cursorOffset: data.cursorOffset,
+      adminName: data.adminName,
+    };
+
+    // 2. Push code to the student (and any other clients in the room, except the sender admin)
+    client.to(roomName).emit('admin_code_push', payload);
+
+    // 3. Broadcast code_update to all admins (except the sender) for grid preview
+    client.to('admin_global').emit('code_update', payload);
+  }
+
+  @SubscribeMessage('admin_cursor_move')
+  handleAdminCursorMove(
+    @MessageBody()
+    data: {
+      studentId: string;
+      problemId: string;
+      cursorOffset: number;
+      adminName?: string;
+    },
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (!data?.studentId || !data?.problemId) return;
+    const roomName = `workspace_${data.studentId}_${data.problemId}`;
+    // Forward cursor position to the student (not code, just cursor)
+    client.to(roomName).emit('admin_cursor_push', {
+      cursorOffset: data.cursorOffset,
+      adminName: data.adminName,
+    });
   }
 
   // ---- Helper ----

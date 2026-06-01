@@ -193,4 +193,9 @@ export const studentsApi = {
     const { data } = await apiClient.get<IStudentDashboardData>('/student-dashboard');
     return data;
   },
+
+  async updatePreferences(prefs: { defaultLanguage: string }): Promise<{ defaultLanguage: string }> {
+    const { data } = await apiClient.patch<{ defaultLanguage: string }>('/student-dashboard/preferences', prefs);
+    return data;
+  },
 };

@@ -28,8 +28,10 @@ import 'prismjs/components/prism-javascript';
 
 import { useAssignment } from '../../api/curriculum.queries';
 import { useRunCode, useSubmitCode, useSubmissions } from '../../api/submissions.queries';
+import { useStudentDashboard, useUpdateDefaultLanguage } from '../../api/student.queries';
 import { useLiveCodingSync } from '../../hooks/useLiveCodingSync';
 import { useInteractiveExec } from '../../hooks/useInteractiveExec';
+import RemoteCursors from '../../components/RemoteCursors';
 
 /* ── Language config ──────────────────────────────────────────────── */
 const LANG_OPTIONS: { value: string; label: string; template: string }[] = [
@@ -53,6 +55,8 @@ export default function StudentAssignmentDetailPage() {
   const { data: submissions = [] } = useSubmissions(assignment?.id || '');
   const runMutation = useRunCode();
   const submitMutation = useSubmitCode();
+  const { data: dashboardData } = useStudentDashboard();
+  const updateLangMutation = useUpdateDefaultLanguage();
 
   // ── Submission code from navigation state ("View Problem" from SubmissionsPage) ──
   const navState = location.state as { submissionCode?: string; submissionLang?: string } | null;
@@ -60,14 +64,17 @@ export default function StudentAssignmentDetailPage() {
   // ── LocalStorage draft key ──
   const draftKey = `code-draft-${id}`;
 
-  // ── Initialize code & language from: navState > localStorage draft > default template ──
+  // ── Initialize code & language from: navState > localStorage draft > default pref > first option ──
+  const defaultLang = localStorage.getItem('cp_default_language');
+  const defaultLangOption = LANG_OPTIONS.find(l => l.value === defaultLang) || LANG_OPTIONS[0];
+
   const [language, setLanguage] = useState(() => {
     if (navState?.submissionLang) return navState.submissionLang;
     try {
       const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
       if (draft?.language) return draft.language;
     } catch { /* ignore */ }
-    return LANG_OPTIONS[0].value;
+    return defaultLangOption.value;
   });
   const [code, setCode] = useState(() => {
     if (navState?.submissionCode) return navState.submissionCode;
@@ -75,7 +82,7 @@ export default function StudentAssignmentDetailPage() {
       const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
       if (draft?.code) return draft.code;
     } catch { /* ignore */ }
-    return LANG_OPTIONS[0].template;
+    return defaultLangOption.template;
   });
 
   // ── Clear navState after reading (so refreshing doesn't re-apply submission code) ──
@@ -147,17 +154,30 @@ export default function StudentAssignmentDetailPage() {
     [assignment?.codingConfig?.testCases],
   );
 
+  // Cursor tracking
+  const [cursorOffset, setCursorOffset] = useState(0);
+  const editorWrapRef = useRef<HTMLDivElement>(null);
+  const editorScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleRemoteCodeChange = useCallback((newCode: string, newLanguage: string) => {
+    setCode(newCode);
+    setLanguage(newLanguage);
+  }, []);
+
   // Kích hoạt Live Coding Sync
-  useLiveCodingSync(id, code, language, {
+  const { adminCursor, adminName } = useLiveCodingSync(id, code, language, cursorOffset, {
     title: assignment?.title,
     description: assignment?.description,
     examples: liveProblemExamples,
-  });
+  }, handleRemoteCodeChange);
 
   const handleLanguageChange = (val: string) => {
     setLanguage(val);
     const tpl = LANG_OPTIONS.find(l => l.value === val)?.template ?? '';
     setCode(tpl);
+    // Persist to localStorage (instant) + DB (async)
+    localStorage.setItem('cp_default_language', val);
+    updateLangMutation.mutate(val);
   };
 
   // Horizontal drag
@@ -821,26 +841,46 @@ export default function StudentAssignmentDetailPage() {
                   ))}
                 </div>
                 {/* Syntax highlighted editor */}
-                <div className="flex-1 min-w-0 bg-[#0d0d1a]">
-                  <Editor
-                    value={code}
-                    onValueChange={code => setCode(code)}
-                    highlight={code => {
-                      const grammar = Prism.languages[language === 'cpp' ? 'cpp' : language] || Prism.languages.javascript;
-                      return Prism.highlight(code, grammar, language);
-                    }}
-                    padding={12}
-                    className="editor-container"
-                    textareaClassName="focus:outline-none"
-                    style={{
-                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                      fontSize: 13,
-                      lineHeight: '20px',
-                      backgroundColor: 'transparent',
-                      minHeight: '100%',
-                      color: '#d4d4d4', // fallback color
-                    }}
-                  />
+                <div ref={editorScrollRef} className="flex-1 min-w-0 bg-[#0d0d1a] relative">
+                  <div ref={editorWrapRef} style={{ position: 'relative' }}>
+                    <Editor
+                      value={code}
+                      onValueChange={code => setCode(code)}
+                      highlight={code => {
+                        const grammar = Prism.languages[language === 'cpp' ? 'cpp' : language] || Prism.languages.javascript;
+                        return Prism.highlight(code, grammar, language);
+                      }}
+                      padding={12}
+                      className="editor-container"
+                      textareaClassName="focus:outline-none"
+                      onKeyUp={() => {
+                        const ta = editorWrapRef.current?.querySelector('textarea');
+                        if (ta) setCursorOffset(ta.selectionStart);
+                      }}
+                      onClick={() => {
+                        const ta = editorWrapRef.current?.querySelector('textarea');
+                        if (ta) setCursorOffset(ta.selectionStart);
+                      }}
+                      style={{
+                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                        fontSize: 13,
+                        lineHeight: '20px',
+                        backgroundColor: 'transparent',
+                        minHeight: '100%',
+                        color: '#d4d4d4',
+                      }}
+                    />
+                    {typeof adminCursor === 'number' && (
+                      <RemoteCursors
+                        cursors={[{ name: adminName || 'Giáo viên', offset: adminCursor, color: '#a78bfa' }]}
+                        code={code}
+                        scrollContainerRef={editorScrollRef}
+                        lineHeight={20}
+                        paddingTop={12}
+                        paddingLeft={12}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

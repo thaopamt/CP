@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
 import { UserRole } from '@cp/shared';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -15,5 +15,14 @@ export class StudentDashboardController {
   @Get()
   async getDashboard(@CurrentUser() user: { id: string }): Promise<any> {
     return this.service.getDashboardData(user.id);
+  }
+
+  @Roles(UserRole.STUDENT)
+  @Patch('preferences')
+  async updatePreferences(
+    @CurrentUser() user: { id: string },
+    @Body() body: { defaultLanguage?: string },
+  ): Promise<{ defaultLanguage: string }> {
+    return this.service.updateDefaultLanguage(user.id, body.defaultLanguage || 'cpp');
   }
 }

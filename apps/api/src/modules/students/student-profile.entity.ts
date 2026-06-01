@@ -89,6 +89,9 @@ export class StudentProfile extends BaseEntity {
   @Column({ type: 'int', default: 0 })
   streak!: number;
 
+  @Column({ type: 'varchar', length: 20, default: 'cpp', name: 'default_language' })
+  defaultLanguage!: string;
+
   @Column({ type: 'varchar', length: 64, nullable: true, name: 'cohort_percentile' })
   cohortPercentile!: string | null;
 

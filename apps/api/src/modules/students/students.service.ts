@@ -173,6 +173,18 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
     await this.users.update({ id: profile.userId }, { passwordHash });
   }
 
+  async updateDefaultLanguage(userId: string, language: string): Promise<{ defaultLanguage: string }> {
+    const profile = await this.repo.findOne({ where: { userId } });
+    if (!profile) throw new NotFoundException(`Student profile not found for user ${userId}`);
+
+    const allowed = ['cpp', 'java', 'python', 'javascript'];
+    const lang = allowed.includes(language) ? language : 'cpp';
+
+    profile.defaultLanguage = lang;
+    await this.repo.save(profile);
+    return { defaultLanguage: lang };
+  }
+
   async getDashboardData(userId: string): Promise<any> {
     const profile = await this.repo.findOne({ where: { userId }, relations: ['user'] });
     if (!profile) throw new NotFoundException(`Student profile not found for user ${userId}`);
@@ -255,6 +267,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       gems: profile.gems,
       dailyQuestsCompleted,
       dailyQuestsTarget,
+      defaultLanguage: profile.defaultLanguage || 'cpp',
       activeQuests,
       enrolledCourses,
       achievements: [ // Kept mocked as agreed

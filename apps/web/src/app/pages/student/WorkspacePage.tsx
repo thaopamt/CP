@@ -25,7 +25,9 @@ import 'prismjs/components/prism-javascript';
 
 import { useAssignment } from '../../api/curriculum.queries';
 import { useRunCode, useSubmitCode, useSubmissions } from '../../api/submissions.queries';
+import { useStudentDashboard, useUpdateDefaultLanguage } from '../../api/student.queries';
 import { useLiveCodingSync } from '../../hooks/useLiveCodingSync';
+import RemoteCursors from '../../components/RemoteCursors';
 
 /* ── Language config ──────────────────────────────────────────────── */
 const LANG_OPTIONS: { value: string; label: string; template: string }[] = [
@@ -46,11 +48,16 @@ export default function StudentWorkspacePage() {
   const { data: submissions = [] } = useSubmissions(assignment?.id || '');
   const runMutation = useRunCode();
   const submitMutation = useSubmitCode();
+  const { data: dashboardData } = useStudentDashboard();
+  const updateLangMutation = useUpdateDefaultLanguage();
 
   const [leftTab, setLeftTab] = useState<LeftTab>('description');
   const [bottomTab, setBottomTab] = useState<BottomTab>('testcase');
-  const [language, setLanguage] = useState(LANG_OPTIONS[0].value);
-  const [code, setCode] = useState(LANG_OPTIONS[0].template);
+  const savedLang = localStorage.getItem('cp_default_language');
+  const defaultLangOption = LANG_OPTIONS.find(l => l.value === savedLang) || LANG_OPTIONS[0];
+  const [language, setLanguage] = useState(defaultLangOption.value);
+  const [code, setCode] = useState(defaultLangOption.template);
+  const [hasInitFromDb, setHasInitFromDb] = useState(false);
   const [activeTestIdx, setActiveTestIdx] = useState(0);
   const [customInput, setCustomInput] = useState('');
   const [customOutput, setCustomOutput] = useState('');
@@ -81,17 +88,43 @@ export default function StudentWorkspacePage() {
     [assignment?.codingConfig?.testCases],
   );
 
+  // Cursor tracking
+  const [cursorOffset, setCursorOffset] = useState(0);
+  const editorWrapRef = useRef<HTMLDivElement>(null);
+  const editorScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleRemoteCodeChange = useCallback((newCode: string, newLanguage: string) => {
+    setCode(newCode);
+    setLanguage(newLanguage);
+  }, []);
+
   // Kích hoạt Live Coding Sync
-  useLiveCodingSync(problemId, code, language, {
+  const { adminCursor, adminName } = useLiveCodingSync(problemId, code, language, cursorOffset, {
     title: assignment?.title,
     description: assignment?.description,
     examples: liveProblemExamples,
-  });
+  }, handleRemoteCodeChange);
+
+  // Sync default language from DB (once after dashboard loads)
+  useEffect(() => {
+    if (dashboardData?.defaultLanguage && !hasInitFromDb && !savedLang) {
+      const dbLang = LANG_OPTIONS.find(l => l.value === dashboardData.defaultLanguage);
+      if (dbLang) {
+        setLanguage(dbLang.value);
+        setCode(dbLang.template);
+        localStorage.setItem('cp_default_language', dbLang.value);
+      }
+      setHasInitFromDb(true);
+    }
+  }, [dashboardData, hasInitFromDb, savedLang]);
 
   const handleLanguageChange = (val: string) => {
     setLanguage(val);
     const tpl = LANG_OPTIONS.find(l => l.value === val)?.template ?? '';
     setCode(tpl);
+    // Persist to localStorage (instant) + DB (async)
+    localStorage.setItem('cp_default_language', val);
+    updateLangMutation.mutate(val);
   };
 
   // Horizontal drag
@@ -624,26 +657,46 @@ export default function StudentWorkspacePage() {
                   ))}
                 </div>
                 {/* Syntax highlighted editor */}
-                <div className="flex-1 min-w-0 bg-[#0d0d1a]">
-                  <Editor
-                    value={code}
-                    onValueChange={code => setCode(code)}
-                    highlight={code => {
-                      const grammar = Prism.languages[language === 'cpp' ? 'cpp' : language] || Prism.languages.javascript;
-                      return Prism.highlight(code, grammar, language);
-                    }}
-                    padding={12}
-                    className="editor-container"
-                    textareaClassName="focus:outline-none"
-                    style={{
-                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                      fontSize: 13,
-                      lineHeight: '20px',
-                      backgroundColor: 'transparent',
-                      minHeight: '100%',
-                      color: '#d4d4d4', // fallback color
-                    }}
-                  />
+                <div ref={editorScrollRef} className="flex-1 min-w-0 bg-[#0d0d1a] relative">
+                  <div ref={editorWrapRef} style={{ position: 'relative' }}>
+                    <Editor
+                      value={code}
+                      onValueChange={code => setCode(code)}
+                      highlight={code => {
+                        const grammar = Prism.languages[language === 'cpp' ? 'cpp' : language] || Prism.languages.javascript;
+                        return Prism.highlight(code, grammar, language);
+                      }}
+                      padding={12}
+                      className="editor-container"
+                      textareaClassName="focus:outline-none"
+                      onKeyUp={() => {
+                        const ta = editorWrapRef.current?.querySelector('textarea');
+                        if (ta) setCursorOffset(ta.selectionStart);
+                      }}
+                      onClick={() => {
+                        const ta = editorWrapRef.current?.querySelector('textarea');
+                        if (ta) setCursorOffset(ta.selectionStart);
+                      }}
+                      style={{
+                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                        fontSize: 13,
+                        lineHeight: '20px',
+                        backgroundColor: 'transparent',
+                        minHeight: '100%',
+                        color: '#d4d4d4', // fallback color
+                      }}
+                    />
+                    {typeof adminCursor === 'number' && (
+                      <RemoteCursors
+                        cursors={[{ name: adminName || 'Giáo viên', offset: adminCursor, color: '#a78bfa' }]}
+                        code={code}
+                        scrollContainerRef={editorScrollRef}
+                        lineHeight={20}
+                        paddingTop={12}
+                        paddingLeft={12}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

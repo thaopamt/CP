@@ -34,6 +34,7 @@ export interface IStudentDashboardData {
   gems: number;
   dailyQuestsCompleted: number;
   dailyQuestsTarget: number;
+  defaultLanguage: string;
   activeQuests: IActiveQuest[];
   enrolledCourses: IEnrolledCourse[];
   achievements: IAchievement[];
