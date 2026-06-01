@@ -68,6 +68,60 @@ export interface IAttendanceRecord {
   recordedAt?: string;
 }
 
+// ── Admin attendance management ───────────────────────────────────────────
+
+/** A single attendance entry for a student in a session on a date */
+export interface IAttendanceEntry {
+  id?: string;
+  studentId: string;
+  studentName: string;
+  classId: string;
+  sessionId: string | null;
+  date: string; // YYYY-MM-DD
+  status: AttendanceStatus;
+  note?: string | null;
+}
+
+/** Session with its attendance data for a class on a date */
+export interface ISessionAttendance {
+  sessionId: string;
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+  room: string | null;
+  records: IAttendanceEntry[];
+}
+
+/** Full attendance payload for a class on a date */
+export interface IClassDateAttendance {
+  classId: string;
+  className: string;
+  date: string;
+  sessions: ISessionAttendance[];
+}
+
+/** Payload for POST /api/attendance/classes/:classId */
+export interface IBulkAttendancePayload {
+  date: string;
+  records: Array<{
+    studentId: string;
+    sessionId: string | null;
+    status: AttendanceStatus;
+    note?: string;
+  }>;
+}
+
+/** Summary stats for a class */
+export interface IAttendanceClassSummary {
+  classId: string;
+  className: string;
+  total: number;
+  present: number;
+  absent: number;
+  late: number;
+  presentRate: number;
+}
+
 // ── Coding Challenge Builder ──────────────────────────────────────────────
 
 export enum ChallengeDifficulty {

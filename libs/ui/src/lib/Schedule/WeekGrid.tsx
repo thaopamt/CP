@@ -15,6 +15,7 @@ interface WeekGridProps {
   slotPx?: number;
   events: IScheduleEvent[];
   className?: string;
+  onEventClick?: (event: IScheduleEvent) => void;
 }
 
 /**
@@ -30,6 +31,7 @@ export function WeekGrid({
   slotPx = 80,
   events,
   className,
+  onEventClick,
 }: WeekGridProps) {
   const daysCount = dayLabels.length;
   const slots: number[] = [];
@@ -106,7 +108,7 @@ export function WeekGrid({
                     className="absolute inset-x-1"
                     style={{ top, height }}
                   >
-                    <EventCard event={evt} />
+                    <EventCard event={evt} onClick={() => onEventClick?.(evt)} />
                   </div>
                 );
               })}

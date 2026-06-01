@@ -28,6 +28,7 @@ const TRACK_TONE: Record<SubjectTrack, { bg: string; ring: string; text: string 
 interface EventCardProps {
   event: IScheduleEvent;
   className?: string;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
 /**
@@ -35,12 +36,13 @@ interface EventCardProps {
  * placed inside a CSS-grid cell; absolute positioning is handled by the
  * parent calendar (so this is a "dumb" card).
  */
-export function EventCard({ event, className }: EventCardProps) {
+export function EventCard({ event, className, ...props }: EventCardProps) {
   const tone = TRACK_TONE[event.track];
   return (
     <div
+      onClick={props.onClick}
       className={cn(
-        'h-full rounded-lg border-l-4 px-sm py-xs flex flex-col gap-xs overflow-hidden shadow-elev-1 hover:shadow-elev-2 transition-shadow',
+        'h-full rounded-lg border-l-4 px-sm py-xs flex flex-col gap-xs overflow-hidden shadow-elev-1 hover:shadow-elev-2 transition-shadow cursor-pointer',
         tone.bg,
         tone.ring,
         event.hasConflict && 'ring-2 ring-error',
@@ -53,7 +55,12 @@ export function EventCard({ event, className }: EventCardProps) {
           <Icon name="warning" size={16} className="text-error shrink-0" />
         )}
       </div>
-      <div className="text-[11px] text-on-surface-variant truncate">{event.location}</div>
+      {event.isCustom && (
+        <span className="w-fit px-xs py-[2px] rounded bg-tertiary-container/80 text-on-tertiary-container text-[9px] font-extrabold uppercase tracking-widest mt-[-2px]">
+          Tuỳ chỉnh
+        </span>
+      )}
+      <div className="text-[11px] text-on-surface-variant truncate mt-auto">{event.location}</div>
       <div className="text-[11px] text-on-surface mt-auto truncate">{event.teacherName}</div>
     </div>
   );

@@ -322,6 +322,14 @@ export default function GlobalChatPage() {
   const isTooLong = input.length > MAX_MESSAGE_LENGTH;
   const canSend = input.trim().length > 0 && !isTooLong;
 
+  useEffect(() => {
+    const inputEl = inputRef.current;
+    if (!inputEl) return;
+
+    inputEl.style.height = 'auto';
+    inputEl.style.height = `${Math.min(inputEl.scrollHeight, 160)}px`;
+  }, [input]);
+
   return (
     <div className="mx-auto flex h-[calc(100vh-8rem)] min-h-[620px] max-w-6xl gap-0 overflow-hidden">
     <section className="flex flex-1 min-w-0 flex-col overflow-hidden rounded-l-lg border border-outline-variant bg-surface shadow-elev-1">
@@ -455,7 +463,7 @@ export default function GlobalChatPage() {
         </div>
         <form
           onSubmit={handleSubmit}
-          className="flex items-center gap-sm rounded-xl bg-surface-container-low px-sm py-xs shadow-inner transition-colors focus-within:bg-surface-container-high"
+          className="flex items-end gap-sm rounded-xl border border-outline-variant bg-surface-container-low px-sm py-xs shadow-inner transition-colors focus-within:border-primary focus-within:bg-surface-container-high"
         >
           <label className="sr-only" htmlFor="global-chat-input">
             {t('globalChat.input.label')}
@@ -474,12 +482,12 @@ export default function GlobalChatPage() {
             rows={1}
             maxLength={MAX_MESSAGE_LENGTH + 100}
             placeholder={t('globalChat.input.placeholder')}
-            className="max-h-32 min-h-[40px] flex-1 resize-none border-0 bg-transparent px-sm py-sm text-body-md leading-6 outline-none ring-0 focus:border-0 focus:outline-none focus:ring-0"
+            className="max-h-40 min-h-[40px] flex-1 resize-none overflow-y-auto border-0 bg-transparent px-sm py-sm text-body-md leading-6 outline-none ring-0 focus:border-0 focus:outline-none focus:ring-0"
           />
           <Button
             type="submit"
             disabled={!canSend}
-            className="h-10 min-h-10 w-10 min-w-10 shrink-0 rounded-full p-0"
+            className="mb-0.5 h-10 min-h-10 w-10 min-w-10 shrink-0 rounded-full p-0"
             aria-label={t('globalChat.actions.send')}
           >
             <Icon name="send" size={20} />

@@ -9,6 +9,8 @@ import { ClassSession } from '../modules/classes/class-session.entity';
 import { Enrollment } from '../modules/classes/enrollment.entity';
 import { StudentProfile } from '../modules/students/student-profile.entity';
 import { Guardian } from '../modules/students/guardian.entity';
+import { StudentSchedule } from '../modules/students/student-schedule.entity';
+import { AttendanceRecord } from '../modules/attendance/attendance.entity';
 import { Assignment } from '../modules/assignments/assignment.entity';
 import { Course } from '../modules/courses/course.entity';
 import { CourseAssignment } from '../modules/courses/course-assignment.entity';
@@ -47,6 +49,8 @@ export const AppDataSource = new DataSource({
     Enrollment,
     StudentProfile,
     Guardian,
+    StudentSchedule,
+    AttendanceRecord,
     Assignment,
     Course,
     CourseAssignment,

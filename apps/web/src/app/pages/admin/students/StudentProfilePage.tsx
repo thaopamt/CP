@@ -19,8 +19,9 @@ import { GENDER_LABEL, IGuardian, ISubjectGrade } from '@cp/shared';
 
 import { useStudent, useResetPasswordStudent } from '../../../api/student.queries';
 import { ResetPasswordModal } from './ResetPasswordModal';
+import StudentScheduleTab from './StudentScheduleTab';
 
-type Tab = 'academics' | 'courses' | 'attendance' | 'activity';
+type Tab = 'academics' | 'courses' | 'attendance' | 'activity' | 'schedule';
 
 export default function StudentProfilePage() {
   const { t, i18n } = useTranslation();
@@ -253,6 +254,7 @@ export default function StudentProfilePage() {
                   { value: 'courses', label: t('pages.admin.studentProfile.tabs.courses') },
                   { value: 'attendance', label: t('pages.admin.studentProfile.tabs.attendance') },
                   { value: 'activity', label: t('pages.admin.studentProfile.tabs.activity') },
+                  { value: 'schedule', label: t('pages.admin.studentProfile.tabs.schedule') },
                 ]}
                 className="mb-md"
               />
@@ -291,6 +293,9 @@ export default function StudentProfilePage() {
               <div className="p-md md:p-lg text-center text-on-surface-variant">
                 {t('pages.admin.studentProfile.activity.empty')}
               </div>
+            )}
+            {tab === 'schedule' && (
+              <StudentScheduleTab studentId={s.userId} />
             )}
           </div>
         </section>

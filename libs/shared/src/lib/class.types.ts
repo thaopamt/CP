@@ -132,3 +132,44 @@ export interface ICreateClassPayload {
     room?: string;
   }>;
 }
+
+// ── Student schedule (admin-managed) ────────────────────────────────────
+
+/** A single schedule session — either custom (admin-managed) or derived from a class */
+export interface IStudentScheduleSession {
+  id: string;
+  studentId: string;
+  classId?: string | null;
+  /** Denormalized for display — name of the linked class */
+  className?: string | null;
+  classCode?: string | null;
+  dayOfWeek: DayOfWeek;
+  /** "HH:MM" in 24h */
+  startTime: string;
+  endTime: string;
+  room?: string | null;
+  /** Free-text note (admin only) */
+  note?: string | null;
+}
+
+/** GET /api/students/:id/schedule response */
+export interface IStudentSchedule {
+  studentId: string;
+  /** true when custom sessions override the class-derived schedule */
+  isCustom: boolean;
+  /** Effective sessions — custom if isCustom, else merged class sessions */
+  sessions: IStudentScheduleSession[];
+  /** Class-derived sessions — always returned so admin can compare */
+  classSessions: IStudentScheduleSession[];
+}
+
+/** Payload for POST /api/students/:id/schedule/custom */
+export interface ICreateStudentSchedulePayload {
+  classId?: string;
+  dayOfWeek: DayOfWeek;
+  startTime: string;
+  endTime: string;
+  room?: string;
+  note?: string;
+}
+

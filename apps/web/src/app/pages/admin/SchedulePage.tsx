@@ -8,9 +8,11 @@ import {
   IClass,
   IScheduleEvent,
   SubjectTrack,
+  IStudentScheduleSession,
 } from '@cp/shared';
 
 import { useClassesList } from '../../api/class.queries';
+import { useAllCustomSchedules } from '../../api/attendance.queries';
 
 type View = 'week' | 'month';
 
@@ -69,8 +71,10 @@ function startOfWeekMon(d: Date): Date {
 }
 
 /** Flattens classes → individual weekly events (one per IClassMeeting). */
-function flattenEvents(classes: IClass[], unassignedLabel: string): IScheduleEvent[] {
+function flattenEvents(classes: IClass[], customSchedules: IStudentScheduleSession[], unassignedLabel: string): IScheduleEvent[] {
   const events: IScheduleEvent[] = [];
+  const existingKeys = new Set<string>();
+
   for (const cls of classes) {
     if (cls.status === ClassStatus.ARCHIVED) continue;
     const track = DEPARTMENT_TRACK[cls.department];
@@ -79,8 +83,10 @@ function flattenEvents(classes: IClass[], unassignedLabel: string): IScheduleEve
       const startMinutes = timeToMinutes(m.startTime);
       const endMinutes = timeToMinutes(m.endTime);
       const teacherName = cls.instructor?.fullName ?? unassignedLabel;
+      
       events.push({
         id: m.id,
+        classId: cls.id,
         title: `${cls.name} (${cls.code})`,
         location: m.room ?? cls.room ?? '—',
         teacherName,
@@ -90,8 +96,45 @@ function flattenEvents(classes: IClass[], unassignedLabel: string): IScheduleEve
         durationMin: Math.max(15, endMinutes - startMinutes),
         track,
       });
+      existingKeys.add(`${cls.id}_${m.dayOfWeek}_${m.startTime}_${m.endTime}`);
     }
   }
+
+  // Group custom schedules by classId + dayOfWeek + time
+  const customGroups = new Map<string, IStudentScheduleSession[]>();
+  for (const cs of customSchedules) {
+    if (!cs.classId) continue;
+    const key = `${cs.classId}_${cs.dayOfWeek}_${cs.startTime}_${cs.endTime}`;
+    if (existingKeys.has(key)) continue; // Matches an official session EXACTLY, no need to draw a custom block
+
+    if (!customGroups.has(key)) customGroups.set(key, []);
+    customGroups.get(key)!.push(cs);
+  }
+
+  for (const [key, group] of customGroups.entries()) {
+    const sample = group[0];
+    const cls = classes.find(c => c.id === sample.classId);
+    if (!cls || cls.status === ClassStatus.ARCHIVED) continue;
+
+    const day = WEEKDAY_INDEX[sample.dayOfWeek];
+    const startMinutes = timeToMinutes(sample.startTime);
+    const endMinutes = timeToMinutes(sample.endTime);
+    
+    events.push({
+      id: `custom_${key}`,
+      classId: cls.id,
+      title: `${cls.name} (${cls.code})`,
+      location: sample.room ?? cls.room ?? '—',
+      teacherName: cls.instructor?.fullName ?? unassignedLabel,
+      teacherInitials: cls.instructor ? initials(cls.instructor.fullName) : '–',
+      day,
+      startMinutes,
+      durationMin: Math.max(15, endMinutes - startMinutes),
+      track: DEPARTMENT_TRACK[cls.department],
+      isCustom: true,
+    });
+  }
+
   return markConflicts(events, unassignedLabel);
 }
 
@@ -116,11 +159,14 @@ function markConflicts(events: IScheduleEvent[], unassignedLabel: string): ISche
   });
 }
 
+import { AttendancePanel } from './AttendancePanel';
+
 export default function AdminSchedulePage() {
   const { t } = useTranslation();
   const [view, setView] = useState<View>('week');
   const [department, setDepartment] = useState<ClassDepartment | 'all'>('all');
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeekMon(new Date()));
+  const [selectedAttendance, setSelectedAttendance] = useState<{ classId: string; date: string } | null>(null);
 
   // ── API combo: classes (with sessions + instructor) drives the entire grid.
   // We over-fetch (limit 200) so a typical institution shows in one page; if
@@ -132,10 +178,12 @@ export default function AdminSchedulePage() {
     status: 'all',
   });
 
+  const customSchedulesQuery = useAllCustomSchedules();
+
   const unassignedLabel = t('pages.admin.classes.list.unassignedInstructor');
   const events = useMemo(
-    () => flattenEvents(data?.items ?? [], unassignedLabel),
-    [data, unassignedLabel],
+    () => flattenEvents(data?.items ?? [], customSchedulesQuery.data ?? [], unassignedLabel),
+    [data, customSchedulesQuery.data, unassignedLabel],
   );
 
   const dayLabels = useMemo(() => {
@@ -167,6 +215,16 @@ export default function AdminSchedulePage() {
     const next = new Date(weekStart);
     next.setDate(weekStart.getDate() + deltaWeeks * 7);
     setWeekStart(next);
+  }
+
+  function handleEventClick(event: IScheduleEvent) {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + event.day);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    setSelectedAttendance({ classId: event.classId, date: dateStr });
   }
 
   return (
@@ -261,9 +319,18 @@ export default function AdminSchedulePage() {
             endMinutes={1080}
             slotPx={80}
             events={events}
+            onEventClick={handleEventClick}
           />
         )}
       </div>
+
+      {selectedAttendance && (
+        <AttendancePanel
+          classId={selectedAttendance.classId}
+          date={selectedAttendance.date}
+          onClose={() => setSelectedAttendance(null)}
+        />
+      )}
     </div>
   );
 }

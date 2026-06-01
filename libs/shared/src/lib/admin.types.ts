@@ -101,6 +101,7 @@ export interface IModule {
 
 export interface IScheduleEvent {
   id: string;
+  classId: string;
   title: string;
   location: string;
   teacherName: string;
@@ -112,6 +113,7 @@ export interface IScheduleEvent {
   durationMin: number;
   track: SubjectTrack;
   hasConflict?: boolean;
+  isCustom?: boolean;
 }
 
 // ────────────────────────────────────────────────────────────────────────
