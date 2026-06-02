@@ -36,7 +36,7 @@ export class SubmissionsController {
     const submissions = await this.submissionRepo.find({
       where: { userId },
       order: { createdAt: 'DESC' },
-      relations: ['testResults', 'assignment'],
+      relations: ['testResults', 'assignment', 'user'],
       take: 200,
     });
     return submissions;

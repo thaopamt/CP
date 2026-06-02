@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon, StatusBadge } from '@cp/ui';
@@ -5,6 +6,7 @@ import {
   PublishStatus,
 } from '@cp/shared';
 import { useCourse, useCourseAssignments } from '../../api/curriculum.queries';
+import { useAllMySubmissions } from '../../api/submissions.queries';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -33,9 +35,25 @@ export default function StudentCourseDetailPage() {
 
   const courseQuery = useCourse(courseId);
   const assignmentsQuery = useCourseAssignments(courseId);
+  const submissionsQuery = useAllMySubmissions();
 
   const course = courseQuery.data;
   const assignments = assignmentsQuery.data ?? [];
+  const submissions = submissionsQuery.data ?? [];
+
+  const submissionStatusMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const sub of submissions) {
+      const existing = map[sub.assignmentId];
+      if (existing === 'ACCEPTED') continue;
+      if (sub.status === 'ACCEPTED') {
+        map[sub.assignmentId] = 'ACCEPTED';
+      } else {
+        map[sub.assignmentId] = sub.status;
+      }
+    }
+    return map;
+  }, [submissions]);
 
   // Loading
   if (courseQuery.isLoading || !course) {
@@ -73,9 +91,9 @@ export default function StudentCourseDetailPage() {
       ? 'warning'
       : 'neutral';
 
-  // Progress calculation (mock — placeholder for actual progress)
+  // Progress calculation
   const totalAssignments = assignments.length;
-  const completedAssignments = 0; // TODO: integrate with student progress API
+  const completedAssignments = assignments.filter((ca) => submissionStatusMap[ca.assignment.id] === 'ACCEPTED').length;
   const progressPercent =
     totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0;
 
@@ -194,6 +212,16 @@ export default function StudentCourseDetailPage() {
               const typeIcon = a.codingConfig ? 'code' : 'assignment';
               const diffTone = DIFFICULTY_TONE[a.difficulty] ?? 'neutral';
 
+              const isAccepted = submissionStatusMap[a.id] === 'ACCEPTED';
+              const isAttempted = submissionStatusMap[a.id] && !isAccepted;
+              
+              let cardClass = "border-outline-variant hover:border-primary/30 hover:shadow-md bg-surface-container-lowest";
+              if (isAccepted) {
+                cardClass = "border-emerald-500/30 hover:border-emerald-500/60 bg-emerald-500/5 hover:shadow-md hover:shadow-emerald-500/10";
+              } else if (isAttempted) {
+                cardClass = "border-amber-500/30 hover:border-amber-500/60 bg-amber-500/5 hover:shadow-md hover:shadow-amber-500/10";
+              }
+
               return (
                 <div
                   key={ca.id}
@@ -202,17 +230,13 @@ export default function StudentCourseDetailPage() {
                       ? navigate(`/student/workspace/${a.id}`)
                       : navigate(`/student/assignments/${a.id}`)
                   }
-                  className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md hover:shadow-md hover:border-primary/30 transition-all cursor-pointer group flex gap-md items-center"
+                  className={`rounded-xl p-md transition-all cursor-pointer group flex gap-md items-center border ${cardClass}`}
                 >
                   {/* Order number */}
                   <div className="w-9 h-9 rounded-lg bg-surface-container-high text-on-surface-variant grid place-items-center font-manrope font-bold text-label-sm shrink-0 group-hover:bg-primary-container group-hover:text-on-primary-container transition-colors">
                     {idx + 1}
                   </div>
 
-                  {/* Type icon */}
-                  <div className="w-10 h-10 rounded-xl bg-primary-container/30 text-primary grid place-items-center shrink-0">
-                    <Icon name={typeIcon} size={22} />
-                  </div>
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
@@ -251,6 +275,18 @@ export default function StudentCourseDetailPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* Pill badge */}
+                  {isAccepted && (
+                    <div className="hidden sm:flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold uppercase tracking-wider shrink-0">
+                      <Icon name="verified" size={14} /> Done
+                    </div>
+                  )}
+                  {isAttempted && (
+                    <div className="hidden sm:flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[11px] font-bold uppercase tracking-wider shrink-0">
+                      <Icon name="model_training" size={14} /> Try Again
+                    </div>
+                  )}
 
                   {/* Action arrow */}
                   <div className="shrink-0 text-on-surface-variant/40 group-hover:text-primary transition-colors">

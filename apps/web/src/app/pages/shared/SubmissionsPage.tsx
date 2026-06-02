@@ -8,14 +8,14 @@ import { useAuthStore } from '../../stores/auth.store';
 
 /* ── Status config ──────────────────────────────────────────────── */
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string; border: string }> = {
-  [SubmissionStatus.ACCEPTED]:             { label: 'Accepted',       color: 'text-emerald-400', bg: 'bg-emerald-500/10', icon: 'check_circle',   border: 'border-emerald-500/30' },
-  [SubmissionStatus.WRONG_ANSWER]:         { label: 'Wrong Answer',   color: 'text-red-400',     bg: 'bg-red-500/10',     icon: 'cancel',         border: 'border-red-500/30' },
-  [SubmissionStatus.TIME_LIMIT_EXCEEDED]:  { label: 'TLE',            color: 'text-amber-400',   bg: 'bg-amber-500/10',   icon: 'timer_off',      border: 'border-amber-500/30' },
-  [SubmissionStatus.MEMORY_LIMIT_EXCEEDED]:{ label: 'MLE',            color: 'text-orange-400',  bg: 'bg-orange-500/10',  icon: 'memory',         border: 'border-orange-500/30' },
-  [SubmissionStatus.COMPILATION_ERROR]:    { label: 'CE',             color: 'text-purple-400',  bg: 'bg-purple-500/10',  icon: 'code_off',       border: 'border-purple-500/30' },
-  [SubmissionStatus.RUNTIME_ERROR]:        { label: 'RE',             color: 'text-rose-400',    bg: 'bg-rose-500/10',    icon: 'error',          border: 'border-rose-500/30' },
-  [SubmissionStatus.PENDING]:              { label: 'Pending',        color: 'text-blue-400',    bg: 'bg-blue-500/10',    icon: 'hourglass_top',  border: 'border-blue-500/30' },
-  [SubmissionStatus.INTERNAL_ERROR]:       { label: 'IE',             color: 'text-gray-400',    bg: 'bg-gray-500/10',    icon: 'warning',        border: 'border-gray-500/30' },
+  [SubmissionStatus.ACCEPTED]:             { label: 'AC', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', icon: 'check_circle',   border: 'border-emerald-500/30' },
+  [SubmissionStatus.WRONG_ANSWER]:         { label: 'WA',       color: 'text-red-600 dark:text-red-400',         bg: 'bg-red-500/10',     icon: 'cancel',         border: 'border-red-500/30' },
+  [SubmissionStatus.TIME_LIMIT_EXCEEDED]:  { label: 'TLE',      color: 'text-amber-600 dark:text-amber-400',     bg: 'bg-amber-500/10',   icon: 'timer_off',      border: 'border-amber-500/30' },
+  [SubmissionStatus.MEMORY_LIMIT_EXCEEDED]:{ label: 'MLE',      color: 'text-orange-600 dark:text-orange-400',   bg: 'bg-orange-500/10',  icon: 'memory',         border: 'border-orange-500/30' },
+  [SubmissionStatus.COMPILATION_ERROR]:    { label: 'CE',       color: 'text-purple-600 dark:text-purple-400',   bg: 'bg-purple-500/10',  icon: 'code_off',       border: 'border-purple-500/30' },
+  [SubmissionStatus.RUNTIME_ERROR]:        { label: 'RE',       color: 'text-rose-600 dark:text-rose-400',       bg: 'bg-rose-500/10',    icon: 'error',          border: 'border-rose-500/30' },
+  [SubmissionStatus.PENDING]:              { label: 'Pending',  color: 'text-blue-600 dark:text-blue-400',       bg: 'bg-blue-500/10',    icon: 'hourglass_top',  border: 'border-blue-500/30' },
+  [SubmissionStatus.INTERNAL_ERROR]:       { label: 'IE',       color: 'text-gray-600 dark:text-gray-400',       bg: 'bg-gray-500/10',    icon: 'warning',        border: 'border-gray-500/30' },
 };
 
 const LANG_ICON: Record<string, string> = {
@@ -193,11 +193,9 @@ export default function SubmissionsPage() {
       ) : (
         <div className="bg-surface-container-low rounded-2xl border border-outline-variant overflow-hidden">
           {/* Table header */}
-          <div className={`grid ${isAdminOrTeacher ? 'grid-cols-[1fr_120px_100px_110px_100px_90px_110px]' : 'grid-cols-[1fr_100px_110px_100px_90px_110px]'} gap-0 px-md py-sm border-b border-outline-variant bg-surface-container-lowest`}>
-            {isAdminOrTeacher && (
-              <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Student</span>
-            )}
-            <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Problem</span>
+          <div className="grid grid-cols-[200px_1fr_100px_110px_100px_90px_110px] gap-0 px-md py-sm border-b border-outline-variant bg-surface-container-lowest text-center">
+            <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider text-left">Student</span>
+            <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider text-left">Problem</span>
             <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Language</span>
             <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Status</span>
             <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Passed</span>
@@ -214,25 +212,22 @@ export default function SubmissionsPage() {
                 <div
                   key={sub.id}
                   onClick={() => setSelectedSub(sub)}
-                  className={`grid ${isAdminOrTeacher ? 'grid-cols-[1fr_120px_100px_110px_100px_90px_110px]' : 'grid-cols-[1fr_100px_110px_100px_90px_110px]'} gap-0 px-md py-sm items-center cursor-pointer hover:bg-surface-container-highest/50 transition-colors group`}
+                  className="grid grid-cols-[200px_1fr_100px_110px_100px_90px_110px] gap-0 px-md py-sm items-center cursor-pointer hover:bg-surface-container-highest/50 transition-colors group text-center"
                 >
-                  {/* Student (admin/teacher only) */}
-                  {isAdminOrTeacher && (
-                    <div className="flex items-center gap-sm min-w-0 pr-sm">
-                      <div className="w-7 h-7 rounded-full bg-primary-container text-on-primary-container grid place-items-center text-[11px] font-bold shrink-0">
-                        {(sub.user?.firstName?.[0] || '?').toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-label-sm text-on-surface font-medium truncate">
-                          {sub.user?.firstName} {sub.user?.lastName}
-                        </p>
-                        <p className="text-[11px] text-on-surface-variant truncate">{sub.user?.email}</p>
-                      </div>
+                  {/* Student */}
+                  <div className="flex items-center gap-sm min-w-0 pr-sm text-left">
+                    <div className="w-7 h-7 rounded-full bg-primary-container text-on-primary-container grid place-items-center text-[11px] font-bold shrink-0">
+                      {((sub.user?.username || sub.user?.firstName)?.[0] || '?').toUpperCase()}
                     </div>
-                  )}
+                    <div className="min-w-0">
+                      <p className="text-label-sm text-on-surface font-medium truncate">
+                        {sub.user?.username ? `@${sub.user.username}` : `${sub.user?.firstName || ''} ${sub.user?.lastName || ''}`.trim() || 'Unknown'}
+                      </p>
+                    </div>
+                  </div>
 
                   {/* Problem */}
-                  <div className="min-w-0 pr-sm">
+                  <div className="min-w-0 pr-sm text-left">
                     <p className="text-label-sm text-on-surface font-medium truncate group-hover:text-primary transition-colors">
                       {sub.assignment?.title || 'Unknown'}
                     </p>
@@ -244,7 +239,7 @@ export default function SubmissionsPage() {
                   </span>
 
                   {/* Status badge */}
-                  <div>
+                  <div className="flex justify-center">
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold ${sc.bg} ${sc.color}`}>
                       <span className="material-symbols-outlined text-[13px]">{sc.icon}</span>
                       {sc.label}
@@ -370,10 +365,10 @@ function SubmissionModal({
               {(sub.maxMemoryBytes / 1024 / 1024).toFixed(1)} MB
             </div>
           )}
-          {isAdminOrTeacher && sub.user && (
+          {sub.user && (
             <div className="flex items-center gap-xs text-label-sm text-on-surface-variant ml-auto">
               <span className="material-symbols-outlined text-[15px]">person</span>
-              {sub.user.firstName} {sub.user.lastName}
+              {sub.user.username ? `@${sub.user.username}` : `${sub.user.firstName || ''} ${sub.user.lastName || ''}`.trim() || 'Unknown'}
             </div>
           )}
         </div>
@@ -390,6 +385,10 @@ function SubmissionModal({
               {testResults.map((tr: any, idx: number) => {
                 const trSc = STATUS_CONFIG[tr.status] || STATUS_CONFIG[SubmissionStatus.INTERNAL_ERROR];
                 const isExpanded = expandedTests.has(idx);
+                
+                // Extract input and expected output (fallback to assignment config if missing)
+                const tcInput = sub.assignment?.codingConfig?.testCases?.[tr.testCaseIndex]?.input;
+                const tcExpected = tr.expectedOutput || sub.assignment?.codingConfig?.testCases?.[tr.testCaseIndex]?.expectedOutput;
 
                 return (
                   <div key={idx} className={`rounded-xl border ${trSc.border} overflow-hidden transition-all`}>
@@ -433,7 +432,7 @@ function SubmissionModal({
                         <div>
                           <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Input</span>
                           <pre className="mt-0.5 text-[11px] font-mono text-on-surface bg-surface-container-highest rounded-lg px-sm py-xs max-h-[100px] overflow-auto whitespace-pre-wrap break-all">
-                            {tr.input || '(empty)'}
+                            {tcInput || '(empty)'}
                           </pre>
                         </div>
 
@@ -441,7 +440,7 @@ function SubmissionModal({
                         <div>
                           <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Expected Output</span>
                           <pre className="mt-0.5 text-[11px] font-mono text-on-surface bg-surface-container-highest rounded-lg px-sm py-xs max-h-[100px] overflow-auto whitespace-pre-wrap break-all">
-                            {tr.expectedOutput || '(empty)'}
+                            {tcExpected || '(empty)'}
                           </pre>
                         </div>
 
