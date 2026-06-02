@@ -52,10 +52,38 @@ export default function StudentWorkspacePage() {
 
   const [leftTab, setLeftTab] = useState<LeftTab>('description');
   const [bottomTab, setBottomTab] = useState<BottomTab>('testcase');
+  // ── LocalStorage draft key ──
+  const draftKey = `code-draft-workspace-${problemId}`;
+
   const savedLang = localStorage.getItem('cp_default_language');
   const defaultLangOption = LANG_OPTIONS.find(l => l.value === savedLang) || LANG_OPTIONS[0];
-  const [language, setLanguage] = useState(defaultLangOption.value);
-  const [code, setCode] = useState(defaultLangOption.template);
+  
+  const [language, setLanguage] = useState(() => {
+    try {
+      const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
+      if (draft?.language) return draft.language;
+    } catch { /* ignore */ }
+    return defaultLangOption.value;
+  });
+  
+  const [code, setCode] = useState(() => {
+    try {
+      const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
+      if (draft?.code) return draft.code;
+    } catch { /* ignore */ }
+    return defaultLangOption.template;
+  });
+
+  // ── Auto-save code to localStorage (debounced 500ms) ──
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify({ code, language }));
+      } catch { /* ignore quota errors */ }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [code, language, draftKey]);
+
   const [hasInitFromDb, setHasInitFromDb] = useState(false);
   const [activeTestIdx, setActiveTestIdx] = useState(0);
   const [customInput, setCustomInput] = useState('');

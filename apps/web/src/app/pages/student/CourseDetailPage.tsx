@@ -5,6 +5,10 @@ import {
   PublishStatus,
 } from '@cp/shared';
 import { useCourse, useCourseAssignments } from '../../api/curriculum.queries';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 const DIFFICULTY_TONE: Record<string, 'success' | 'warning' | 'error'> = {
   EASY: 'success',
@@ -112,9 +116,11 @@ export default function StudentCourseDetailPage() {
           </h1>
 
           {course.description && (
-            <p className="text-body-md text-on-secondary-container/80 max-w-2xl">
-              {course.description}
-            </p>
+            <div className="text-body-md text-on-secondary-container/80 max-w-2xl prose prose-sm max-w-none prose-p:m-0 prose-p:text-on-secondary-container/80 prose-headings:text-on-secondary-container prose-strong:text-on-secondary-container">
+              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                {course.description}
+              </ReactMarkdown>
+            </div>
           )}
         </div>
       </div>
@@ -219,9 +225,11 @@ export default function StudentCourseDetailPage() {
                       </StatusBadge>
                     </div>
                     {a.description && (
-                      <p className="text-[12px] text-on-surface-variant line-clamp-1 mb-xs">
-                        {a.description}
-                      </p>
+                      <div className="text-[12px] text-on-surface-variant line-clamp-1 mb-xs prose prose-sm dark:prose-invert max-w-none prose-p:m-0 prose-p:inline prose-headings:m-0 prose-headings:inline prose-headings:text-[12px] prose-headings:font-normal [&>p]:inline">
+                        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                          {a.description}
+                        </ReactMarkdown>
+                      </div>
                     )}
                     <div className="flex items-center gap-md text-[11px] text-on-surface-variant">
 

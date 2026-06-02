@@ -96,15 +96,17 @@ export function AssignmentCard({ assignment, onAction, className }: AssignmentCa
             </div>
           )}
 
-          <footer className="flex items-center justify-end gap-md mt-xs">
-            <Button
-              variant={assignment.status === AssignmentTab.TODO ? 'student' : 'outline'}
-              size="sm"
-              onClick={onAction}
-            >
-              {t(ACTION_KEY[assignment.status])}
-            </Button>
-          </footer>
+          {assignment.status !== AssignmentTab.TODO && (
+            <footer className="flex items-center justify-end gap-md mt-xs">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onAction}
+              >
+                {t(ACTION_KEY[assignment.status])}
+              </Button>
+            </footer>
+          )}
         </div>
       </div>
     </article>
