@@ -62,7 +62,7 @@ export class StudentScheduleService {
           dayOfWeek: s.dayOfWeek,
           startTime: s.startTime,
           endTime: s.endTime,
-          room: s.room ?? cls.room,
+          room: s.room ?? null,
           note: null,
         });
       }

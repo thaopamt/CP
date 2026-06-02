@@ -27,6 +27,7 @@ import { useAssignment } from '../../api/curriculum.queries';
 import { useRunCode, useSubmitCode, useSubmissions } from '../../api/submissions.queries';
 import { useStudentDashboard, useUpdateDefaultLanguage } from '../../api/student.queries';
 import { useLiveCodingSync } from '../../hooks/useLiveCodingSync';
+import { useInteractiveExec } from '../../hooks/useInteractiveExec';
 import RemoteCursors from '../../components/RemoteCursors';
 
 /* ── Language config ──────────────────────────────────────────────── */
@@ -65,12 +66,31 @@ export default function StudentWorkspacePage() {
   const [terminalResult, setTerminalResult] = useState<ICodeExecutionResponse | null>(null);
   const [terminalError, setTerminalError] = useState('');
   const [terminalRunning, setTerminalRunning] = useState(false);
+  const [terminalHistory, setTerminalHistory] = useState<{ stdin: string; result?: ICodeExecutionResponse; error?: string }[]>([]);
+  const [terminalMultiline, setTerminalMultiline] = useState(false);
   const [running, setRunning] = useState(false);
   const [runResults, setRunResults] = useState<null | {
     overall: 'accepted' | 'wrong' | 'error';
     cases: { status: 'accepted' | 'wrong' | 'error'; input: string; stdout: string; expected: string }[];
   }>(null);
   const [activeResultIdx, setActiveResultIdx] = useState(0);
+
+  // Interactive execution (WebSocket)
+  const interactiveExec = useInteractiveExec();
+
+  // Terminal refs
+  const terminalBodyRef = useRef<HTMLDivElement>(null);
+  const terminalInputRef = useRef<HTMLInputElement>(null);
+  const inputHistoryRef = useRef<string[]>([]);
+  const inputHistoryIdxRef = useRef(-1);
+
+  // Auto-scroll terminal body when new output arrives
+  useEffect(() => {
+    const el = terminalBodyRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [interactiveExec.lines]);
 
   // Splitter state
   const [splitX, setSplitX] = useState(45); // % for left panel
@@ -186,23 +206,44 @@ export default function StudentWorkspacePage() {
   };
 
   const handleRunTerminal = async () => {
-    setTerminalRunning(true);
-    setTerminalError('');
-    setTerminalResult(null);
     setBottomTab('terminal');
 
-    try {
-      const result = await runMutation.mutateAsync({
-        language,
-        code,
-        stdin: terminalInput,
-      });
-      setTerminalResult(result);
-    } catch (err: any) {
-      setTerminalError(err?.response?.data?.message || err?.message || 'Execution failed');
-    } finally {
-      setTerminalRunning(false);
+    if (!terminalMultiline) {
+      // Interactive mode: use WebSocket
+      interactiveExec.start(language, code);
+      setTerminalInput('');
+      setTimeout(() => terminalInputRef.current?.focus(), 100);
+    } else {
+      // Text mode: use HTTP API (Piston)
+      const stdin = terminalInput;
+      setTerminalRunning(true);
+      setTerminalError('');
+      setTerminalResult(null);
+
+      try {
+        const result = await runMutation.mutateAsync({ language, code, stdin });
+        setTerminalResult(result);
+        setTerminalHistory(prev => [...prev, { stdin, result }]);
+      } catch (err: any) {
+        const errorMsg = err?.response?.data?.message || err?.message || 'Execution failed';
+        setTerminalError(errorMsg);
+        setTerminalHistory(prev => [...prev, { stdin, error: errorMsg }]);
+      } finally {
+        setTerminalRunning(false);
+        setTimeout(() => {
+          terminalBodyRef.current?.scrollTo({ top: terminalBodyRef.current.scrollHeight, behavior: 'smooth' });
+        }, 50);
+      }
     }
+  };
+
+  const handleSendStdin = () => {
+    if (!terminalInput.trim() || !interactiveExec.running) return;
+    interactiveExec.sendStdin(terminalInput);
+    inputHistoryRef.current.push(terminalInput);
+    inputHistoryIdxRef.current = -1;
+    setTerminalInput('');
+    setTimeout(() => terminalInputRef.current?.focus(), 50);
   };
 
   const handleRun = async () => {
@@ -809,72 +850,216 @@ export default function StudentWorkspacePage() {
                   </div>
                 </div>
               ) : bottomTab === 'terminal' ? (
-                <div className="grid h-full min-h-[220px] grid-cols-1 gap-3 lg:grid-cols-[42%_1fr]">
-                  <section className="flex min-h-0 flex-col rounded-xl border border-white/10 bg-[#111123] overflow-hidden">
-                    <div className="flex items-center justify-between border-b border-white/10 bg-[#1a1a2e] px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <Icon name="keyboard" size={14} className="text-cyan-400" />
-                        <span className="text-xs font-semibold text-gray-300">Standard Input</span>
+                <div className="flex h-full min-h-[220px] flex-col overflow-hidden" style={{ background: '#000' }}>
+                  {/* ── Terminal toolbar ────────────────────────────── */}
+                  <div className="flex items-center justify-between px-3 py-1 shrink-0" style={{ background: '#1e1e1e', borderBottom: '1px solid #333' }}>
+                    <div className="flex items-center gap-3">
+                      {/* Traffic lights */}
+                      <div className="flex gap-1.5">
+                        <span className="w-[10px] h-[10px] rounded-full" style={{ background: '#ff5f56' }} />
+                        <span className="w-[10px] h-[10px] rounded-full" style={{ background: '#ffbd2e' }} />
+                        <span className="w-[10px] h-[10px] rounded-full" style={{ background: '#27c93f' }} />
                       </div>
-                      <button
-                        onClick={() => setTerminalInput('')}
-                        className="text-[11px] text-gray-500 hover:text-gray-300"
-                      >
-                        Clear
-                      </button>
+                      {/* Toolbar buttons */}
+                      <div className="flex items-center gap-1 text-[11px]">
+                        {interactiveExec.running ? (
+                          <button
+                            onClick={() => interactiveExec.kill()}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold transition-colors"
+                            style={{ background: '#d32f2f', color: '#fff' }}
+                          >
+                            <Icon name="stop" size={12} />
+                            Stop
+                          </button>
+                        ) : (
+                          <button
+                            onClick={handleRunTerminal}
+                            disabled={terminalRunning}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold transition-colors disabled:opacity-40"
+                            style={{ background: '#2ea043', color: '#fff' }}
+                          >
+                            <Icon name="play_arrow" size={12} />
+                            Run
+                          </button>
+                        )}
+                        <button
+                          onClick={() => { interactiveExec.clearLines(); setTerminalHistory([]); setTerminalResult(null); setTerminalError(''); }}
+                          className="px-2 py-0.5 rounded text-[11px] transition-colors"
+                          style={{ color: '#888', background: 'transparent' }}
+                          onMouseEnter={e => (e.currentTarget.style.color = '#ccc')}
+                          onMouseLeave={e => (e.currentTarget.style.color = '#888')}
+                        >
+                          Clear
+                        </button>
+                      </div>
                     </div>
-                    <textarea
-                      value={terminalInput}
-                      onChange={(event) => setTerminalInput(event.target.value)}
-                      spellCheck={false}
-                      placeholder={'Nhập testcase/stdin ở đây...\nVí dụ:\n5\n1 2 3 4 5'}
-                      className="min-h-0 flex-1 resize-none bg-transparent p-3 font-mono text-sm leading-5 text-gray-200 outline-none placeholder:text-gray-600"
-                    />
-                    <div className="flex items-center justify-between border-t border-white/10 px-3 py-2">
-                      <span className="text-[11px] text-gray-600">
-                        {terminalInput.split('\n').length} dòng · {terminalInput.length} ký tự
-                      </span>
-                      <button
-                        onClick={handleRunTerminal}
-                        disabled={terminalRunning}
-                        className="inline-flex items-center gap-1.5 rounded-md bg-cyan-500/15 px-3 py-1.5 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/25 disabled:opacity-50"
-                      >
-                        <Icon name={terminalRunning ? 'progress_activity' : 'play_arrow'} size={14} className={terminalRunning ? 'animate-spin' : ''} />
-                        Chạy Terminal
-                      </button>
+                    {/* Input mode toggle */}
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] uppercase tracking-wider" style={{ color: '#666' }}>stdin:</span>
+                      <label className="flex items-center gap-1 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="termMode"
+                          checked={!terminalMultiline}
+                          onChange={() => setTerminalMultiline(false)}
+                          className="accent-green-500"
+                          style={{ width: 12, height: 12 }}
+                        />
+                        <span className="text-[11px]" style={{ color: !terminalMultiline ? '#ccc' : '#666' }}>Interactive</span>
+                      </label>
+                      <label className="flex items-center gap-1 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="termMode"
+                          checked={terminalMultiline}
+                          onChange={() => setTerminalMultiline(true)}
+                          className="accent-green-500"
+                          style={{ width: 12, height: 12 }}
+                        />
+                        <span className="text-[11px]" style={{ color: terminalMultiline ? '#ccc' : '#666' }}>Text</span>
+                      </label>
                     </div>
-                  </section>
+                  </div>
 
-                  <section className="flex min-h-0 flex-col rounded-xl border border-white/10 bg-[#05050d] overflow-hidden">
-                    <div className="flex items-center justify-between border-b border-white/10 bg-[#111123] px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <Icon name="terminal" size={14} className="text-cyan-400" />
-                        <span className="text-xs font-semibold text-gray-300">Terminal Output</span>
-                      </div>
-                      {terminalResult && (
-                        <span className={`rounded px-2 py-0.5 text-[11px] font-semibold ${getTerminalStatus(terminalResult).badgeClass}`}>
-                          {getTerminalStatus(terminalResult).label}
+                  {/* ── Text stdin mode (batch) ────────────────────── */}
+                  {terminalMultiline && (
+                    <div style={{ background: '#111', borderBottom: '1px solid #333' }}>
+                      <div className="flex items-center justify-between px-3 py-1">
+                        <span className="text-[10px] uppercase tracking-wider" style={{ color: '#555' }}>Standard Input</span>
+                        <span className="text-[10px]" style={{ color: '#444' }}>
+                          {terminalInput.split('\n').length} lines · {terminalInput.length} chars
                         </span>
-                      )}
+                      </div>
+                      <textarea
+                        value={terminalInput}
+                        onChange={(e) => setTerminalInput(e.target.value)}
+                        spellCheck={false}
+                        placeholder="Enter input to program here..."
+                        className="w-full resize-none outline-none font-mono text-[13px] leading-5 px-3 pb-2"
+                        style={{ background: '#111', color: '#e0e0e0', height: 70 }}
+                      />
                     </div>
-                    <div className="min-h-0 flex-1 overflow-auto p-3 font-mono text-xs leading-5">
-                      {terminalRunning ? (
-                        <div className="flex items-center gap-2 text-gray-400">
-                          <Icon name="progress_activity" size={15} className="animate-spin" />
-                          Compiling and running...
+                  )}
+
+                  {/* ── Terminal body ── */}
+                  <div
+                    ref={terminalBodyRef}
+                    className="flex-1 min-h-0 overflow-auto px-3 py-2 font-mono text-[13px] leading-[1.6] cursor-text"
+                    style={{ background: '#000', color: '#e0e0e0' }}
+                    onClick={() => terminalInputRef.current?.focus()}
+                  >
+                    {/* Interactive mode output */}
+                    {!terminalMultiline ? (
+                      interactiveExec.lines.length === 0 && !interactiveExec.running ? (
+                        <div style={{ color: '#555' }}>
+                          <div className="mt-1" style={{ color: '#555', fontSize: 12 }}>
+                            Bấm Run để chạy. Khi chương trình cần nhập (cin, scanf, input), gõ trực tiếp ở dưới rồi bấm Enter.
+                          </div>
                         </div>
-                      ) : terminalError ? (
-                        <pre className="whitespace-pre-wrap text-red-300">{terminalError}</pre>
-                      ) : terminalResult ? (
-                        <TerminalOutput result={terminalResult} />
                       ) : (
-                        <div className="text-gray-600">
-                          <div className="text-gray-500">$ run {language}</div>
-                          <div className="mt-2">Nhập stdin bên trái rồi bấm Chạy Terminal để xem stdout, stderr và lỗi biên dịch.</div>
-                        </div>
-                      )}
+                        interactiveExec.lines.map((line, idx) => {
+                          const colorMap: Record<string, string> = {
+                            stdout: '#e0e0e0',
+                            stderr: '#ff6b9d',
+                            stdin: '#27c93f',
+                            system: '#27c93f',
+                            error: '#ff4444',
+                          };
+                          return (
+                            <pre key={idx} className="whitespace-pre-wrap" style={{ color: colorMap[line.type] || '#e0e0e0', margin: 0 }}>
+                              {line.text}
+                            </pre>
+                          );
+                        })
+                      )
+                    ) : (
+                      /* Text/batch mode output */
+                      <>
+                        {terminalHistory.length === 0 && !terminalRunning && (
+                          <div style={{ color: '#555' }}>
+                            <div className="mt-1" style={{ color: '#555', fontSize: 12 }}>
+                              Nhập stdin ở trên rồi bấm Run để chạy code.
+                            </div>
+                          </div>
+                        )}
+                        {terminalHistory.map((entry, idx) => (
+                          <div key={idx}>
+                            {entry.result?.compile && entry.result.compile.code !== 0 && (
+                              <pre className="whitespace-pre-wrap" style={{ color: '#f44' }}>{entry.result.compile.output}</pre>
+                            )}
+                            {entry.result?.run?.stdout && (
+                              <pre className="whitespace-pre-wrap" style={{ color: '#e0e0e0' }}>{entry.result.run.stdout}</pre>
+                            )}
+                            {entry.stdin && (
+                              <pre className="whitespace-pre-wrap" style={{ color: '#27c93f' }}>{entry.stdin}</pre>
+                            )}
+                            {entry.result?.run?.stderr && (
+                              <pre className="whitespace-pre-wrap" style={{ color: '#f4a' }}>{entry.result.run.stderr}</pre>
+                            )}
+                            {entry.error && (
+                              <pre className="whitespace-pre-wrap" style={{ color: '#f44' }}>{entry.error}</pre>
+                            )}
+                            {entry.result && (
+                              <div className="mt-1" style={{ color: '#27c93f', fontSize: 12 }}>
+                                ...Program finished with exit code {entry.result.run?.code ?? '?'}
+                                {entry.result.run?.wall_time != null && <span style={{ color: '#555' }}> ({entry.result.run.wall_time}ms)</span>}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        {terminalRunning && (
+                          <div className="flex items-center gap-2" style={{ color: '#888', fontSize: 12 }}>
+                            <Icon name="progress_activity" size={13} className="animate-spin" />
+                            Compiling and executing...
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* ── Input line ── */}
+                  {!terminalMultiline && (
+                    <div className="flex items-center gap-0 shrink-0" style={{ background: '#000', borderTop: '1px solid #222' }}>
+                      <input
+                        ref={terminalInputRef}
+                        type="text"
+                        value={terminalInput}
+                        onChange={(e) => setTerminalInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (interactiveExec.running) {
+                              handleSendStdin();
+                            } else {
+                              handleRunTerminal();
+                            }
+                          }
+                          if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            if (inputHistoryRef.current.length > 0) {
+                              const newIdx = Math.min(inputHistoryIdxRef.current + 1, inputHistoryRef.current.length - 1);
+                              inputHistoryIdxRef.current = newIdx;
+                              setTerminalInput(inputHistoryRef.current[inputHistoryRef.current.length - 1 - newIdx]);
+                            }
+                          }
+                          if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            if (inputHistoryIdxRef.current > 0) {
+                              const newIdx = inputHistoryIdxRef.current - 1;
+                              inputHistoryIdxRef.current = newIdx;
+                              setTerminalInput(inputHistoryRef.current[inputHistoryRef.current.length - 1 - newIdx]);
+                            } else {
+                              inputHistoryIdxRef.current = -1;
+                              setTerminalInput('');
+                            }
+                          }
+                        }}
+                        placeholder={interactiveExec.running ? 'Nhập input rồi bấm Enter...' : ''}
+                        className="flex-1 outline-none font-mono text-[13px] px-3 py-1.5"
+                        style={{ background: '#000', color: '#27c93f', caretColor: '#27c93f' }}
+                      />
                     </div>
-                  </section>
+                  )}
                 </div>
               ) : (
                 <div>

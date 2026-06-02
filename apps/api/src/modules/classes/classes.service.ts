@@ -32,25 +32,15 @@ export class ClassesService extends TypeOrmCrudService<ClassEntity> {
    * Wrapped in a transaction so the row + sessions land atomically.
    */
   async createWithSessions(dto: CreateClassDto): Promise<ClassEntity> {
-    if (dto.instructorId) {
-      const instructor = await this.users.findOne({ where: { id: dto.instructorId } });
-      if (!instructor) {
-        throw new BadRequestException(`Instructor ${dto.instructorId} not found`);
-      }
-    }
-
     return this.ds.transaction(async (tx) => {
       const cls = tx.getRepository(ClassEntity).create({
         name: dto.name,
         code: dto.code,
-        department: dto.department,
         description: dto.description ?? null,
-        room: dto.room ?? null,
         capacity: dto.capacity,
         enrolledCount: 0,
         status: dto.status ?? ClassStatus.UPCOMING,
         term: dto.term,
-        instructorId: dto.instructorId ?? null,
       });
       const saved = await tx.getRepository(ClassEntity).save(cls);
 
@@ -68,7 +58,7 @@ export class ClassesService extends TypeOrmCrudService<ClassEntity> {
       // Re-fetch with the eager-loaded sessions populated
       const loaded = await tx.getRepository(ClassEntity).findOne({
         where: { id: saved.id },
-        relations: ['sessions', 'instructor'],
+        relations: ['sessions'],
       });
       if (!loaded) throw new NotFoundException();
       return loaded;
@@ -83,24 +73,16 @@ export class ClassesService extends TypeOrmCrudService<ClassEntity> {
     const cls = await this.repo.findOne({ where: { id } });
     if (!cls) throw new NotFoundException(`Class ${id} not found`);
 
-    if (dto.instructorId) {
-      const instructor = await this.users.findOne({ where: { id: dto.instructorId } });
-      if (!instructor) {
-        throw new BadRequestException(`Instructor ${dto.instructorId} not found`);
-      }
-    }
+
 
     return this.ds.transaction(async (tx) => {
       const patch: Partial<ClassEntity> = {};
       if (dto.name !== undefined) patch.name = dto.name;
       if (dto.code !== undefined) patch.code = dto.code;
-      if (dto.department !== undefined) patch.department = dto.department;
       if (dto.description !== undefined) patch.description = dto.description ?? null;
-      if (dto.room !== undefined) patch.room = dto.room ?? null;
       if (dto.capacity !== undefined) patch.capacity = dto.capacity;
       if (dto.status !== undefined) patch.status = dto.status;
       if (dto.term !== undefined) patch.term = dto.term;
-      if (dto.instructorId !== undefined) patch.instructorId = dto.instructorId ?? null;
 
       if (Object.keys(patch).length > 0) {
         await tx.getRepository(ClassEntity).update(id, patch);
@@ -123,7 +105,7 @@ export class ClassesService extends TypeOrmCrudService<ClassEntity> {
 
       const loaded = await tx.getRepository(ClassEntity).findOne({
         where: { id },
-        relations: ['sessions', 'instructor'],
+        relations: ['sessions'],
       });
       if (!loaded) throw new NotFoundException();
       return loaded;

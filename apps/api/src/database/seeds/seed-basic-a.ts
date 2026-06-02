@@ -9,7 +9,7 @@ import { Course } from '../../modules/courses/course.entity';
 import { Assignment } from '../../modules/assignments/assignment.entity';
 import { ClassCourse } from '../../modules/classes/class-course.entity';
 import { CourseAssignment } from '../../modules/courses/course-assignment.entity';
-import { UserRole, ClassDepartment, ClassStatus, AssignmentType, PublishStatus } from '@cp/shared';
+import { UserRole, ClassStatus, AssignmentType, PublishStatus } from '@cp/shared';
 
 async function run() {
   console.log('🚀 Starting Automated Seed Script for BASIC A...');
@@ -44,14 +44,11 @@ async function run() {
     basicAClass = new ClassEntity();
     basicAClass.name = 'BASIC A';
     basicAClass.code = classCode;
-    basicAClass.department = ClassDepartment.SCIENCE;
     basicAClass.description = 'Lớp học lập trình thi đấu cơ bản dành cho người mới bắt đầu. Tập trung vào cấu trúc dữ liệu và thuật toán cơ sở.';
-    basicAClass.room = 'Phòng 101';
     basicAClass.capacity = 30;
     basicAClass.enrolledCount = 0;
     basicAClass.status = ClassStatus.ACTIVE;
     basicAClass.term = 'Học kỳ Hè 2026';
-    basicAClass.instructor = admin;
     basicAClass = await classRepo.save(basicAClass);
     console.log('✅ Class "BASIC A" created.');
   } else {
@@ -168,7 +165,34 @@ async function run() {
         title = lines[0].replace('# ', '').trim();
       }
 
-      const description = mdContent;
+      const cleanLines: string[] = [];
+      let skipMode = false;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const lowerLine = line.trim().toLowerCase();
+        
+        if (i === 0 && line.startsWith('# ')) continue;
+        if (lowerLine.includes('time limit per test')) continue;
+        if (lowerLine.includes('memory limit per test')) continue;
+        if (lowerLine.includes('đề bài') && line.startsWith('#')) continue;
+        
+        if (lowerLine.startsWith('### example') || lowerLine.startsWith('### ví dụ')) {
+          skipMode = true;
+          continue;
+        }
+        
+        if (skipMode) {
+          if (line.startsWith('#')) {
+            skipMode = false;
+          } else {
+            continue;
+          }
+        }
+        
+        cleanLines.push(line);
+      }
+      
+      const description = cleanLines.join('\n').trim();
 
       // Extract alphanumeric prefix for slug (e.g. "A", "B", "C")
       const prefixMatch = problemName.match(/^([a-zA-Z0-9]+)\./);
@@ -235,8 +259,8 @@ async function run() {
       assignment.slug = slug;
       assignment.tags = ['basics', folderName.replace(/^\d+\.\s*/, '').toLowerCase()];
       assignment.codingConfig = {
-        timeLimit: 2,
-        memoryLimit: 256,
+        timeLimit: 1,
+        memoryLimit: 1024,
         checkerType: 'exact' as const,
         allowedLanguages: ['cpp', 'python', 'java', 'javascript'],
         testCases

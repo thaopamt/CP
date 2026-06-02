@@ -11,7 +11,6 @@ import {
   WizardSteps,
 } from '@cp/ui';
 import {
-  ClassDepartment,
   DayOfWeek,
   ICreateClassPayload,
 } from '@cp/shared';
@@ -28,12 +27,9 @@ type SessionDraft = {
 type Draft = {
   name: string;
   code: string;
-  department: ClassDepartment;
   description: string;
   term: string;
-  room: string;
   capacity: number;
-  instructorId: string;
   sessions: SessionDraft[];
 };
 
@@ -71,12 +67,9 @@ export default function ClassEditPage() {
       setDraft({
         name: cls.name,
         code: cls.code,
-        department: cls.department,
         description: cls.description ?? '',
         term: cls.term,
-        room: cls.room ?? '',
         capacity: cls.capacity,
-        instructorId: cls.instructor?.id ?? '',
         sessions: cls.sessions.map((s) => ({
           dayOfWeek: s.dayOfWeek,
           startTime: s.startTime.slice(0, 5), // "09:00:00" → "09:00"
@@ -155,12 +148,9 @@ export default function ClassEditPage() {
     const payload: Partial<ICreateClassPayload> = {
       name: draft!.name.trim(),
       code: draft!.code.trim(),
-      department: draft!.department,
       description: draft!.description || undefined,
       capacity: draft!.capacity,
       term: draft!.term,
-      room: draft!.room || undefined,
-      instructorId: draft!.instructorId.trim() || undefined,
       sessions: draft!.sessions.map((s) => ({
         dayOfWeek: s.dayOfWeek,
         startTime: s.startTime,
@@ -260,15 +250,7 @@ export default function ClassEditPage() {
               />
             </FormField>
 
-            <SelectFilter
-              label={t('pages.admin.classes.create.fields.department')}
-              value={draft.department}
-              onChange={(e) => patch({ department: e.target.value as ClassDepartment })}
-              options={Object.values(ClassDepartment).map((d) => ({
-                value: d,
-                label: t(`enums.classDepartment.${d}`),
-              }))}
-            />
+
 
             <FormField
               label={t('pages.admin.classes.create.fields.description')}
@@ -390,29 +372,7 @@ export default function ClassEditPage() {
               />
             </FormField>
 
-            <FormField label={t('pages.admin.classes.create.fields.room')} className="md:col-span-2">
-              <input
-                type="text"
-                value={draft.room}
-                onChange={(e) => patch({ room: e.target.value })}
-                placeholder={t('pages.admin.classes.create.fields.roomPh')}
-                className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-              />
-            </FormField>
 
-            <FormField
-              label={t('pages.admin.classes.create.fields.instructor')}
-              hint={t('pages.admin.classes.create.fields.instructorHint')}
-              className="md:col-span-2"
-            >
-              <input
-                type="text"
-                value={draft.instructorId}
-                onChange={(e) => patch({ instructorId: e.target.value })}
-                placeholder="usr-…"
-                className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none font-mono text-[13px]"
-              />
-            </FormField>
           </div>
         )}
       </div>

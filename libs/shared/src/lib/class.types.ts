@@ -20,13 +20,6 @@ export const CLASS_STATUS_LABEL: Record<ClassStatus, string> = {
   [ClassStatus.ARCHIVED]: 'Archived',
 };
 
-export enum ClassDepartment {
-  MATHEMATICS = 'MATHEMATICS',
-  SCIENCE = 'SCIENCE',
-  HUMANITIES = 'HUMANITIES',
-  ARTS = 'ARTS',
-}
-
 export enum DayOfWeek {
   MON = 'MON',
   TUE = 'TUE',
@@ -81,10 +74,7 @@ export interface IClass {
   name: string;
   /** Course code, e.g. "MATH-301" */
   code: string;
-  department: ClassDepartment;
   description?: string | null;
-  /** Default room — sessions can override */
-  room?: string | null;
   capacity: number;
   /** Enrollment count, denormalized for the list page */
   enrolledCount: number;
@@ -93,8 +83,6 @@ export interface IClass {
   term: string;
   /** 0..100 — denormalized for the detail-page KPI */
   attendanceRate?: number;
-  /** Null when the class hasn't been assigned a primary instructor yet */
-  instructor: IClassInstructor | null;
   sessions: IClassMeeting[];
   createdAt: string;
   updatedAt: string;
@@ -118,13 +106,9 @@ export interface IClassEnrollment {
 export interface ICreateClassPayload {
   name: string;
   code: string;
-  department: ClassDepartment;
   description?: string;
   capacity: number;
   term: string;
-  room?: string;
-  /** Optional — class can be created unassigned and the instructor set later */
-  instructorId?: string;
   sessions: Array<{
     dayOfWeek: DayOfWeek;
     startTime: string;

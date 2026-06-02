@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Icon, PageHeader, SelectFilter, WeekGrid, cn } from '@cp/ui';
 import {
-  ClassDepartment,
   ClassStatus,
   DayOfWeek,
   IClass,
@@ -15,14 +14,6 @@ import { useClassesList } from '../../api/class.queries';
 import { useAllCustomSchedules } from '../../api/attendance.queries';
 
 type View = 'week' | 'month';
-
-// Department → SubjectTrack mapping drives the colour stripe on event cards.
-const DEPARTMENT_TRACK: Record<ClassDepartment, SubjectTrack> = {
-  [ClassDepartment.MATHEMATICS]: SubjectTrack.MATH,
-  [ClassDepartment.SCIENCE]: SubjectTrack.SCIENCE,
-  [ClassDepartment.HUMANITIES]: SubjectTrack.HUMANITIES,
-  [ClassDepartment.ARTS]: SubjectTrack.ARTS,
-};
 
 // Full 7-day week — Mon (0) … Sun (6).
 const WEEKDAY_INDEX: Record<DayOfWeek, number> = {
@@ -77,7 +68,7 @@ function flattenEvents(classes: IClass[], customSchedules: IStudentScheduleSessi
 
   for (const cls of classes) {
     if (cls.status === ClassStatus.ARCHIVED) continue;
-    const track = DEPARTMENT_TRACK[cls.department];
+    const track = SubjectTrack.SCIENCE; // Default track since department is removed
     for (const m of cls.sessions) {
       const day = WEEKDAY_INDEX[m.dayOfWeek];
       const startMinutes = timeToMinutes(m.startTime);
@@ -130,7 +121,7 @@ function flattenEvents(classes: IClass[], customSchedules: IStudentScheduleSessi
       day,
       startMinutes,
       durationMin: Math.max(15, endMinutes - startMinutes),
-      track: DEPARTMENT_TRACK[cls.department],
+      track: SubjectTrack.SCIENCE,
       isCustom: true,
     });
   }
@@ -164,7 +155,6 @@ import { AttendancePanel } from './AttendancePanel';
 export default function AdminSchedulePage() {
   const { t } = useTranslation();
   const [view, setView] = useState<View>('week');
-  const [department, setDepartment] = useState<ClassDepartment | 'all'>('all');
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeekMon(new Date()));
   const [selectedAttendance, setSelectedAttendance] = useState<{ classId: string; date: string } | null>(null);
 
@@ -179,7 +169,6 @@ export default function AdminSchedulePage() {
   const { data, isLoading, isError, error } = useClassesList({
     page: 1,
     limit: 200,
-    department,
     status: 'all',
   });
 
@@ -325,18 +314,7 @@ export default function AdminSchedulePage() {
                   })
                 : t('pages.admin.schedule.conflict')}
             </span>
-            <SelectFilter
-              label={t('common.department')}
-              value={department}
-              onChange={(e) => setDepartment(e.target.value as ClassDepartment | 'all')}
-              options={[
-                { value: 'all', label: t('common.all') },
-                ...Object.values(ClassDepartment).map((d) => ({
-                  value: d,
-                  label: t(`enums.classDepartment.${d}`),
-                })),
-              ]}
-            />
+
           </div>
         </div>
 

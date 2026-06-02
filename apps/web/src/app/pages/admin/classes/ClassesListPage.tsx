@@ -17,7 +17,6 @@ import {
   useConfirm,
 } from '@cp/ui';
 import {
-  ClassDepartment,
   ClassStatus,
   DayOfWeek,
   IClass,
@@ -33,7 +32,6 @@ export default function ClassesListPage() {
   const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
-  const [department, setDepartment] = useState<'all' | ClassDepartment>('all');
   const [status, setStatus] = useState<ClassStatus | 'all'>('all');
   const confirm = useConfirm();
   const [page, setPage] = useState(1);
@@ -43,7 +41,6 @@ export default function ClassesListPage() {
     page,
     limit: PAGE_SIZE,
     search,
-    department,
     status,
   });
   const deleteClass = useDeleteClass();
@@ -93,37 +90,7 @@ export default function ClassesListPage() {
           </button>
         ),
       },
-      {
-        key: 'department',
-        header: t('pages.admin.classes.list.columns.department'),
-        cell: (row) => (
-          <span className="text-on-surface-variant">{t(`enums.classDepartment.${row.department}`)}</span>
-        ),
-      },
-      {
-        key: 'instructor',
-        header: t('pages.admin.classes.list.columns.instructor'),
-        cell: (row) => {
-          if (!row.instructor) {
-            return (
-              <div className="flex items-center gap-sm">
-                <span className="w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant grid place-items-center">
-                  <Icon name="person_off" size={16} />
-                </span>
-                <span className="text-on-surface-variant italic">
-                  {t('pages.admin.classes.list.unassignedInstructor')}
-                </span>
-              </div>
-            );
-          }
-          return (
-            <div className="flex items-center gap-sm">
-              <Avatar size="sm" initials={initials(row.instructor.fullName)} src={row.instructor.avatarUrl ?? undefined} />
-              <span className="text-on-surface truncate">{row.instructor.fullName}</span>
-            </div>
-          );
-        },
-      },
+
       {
         key: 'schedule',
         header: t('pages.admin.classes.list.columns.schedule'),
@@ -133,11 +100,7 @@ export default function ClassesListPage() {
           </span>
         ),
       },
-      {
-        key: 'room',
-        header: t('pages.admin.classes.list.columns.room'),
-        cell: (row) => <span className="text-on-surface-variant">{row.room ?? '—'}</span>,
-      },
+
       {
         key: 'enrollment',
         header: t('pages.admin.classes.list.columns.enrollment'),
@@ -233,18 +196,7 @@ export default function ClassesListPage() {
           onChange={resetPage(setSearch)}
           placeholder={t('pages.admin.classes.list.searchPlaceholder')}
         />
-        <SelectFilter
-          label={t('pages.admin.classes.list.filters.departmentLabel')}
-          value={department}
-          onChange={(e) => resetPage(setDepartment)(e.target.value as typeof department)}
-          options={[
-            { value: 'all', label: t('pages.admin.classes.list.filters.departmentAll') },
-            ...Object.values(ClassDepartment).map((d) => ({
-              value: d,
-              label: t(`enums.classDepartment.${d}`),
-            })),
-          ]}
-        />
+
         <SelectFilter
           label={t('pages.admin.classes.list.filters.statusLabel')}
           value={status}

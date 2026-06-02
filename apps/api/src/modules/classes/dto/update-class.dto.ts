@@ -12,7 +12,6 @@ import {
   ValidateNested,
 } from 'class-validator';
 import {
-  ClassDepartment,
   ClassStatus,
 } from '@cp/shared';
 import { ClassSessionDto } from './create-class.dto';
@@ -29,10 +28,6 @@ export class UpdateClassDto {
   code?: string;
 
   @IsOptional()
-  @IsEnum(ClassDepartment)
-  department?: ClassDepartment;
-
-  @IsOptional()
   @IsString()
   description?: string;
 
@@ -45,15 +40,6 @@ export class UpdateClassDto {
   @IsString()
   @Length(1, 100)
   term?: string;
-
-  @IsOptional()
-  @IsString()
-  @Length(1, 100)
-  room?: string;
-
-  @IsOptional()
-  @IsUUID()
-  instructorId?: string;
 
   @IsOptional()
   @IsArray()

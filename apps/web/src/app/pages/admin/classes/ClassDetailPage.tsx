@@ -224,15 +224,12 @@ export default function ClassDetailPage() {
           <Breadcrumb
             items={[
               { label: t('nav.admin.classes'), onClick: () => navigate('/admin/classes') },
-              { label: t(`enums.classDepartment.${cls.department}`) },
               { label: `${cls.name} (${cls.code})` },
             ]}
           />
         }
         eyebrow={
           <div className="flex items-center gap-sm text-label-sm text-on-surface-variant">
-            <span>{t(`enums.classDepartment.${cls.department}`)}</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-outline-variant" />
             <span>{cls.term}</span>
           </div>
         }
@@ -285,54 +282,11 @@ export default function ClassDetailPage() {
           value={nextSession ? `${dayLabel(nextSession.dayOfWeek)} · ${formatTime(nextSession.startTime)}` : '—'}
           caption={t('pages.admin.classes.detail.kpi.nextSessionAt', {
             when: nextSession ? `${dayLabel(nextSession.dayOfWeek)} ${formatTime(nextSession.startTime)}` : '—',
-            room: cls.room ?? '—',
+            room: nextSession?.room ?? '—',
           })}
           highlight
         />
-        <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-md flex items-center gap-md">
-          {cls.instructor ? (
-            <>
-              <Avatar
-                size="lg"
-                initials={initials(cls.instructor.fullName)}
-                src={cls.instructor.avatarUrl ?? undefined}
-              />
-              <div className="flex-1 min-w-0">
-                <div className="text-[11px] text-on-surface-variant uppercase tracking-wider">
-                  {t('pages.admin.classes.detail.kpi.instructor')}
-                </div>
-                <div className="text-on-surface font-semibold truncate">{cls.instructor.fullName}</div>
-                <div className="text-[12px] text-on-surface-variant truncate">
-                  {cls.instructor.title ?? cls.instructor.email}
-                </div>
-              </div>
-              <a
-                href={`mailto:${cls.instructor.email}`}
-                className="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high"
-                aria-label={t('pages.admin.classes.detail.kpi.contactInstructor')}
-              >
-                <Icon name="mail" />
-              </a>
-            </>
-          ) : (
-            <>
-              <span className="w-12 h-12 rounded-full bg-surface-container-high text-on-surface-variant grid place-items-center">
-                <Icon name="person_off" />
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="text-[11px] text-on-surface-variant uppercase tracking-wider">
-                  {t('pages.admin.classes.detail.kpi.instructor')}
-                </div>
-                <div className="text-on-surface-variant italic">
-                  {t('pages.admin.classes.list.unassignedInstructor')}
-                </div>
-              </div>
-              <Button variant="ghost" size="sm" leadingIcon={<Icon name="person_add" size={16} />}>
-                {t('common.add')}
-              </Button>
-            </>
-          )}
-        </div>
+
       </section>
 
       <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl shadow-elev-1 overflow-hidden">
@@ -398,7 +352,7 @@ export default function ClassDetailPage() {
                             <div className="text-[12px] text-on-surface font-semibold">
                               {formatTime(s.startTime)}–{formatTime(s.endTime)}
                             </div>
-                            <div className="text-[11px] text-on-surface-variant">{s.room ?? cls.room}</div>
+                            <div className="text-[11px] text-on-surface-variant">{s.room ?? '—'}</div>
                           </div>
                         ))}
                       </div>

@@ -13,7 +13,6 @@ import {
   ValidateNested,
 } from 'class-validator';
 import {
-  ClassDepartment,
   ClassStatus,
   DayOfWeek,
   ICreateClassPayload,
@@ -47,9 +46,6 @@ export class CreateClassDto implements ICreateClassPayload {
   @Length(1, 50)
   code!: string;
 
-  @IsEnum(ClassDepartment)
-  department!: ClassDepartment;
-
   @IsOptional()
   @IsString()
   description?: string;
@@ -61,15 +57,6 @@ export class CreateClassDto implements ICreateClassPayload {
   @IsString()
   @Length(1, 100)
   term!: string;
-
-  @IsOptional()
-  @IsString()
-  @Length(1, 100)
-  room?: string;
-
-  @IsOptional()
-  @IsUUID()
-  instructorId?: string;
 
   @IsArray()
   @ArrayMinSize(1)

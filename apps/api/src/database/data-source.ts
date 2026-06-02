@@ -37,11 +37,8 @@ loadEnv({ path: join(process.cwd(), '.env') });
  */
 export const AppDataSource = new DataSource({
   type: 'postgres',
-  host: process.env.DB_HOST ?? 'localhost',
-  port: Number(process.env.DB_PORT ?? 5432),
-  username: process.env.DB_USER ?? 'cp',
-  password: process.env.DB_PASSWORD ?? 'cp',
-  database: process.env.DB_NAME ?? 'cp',
+  url: process.env.DATABASE_URL ?? 'postgresql://cp:cp@localhost:5432/cp',
+  ssl: process.env.DATABASE_URL?.includes('amazonaws.com') ? { rejectUnauthorized: false } : undefined,
   entities: [
     User,
     ClassEntity,

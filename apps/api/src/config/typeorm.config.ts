@@ -10,11 +10,8 @@ export const typeOrmConfig = (cfg: ConfigService): TypeOrmModuleOptions => {
   const isProd = cfg.get('NODE_ENV') === 'production';
   return {
     type: 'postgres',
-    host: cfg.get<string>('DB_HOST'),
-    port: cfg.get<number>('DB_PORT'),
-    username: cfg.get<string>('DB_USER'),
-    password: cfg.get<string>('DB_PASSWORD'),
-    database: cfg.get<string>('DB_NAME'),
+    url: cfg.get<string>('DATABASE_URL'),
+    ssl: cfg.get<string>('DATABASE_URL')?.includes('amazonaws.com') ? { rejectUnauthorized: false } : undefined,
     autoLoadEntities: true,
     synchronize: !isProd,
     logging: isProd ? ['error'] : ['error', 'warn'],
