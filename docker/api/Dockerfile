@@ -15,7 +15,7 @@ RUN pnpm nx build api --configuration=production
 
 # ── Stage 3: Production image ─────────────────────────────────────────
 FROM node:20-alpine AS runner
-RUN apk add --no-cache dumb-init
+RUN apk add --no-cache dumb-init docker-cli
 WORKDIR /app
 
 # Copy built output (Webpack generates package.json via generatePackageJson)

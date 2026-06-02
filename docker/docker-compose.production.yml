@@ -40,6 +40,11 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://cp.thaopamt.site}
+      PISTON_API_URL: http://piston_api:2000/api/v2/execute
+      PISTON_CONTAINER: piston_api
+    user: root
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "127.0.0.1:3000:3000"
 
