@@ -168,7 +168,7 @@ async function run() {
       const cleanLines: string[] = [];
       let skipMode = false;
       for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+        let line = lines[i];
         const lowerLine = line.trim().toLowerCase();
         
         if (i === 0 && line.startsWith('# ')) continue;
@@ -187,6 +187,22 @@ async function run() {
           } else {
             continue;
           }
+        }
+        
+        // Format Yêu cầu, Input, Output, Note, Scoring to highlight and render correctly
+        if (lowerLine === '### input' || lowerLine === 'input' || lowerLine === '**input**') {
+          line = '\n**Input**\n';
+        } else if (lowerLine === '### output' || lowerLine === 'output' || lowerLine === '**output**') {
+          line = '\n**Output**\n';
+        } else if (lowerLine === '### note' || lowerLine === 'note' || lowerLine === '**note**' || lowerLine === '### chú thích') {
+          line = '\n**Note**\n';
+        } else if (lowerLine === '### scoring' || lowerLine === 'scoring' || lowerLine === '**scoring**') {
+          line = '\n**Scoring**\n';
+        } else if (lowerLine.startsWith('yêu cầu:') || lowerLine.startsWith('**yêu cầu:**')) {
+          if (!line.includes('**')) {
+            line = line.replace(/Yêu cầu:/i, '**Yêu cầu:**');
+          }
+          line = '\n' + line + '\n';
         }
         
         cleanLines.push(line);
