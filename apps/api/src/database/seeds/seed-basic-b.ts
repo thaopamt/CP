@@ -9,11 +9,11 @@ import { Course } from '../../modules/courses/course.entity';
 import { Assignment } from '../../modules/assignments/assignment.entity';
 import { ClassCourse } from '../../modules/classes/class-course.entity';
 import { CourseAssignment } from '../../modules/courses/course-assignment.entity';
-import { UserRole, ClassDepartment, ClassStatus, AssignmentType, PublishStatus } from '@cp/shared';
+import { ClassDepartment, ClassStatus, AssignmentType, PublishStatus } from '@cp/shared';
 
 async function run() {
-  console.log('🚀 Starting Automated Seed Script for BASIC A...');
-  
+  console.log('🚀 Starting Automated Seed Script for BASIC B...');
+
   if (!AppDataSource.isInitialized) {
     await AppDataSource.initialize();
     console.log('📂 Database connected.');
@@ -29,58 +29,58 @@ async function run() {
   // 1. Fetch Admin User
   const adminEmail = 'admin@zenith.local';
   const admin = await userRepo.findOneBy({ email: adminEmail });
-  
+
   if (!admin) {
     console.error('❌ Admin user Zenith not found! Please run the seed-admin script first.');
     await AppDataSource.destroy();
     process.exit(1);
   }
 
-  // 2. Seed Class "BASIC A"
-  const classCode = 'BASIC-A';
-  let basicAClass = await classRepo.findOneBy({ code: classCode });
-  
-  if (!basicAClass) {
-    basicAClass = new ClassEntity();
-    basicAClass.name = 'BASIC A';
-    basicAClass.code = classCode;
-    basicAClass.department = ClassDepartment.SCIENCE;
-    basicAClass.description = 'Lớp học lập trình thi đấu cơ bản dành cho người mới bắt đầu. Tập trung vào cấu trúc dữ liệu và thuật toán cơ sở.';
-    basicAClass.room = 'Phòng 101';
-    basicAClass.capacity = 30;
-    basicAClass.enrolledCount = 0;
-    basicAClass.status = ClassStatus.ACTIVE;
-    basicAClass.term = 'Học kỳ Hè 2026';
-    basicAClass.instructor = admin;
-    basicAClass = await classRepo.save(basicAClass);
-    console.log('✅ Class "BASIC A" created.');
+  // 2. Seed Class "BASIC B"
+  const classCode = 'BASIC-B';
+  let basicBClass = await classRepo.findOneBy({ code: classCode });
+
+  if (!basicBClass) {
+    basicBClass = new ClassEntity();
+    basicBClass.name = 'BASIC B';
+    basicBClass.code = classCode;
+    basicBClass.department = ClassDepartment.SCIENCE;
+    basicBClass.description = 'Lớp học lập trình thi đấu trung cấp B. Tập trung vào mảng cộng dồn, tiền tố, hậu tố nâng cao, cặp và các kỹ năng sắp xếp.';
+    basicBClass.room = 'Phòng 102';
+    basicBClass.capacity = 30;
+    basicBClass.enrolledCount = 0;
+    basicBClass.status = ClassStatus.ACTIVE;
+    basicBClass.term = 'Học kỳ Hè 2026';
+    basicBClass.instructor = admin;
+    basicBClass = await classRepo.save(basicBClass);
+    console.log('✅ Class "BASIC B" created.');
   } else {
-    console.log('ℹ️ Class "BASIC A" already exists.');
+    console.log('ℹ️ Class "BASIC B" already exists.');
   }
 
   // 3. Clean up any previous automatic courses and assignments to avoid duplicates
-  console.log('🧹 Cleaning up old BASIC-A courses and assignments...');
+  console.log('🧹 Cleaning up old BASIC-B courses and assignments...');
   const oldCourses = await courseRepo.createQueryBuilder('course')
-    .where("course.code LIKE 'BASIC-A-%'")
+    .where("course.code LIKE 'BASIC-B-%'")
     .getMany();
-  
+
   const oldCourseIds = oldCourses.map(c => c.id);
   if (oldCourseIds.length > 0) {
     await courseAssignmentRepo.createQueryBuilder()
       .delete()
       .where("course_id IN (:...ids)", { ids: oldCourseIds })
       .execute();
-      
+
     await classCourseRepo.createQueryBuilder()
       .delete()
       .where("course_id IN (:...ids)", { ids: oldCourseIds })
       .execute();
-      
+
     await assignmentRepo.createQueryBuilder()
       .delete()
-      .where("slug LIKE 'basica-%'")
+      .where("slug LIKE 'basicb-%'")
       .execute();
-      
+
     await courseRepo.createQueryBuilder()
       .delete()
       .where("id IN (:...ids)", { ids: oldCourseIds })
@@ -89,7 +89,7 @@ async function run() {
   }
 
   // 4. Read the Topic folders dynamically
-  const baseDir = path.join(process.cwd(), 'database/BASIC_A');
+  const baseDir = path.join(process.cwd(), 'database/BASIC_B');
   if (!fs.existsSync(baseDir)) {
     console.error(`❌ Base directory not found: ${baseDir}`);
     await AppDataSource.destroy();
@@ -109,30 +109,29 @@ async function run() {
     const folderName = topicFolders[t];
     const topicIndex = t + 1;
     const topicPath = path.join(baseDir, folderName);
-    
+
     // Create Course for this topic
-    const courseCode = `BASIC-A-0${topicIndex}`;
-    // Replace underscores with colons for a cleaner premium title
+    const courseCode = `BASIC-B-0${topicIndex}`;
     const courseTitle = folderName.replace('_', ':');
-    
+
     console.log(`📖 Processing Topic ${topicIndex}: ${courseTitle}`);
-    
+
     const course = new Course();
     course.code = courseCode;
     course.title = courseTitle;
-    course.description = `Chuyên đề số ${topicIndex} thuộc lộ trình đào tạo lập trình BASIC A.`;
+    course.description = `Chuyên đề số ${topicIndex} thuộc lộ trình đào tạo lập trình BASIC B.`;
     course.credits = 1.0;
     course.durationWeeks = 2;
     course.subject = 'Computer Science';
     course.status = PublishStatus.PUBLISHED;
     course.assignmentCount = 0;
     course.totalPoints = 0;
-    
+
     const savedCourse = await courseRepo.save(course);
-    
+
     // Link Course to Class
     const classCourseLink = new ClassCourse();
-    classCourseLink.classId = basicAClass.id;
+    classCourseLink.classId = basicBClass.id;
     classCourseLink.courseId = savedCourse.id;
     classCourseLink.orderIndex = topicIndex;
     classCourseLink.isRequired = true;
@@ -140,10 +139,8 @@ async function run() {
 
     // Read all files in the topic folder
     const allFiles = fs.readdirSync(topicPath);
-    
-    // Filter for markdown files and sort alphabetically
     const mdFiles = allFiles.filter(f => f.endsWith('.md')).sort();
-    
+
     let coursePointsSum = 0;
     let courseAssignmentCount = 0;
 
@@ -152,17 +149,11 @@ async function run() {
       const problemName = mdFile.replace('.md', '');
       const mdFilePath = path.join(topicPath, mdFile);
       const zipFilePath = path.join(topicPath, `${problemName}.zip`);
-      
-      if (!fs.existsSync(zipFilePath)) {
-        console.warn(`⚠️ Missing zip file for problem: ${problemName}, skipping...`);
-        continue;
-      }
 
-      // Parse assignment metadata
       const mdContent = fs.readFileSync(mdFilePath, 'utf-8');
       const lines = mdContent.split('\n');
-      
-      // Extract title: if the first line starts with "# ", use it (excluding prefix symbol)
+
+      // Extract title
       let title = problemName;
       if (lines[0] && lines[0].startsWith('# ')) {
         title = lines[0].replace('# ', '').trim();
@@ -170,58 +161,75 @@ async function run() {
 
       const description = mdContent;
 
-      // Extract alphanumeric prefix for slug (e.g. "A", "B", "C")
+      // Extract prefix for slug (e.g. "A", "B", "C")
       const prefixMatch = problemName.match(/^([a-zA-Z0-9]+)\./);
       const prefix = prefixMatch ? prefixMatch[1].toLowerCase() : problemName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
-      const slug = `basica-0${topicIndex}-${prefix}`;
+      const slug = `basicb-0${topicIndex}-${prefix}`;
 
-      // Intelligent difficulty & points assignment
-      // If contains "Max", "Min", "chia dư", "vòng tròn", "giai thừa", "hoàn hảo", set as MEDIUM
-      const isMedium = /max|min|modulo|chia dư|vòng tròn|giai thừa|hoàn hảo/i.test(problemName) || /max|min|modulo|remainder|circle|factorial|perfect/i.test(title);
-      const difficulty = isMedium ? ('MEDIUM' as const) : ('EASY' as const);
-      const points = isMedium ? 20 : 10;
+      // Difficulty & points assignment
+      const isHard = /nâng cao|độ đẹp|bộ ba số|ghép đội|gcd|đắp núi/i.test(problemName) || /nâng cao|hard|expert|advanced/i.test(title);
+      const difficulty = isHard ? ('HARD' as const) : ('MEDIUM' as const);
+      const points = isHard ? 30 : 20;
 
       console.log(`  📝 Seeding Assignment: ${title} [${difficulty} - ${points} pts] (slug: ${slug})`);
 
-      // Unzip and parse test cases using JSZip
-      const zipBuffer = fs.readFileSync(zipFilePath);
-      const zip = await JSZip.loadAsync(zipBuffer);
-      const zipFileNames = Object.keys(zip.files);
-      
-      // Find inp files, sort them naturally
-      const inpFiles = zipFileNames.filter(name => name.endsWith('.inp')).sort((x, y) => {
-        const numX = parseInt(x.replace(/\D/g, ''), 10) || 0;
-        const numY = parseInt(y.replace(/\D/g, ''), 10) || 0;
-        return numX - numY;
-      });
-
       const testCases: any[] = [];
-      // Cap at 10 test cases maximum to maintain high database & engine performance
-      const cappedInpFiles = inpFiles.slice(0, 10);
 
-      for (let i = 0; i < cappedInpFiles.length; i++) {
-        const inpFile = cappedInpFiles[i];
-        const outFile = inpFile.replace('.inp', '.out');
-        
-        // Some zips might have different case (e.g. .OUT)
-        let matchedOutFile = zipFileNames.find(name => name.toLowerCase() === outFile.toLowerCase());
-        
-        if (matchedOutFile) {
-          const inputContent = await zip.files[inpFile].async('text');
-          const outputContent = await zip.files[matchedOutFile].async('text');
-          
-          // First 3 test cases are public, the rest are hidden for thorough testing
-          const isHidden = i >= 3;
-          
-          testCases.push({
-            input: inputContent,
-            output: outputContent,
-            isHidden
-          });
+      if (fs.existsSync(zipFilePath)) {
+        // Unzip and parse test cases using JSZip
+        const zipBuffer = fs.readFileSync(zipFilePath);
+        const zip = await JSZip.loadAsync(zipBuffer);
+        const zipFileNames = Object.keys(zip.files);
+
+        const inpFiles = zipFileNames.filter(name => name.endsWith('.inp')).sort((x, y) => {
+          const numX = parseInt(x.replace(/\D/g, ''), 10) || 0;
+          const numY = parseInt(y.replace(/\D/g, ''), 10) || 0;
+          return numX - numY;
+        });
+
+        const cappedInpFiles = inpFiles.slice(0, 10);
+
+        for (let i = 0; i < cappedInpFiles.length; i++) {
+          const inpFile = cappedInpFiles[i];
+          const outFile = inpFile.replace('.inp', '.out');
+
+          let matchedOutFile = zipFileNames.find(name => name.toLowerCase() === outFile.toLowerCase());
+
+          if (matchedOutFile) {
+            const inputContent = await zip.files[inpFile].async('text');
+            const outputContent = await zip.files[matchedOutFile].async('text');
+            const isHidden = i >= 3;
+
+            testCases.push({
+              input: inputContent,
+              output: outputContent,
+              isHidden
+            });
+          }
         }
+        console.log(`    📊 Loaded ${testCases.length} testcases from zip.`);
+      } else {
+        // Parse from Markdown Example section
+        const exampleIndex = lines.findIndex(line => line.toLowerCase().includes('### example'));
+        if (exampleIndex !== -1) {
+          for (let i = exampleIndex + 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (line.startsWith('|') && !line.toLowerCase().includes('input') && !line.includes(':---')) {
+              const parts = line.split('|').map(p => p.trim()).filter(p => p !== '');
+              if (parts.length >= 2) {
+                const rawInput = parts[0].replace(/<br>/gi, '\n');
+                const rawOutput = parts[1].replace(/<br>/gi, '\n');
+                testCases.push({
+                  input: rawInput,
+                  output: rawOutput,
+                  isHidden: false
+                });
+              }
+            }
+          }
+        }
+        console.log(`    📊 Parsed ${testCases.length} public testcases from markdown Example table.`);
       }
-
-      console.log(`    📊 Loaded ${testCases.length} testcases from zip.`);
 
       // Save Assignment
       const assignment = new Assignment();
@@ -231,9 +239,9 @@ async function run() {
       assignment.difficulty = difficulty;
       assignment.subject = 'Computer Science';
       assignment.points = points;
-      assignment.estimatedMinutes = isMedium ? 30 : 15;
+      assignment.estimatedMinutes = isHard ? 45 : 30;
       assignment.slug = slug;
-      assignment.tags = ['basics', folderName.replace(/^\d+\.\s*/, '').toLowerCase()];
+      assignment.tags = ['basics-b', folderName.replace(/^\d+\.\s*/, '').toLowerCase()];
       assignment.codingConfig = {
         timeLimit: 2000,
         memoryLimit: 262144,
@@ -242,7 +250,7 @@ async function run() {
         testCases
       };
       assignment.status = PublishStatus.PUBLISHED;
-      
+
       const savedAssignment = await assignmentRepo.save(assignment);
 
       // Link Assignment to Course
@@ -261,15 +269,15 @@ async function run() {
     savedCourse.assignmentCount = courseAssignmentCount;
     savedCourse.totalPoints = coursePointsSum;
     await courseRepo.save(savedCourse);
-    
+
     console.log(`✅ Topic ${topicIndex} seeding completed with ${courseAssignmentCount} assignments, total ${coursePointsSum} points.`);
   }
 
-  console.log('🎉 System Seed Completed Successfully! All 5 topics are fully populated with genuine testcases.');
+  console.log('🎉 BASIC B Seeding Completed Successfully!');
   await AppDataSource.destroy();
 }
 
 run().catch((err) => {
-  console.error('❌ Error during seed:', err);
+  console.error('❌ Error during BASIC B seed:', err);
   process.exit(1);
 });

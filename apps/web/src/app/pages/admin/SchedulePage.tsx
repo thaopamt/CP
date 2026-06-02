@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Icon, PageHeader, SelectFilter, WeekGrid } from '@cp/ui';
+import { Button, Icon, PageHeader, SelectFilter, WeekGrid, cn } from '@cp/ui';
 import {
   ClassDepartment,
   ClassStatus,
@@ -168,6 +168,11 @@ export default function AdminSchedulePage() {
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeekMon(new Date()));
   const [selectedAttendance, setSelectedAttendance] = useState<{ classId: string; date: string } | null>(null);
 
+  // Settings for custom timetable layout
+  const [showSettings, setShowSettings] = useState(false);
+  const [stepMinutes, setStepMinutes] = useState<number>(90); // default to 90m (1h30p fixed slot)
+  const [slotPx, setSlotPx] = useState<number>(70); // default cozy height
+
   // ── API combo: classes (with sessions + instructor) drives the entire grid.
   // We over-fetch (limit 200) so a typical institution shows in one page; if
   // your school exceeds that, swap to dedicated `/api/schedule` aggregation.
@@ -211,6 +216,29 @@ export default function AdminSchedulePage() {
 
   const conflictCount = events.filter((e) => e.hasConflict).length;
 
+  // Dynamically calculate the schedule range based on the current week's events
+  const { startMin, endMin } = useMemo(() => {
+    if (events.length === 0) {
+      return { startMin: 480, endMin: 1290 }; // default 8:00 - 21:30
+    }
+    let minStart = 480; // 8:00 default
+    let maxEnd = 1080;  // 18:00 default
+    for (const e of events) {
+      if (e.startMinutes < minStart) {
+        minStart = Math.max(360, Math.floor(e.startMinutes / 60) * 60); // round down to hour (min 6:00)
+      }
+      const eEnd = e.startMinutes + e.durationMin;
+      if (eEnd > maxEnd) {
+        maxEnd = Math.min(1380, Math.ceil(eEnd / 60) * 60); // round up to hour (max 23:00)
+      }
+    }
+    // If it spans past 18:00, extend end to cover evening classes fully (at least until 21:30)
+    if (maxEnd > 1080) {
+      maxEnd = Math.max(maxEnd, 1290);
+    }
+    return { startMin: minStart, endMin: maxEnd };
+  }, [events]);
+
   function shiftWeek(deltaWeeks: number) {
     const next = new Date(weekStart);
     next.setDate(weekStart.getDate() + deltaWeeks * 7);
@@ -242,58 +270,129 @@ export default function AdminSchedulePage() {
         }
       />
 
-      <div className="flex flex-col md:flex-row md:items-center gap-sm md:gap-md bg-surface-container-lowest border border-outline-variant/50 rounded-lg p-md">
-        <div className="flex items-center gap-sm">
-          <button
-            type="button"
-            onClick={() => shiftWeek(-1)}
-            className="p-1 rounded hover:bg-surface-container-high text-on-surface-variant"
-            aria-label={t('pages.admin.schedule.prevWeek')}
-          >
-            <Icon name="chevron_left" />
-          </button>
-          <div className="text-label-sm font-semibold text-on-surface min-w-[180px] text-center">
-            {dateRange}
+      <div className="flex flex-col gap-sm">
+        <div className="flex flex-col md:flex-row md:items-center gap-sm md:gap-md bg-surface-container-lowest border border-outline-variant/50 rounded-lg p-md">
+          <div className="flex items-center gap-sm">
+            <button
+              type="button"
+              onClick={() => shiftWeek(-1)}
+              className="p-1 rounded hover:bg-surface-container-high text-on-surface-variant"
+              aria-label={t('pages.admin.schedule.prevWeek')}
+            >
+              <Icon name="chevron_left" />
+            </button>
+            <div className="text-label-sm font-semibold text-on-surface min-w-[180px] text-center">
+              {dateRange}
+            </div>
+            <button
+              type="button"
+              onClick={() => shiftWeek(1)}
+              className="p-1 rounded hover:bg-surface-container-high text-on-surface-variant"
+              aria-label={t('pages.admin.schedule.nextWeek')}
+            >
+              <Icon name="chevron_right" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setWeekStart(startOfWeekMon(new Date()))}
+              className="ml-sm px-sm py-1 text-label-sm rounded border border-outline-variant text-on-surface-variant hover:bg-surface-container-high"
+            >
+              {t('pages.admin.schedule.today', 'Today')}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => shiftWeek(1)}
-            className="p-1 rounded hover:bg-surface-container-high text-on-surface-variant"
-            aria-label={t('pages.admin.schedule.nextWeek')}
-          >
-            <Icon name="chevron_right" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setWeekStart(startOfWeekMon(new Date()))}
-            className="ml-sm px-sm py-1 text-label-sm rounded border border-outline-variant text-on-surface-variant hover:bg-surface-container-high"
-          >
-            {t('pages.admin.schedule.today', 'Today')}
-          </button>
+
+          <div className="md:ml-auto flex items-center gap-sm md:gap-md">
+            <button
+              type="button"
+              onClick={() => setShowSettings(!showSettings)}
+              className={cn(
+                'p-2 rounded-lg border transition-all flex items-center gap-xs text-label-sm font-medium',
+                showSettings
+                  ? 'bg-primary/10 border-primary/50 text-primary shadow-sm'
+                  : 'border-outline-variant/60 text-on-surface-variant hover:bg-surface-container-high'
+              )}
+            >
+              <Icon name="settings" size={18} />
+              <span>Tùy chỉnh lịch</span>
+            </button>
+
+            <span className="inline-flex items-center gap-xs text-label-sm text-on-surface-variant">
+              <span className="w-2 h-2 rounded-full bg-error" />
+              {conflictCount > 0
+                ? t('pages.admin.schedule.conflictCount', {
+                    count: conflictCount,
+                    defaultValue: '{{count}} conflicts',
+                  })
+                : t('pages.admin.schedule.conflict')}
+            </span>
+            <SelectFilter
+              label={t('common.department')}
+              value={department}
+              onChange={(e) => setDepartment(e.target.value as ClassDepartment | 'all')}
+              options={[
+                { value: 'all', label: t('common.all') },
+                ...Object.values(ClassDepartment).map((d) => ({
+                  value: d,
+                  label: t(`enums.classDepartment.${d}`),
+                })),
+              ]}
+            />
+          </div>
         </div>
-        <div className="md:ml-auto flex items-center gap-md">
-          <span className="inline-flex items-center gap-xs text-label-sm text-on-surface-variant">
-            <span className="w-2 h-2 rounded-full bg-error" />
-            {conflictCount > 0
-              ? t('pages.admin.schedule.conflictCount', {
-                  count: conflictCount,
-                  defaultValue: '{{count}} conflicts',
-                })
-              : t('pages.admin.schedule.conflict')}
-          </span>
-          <SelectFilter
-            label={t('common.department')}
-            value={department}
-            onChange={(e) => setDepartment(e.target.value as ClassDepartment | 'all')}
-            options={[
-              { value: 'all', label: t('common.all') },
-              ...Object.values(ClassDepartment).map((d) => ({
-                value: d,
-                label: t(`enums.classDepartment.${d}`),
-              })),
-            ]}
-          />
-        </div>
+
+        {/* Customized Preferences Bar */}
+        {showSettings && (
+          <div className="flex flex-wrap items-center gap-x-lg gap-y-md bg-surface-container-low border border-outline-variant/30 rounded-lg p-md animate-fade-in">
+            <div className="flex items-center gap-sm">
+              <span className="text-label-sm font-semibold text-on-surface-variant">Suất học định sẵn:</span>
+              <div className="inline-flex rounded-md border border-outline-variant overflow-hidden shadow-sm">
+                {[
+                  { value: 60, label: '1 giờ' },
+                  { value: 90, label: '1h30p (Suất học chuẩn)' },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setStepMinutes(opt.value)}
+                    className={cn(
+                      'px-sm py-1.5 text-label-sm transition-all',
+                      stepMinutes === opt.value
+                        ? 'bg-primary text-on-primary font-medium'
+                        : 'bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high'
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-sm">
+              <span className="text-label-sm font-semibold text-on-surface-variant">Độ thu gọn hàng giờ:</span>
+              <div className="inline-flex rounded-md border border-outline-variant overflow-hidden shadow-sm">
+                {[
+                  { value: 50, label: 'Thu gọn' },
+                  { value: 70, label: 'Vừa vặn' },
+                  { value: 90, label: 'Rộng rãi' },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setSlotPx(opt.value)}
+                    className={cn(
+                      'px-sm py-1.5 text-label-sm transition-all',
+                      slotPx === opt.value
+                        ? 'bg-primary text-on-primary font-medium'
+                        : 'bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high'
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl shadow-elev-1 overflow-hidden relative">
@@ -315,9 +414,10 @@ export default function AdminSchedulePage() {
           <WeekGrid
             dayLabels={dayLabels}
             todayIndex={todayIndex}
-            startMinutes={480}
-            endMinutes={1080}
-            slotPx={80}
+            startMinutes={startMin}
+            endMinutes={endMin}
+            stepMinutes={stepMinutes}
+            slotPx={slotPx}
             events={events}
             onEventClick={handleEventClick}
           />
