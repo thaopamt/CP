@@ -42,6 +42,7 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-https://cp.thaopamt.site}
       PISTON_API_URL: http://piston_api:2000/api/v2/execute
       PISTON_CONTAINER: piston_api
+      PISTON_MAX_MEMORY_LIMIT_BYTES: ${PISTON_MAX_MEMORY_LIMIT_BYTES:-512000000}
     user: root
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -73,8 +74,8 @@ services:
     environment:
       - PISTON_RUN_TIMEOUT=30000
       - PISTON_COMPILE_TIMEOUT=30000
-      - PISTON_RUN_MEMORY_LIMIT=512000000
-      - PISTON_COMPILE_MEMORY_LIMIT=512000000
+      - PISTON_RUN_MEMORY_LIMIT=${PISTON_MAX_MEMORY_LIMIT_BYTES:-512000000}
+      - PISTON_COMPILE_MEMORY_LIMIT=${PISTON_MAX_MEMORY_LIMIT_BYTES:-512000000}
     ports:
       - "127.0.0.1:2000:2000"
     volumes:

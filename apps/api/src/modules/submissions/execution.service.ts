@@ -5,13 +5,21 @@ import { ICodeExecutionResponse, SubmissionStatus } from '@cp/shared';
 
 /** Default limits when not specified by the assignment */
 const DEFAULT_TIME_LIMIT_S = 5;          // 5 seconds
-const DEFAULT_MEMORY_LIMIT_KB = 256_000; // 256 MB
+const DEFAULT_MEMORY_LIMIT_MB = 256;     // 256 MB
 const DEFAULT_COMPILE_TIMEOUT_MS = 10_000; // 10 seconds for compilation
+const BYTES_PER_MB = 1_000_000;
+const LEGACY_MEMORY_LIMIT_KB_THRESHOLD = 16_384;
+const LEGACY_TIME_LIMIT_MS_THRESHOLD = 1_000;
+const DEFAULT_PISTON_MEMORY_LIMIT_BYTES = 512_000_000;
 
 @Injectable()
 export class ExecutionService {
   private readonly logger = new Logger(ExecutionService.name);
   private readonly pistonApiUrl = process.env.PISTON_API_URL || 'http://localhost:2000/api/v2/execute';
+  private readonly pistonMemoryLimitBytes = this.readPositiveIntEnv(
+    process.env.PISTON_MAX_MEMORY_LIMIT_BYTES,
+    this.readPositiveIntEnv(process.env.PISTON_RUN_MEMORY_LIMIT, DEFAULT_PISTON_MEMORY_LIMIT_BYTES),
+  );
 
   /**
    * Map frontend language names to Piston-compatible language + version.
@@ -43,14 +51,14 @@ export class ExecutionService {
    * @param stdin        - Standard input for the program
    * @param timeLimitMs  - Maximum wall-clock time for the **run** phase (ms).
    *                       Piston will SIGKILL the process if exceeded.
-   * @param memoryLimitKb - Maximum memory in KB (Piston `memory_limit`).
+   * @param memoryLimitBytes - Maximum memory in bytes (Piston `memory_limit`).
    */
   async runCode(
     language: string,
     code: string,
     stdin?: string,
     timeLimitMs?: number,
-    memoryLimitKb?: number,
+    memoryLimitBytes?: number,
   ): Promise<ICodeExecutionResponse> {
     const { lang, version } = this.mapLanguage(language);
 
@@ -71,9 +79,10 @@ export class ExecutionService {
     pistonPayload.compile_timeout = DEFAULT_COMPILE_TIMEOUT_MS;
 
     // Set memory limit (Piston expects bytes)
-    if (memoryLimitKb && memoryLimitKb > 0) {
-      pistonPayload.run_memory_limit = memoryLimitKb * 1024;
-      pistonPayload.compile_memory_limit = memoryLimitKb * 1024;
+    const effectiveMemoryLimitBytes = this.clampPistonMemoryLimit(memoryLimitBytes);
+    if (effectiveMemoryLimitBytes) {
+      pistonPayload.run_memory_limit = effectiveMemoryLimitBytes;
+      pistonPayload.compile_memory_limit = effectiveMemoryLimitBytes;
     }
 
     try {
@@ -133,16 +142,13 @@ export class ExecutionService {
     const config = assignment.codingConfig;
 
     // Resolve limits from assignment config
-    const timeLimitS = config?.timeLimit ?? DEFAULT_TIME_LIMIT_S;
-    const timeLimitMs = timeLimitS * 1000;
-    const memoryLimitKb = config?.memoryLimit
-      ? config.memoryLimit * 1024  // config stores MB → convert to KB
-      : DEFAULT_MEMORY_LIMIT_KB;
+    const timeLimitMs = this.resolveTimeLimitMs(config?.timeLimit);
+    const memoryLimitBytes = this.resolveMemoryLimitBytes(config?.memoryLimit, assignment.id);
 
     if (!config || !config.testCases || config.testCases.length === 0) {
       this.logger.warn(`Assignment ${assignment.id} has no test cases. Running code once as acceptance.`);
       // Run code once without stdin — if it compiles and runs, mark accepted
-      const res = await this.runCode(language, code, '', timeLimitMs, memoryLimitKb);
+      const res = await this.runCode(language, code, '', timeLimitMs, memoryLimitBytes);
       const hasError = (res.compile && res.compile.code !== 0) || res.run.code !== 0;
 
       // Check for TLE via Piston signal or status
@@ -185,7 +191,7 @@ export class ExecutionService {
 
     for (let i = 0; i < config.testCases.length; i++) {
       const testCase = config.testCases[i];
-      const res = await this.runCode(language, code, testCase.input, timeLimitMs, memoryLimitKb);
+      const res = await this.runCode(language, code, testCase.input, timeLimitMs, memoryLimitBytes);
 
       let status = SubmissionStatus.ACCEPTED;
       let actualOutput = res.run.stdout;
@@ -282,5 +288,56 @@ export class ExecutionService {
     }
 
     return false;
+  }
+
+  private resolveTimeLimitMs(timeLimit?: number): number {
+    if (!Number.isFinite(timeLimit) || !timeLimit || timeLimit <= 0) {
+      return DEFAULT_TIME_LIMIT_S * 1000;
+    }
+
+    // Older seed data stored milliseconds (for example 2000); current UI stores seconds.
+    return timeLimit >= LEGACY_TIME_LIMIT_MS_THRESHOLD
+      ? Math.round(timeLimit)
+      : Math.round(timeLimit * 1000);
+  }
+
+  private resolveMemoryLimitBytes(memoryLimit?: number, assignmentId?: string): number {
+    let memoryLimitMb = DEFAULT_MEMORY_LIMIT_MB;
+
+    if (Number.isFinite(memoryLimit) && memoryLimit && memoryLimit > 0) {
+      memoryLimitMb = memoryLimit >= LEGACY_MEMORY_LIMIT_KB_THRESHOLD
+        ? memoryLimit / 1024
+        : memoryLimit;
+
+      if (memoryLimit >= LEGACY_MEMORY_LIMIT_KB_THRESHOLD) {
+        this.logger.warn(
+          `Assignment ${assignmentId ?? 'unknown'} has legacy memoryLimit=${memoryLimit}; treating it as KB.`,
+        );
+      }
+    }
+
+    const requestedBytes = Math.round(memoryLimitMb * BYTES_PER_MB);
+    const effectiveBytes = this.clampPistonMemoryLimit(requestedBytes) ?? DEFAULT_MEMORY_LIMIT_MB * BYTES_PER_MB;
+
+    if (effectiveBytes < requestedBytes) {
+      this.logger.warn(
+        `Assignment ${assignmentId ?? 'unknown'} memory limit ${requestedBytes} bytes exceeds Piston max ${this.pistonMemoryLimitBytes}; clamped.`,
+      );
+    }
+
+    return effectiveBytes;
+  }
+
+  private clampPistonMemoryLimit(memoryLimitBytes?: number): number | undefined {
+    if (!Number.isFinite(memoryLimitBytes) || !memoryLimitBytes || memoryLimitBytes <= 0) {
+      return undefined;
+    }
+
+    return Math.min(Math.round(memoryLimitBytes), this.pistonMemoryLimitBytes);
+  }
+
+  private readPositiveIntEnv(value: string | undefined, fallback: number): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : fallback;
   }
 }

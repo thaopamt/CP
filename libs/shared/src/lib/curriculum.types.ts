@@ -54,8 +54,11 @@ export interface ICodingTestCase {
 }
 
 export interface ICodingConfig {
+  /** Seconds, as entered in the admin UI. */
   timeLimit?: number;
+  /** Megabytes, as entered in the admin UI. */
   memoryLimit?: number;
+  /** Megabytes, as entered in the admin UI. */
   outputLimit?: number;
   checkerType?: 'standard' | 'exact' | 'custom';
   allowedLanguages?: string[];

@@ -235,8 +235,8 @@ async function run() {
       assignment.slug = slug;
       assignment.tags = ['basics', folderName.replace(/^\d+\.\s*/, '').toLowerCase()];
       assignment.codingConfig = {
-        timeLimit: 2000,
-        memoryLimit: 262144,
+        timeLimit: 2,
+        memoryLimit: 256,
         checkerType: 'exact' as const,
         allowedLanguages: ['cpp', 'python', 'java', 'javascript'],
         testCases
