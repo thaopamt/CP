@@ -159,6 +159,57 @@ export default function StudentAssignmentDetailPage() {
     setLanguage(newLanguage);
   }, []);
 
+  const handleEditorKeyDown = (e: React.KeyboardEvent<any>) => {
+    const { key } = e;
+    const pairs: Record<string, string> = {
+      '(': ')',
+      '{': '}',
+      '[': ']',
+      '"': '"',
+      "'": "'",
+    };
+
+    if (pairs[key]) {
+      e.preventDefault();
+      const ta = e.currentTarget as HTMLTextAreaElement;
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const val = code;
+      const before = val.substring(0, start);
+      const after = val.substring(end);
+      const newCode = before + key + pairs[key] + after;
+      setCode(newCode);
+      setTimeout(() => {
+        if (ta) {
+          ta.selectionStart = ta.selectionEnd = start + 1;
+          setCursorOffset(start + 1);
+        }
+      }, 0);
+    } else if (key === 'Backspace') {
+      const ta = e.currentTarget as HTMLTextAreaElement;
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      if (start === end && start > 0) {
+        const val = code;
+        const charBefore = val[start - 1];
+        const charAfter = val[start];
+        const matchingPairs: Record<string, string> = { '(': ')', '{': '}', '[': ']', '"': '"', "'": "'" };
+        if (matchingPairs[charBefore] === charAfter) {
+          e.preventDefault();
+          const before = val.substring(0, start - 1);
+          const after = val.substring(start + 1);
+          setCode(before + after);
+          setTimeout(() => {
+            if (ta) {
+              ta.selectionStart = ta.selectionEnd = start - 1;
+              setCursorOffset(start - 1);
+            }
+          }, 0);
+        }
+      }
+    }
+  };
+
   // Kích hoạt Live Coding Sync
   const { adminCursor, adminName } = useLiveCodingSync(id, code, language, cursorOffset, {
     title: assignment?.title,
@@ -850,6 +901,7 @@ export default function StudentAssignmentDetailPage() {
                       padding={12}
                       className="editor-container"
                       textareaClassName="focus:outline-none"
+                      onKeyDown={handleEditorKeyDown}
                       onKeyUp={() => {
                         const ta = editorWrapRef.current?.querySelector('textarea');
                         if (ta) setCursorOffset(ta.selectionStart);
