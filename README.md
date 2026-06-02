@@ -1,4 +1,4 @@
-# EduNexus — Education Management System
+# Zenith — Education Management System
 
 Nx monorepo: a React (Vite) SPA with three role-based portals + a NestJS API
 sharing typed contracts via a typed-only library.
@@ -32,11 +32,7 @@ cp .env.example apps/api/.env
 # 4. Boot the API (TypeORM synchronize creates tables in dev)
 pnpm exec nx serve api
 
-# 5. Seed three users — admin@cp.local / teacher@cp.local / student@cp.local
-#    Password for all of them: password123
-pnpm exec nx run api:seed
-
-# 6. Boot the web app
+# 5. Boot the web app
 pnpm exec nx serve web
 #    open http://localhost:5173
 ```

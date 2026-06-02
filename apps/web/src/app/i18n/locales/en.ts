@@ -8,7 +8,7 @@
  */
 const en = {
   brand: {
-    appName: 'EduNexus',
+    appName: 'Zenith',
     adminPortal: 'Admin Portal',
     teacherPortal: 'Teacher Portal',
     studentPortal: 'Student Portal',

@@ -197,6 +197,10 @@ DB_NAME=${DB_NAME}
 JWT_SECRET=${JWT_SECRET}
 JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
 
+# Judge server (Piston)
+PISTON_API_URL=http://piston:2000/api/v2/execute
+PISTON_CONTAINER=piston_api
+
 # CORS
 CORS_ORIGIN=https://${DOMAIN}
 

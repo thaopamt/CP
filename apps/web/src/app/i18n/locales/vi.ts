@@ -6,7 +6,7 @@ import type { AppResources } from './en';
  */
 const vi: AppResources = {
   brand: {
-    appName: 'EduNexus',
+    appName: 'Zenith',
     adminPortal: 'Cổng Quản trị',
     teacherPortal: 'Cổng Giáo viên',
     studentPortal: 'Cổng Học sinh',

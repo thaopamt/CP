@@ -39,14 +39,7 @@
     "seed": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-users.ts",
-        "cwd": "."
-      }
-    },
-    "seed:quests": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-quests.ts",
+        "command": "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-basic-a.ts",
         "cwd": "."
       }
     },

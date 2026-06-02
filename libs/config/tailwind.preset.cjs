@@ -1,7 +1,7 @@
 /**
  * Shared Tailwind preset — single source of truth for design tokens.
  * Values are copied verbatim from
- *   /design/01_stitch_edunexus_ui_foundation/education_management_system/DESIGN.md
+ *   /design/01_stitch_zenith_ui_foundation/education_management_system/DESIGN.md
  * Both apps/web/tailwind.config.ts and libs/ui/tailwind.config.ts extend
  * this preset via `presets: [require('.../tailwind.preset.cjs')]`.
  */
