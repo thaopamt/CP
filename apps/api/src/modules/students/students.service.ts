@@ -2,7 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { TypeOrmCrudService } from '@dataui/crud-typeorm';
 import * as bcrypt from 'bcryptjs';
-import { DataSource, Repository, In, MoreThanOrEqual } from 'typeorm';
+import { DataSource, Repository, In, MoreThanOrEqual, Not } from 'typeorm';
 import { EnrollmentStatus, UserRole, SubmissionStatus } from '@cp/shared';
 
 import { User } from '../users/user.entity';
@@ -10,6 +10,7 @@ import { StudentProfile } from './student-profile.entity';
 import { Guardian } from './guardian.entity';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
+import { UpdateMyStudentDto } from './dto/update-my-student.dto';
 import { Enrollment } from '../classes/enrollment.entity';
 import { ClassCourse } from '../classes/class-course.entity';
 import { Assignment } from '../assignments/assignment.entity';
@@ -160,6 +161,68 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
 
       const loaded = await profileRepo.findOne({
         where: { id },
+        relations: ['user', 'guardians'],
+      });
+      if (!loaded) throw new NotFoundException();
+      return loaded;
+    });
+  }
+
+  async getStudentByUserId(userId: string): Promise<StudentProfile> {
+    const profile = await this.repo.findOne({
+      where: { userId },
+      relations: ['user', 'guardians'],
+    });
+    if (!profile) throw new NotFoundException(`Student profile not found for user ${userId}`);
+    return profile;
+  }
+
+  async updateCurrentStudent(userId: string, dto: UpdateMyStudentDto): Promise<StudentProfile> {
+    const profile = await this.getStudentByUserId(userId);
+
+    const nextUsername =
+      dto.username === undefined ? undefined : dto.username?.trim() || null;
+    if (nextUsername) {
+      const existing = await this.users.findOne({
+        where: { username: nextUsername, id: Not(userId) },
+      });
+      if (existing) {
+        throw new ConflictException(`Username ${nextUsername} is already taken`);
+      }
+    }
+
+    return this.ds.transaction(async (tx) => {
+      const userRepo = tx.getRepository(User);
+      const profileRepo = tx.getRepository(StudentProfile);
+
+      if (
+        dto.firstName !== undefined ||
+        dto.lastName !== undefined ||
+        dto.username !== undefined ||
+        dto.avatarUrl !== undefined
+      ) {
+        await userRepo.update(
+          { id: userId },
+          {
+            ...(dto.firstName !== undefined ? { firstName: dto.firstName.trim() } : {}),
+            ...(dto.lastName !== undefined ? { lastName: dto.lastName.trim() } : {}),
+            ...(dto.username !== undefined ? { username: nextUsername } : {}),
+            ...(dto.avatarUrl !== undefined ? { avatarUrl: dto.avatarUrl?.trim() || null } : {}),
+          },
+        );
+      }
+
+      const profilePatch: Partial<StudentProfile> = {};
+      if (dto.dateOfBirth !== undefined) profilePatch.dateOfBirth = dto.dateOfBirth || null;
+      if (dto.gender !== undefined) profilePatch.gender = dto.gender || null;
+      if (dto.homeAddress !== undefined) profilePatch.homeAddress = dto.homeAddress?.trim() || null;
+
+      if (Object.keys(profilePatch).length) {
+        await profileRepo.update({ id: profile.id }, profilePatch);
+      }
+
+      const loaded = await profileRepo.findOne({
+        where: { id: profile.id },
         relations: ['user', 'guardians'],
       });
       if (!loaded) throw new NotFoundException();

@@ -1,14 +1,16 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { Crud, CrudController, Override } from '@dataui/crud';
-import { UserRole } from '@cp/shared';
+import { JwtPayload, UserRole } from '@cp/shared';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { StudentProfile } from './student-profile.entity';
 import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
+import { UpdateMyStudentDto } from './dto/update-my-student.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
 /**
@@ -48,6 +50,21 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class StudentsController implements CrudController<StudentProfile> {
   constructor(public service: StudentsService) {}
+
+  @Roles(UserRole.STUDENT)
+  @Get('me')
+  async getMe(@CurrentUser() user: JwtPayload): Promise<StudentProfile> {
+    return this.service.getStudentByUserId(user.sub);
+  }
+
+  @Roles(UserRole.STUDENT)
+  @Patch('me')
+  async updateMe(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: UpdateMyStudentDto,
+  ): Promise<StudentProfile> {
+    return this.service.updateCurrentStudent(user.sub, dto);
+  }
 
   @Override('createOneBase')
   @Roles(UserRole.ADMIN)

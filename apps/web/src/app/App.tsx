@@ -42,6 +42,7 @@ const AdminCourseDetail = lazy(() => import('./pages/admin/courses/CourseDetailP
 const AdminClassCurriculum = lazy(() => import('./pages/admin/classes/ClassCurriculumPage'));
 const AdminSchedule = lazy(() => import('./pages/admin/SchedulePage'));
 const AdminFinance = lazy(() => import('./pages/admin/FinancePage'));
+const AdminMe = lazy(() => import('./pages/admin/MePage'));
 const AdminClassesList = lazy(() => import('./pages/admin/classes/ClassesListPage'));
 const AdminClassCreate = lazy(() => import('./pages/admin/classes/ClassCreatePage'));
 const AdminClassDetail = lazy(() => import('./pages/admin/classes/ClassDetailPage'));
@@ -127,6 +128,8 @@ export default function App() {
                 <Route path="monitor" element={<LiveMonitorPage />} />
                 <Route path="chat" element={<GlobalChatPage />} />
                 <Route path="submissions" element={<SubmissionsPage />} />
+                <Route path="me" element={<AdminMe />} />
+                <Route path="settings" element={<AdminMe />} />
               </Route>
 
               {/* ── Teacher portal ───────────────────────────────────── */}

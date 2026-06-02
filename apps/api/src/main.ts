@@ -36,6 +36,8 @@ import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 // eslint-disable-next-line import/first
 import { AppModule } from './app/app.module';
+// eslint-disable-next-line import/first
+import { StripPasswordHashInterceptor } from './common/interceptors/strip-password-hash.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -48,6 +50,7 @@ async function bootstrap() {
       transformOptions: { enableImplicitConversion: true },
     }),
   );
+  app.useGlobalInterceptors(new StripPasswordHashInterceptor());
 
   app.enableCors({
     origin: (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(','),

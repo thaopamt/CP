@@ -67,6 +67,7 @@ const vi: AppResources = {
       attendance: 'Điểm danh',
       finance: 'Tài chính',
       users: 'Người dùng',
+      me: 'Của tôi',
       settings: 'Cài đặt',
       monitor: 'Giám sát',
       globalChat: 'Chat',

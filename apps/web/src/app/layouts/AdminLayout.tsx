@@ -17,7 +17,7 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/admin/monitor', icon: 'screen_share', key: 'nav.admin.monitor' },
   { to: '/admin/chat', icon: 'forum', key: 'nav.admin.globalChat' },
   { to: '/admin/submissions', icon: 'history', key: 'nav.admin.submissions' },
-  { to: '/admin/settings', icon: 'settings', key: 'nav.admin.settings' },
+  { to: '/admin/me', icon: 'account_circle', key: 'nav.admin.me' },
 ];
 
 /**
@@ -29,7 +29,10 @@ export default function AdminLayout() {
   const user = useAuthStore((s) => s.user);
   const { pathname } = useLocation();
   const current =
-    NAV.find((item) => (item.end ? pathname === item.to : pathname.startsWith(item.to)));
+    NAV.find((item) => (item.end ? pathname === item.to : pathname.startsWith(item.to))) ??
+    (pathname.startsWith('/admin/settings')
+      ? { to: '/admin/me', icon: 'account_circle', key: 'nav.admin.me' }
+      : undefined);
   const currentLabel = current ? t(current.key) : t('nav.admin.dashboard');
 
   return (

@@ -8,12 +8,13 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ICreateStudentPayload } from '@cp/shared';
 
-import { StudentsListParams, studentsApi } from './students.api';
+import { StudentsListParams, UpdateMyStudentPayload, studentsApi } from './students.api';
 import { assignmentsApi } from './curriculum.api';
 
 export const studentQueryKeys = {
   list: (params: StudentsListParams) => ['students', 'list', params] as const,
   detail: (id: string) => ['students', 'detail', id] as const,
+  me: () => ['students', 'me'] as const,
   dashboard: () => ['students', 'dashboard'] as const,
   myTasks: (params: any) => ['students', 'myTasks', params] as const,
   myFeedback: () => ['students', 'myFeedback'] as const,
@@ -36,6 +37,13 @@ export function useStudent(id: string | undefined) {
   });
 }
 
+export function useCurrentStudent() {
+  return useQuery({
+    queryKey: studentQueryKeys.me(),
+    queryFn: () => studentsApi.getMe(),
+  });
+}
+
 export function useCreateStudent() {
   const qc = useQueryClient();
   return useMutation({
@@ -53,6 +61,18 @@ export function useUpdateStudent(id: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: studentQueryKeys.detail(id) });
       void qc.invalidateQueries({ queryKey: ['students', 'list'] });
+    },
+  });
+}
+
+export function useUpdateCurrentStudent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: UpdateMyStudentPayload) => studentsApi.updateMe(patch),
+    onSuccess: (student) => {
+      void qc.invalidateQueries({ queryKey: studentQueryKeys.me() });
+      void qc.invalidateQueries({ queryKey: studentQueryKeys.detail(student.id) });
+      void qc.invalidateQueries({ queryKey: studentQueryKeys.dashboard() });
     },
   });
 }

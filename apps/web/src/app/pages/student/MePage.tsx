@@ -1,19 +1,28 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar, Icon, useToast, TabPills } from '@cp/ui';
-import { GENDER_LABEL } from '@cp/shared';
+import { Gender } from '@cp/shared';
 import { useAuthStore } from '../../stores/auth.store';
-import { useStudent, useStudentDashboard, useUpdateDefaultLanguage } from '../../api/student.queries';
+import {
+  useCurrentStudent,
+  useStudentDashboard,
+  useUpdateCurrentStudent,
+  useUpdateDefaultLanguage,
+} from '../../api/student.queries';
+import { useChangePassword } from '../../api/me.queries';
 
 type TabType = 'profile' | 'stats' | 'preferences' | 'security';
 
 export default function MePage() {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const toast = useToast();
   const user = useAuthStore((s) => s.user);
-  const { data: student, isLoading: isStudentLoading } = useStudent(user?.id);
+  const updateUser = useAuthStore((s) => s.updateUser);
+  const { data: student, isLoading: isStudentLoading } = useCurrentStudent();
   const { data: dashboard, isLoading: isDashboardLoading } = useStudentDashboard();
+  const updateCurrentStudent = useUpdateCurrentStudent();
   const updateDefaultLanguage = useUpdateDefaultLanguage();
+  const changePassword = useChangePassword();
 
   const [activeTab, setActiveTab] = useState<TabType>('profile');
 
@@ -24,13 +33,14 @@ export default function MePage() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [gender, setGender] = useState('');
   const [address, setAddress] = useState('');
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // Password Form State
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const isSavingProfile = updateCurrentStudent.isPending;
+  const isChangingPassword = changePassword.isPending;
 
   // Sync state with fetched student profile data
   useEffect(() => {
@@ -48,20 +58,44 @@ export default function MePage() {
     }
   }, [student, user]);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSavingProfile(true);
-    setTimeout(() => {
-      setIsSavingProfile(false);
+    try {
+      const updated = await updateCurrentStudent.mutateAsync({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        username: username.trim() || null,
+        dateOfBirth: dateOfBirth || null,
+        gender: (gender || null) as Gender | null,
+        homeAddress: address.trim() || null,
+      });
+      updateUser({
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        username: updated.username,
+        avatarUrl: updated.avatarUrl,
+      });
       toast.success(
         i18n.language === 'vi'
-          ? 'Đã cập nhật thông tin cá nhân cục bộ!'
-          : 'Profile information updated locally!'
+          ? 'Đã cập nhật thông tin cá nhân!'
+          : 'Profile information updated!'
       );
-    }, 800);
+    } catch (err) {
+      const msg =
+        (err as { response?: { data?: { message?: string | string[] } } })?.response?.data
+          ?.message;
+      toast.error(
+        Array.isArray(msg)
+          ? msg.join(', ')
+          : msg ||
+              (i18n.language === 'vi'
+                ? 'Không cập nhật được thông tin cá nhân.'
+                : 'Failed to update profile information.')
+      );
+    }
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
       toast.error(
@@ -71,9 +105,8 @@ export default function MePage() {
       );
       return;
     }
-    setIsChangingPassword(true);
-    setTimeout(() => {
-      setIsChangingPassword(false);
+    try {
+      await changePassword.mutateAsync({ currentPassword, newPassword });
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -82,7 +115,19 @@ export default function MePage() {
           ? 'Đã đổi mật khẩu thành công!'
           : 'Password changed successfully!'
       );
-    }, 1000);
+    } catch (err) {
+      const msg =
+        (err as { response?: { data?: { message?: string | string[] } } })?.response?.data
+          ?.message;
+      toast.error(
+        Array.isArray(msg)
+          ? msg.join(', ')
+          : msg ||
+              (i18n.language === 'vi'
+                ? 'Không đổi được mật khẩu.'
+                : 'Failed to change password.')
+      );
+    }
   };
 
   const handleLanguageChange = (lang: string) => {
@@ -124,7 +169,6 @@ export default function MePage() {
   const xp = dashboard?.xp ?? 0;
   const xpForNext = dashboard?.xpForNext ?? 100;
   const streak = dashboard?.streak ?? 0;
-  const gems = dashboard?.gems ?? 0;
   const xpPct = Math.min(100, Math.max(0, Math.round((xp / xpForNext) * 100)));
 
   return (
@@ -324,6 +368,7 @@ export default function MePage() {
                     <option value="MALE">{i18n.language === 'vi' ? 'Nam' : 'Male'}</option>
                     <option value="FEMALE">{i18n.language === 'vi' ? 'Nữ' : 'Female'}</option>
                     <option value="OTHER">{i18n.language === 'vi' ? 'Khác' : 'Other'}</option>
+                    <option value="UNDISCLOSED">{i18n.language === 'vi' ? 'Không tiết lộ' : 'Prefer not to say'}</option>
                   </select>
                 </div>
 

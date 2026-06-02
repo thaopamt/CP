@@ -11,6 +11,20 @@ export interface LoginResponse {
   user: IUser;
 }
 
+export type CurrentUserResponse = IUser;
+
+export interface UpdateMePayload {
+  firstName?: string;
+  lastName?: string;
+  username?: string | null;
+  avatarUrl?: string | null;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
 /**
  * The body of the signed JWT. Both NestJS (JwtStrategy.validate) and
  * the React client agree on this shape so RBAC checks line up.

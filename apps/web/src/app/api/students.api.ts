@@ -53,6 +53,7 @@ interface ApiStudentProfile {
   dateOfBirth: string | null;
   gender: Gender | null;
   homeAddress: string | null;
+  school: string | null;
   grade: number;
   cohortYear: number;
   enrolledAt: string;
@@ -67,6 +68,16 @@ interface ApiStudentProfile {
   guardians: ApiGuardian[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UpdateMyStudentPayload {
+  firstName?: string;
+  lastName?: string;
+  username?: string | null;
+  avatarUrl?: string | null;
+  dateOfBirth?: string | null;
+  gender?: Gender | null;
+  homeAddress?: string | null;
 }
 
 // ── Adapters ──────────────────────────────────────────────────────────────
@@ -95,6 +106,7 @@ function toStudent(s: ApiStudentProfile): IStudentProfile {
     dateOfBirth: s.dateOfBirth,
     gender: s.gender,
     homeAddress: s.homeAddress,
+    school: s.school,
     grade: s.grade,
     cohortYear: s.cohortYear,
     enrolledAt: s.enrolledAt,
@@ -173,6 +185,11 @@ export const studentsApi = {
     return toStudent(data);
   },
 
+  async getMe(): Promise<IStudentProfile> {
+    const { data } = await apiClient.get<ApiStudentProfile>('/students/me');
+    return toStudent(data);
+  },
+
   async create(payload: ICreateStudentPayload): Promise<IStudentProfile> {
     const { data } = await apiClient.post<ApiStudentProfile>('/students', payload);
     return toStudent(data);
@@ -180,6 +197,11 @@ export const studentsApi = {
 
   async update(id: string, patch: Partial<ICreateStudentPayload>): Promise<IStudentProfile> {
     const { data } = await apiClient.patch<ApiStudentProfile>(`/students/${id}`, patch);
+    return toStudent(data);
+  },
+
+  async updateMe(patch: UpdateMyStudentPayload): Promise<IStudentProfile> {
+    const { data } = await apiClient.patch<ApiStudentProfile>('/students/me', patch);
     return toStudent(data);
   },
 

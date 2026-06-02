@@ -37,4 +37,9 @@ export class User
   @Index()
   @Column({ type: 'boolean', default: true, name: 'is_active' })
   isActive!: boolean;
+
+  toJSON(): Omit<User, 'passwordHash' | 'toJSON'> {
+    const { passwordHash: _passwordHash, ...safe } = this;
+    return safe as Omit<User, 'passwordHash' | 'toJSON'>;
+  }
 }

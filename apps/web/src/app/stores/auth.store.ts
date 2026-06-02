@@ -9,6 +9,7 @@ interface AuthState {
   isHydrated: boolean;
 
   setSession: (accessToken: string, user: IUser) => void;
+  updateUser: (patch: Partial<IUser>) => void;
   clear: () => void;
   hasRole: (role: UserRole) => boolean;
   setHydrated: () => void;
@@ -27,6 +28,10 @@ export const useAuthStore = create<AuthState>()(
       isHydrated: false,
 
       setSession: (accessToken, user) => set({ accessToken, user }),
+      updateUser: (patch) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...patch } : state.user,
+        })),
       clear: () => set({ accessToken: null, user: null }),
       hasRole: (role) => get().user?.role === role,
       setHydrated: () => set({ isHydrated: true }),

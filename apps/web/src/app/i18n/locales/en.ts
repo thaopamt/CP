@@ -69,6 +69,7 @@ const en = {
       attendance: 'Attendance',
       finance: 'Finance',
       users: 'Users',
+      me: 'Me',
       settings: 'Settings',
       monitor: 'Live Monitor',
       globalChat: 'Chat',

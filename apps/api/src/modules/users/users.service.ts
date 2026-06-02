@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TypeOrmCrudService } from '@dataui/crud-typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 
 import { User } from './user.entity';
 
@@ -25,6 +25,14 @@ export class UsersService extends TypeOrmCrudService<User> {
       .getOne();
   }
 
+  async findByIdWithPassword(id: string): Promise<User | null> {
+    return this.repo
+      .createQueryBuilder('u')
+      .addSelect('u.passwordHash')
+      .where('u.id = :id', { id })
+      .getOne();
+  }
+
   async findActiveById(id: string): Promise<User | null> {
     return this.repo.findOne({
       where: { id, isActive: true },
@@ -35,5 +43,48 @@ export class UsersService extends TypeOrmCrudService<User> {
     return this.repo.findOne({
       where: { id },
     });
+  }
+
+  async updateOwnProfile(
+    id: string,
+    patch: {
+      firstName?: string;
+      lastName?: string;
+      username?: string | null;
+      avatarUrl?: string | null;
+    },
+  ): Promise<User> {
+    const user = await this.findActiveById(id);
+    if (!user) throw new NotFoundException(`User ${id} not found`);
+
+    const nextUsername =
+      patch.username === undefined ? undefined : patch.username?.trim() || null;
+
+    if (nextUsername) {
+      const existing = await this.repo.findOne({
+        where: { username: nextUsername, id: Not(id) },
+      });
+      if (existing) {
+        throw new ConflictException(`Username ${nextUsername} is already taken`);
+      }
+    }
+
+    await this.repo.update(
+      { id },
+      {
+        ...(patch.firstName !== undefined ? { firstName: patch.firstName.trim() } : {}),
+        ...(patch.lastName !== undefined ? { lastName: patch.lastName.trim() } : {}),
+        ...(patch.username !== undefined ? { username: nextUsername } : {}),
+        ...(patch.avatarUrl !== undefined ? { avatarUrl: patch.avatarUrl?.trim() || null } : {}),
+      },
+    );
+
+    const updated = await this.findActiveById(id);
+    if (!updated) throw new NotFoundException(`User ${id} not found`);
+    return updated;
+  }
+
+  async updatePasswordHash(id: string, passwordHash: string): Promise<void> {
+    await this.repo.update({ id }, { passwordHash });
   }
 }
