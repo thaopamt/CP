@@ -60,11 +60,7 @@ if [ "$DOCKER_MODE" = true ]; then
     --network "$NETWORK_NAME" \
     -v "$PROJECT_ROOT":/app \
     -w /app \
-    -e DB_HOST="cp_postgres" \
-    -e DB_PORT="${DB_PORT:-5432}" \
-    -e DB_USER="${DB_USER:-cp}" \
-    -e DB_PASSWORD="${DB_PASSWORD:-cp}" \
-    -e DB_NAME="${DB_NAME:-cp}" \
+    -e DATABASE_URL="postgresql://${DB_USER:-cp}:${DB_PASSWORD:-cp}@cp_postgres:${DB_PORT:-5432}/${DB_NAME:-cp}" \
     -e JWT_SECRET="${JWT_SECRET:-dev-only-change-me}" \
     -e NODE_ENV="production" \
     node:20-alpine \
