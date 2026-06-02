@@ -17,8 +17,8 @@ export default function LoginPage() {
   const fromPath = (location.state as LocationState | null)?.from;
 
   const { user, accessToken, setSession, isHydrated } = useAuthStore();
-  const [email, setEmail] = useState('admin@cp.local');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,13 +95,6 @@ export default function LoginPage() {
           >
             {submitting ? t('common.signingIn') : t('common.signIn')}
           </button>
-
-          <p className="text-[12px] text-on-surface-variant text-center">
-            {t('auth.demoHint', {
-              accounts: 'admin@cp.local / teacher@cp.local / student@cp.local',
-              password: 'password123',
-            })}
-          </p>
         </form>
       </div>
     </div>

@@ -63,6 +63,7 @@ const StudentAssignmentDetail = lazy(() => import('./pages/student/AssignmentDet
 const StudentClasses = lazy(() => import('./pages/student/ClassesPage'));
 const StudentClassDetail = lazy(() => import('./pages/student/ClassDetailPage'));
 const StudentCourseDetail = lazy(() => import('./pages/student/CourseDetailPage'));
+const StudentMe = lazy(() => import('./pages/student/MePage'));
 const GlobalChatPage = lazy(() => import('./pages/shared/GlobalChatPage'));
 const SubmissionsPage = lazy(() => import('./pages/shared/SubmissionsPage'));
 
@@ -166,6 +167,7 @@ export default function App() {
                 <Route path="quests" element={<StudentQuests />} />
                 <Route path="chat" element={<GlobalChatPage />} />
                 <Route path="submissions" element={<SubmissionsPage />} />
+                <Route path="me" element={<StudentMe />} />
               </Route>
 
               {/* Default — send user to their own portal home */}
