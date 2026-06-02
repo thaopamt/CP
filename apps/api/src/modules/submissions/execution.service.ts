@@ -10,12 +10,17 @@ const DEFAULT_COMPILE_TIMEOUT_MS = 10_000; // 10 seconds for compilation
 const BYTES_PER_MB = 1_000_000;
 const LEGACY_MEMORY_LIMIT_KB_THRESHOLD = 16_384;
 const LEGACY_TIME_LIMIT_MS_THRESHOLD = 1_000;
+const DEFAULT_PISTON_RUN_TIMEOUT_MS = 30_000;
 const DEFAULT_PISTON_MEMORY_LIMIT_BYTES = 512_000_000;
 
 @Injectable()
 export class ExecutionService {
   private readonly logger = new Logger(ExecutionService.name);
   private readonly pistonApiUrl = process.env.PISTON_API_URL || 'http://localhost:2000/api/v2/execute';
+  private readonly pistonRunTimeoutMs = this.readPositiveIntEnv(
+    process.env.PISTON_MAX_RUN_TIMEOUT_MS,
+    this.readPositiveIntEnv(process.env.PISTON_RUN_TIMEOUT, DEFAULT_PISTON_RUN_TIMEOUT_MS),
+  );
   private readonly pistonMemoryLimitBytes = this.readPositiveIntEnv(
     process.env.PISTON_MAX_MEMORY_LIMIT_BYTES,
     this.readPositiveIntEnv(process.env.PISTON_RUN_MEMORY_LIMIT, DEFAULT_PISTON_MEMORY_LIMIT_BYTES),
@@ -71,8 +76,9 @@ export class ExecutionService {
     };
 
     // Set run timeout (Piston expects milliseconds)
-    if (timeLimitMs && timeLimitMs > 0) {
-      pistonPayload.run_timeout = timeLimitMs;
+    const effectiveRunTimeoutMs = this.clampPistonRunTimeout(timeLimitMs);
+    if (effectiveRunTimeoutMs) {
+      pistonPayload.run_timeout = effectiveRunTimeoutMs;
     }
 
     // Set compile timeout — always generous
@@ -142,7 +148,7 @@ export class ExecutionService {
     const config = assignment.codingConfig;
 
     // Resolve limits from assignment config
-    const timeLimitMs = this.resolveTimeLimitMs(config?.timeLimit);
+    const timeLimitMs = this.resolveTimeLimitMs(config?.timeLimit, assignment.id);
     const memoryLimitBytes = this.resolveMemoryLimitBytes(config?.memoryLimit, assignment.id);
 
     if (!config || !config.testCases || config.testCases.length === 0) {
@@ -290,15 +296,25 @@ export class ExecutionService {
     return false;
   }
 
-  private resolveTimeLimitMs(timeLimit?: number): number {
+  private resolveTimeLimitMs(timeLimit?: number, assignmentId?: string): number {
     if (!Number.isFinite(timeLimit) || !timeLimit || timeLimit <= 0) {
       return DEFAULT_TIME_LIMIT_S * 1000;
     }
 
     // Older seed data stored milliseconds (for example 2000); current UI stores seconds.
-    return timeLimit >= LEGACY_TIME_LIMIT_MS_THRESHOLD
+    const requestedMs = timeLimit >= LEGACY_TIME_LIMIT_MS_THRESHOLD
       ? Math.round(timeLimit)
       : Math.round(timeLimit * 1000);
+
+    const effectiveMs = this.clampPistonRunTimeout(requestedMs) ?? DEFAULT_TIME_LIMIT_S * 1000;
+
+    if (effectiveMs < requestedMs) {
+      this.logger.warn(
+        `Assignment ${assignmentId ?? 'unknown'} time limit ${requestedMs}ms exceeds Piston max ${this.pistonRunTimeoutMs}ms; clamped.`,
+      );
+    }
+
+    return effectiveMs;
   }
 
   private resolveMemoryLimitBytes(memoryLimit?: number, assignmentId?: string): number {
@@ -334,6 +350,14 @@ export class ExecutionService {
     }
 
     return Math.min(Math.round(memoryLimitBytes), this.pistonMemoryLimitBytes);
+  }
+
+  private clampPistonRunTimeout(timeLimitMs?: number): number | undefined {
+    if (!Number.isFinite(timeLimitMs) || !timeLimitMs || timeLimitMs <= 0) {
+      return undefined;
+    }
+
+    return Math.min(Math.round(timeLimitMs), this.pistonRunTimeoutMs);
   }
 
   private readPositiveIntEnv(value: string | undefined, fallback: number): number {
