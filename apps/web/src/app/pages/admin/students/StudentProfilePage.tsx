@@ -15,7 +15,7 @@ import {
   TrendBadge,
   useToast,
 } from '@cp/ui';
-import { GENDER_LABEL, IGuardian, ISubjectGrade } from '@cp/shared';
+import { IGuardian, ISubjectGrade } from '@cp/shared';
 
 import { useStudent, useResetPasswordStudent } from '../../../api/student.queries';
 import { ResetPasswordModal } from './ResetPasswordModal';
@@ -72,10 +72,7 @@ export default function StudentProfilePage() {
   const fullName = `${s.firstName} ${s.lastName}`.trim();
   const initials = `${s.firstName[0] ?? ''}${s.lastName[0] ?? ''}`.toUpperCase();
 
-  const age = s.dateOfBirth ? yearsBetween(new Date(s.dateOfBirth), new Date()) : null;
-  const dobFormatted = s.dateOfBirth
-    ? new Date(s.dateOfBirth).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })
-    : null;
+
 
   return (
     <div className="flex flex-col gap-lg">
@@ -111,7 +108,6 @@ export default function StudentProfilePage() {
               <div className="font-manrope text-headline-lg text-on-surface truncate">{fullName}</div>
               <div className="flex items-center gap-sm mt-xs">
                 <EnrollmentStatusBadge status={s.status} />
-                <span className="text-label-sm text-on-surface-variant font-mono">{s.studentId}</span>
               </div>
             </div>
           </div>
@@ -149,33 +145,10 @@ export default function StudentProfilePage() {
             </h3>
             <dl className="flex flex-col gap-sm">
               <Detail
-                icon="cake"
-                label={t('pages.admin.studentProfile.demographics.dob')}
-                value={
-                  dobFormatted
-                    ? age != null
-                      ? `${dobFormatted} · ${t('pages.admin.studentProfile.demographics.years', { count: age })}`
-                      : dobFormatted
-                    : '—'
-                }
-              />
-              <Detail
                 icon="mail"
                 label={t('pages.admin.studentProfile.demographics.email')}
                 value={s.email}
               />
-              <Detail
-                icon="school"
-                label={t('pages.admin.studentProfile.demographics.school', 'School')}
-                value={s.school ?? '—'}
-              />
-              {s.gender && (
-                <Detail
-                  icon="person"
-                  label={t('pages.admin.studentProfile.demographics.gender')}
-                  value={GENDER_LABEL[s.gender]}
-                />
-              )}
             </dl>
           </div>
 
@@ -361,15 +334,7 @@ function GuardianRow({ guardian: g }: { guardian: IGuardian }) {
       >
         <Icon name="call" size={18} />
       </a>
-      {g.email && (
-        <a
-          href={`mailto:${g.email}`}
-          className="p-1 rounded text-on-surface-variant hover:text-primary"
-          aria-label="Email"
-        >
-          <Icon name="mail" size={18} />
-        </a>
-      )}
+
     </li>
   );
 }
@@ -407,9 +372,3 @@ function KpiCard({
   );
 }
 
-function yearsBetween(from: Date, to: Date): number {
-  let y = to.getFullYear() - from.getFullYear();
-  const m = to.getMonth() - from.getMonth();
-  if (m < 0 || (m === 0 && to.getDate() < from.getDate())) y--;
-  return y;
-}

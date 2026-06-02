@@ -2,8 +2,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon, StatusBadge } from '@cp/ui';
 import {
-  AssignmentType,
-  ASSIGNMENT_TYPE_ICON,
   PublishStatus,
 } from '@cp/shared';
 import { useCourse, useCourseAssignments } from '../../api/curriculum.queries';
@@ -131,7 +129,7 @@ export default function StudentCourseDetailPage() {
           value={`${course.assignmentCount}`}
         />
         <MiniStat icon="stars" label="Total Points" value={`${course.totalPoints}`} />
-        <MiniStat icon="category" label="Subject" value={course.subject} />
+
       </div>
 
       {/* ── Progress bar ─────────────────────────────────────── */}
@@ -187,14 +185,14 @@ export default function StudentCourseDetailPage() {
           <div className="flex flex-col gap-sm">
             {assignments.map((ca, idx) => {
               const a = ca.assignment;
-              const typeIcon = ASSIGNMENT_TYPE_ICON[a.type] ?? 'assignment';
+              const typeIcon = a.codingConfig ? 'code' : 'assignment';
               const diffTone = DIFFICULTY_TONE[a.difficulty] ?? 'neutral';
 
               return (
                 <div
                   key={ca.id}
                   onClick={() =>
-                    a.type === AssignmentType.CODING
+                    a.codingConfig
                       ? navigate(`/student/workspace/${a.id}`)
                       : navigate(`/student/assignments/${a.id}`)
                   }
@@ -226,10 +224,7 @@ export default function StudentCourseDetailPage() {
                       </p>
                     )}
                     <div className="flex items-center gap-md text-[11px] text-on-surface-variant">
-                      <span className="flex items-center gap-xs">
-                        <Icon name="category" size={12} />
-                        {t(`enums.assignmentType.${a.type}`)}
-                      </span>
+
                       <span className="flex items-center gap-xs">
                         <Icon name="stars" size={12} />
                         {a.points} pts
@@ -252,7 +247,7 @@ export default function StudentCourseDetailPage() {
                   {/* Action arrow */}
                   <div className="shrink-0 text-on-surface-variant/40 group-hover:text-primary transition-colors">
                     <Icon
-                      name={a.type === AssignmentType.CODING ? 'code' : 'arrow_forward'}
+                      name={a.codingConfig ? 'code' : 'arrow_forward'}
                       size={22}
                     />
                   </div>

@@ -21,7 +21,7 @@ type SessionDraft = {
   dayOfWeek: DayOfWeek;
   startTime: string;
   endTime: string;
-  room: string;
+
 };
 
 type Draft = {
@@ -74,7 +74,7 @@ export default function ClassEditPage() {
           dayOfWeek: s.dayOfWeek,
           startTime: s.startTime.slice(0, 5), // "09:00:00" → "09:00"
           endTime: s.endTime.slice(0, 5),
-          room: s.room ?? '',
+
         })),
       });
     }
@@ -155,7 +155,7 @@ export default function ClassEditPage() {
         dayOfWeek: s.dayOfWeek,
         startTime: s.startTime,
         endTime: s.endTime,
-        room: s.room || undefined,
+
       })),
     };
     try {
@@ -176,7 +176,7 @@ export default function ClassEditPage() {
             ...prev,
             sessions: [
               ...prev.sessions,
-              { dayOfWeek: DayOfWeek.WED, startTime: '09:00', endTime: '10:30', room: '' },
+              { dayOfWeek: DayOfWeek.WED, startTime: '09:00', endTime: '10:30' },
             ],
           }
         : prev,
@@ -289,7 +289,7 @@ export default function ClassEditPage() {
               {draft.sessions.map((s, i) => (
                 <div
                   key={i}
-                  className="grid grid-cols-1 md:grid-cols-[120px_1fr_1fr_1fr_auto] gap-sm items-end p-sm rounded-lg bg-surface-container-low border border-outline-variant/40"
+                  className="grid grid-cols-1 md:grid-cols-[120px_1fr_1fr_auto] gap-sm items-end p-sm rounded-lg bg-surface-container-low border border-outline-variant/40"
                 >
                   <FormField label={t('pages.admin.classes.create.fields.day')}>
                     <select
@@ -323,15 +323,7 @@ export default function ClassEditPage() {
                       className="bg-surface-container-lowest border border-outline-variant rounded-md px-sm py-xs"
                     />
                   </FormField>
-                  <FormField label={t('pages.admin.classes.create.fields.sessionRoom')}>
-                    <input
-                      type="text"
-                      value={s.room}
-                      onChange={(e) => updateSession(i, { room: e.target.value })}
-                      placeholder={t('pages.admin.classes.create.fields.roomPh')}
-                      className="bg-surface-container-lowest border border-outline-variant rounded-md px-sm py-xs"
-                    />
-                  </FormField>
+
                   <button
                     type="button"
                     onClick={() => removeSession(i)}

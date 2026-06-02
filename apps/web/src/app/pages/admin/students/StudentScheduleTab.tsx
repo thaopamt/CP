@@ -43,7 +43,7 @@ interface SessionFormData {
   dayOfWeek: DayOfWeek;
   startTime: string;
   endTime: string;
-  room: string;
+
   note: string;
 }
 
@@ -70,7 +70,7 @@ function SessionModal({
     dayOfWeek: editing?.dayOfWeek ?? DayOfWeek.MON,
     startTime: editing ? formatTime(editing.startTime) : '08:00',
     endTime: editing ? formatTime(editing.endTime) : '09:00',
-    room: editing?.room ?? '',
+
     note: editing?.note ?? '',
   }));
 
@@ -164,17 +164,6 @@ function SessionModal({
             </label>
           </div>
 
-          {/* Room */}
-          <label className="flex flex-col gap-xs">
-            <span className="text-label-sm text-on-surface-variant">{t(`${pfx}.fields.room`)}</span>
-            <input
-              type="text"
-              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm text-body-md text-on-surface"
-              value={form.room}
-              onChange={(e) => update('room', e.target.value)}
-              placeholder="e.g. Room 204"
-            />
-          </label>
 
           {/* Note */}
           <label className="flex flex-col gap-xs">
@@ -256,7 +245,7 @@ export default function StudentScheduleTab({ studentId }: Props) {
         startTime: data.startTime,
         endTime: data.endTime,
         ...(data.classId ? { classId: data.classId } : {}),
-        ...(data.room ? { room: data.room } : {}),
+
         ...(data.note ? { note: data.note } : {}),
       };
 
@@ -419,9 +408,7 @@ export default function StudentScheduleTab({ studentId }: Props) {
                           {s.className} ({s.classCode})
                         </div>
                       )}
-                      <div className="text-[11px] text-on-surface-variant">
-                        {s.room ?? '—'}
-                      </div>
+
                       {isCustom && (
                         <div className="flex justify-end mt-xs">
                           <button

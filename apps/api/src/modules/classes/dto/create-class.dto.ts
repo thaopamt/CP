@@ -31,10 +31,6 @@ export class ClassSessionDto {
   @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'endTime must be HH:MM' })
   endTime!: string;
 
-  @IsOptional()
-  @IsString()
-  @Length(1, 100)
-  room?: string;
 }
 
 export class CreateClassDto implements ICreateClassPayload {

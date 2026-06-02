@@ -390,14 +390,7 @@ const vi: AppResources = {
       IN_REVIEW: 'Đang chấm',
       COMPLETED: 'Đã xong',
     },
-    assignmentType: {
-      CODING: 'Lập trình',
-      WRITING: 'Viết bài',
-      QUIZ: 'Trắc nghiệm',
-      READING: 'Đọc tài liệu',
-      PROJECT: 'Đồ án',
-      ASSESSMENT: 'Đánh giá',
-    },
+
     publishStatus: {
       DRAFT: 'Nháp',
       PUBLISHED: 'Đã đăng',
@@ -431,9 +424,9 @@ const vi: AppResources = {
           batch: 'Gửi nhắc hàng loạt',
         },
         sessions: {
-          algebra: { title: 'Đại số II', room: 'Phòng 204' },
-          physics: { title: 'Phòng thí nghiệm Vật lý', room: 'Lab 3' },
-          history: { title: 'Lịch sử thế giới', room: 'Phòng 110' },
+          algebra: { title: 'Đại số II' },
+          physics: { title: 'Phòng thí nghiệm Vật lý' },
+          history: { title: 'Lịch sử thế giới' },
         },
         reminders: {
           sarah: 'Nguyễn Thu Hà',
@@ -452,7 +445,7 @@ const vi: AppResources = {
         title: 'Danh bạ học sinh',
         subtitle: 'Tìm kiếm, lọc và quản lý hồ sơ học sinh trên mọi khối.',
         addStudent: 'Thêm học sinh',
-        searchPlaceholder: 'Tìm theo tên, email hoặc mã…',
+        searchPlaceholder: 'Tìm theo tên hoặc email…',
         statusFilter: 'Trạng thái',
         gradeFilter: 'Khối',
         gradeOptions: {
@@ -467,7 +460,7 @@ const vi: AppResources = {
         },
         columns: {
           student: 'Học sinh',
-          studentId: 'Mã HS',
+
           grade: 'Khối',
           enrolled: 'Ngày nhập học',
           status: 'Trạng thái',
@@ -493,11 +486,6 @@ const vi: AppResources = {
           firstName: 'Tên',
           lastName: 'Họ',
           email: 'Email',
-          dateOfBirth: 'Ngày sinh',
-          gender: 'Giới tính',
-          address: 'Địa chỉ nhà',
-          studentId: 'Mã học sinh',
-          studentIdHint: 'Bỏ trống để hệ thống tự sinh (VD: STU-2024-8901)',
           password: 'Mật khẩu tạm',
           generatePassword: 'Tạo mạnh',
           accountStatus: 'Trạng thái tài khoản',
@@ -508,7 +496,7 @@ const vi: AppResources = {
           guardianName: 'Họ và tên',
           relationship: 'Quan hệ',
           guardianPhone: 'Số điện thoại',
-          guardianEmail: 'Email',
+
           primaryContact: 'Liên hệ chính',
         },
         actions: {
@@ -535,11 +523,6 @@ const vi: AppResources = {
         honorRoll: 'Học sinh xuất sắc',
         demographics: {
           title: 'Thông tin cá nhân',
-          dob: 'Ngày sinh',
-          email: 'Email',
-          address: 'Địa chỉ',
-          gender: 'Giới tính',
-          years: '{{count}} tuổi',
         },
         guardians: {
           title: 'Phụ huynh',
@@ -584,7 +567,7 @@ const vi: AppResources = {
             dayOfWeek: 'Ngày',
             startTime: 'Giờ bắt đầu',
             endTime: 'Giờ kết thúc',
-            room: 'Phòng',
+
             note: 'Ghi chú',
           },
           save: 'Lưu',
@@ -636,7 +619,7 @@ const vi: AppResources = {
       },
       schedule: {
         title: 'Lịch học toàn trường',
-        subtitle: 'Thời khoá biểu tuần với cảnh báo trùng lịch theo phòng và giáo viên.',
+        subtitle: 'Lịch trình hàng tuần với tính năng phát hiện xung đột trực tiếp giữa các giáo viên.',
         scheduleSession: 'Sắp xếp tiết học',
         prevWeek: 'Tuần trước',
         nextWeek: 'Tuần sau',
@@ -663,13 +646,7 @@ const vi: AppResources = {
           art: 'Mỹ thuật',
           biology: 'Sinh học 101',
         },
-        rooms: {
-          r204: 'Phòng 204',
-          r110: 'Phòng 110',
-          lab3: 'Lab 3',
-          studioA: 'Studio A',
-          lab1: 'Lab 1',
-        },
+
       },
       finance: {
         title: 'Quản lý tài chính',
@@ -781,7 +758,7 @@ const vi: AppResources = {
             day: 'Thứ',
             startTime: 'Giờ bắt đầu',
             endTime: 'Giờ kết thúc',
-            sessionRoom: 'Đổi phòng',
+
           },
           actions: {
             cancel: 'Huỷ',
@@ -821,14 +798,19 @@ const vi: AppResources = {
             activeStudents: 'Học sinh đang học',
             seatsAvailable: 'Còn {{count}} chỗ',
             nextSession: 'Buổi kế tiếp',
-            nextSessionAt: '{{when}} · {{room}}',
+            nextSessionAt: '{{when}}',
             instructor: 'Giáo viên chính',
             contactInstructor: 'Liên hệ',
           },
           tabs: {
+            courses: 'Khoá học',
             roster: 'Danh sách HS',
             schedule: 'Lịch học',
             activity: 'Hoạt động',
+          },
+          courses: {
+            title: 'Khoá học của lớp',
+            subtitle: 'Quản lý thứ tự khoá học, mở chi tiết khoá học hoặc gỡ khỏi lớp.',
           },
           roster: {
             search: 'Tìm học sinh…',
@@ -836,7 +818,7 @@ const vi: AppResources = {
             export: 'Xuất file',
             columns: {
               student: 'Học sinh',
-              externalId: 'Mã HS',
+
               attendance: 'Điểm danh',
               payment: 'Học phí',
             },
@@ -854,15 +836,12 @@ const vi: AppResources = {
         title: 'Thư viện bài tập',
         subtitle: 'Mẫu bài tập có thể tái sử dụng và gán vào khoá học.',
         create: 'Bài tập mới',
-        searchPlaceholder: 'Tìm theo tiêu đề hoặc môn học…',
-        typeFilter: 'Loại',
+        searchPlaceholder: 'Tìm theo tiêu đề…',
         difficultyFilter: 'Độ khó',
         empty: 'Không có bài tập nào khớp bộ lọc.',
         columns: {
           title: 'Bài tập',
-          type: 'Loại',
           difficulty: 'Độ khó',
-          subject: 'Môn học',
           points: 'Điểm',
           status: 'Trạng thái',
         },
@@ -922,6 +901,7 @@ const vi: AppResources = {
         sequenceTitle: 'Thứ tự khoá học',
         sequenceSubtitle: 'Các khoá học sẽ được dạy theo thứ tự này. Có thể sắp xếp lại bất cứ lúc nào.',
         empty: 'Chưa có khoá học nào. Chọn từ danh mục để xây dựng chương trình.',
+        detachConfirm: 'Bạn có chắc muốn gỡ khoá học này khỏi lớp?',
         required: 'Bắt buộc',
         summary: {
           courses: 'Khoá học',
@@ -1025,9 +1005,9 @@ const vi: AppResources = {
         items: '{{count}} mục',
         newSubmissions: '{{count}} mới',
         sessions: {
-          period1: { title: 'AP Tin học A — Tiết 1', room: 'Phòng 204' },
-          period3: { title: 'AP Tin học A — Tiết 3', room: 'Phòng 204' },
-          algorithms: { title: 'Tự chọn: Thuật toán', room: 'Lab 3' },
+          period1: { title: 'AP Tin học A — Tiết 1' },
+          period3: { title: 'AP Tin học A — Tiết 3' },
+          algorithms: { title: 'Tự chọn: Thuật toán' },
         },
         reviews: {
           quizTrees: { title: 'Trắc nghiệm 4 — Cây & Heap', context: 'AP Tin học A · Tiết 3' },
@@ -1155,16 +1135,14 @@ const vi: AppResources = {
         achievements: 'Thành tựu',
         achievementsAll: 'Tất cả',
         quests: {
-          linear: { title: 'Phương trình tuyến tính', subject: 'Toán · Chương 4', duration: 'Đang làm' },
+          linear: { title: 'Phương trình tuyến tính', duration: 'Đang làm' },
           photosynthesis: {
             title: 'Thí nghiệm Quang hợp',
-            subject: 'Khoa học · Lab 2',
             duration: 'Còn 2 ngày',
           },
-          robot: { title: 'Tìm đường cho Robot', subject: 'Lập trình · Quest 3', duration: 'Đang làm' },
+          robot: { title: 'Tìm đường cho Robot', duration: 'Đang làm' },
           reading: {
             title: 'Đọc: The Outsiders',
-            subject: 'Tiếng Anh · Chương 7',
             duration: 'Đã xong',
           },
         },

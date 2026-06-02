@@ -57,8 +57,6 @@ export interface IClassMeeting {
   /** "HH:MM" in 24h */
   startTime: string;
   endTime: string;
-  /** Optional override of class.room */
-  room?: string | null;
 }
 
 export interface IClassInstructor {
@@ -91,6 +89,8 @@ export interface IClass {
 export interface IClassEnrollment {
   id: string;
   classId: string;
+  className?: string;
+  classCode?: string;
   studentId: string;
   studentName: string;
   studentEmail: string;
@@ -113,7 +113,7 @@ export interface ICreateClassPayload {
     dayOfWeek: DayOfWeek;
     startTime: string;
     endTime: string;
-    room?: string;
+
   }>;
 }
 
@@ -131,7 +131,7 @@ export interface IStudentScheduleSession {
   /** "HH:MM" in 24h */
   startTime: string;
   endTime: string;
-  room?: string | null;
+
   /** Free-text note (admin only) */
   note?: string | null;
 }
@@ -153,7 +153,7 @@ export interface ICreateStudentSchedulePayload {
   dayOfWeek: DayOfWeek;
   startTime: string;
   endTime: string;
-  room?: string;
+
   note?: string;
 }
 

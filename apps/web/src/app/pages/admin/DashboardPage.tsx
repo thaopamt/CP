@@ -52,17 +52,17 @@ export default function AdminDashboardPage() {
     {
       time: '09:00',
       title: t('pages.admin.dashboard.sessions.algebra.title'),
-      room: t('pages.admin.dashboard.sessions.algebra.room'),
+
     },
     {
       time: '10:30',
       title: t('pages.admin.dashboard.sessions.physics.title'),
-      room: t('pages.admin.dashboard.sessions.physics.room'),
+
     },
     {
       time: '13:00',
       title: t('pages.admin.dashboard.sessions.history.title'),
-      room: t('pages.admin.dashboard.sessions.history.room'),
+
     },
   ];
 
@@ -165,7 +165,7 @@ export default function AdminDashboardPage() {
                 <div className="w-14 shrink-0 text-label-sm font-bold text-primary">{s.time}</div>
                 <div className="flex-1 min-w-0">
                   <div className="text-body-md text-on-surface truncate">{s.title}</div>
-                  <div className="text-label-sm text-on-surface-variant">{s.room}</div>
+
                 </div>
                 <Icon name="chevron_right" className="text-on-surface-variant" />
               </li>

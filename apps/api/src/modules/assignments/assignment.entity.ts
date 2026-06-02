@@ -1,5 +1,5 @@
 import { Column, Entity, Index } from 'typeorm';
-import { AssignmentType, ICodingConfig, PublishStatus } from '@cp/shared';
+import { ICodingConfig, PublishStatus } from '@cp/shared';
 
 import { BaseEntity } from '../../common/entities/base.entity';
 
@@ -12,16 +12,8 @@ export class Assignment extends BaseEntity {
   description!: string;
 
   @Index()
-  @Column({ type: 'enum', enum: AssignmentType })
-  type!: AssignmentType;
-
-  @Index()
   @Column({ type: 'enum', enum: ['EASY', 'MEDIUM', 'HARD'], default: 'MEDIUM' })
   difficulty!: 'EASY' | 'MEDIUM' | 'HARD';
-
-  @Index()
-  @Column({ type: 'varchar', length: 100 })
-  subject!: string;
 
   @Column({ type: 'int', default: 10 })
   points!: number;

@@ -12,8 +12,6 @@ import {
 } from '@cp/ui';
 import { useToast } from '@cp/ui';
 import {
-  ASSIGNMENT_TYPE_ICON,
-  ASSIGNMENT_TYPE_LABEL,
   ICourseAssignment,
   PublishStatus,
 } from '@cp/shared';
@@ -32,6 +30,12 @@ const DIFFICULTY_TONE = {
   MEDIUM: 'warning' as const,
   HARD: 'error' as const,
 };
+
+const assignmentIcon = (assignment: ICourseAssignment['assignment']) =>
+  assignment.codingConfig ? 'terminal' : 'assignment';
+
+const assignmentTypeLabel = (assignment: ICourseAssignment['assignment']) =>
+  assignment.codingConfig ? 'Coding' : 'Assignment';
 
 export default function CourseDetailPage() {
   const { t } = useTranslation();
@@ -233,12 +237,12 @@ function SequenceRow({
         {index + 1}
       </span>
       <span className="w-9 h-9 rounded-lg bg-primary/10 text-primary grid place-items-center shrink-0">
-        <Icon name={ASSIGNMENT_TYPE_ICON[a.type]} size={20} />
+        <Icon name={assignmentIcon(a)} size={20} />
       </span>
       <div className="flex-1 min-w-0">
         <div className="text-on-surface font-medium truncate">{a.title}</div>
         <div className="text-[12px] text-on-surface-variant flex items-center gap-sm flex-wrap">
-          <span>{t(`enums.assignmentType.${a.type}`, ASSIGNMENT_TYPE_LABEL[a.type])}</span>
+          <span>{assignmentTypeLabel(a)}</span>
           <span className="w-1 h-1 rounded-full bg-outline-variant" />
           <span>{t(`enums.difficultyLevel.${a.difficulty}`)}</span>
           <span className="w-1 h-1 rounded-full bg-outline-variant" />
@@ -360,7 +364,7 @@ function AssignmentPickerDialog({
                         className="rounded text-primary focus:ring-primary"
                       />
                       <span className="w-9 h-9 rounded-lg bg-primary/10 text-primary grid place-items-center shrink-0">
-                        <Icon name={ASSIGNMENT_TYPE_ICON[a.type]} size={20} />
+                        <Icon name={assignmentIcon(a)} size={20} />
                       </span>
                       <div className="flex-1 min-w-0">
                         <div className="text-on-surface font-medium truncate">{a.title}</div>
@@ -368,7 +372,7 @@ function AssignmentPickerDialog({
                           <StatusBadge tone={DIFFICULTY_TONE[a.difficulty]}>
                             {t(`enums.difficultyLevel.${a.difficulty}`)}
                           </StatusBadge>
-                          <span>{a.subject}</span>
+                          <span>{assignmentTypeLabel(a)}</span>
                           <span className="w-1 h-1 rounded-full bg-outline-variant" />
                           <span className="font-semibold text-tertiary">{a.points} pts</span>
                         </div>

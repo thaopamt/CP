@@ -8,14 +8,12 @@
  * into the cleaner UI shapes (`order`, etc.).
  */
 import {
-  AssignmentType,
   IAssignmentDef,
   ICodingConfig,
   IClassCourseLink,
   ICourse,
   ICourseAssignment,
   ICreateAssignmentDefPayload,
-  ICreateCoursePayload,
   ICreateCoursePayload,
   IReorderPayload,
   PublishStatus,
@@ -40,9 +38,7 @@ interface ApiAssignment {
   id: string;
   title: string;
   description: string;
-  type: AssignmentType;
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
-  subject: string;
   points: number;
   estimatedMinutes: number | null;
   status: PublishStatus;
@@ -94,9 +90,7 @@ function toAssignment(a: ApiAssignment): IAssignmentDef {
     id: a.id,
     title: a.title,
     description: a.description ?? '',
-    type: a.type,
     difficulty: a.difficulty,
-    subject: a.subject,
     points: a.points,
     estimatedMinutes: a.estimatedMinutes ?? undefined,
     status: a.status,
@@ -113,9 +107,9 @@ function toStudentAssignment(a: ApiAssignment): IAssignment {
     id: a.id,
     title: a.title,
     description: a.description ?? '',
-    category: a.subject,
+    category: 'General',
     difficulty: a.difficulty as any,
-    icon: a.type === 'CODING' ? 'terminal' : 'quiz',
+    icon: 'terminal',
     iconColor: 'text-primary',
     xpReward: a.points,
     dueAt: new Date(Date.now() + 7 * 24 * 60 * 60_000).toISOString(),
@@ -167,17 +161,13 @@ export interface AssignmentsListParams {
   page?: number;
   limit?: number;
   search?: string;
-  type?: AssignmentType | 'all';
-  subject?: string | 'all';
   difficulty?: 'EASY' | 'MEDIUM' | 'HARD' | 'all';
   status?: PublishStatus | 'all';
 }
 
 function buildAssignmentsQuery(p: AssignmentsListParams): Record<string, unknown> {
   const conditions: Array<Record<string, unknown>> = [];
-  if (p.type && p.type !== 'all') conditions.push({ type: p.type });
   if (p.difficulty && p.difficulty !== 'all') conditions.push({ difficulty: p.difficulty });
-  if (p.subject && p.subject !== 'all') conditions.push({ subject: p.subject });
   if (p.status && p.status !== 'all') conditions.push({ status: p.status });
   if (p.search?.trim()) {
     const q = p.search.trim();

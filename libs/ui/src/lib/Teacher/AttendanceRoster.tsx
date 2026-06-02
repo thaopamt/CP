@@ -64,7 +64,6 @@ export function AttendanceRoster({ students, records, onChange, className }: Att
               />
               <div className="min-w-0">
                 <div className="text-on-surface font-medium truncate">{s.name}</div>
-                <div className="text-[12px] text-on-surface-variant truncate">{s.studentId}</div>
               </div>
             </div>
 

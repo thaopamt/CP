@@ -18,14 +18,14 @@ export default function TeacherAttendancePage() {
 
   const roster: IRosterStudent[] = useMemo(
     () => [
-      { id: 'a1', name: t('pages.teacher.attendance.roster.alex'), studentId: 'S-2024-001' },
-      { id: 'a2', name: t('pages.teacher.attendance.roster.betty'), studentId: 'S-2024-002' },
-      { id: 'a3', name: t('pages.teacher.attendance.roster.charlie'), studentId: 'S-2024-003' },
-      { id: 'a4', name: t('pages.teacher.attendance.roster.david'), studentId: 'S-2024-004' },
-      { id: 'a5', name: t('pages.teacher.attendance.roster.eva'), studentId: 'S-2024-005' },
-      { id: 'a6', name: t('pages.teacher.attendance.roster.felix'), studentId: 'S-2024-006' },
-      { id: 'a7', name: t('pages.teacher.attendance.roster.gabriela'), studentId: 'S-2024-007' },
-      { id: 'a8', name: t('pages.teacher.attendance.roster.henry'), studentId: 'S-2024-008' },
+      { id: 'a1', name: t('pages.teacher.attendance.roster.alex') },
+      { id: 'a2', name: t('pages.teacher.attendance.roster.betty') },
+      { id: 'a3', name: t('pages.teacher.attendance.roster.charlie') },
+      { id: 'a4', name: t('pages.teacher.attendance.roster.david') },
+      { id: 'a5', name: t('pages.teacher.attendance.roster.eva') },
+      { id: 'a6', name: t('pages.teacher.attendance.roster.felix') },
+      { id: 'a7', name: t('pages.teacher.attendance.roster.gabriela') },
+      { id: 'a8', name: t('pages.teacher.attendance.roster.henry') },
     ],
     [t],
   );
@@ -43,7 +43,7 @@ export default function TeacherAttendancePage() {
     if (!search.trim()) return roster;
     const q = search.trim().toLowerCase();
     return roster.filter(
-      (s) => s.name.toLowerCase().includes(q) || s.studentId.toLowerCase().includes(q),
+      (s) => s.name.toLowerCase().includes(q)
     );
   }, [search, roster]);
 

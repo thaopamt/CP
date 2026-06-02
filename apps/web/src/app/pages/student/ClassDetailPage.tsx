@@ -158,9 +158,9 @@ export default function StudentClassDetailPage() {
           }
         />
         <StatCard
-          icon="location_on"
-          label="Room"
-          value={cls.room ?? '—'}
+          icon="menu_book"
+          label="Courses"
+          value={`${coursesQuery.data?.length ?? 0}`}
         />
       </div>
 
@@ -205,20 +205,9 @@ export default function StudentClassDetailPage() {
               </p>
             </section>
 
-            {/* Department & Term info */}
+            {/* Term info */}
             <section className="grid grid-cols-1 sm:grid-cols-2 gap-md">
-              <InfoRow
-                icon="category"
-                label="Department"
-                value={t(`enums.classDepartment.${cls.department}`)}
-              />
               <InfoRow icon="date_range" label="Term" value={cls.term} />
-              <InfoRow icon="door_front" label="Room" value={cls.room ?? 'TBD'} />
-              <InfoRow
-                icon="schedule"
-                label="Sessions per week"
-                value={`${cls.sessions.length} sessions`}
-              />
             </section>
 
             {/* Instructor card */}
@@ -406,7 +395,7 @@ export default function StudentClassDetailPage() {
                               </div>
                               <div className="text-[11px] text-on-surface-variant flex items-center gap-xs mt-0.5">
                                 <Icon name="location_on" size={12} />
-                                {s.room ?? cls.room ?? 'TBD'}
+
                               </div>
                             </div>
                           ))}

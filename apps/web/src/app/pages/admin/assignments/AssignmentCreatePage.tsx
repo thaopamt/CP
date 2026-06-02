@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '@cp/ui';
 import { useCreateAssignment } from '../../../api/curriculum.queries';
 import { useClassesList } from '../../../api/class.queries';
-import { AssignmentType, PublishStatus, ICodingTestCase } from '@cp/shared';
+import { PublishStatus, ICodingTestCase } from '@cp/shared';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -150,9 +150,7 @@ export default function AssignmentCreatePage() {
         title,
         slug: slug || undefined,
         description,
-        type: AssignmentType.CODING,
         difficulty,
-        subject: 'Programming',
         points: 100,
         status: PublishStatus.PUBLISHED,
         classIds: classIds.length > 0 ? classIds : null,
@@ -581,7 +579,7 @@ export default function AssignmentCreatePage() {
                                     </span>
                                   )}
                                 </span>
-                                <span className="text-[11px] text-on-surface-variant mt-0.5">{c.code} • {c.department}</span>
+                                <span className="text-[11px] text-on-surface-variant mt-0.5">{c.code}</span>
                               </div>
                             </label>
                           );

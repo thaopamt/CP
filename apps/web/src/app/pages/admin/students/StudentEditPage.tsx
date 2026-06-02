@@ -11,8 +11,6 @@ import {
 import {
   ENROLLMENT_STATUS_LABEL,
   EnrollmentStatus,
-  GENDER_LABEL,
-  Gender,
   GuardianRelationship,
   ICreateStudentPayload,
   IGuardianInput,
@@ -25,10 +23,7 @@ type Draft = {
   lastName: string;
   email: string;
   username: string;
-  studentId: string;
-  dateOfBirth: string;
-  gender: Gender;
-  school: string;
+
   grade: number;
   startDate: string;
   status: EnrollmentStatus;
@@ -49,10 +44,7 @@ const INITIAL: Draft = {
   lastName: '',
   email: '',
   username: '',
-  studentId: '',
-  dateOfBirth: '',
-  gender: Gender.UNDISCLOSED,
-  school: '',
+
   grade: 1,
   startDate: '',
   status: EnrollmentStatus.ACTIVE,
@@ -81,10 +73,7 @@ export default function StudentEditPage() {
         lastName: s.lastName,
         email: s.email,
         username: s.username ?? '',
-        studentId: s.studentId,
-        dateOfBirth: s.dateOfBirth ?? '',
-        gender: s.gender ?? Gender.UNDISCLOSED,
-        school: s.school ?? '',
+
         grade: s.grade,
         startDate: s.startDate ?? '',
         status: s.status,
@@ -94,7 +83,6 @@ export default function StudentEditPage() {
           fullName: g.fullName,
           relationship: g.relationship,
           phoneNumber: g.phoneNumber,
-          email: g.email ?? '',
           isPrimary: g.isPrimary,
         })),
       });
@@ -118,7 +106,7 @@ export default function StudentEditPage() {
       ...prev,
       guardians: [
         ...prev.guardians,
-        { fullName: '', relationship: GuardianRelationship.GUARDIAN, phoneNumber: '', email: '', isPrimary: false },
+        { fullName: '', relationship: GuardianRelationship.GUARDIAN, phoneNumber: '', isPrimary: false },
       ],
     }));
   }
@@ -135,7 +123,7 @@ export default function StudentEditPage() {
     if (!draft.firstName.trim()) e.firstName = t('pages.admin.studentCreate.validation.firstNameRequired');
     if (!draft.lastName.trim()) e.lastName = t('pages.admin.studentCreate.validation.lastNameRequired');
     if (!draft.email.trim()) e.email = t('pages.admin.studentCreate.validation.emailRequired');
-    if (!draft.dateOfBirth) e.dateOfBirth = t('pages.admin.studentCreate.validation.dobRequired');
+
     if (draft.grade < 1 || draft.grade > 9) e.grade = t('pages.admin.studentCreate.validation.gradeRange');
     draft.guardians.forEach((g, i) => {
       if (!g.phoneNumber.trim()) e[`g.${i}.phone`] = t('pages.admin.studentCreate.validation.guardianPhoneRequired');
@@ -151,10 +139,7 @@ export default function StudentEditPage() {
       lastName: draft.lastName.trim(),
       email: draft.email.trim(),
       username: draft.username.trim() || undefined,
-      studentId: draft.studentId.trim() || undefined,
-      dateOfBirth: draft.dateOfBirth || undefined,
-      gender: draft.gender,
-      school: draft.school.trim() || undefined,
+
       grade: draft.grade,
       startDate: draft.startDate || undefined,
       status: draft.status,
@@ -164,7 +149,6 @@ export default function StudentEditPage() {
           fullName: g.fullName.trim(),
           relationship: g.relationship,
           phoneNumber: g.phoneNumber.trim(),
-          email: g.email?.trim() || undefined,
           isPrimary: g.isPrimary ?? false,
         })),
     };
@@ -267,60 +251,14 @@ export default function StudentEditPage() {
               className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
             />
           </FormField>
-          <FormField
-            label={t('pages.admin.studentCreate.fields.dateOfBirth')}
-            required
-            error={errors.dateOfBirth}
-          >
-            <input
-              type="date"
-              value={draft.dateOfBirth}
-              onChange={(e) => patch({ dateOfBirth: e.target.value })}
-              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-            />
-          </FormField>
-          <FormField label={t('pages.admin.studentCreate.fields.gender')}>
-            <select
-              value={draft.gender}
-              onChange={(e) => patch({ gender: e.target.value as Gender })}
-              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-            >
-              {Object.values(Gender).map((g) => (
-                <option key={g} value={g}>
-                  {GENDER_LABEL[g]}
-                </option>
-              ))}
-            </select>
-          </FormField>
-          <FormField
-            label={t('pages.admin.studentCreate.fields.school', 'School')}
-            className="md:col-span-2"
-          >
-            <input
-              type="text"
-              value={draft.school}
-              onChange={(e) => patch({ school: e.target.value })}
-              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-            />
-          </FormField>
+
         </div>
       </FormSection>
 
       {/* Section 2: Account credentials */}
       <FormSection icon="vpn_key" title={t('pages.admin.studentCreate.sections.account')}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
-          <FormField
-            label={t('pages.admin.studentCreate.fields.studentId')}
-            hint={t('pages.admin.studentCreate.fields.studentIdHint')}
-          >
-            <input
-              type="text"
-              value={draft.studentId}
-              onChange={(e) => patch({ studentId: e.target.value })}
-              placeholder="STU-2024-…"
-              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none font-mono text-[13px]"
-            />
-          </FormField>
+
           <FormField label={t('pages.admin.studentCreate.fields.accountStatus')}>
             <select
               value={draft.status}
@@ -419,14 +357,7 @@ export default function StudentEditPage() {
                   className="bg-surface-container-lowest border border-outline-variant rounded-md px-md py-sm focus:ring-2 focus:ring-primary outline-none"
                 />
               </FormField>
-              <FormField label={t('pages.admin.studentCreate.fields.guardianEmail')}>
-                <input
-                  type="email"
-                  value={g.email ?? ''}
-                  onChange={(e) => patchGuardian(i, { email: e.target.value })}
-                  className="bg-surface-container-lowest border border-outline-variant rounded-md px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-                />
-              </FormField>
+
               <label className="md:col-span-2 inline-flex items-center gap-xs text-label-sm text-on-surface-variant">
                 <input
                   type="checkbox"

@@ -39,8 +39,7 @@ export class StudentSchedule extends BaseEntity {
   @Column({ type: 'time', name: 'end_time' })
   endTime!: string;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  room!: string | null;
+
 
   /** Free-text note visible only to admins */
   @Column({ type: 'text', nullable: true })

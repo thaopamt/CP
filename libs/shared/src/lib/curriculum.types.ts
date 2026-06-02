@@ -13,32 +13,6 @@
  * canonical, persisted entities.
  */
 
-export enum AssignmentType {
-  CODING = 'CODING',
-  WRITING = 'WRITING',
-  QUIZ = 'QUIZ',
-  READING = 'READING',
-  PROJECT = 'PROJECT',
-  ASSESSMENT = 'ASSESSMENT',
-}
-
-export const ASSIGNMENT_TYPE_LABEL: Record<AssignmentType, string> = {
-  [AssignmentType.CODING]: 'Coding',
-  [AssignmentType.WRITING]: 'Writing',
-  [AssignmentType.QUIZ]: 'Quiz',
-  [AssignmentType.READING]: 'Reading',
-  [AssignmentType.PROJECT]: 'Project',
-  [AssignmentType.ASSESSMENT]: 'Assessment',
-};
-
-export const ASSIGNMENT_TYPE_ICON: Record<AssignmentType, string> = {
-  [AssignmentType.CODING]: 'code',
-  [AssignmentType.WRITING]: 'edit_note',
-  [AssignmentType.QUIZ]: 'quiz',
-  [AssignmentType.READING]: 'menu_book',
-  [AssignmentType.PROJECT]: 'rocket_launch',
-  [AssignmentType.ASSESSMENT]: 'fact_check',
-};
 
 export enum PublishStatus {
   DRAFT = 'DRAFT',
@@ -78,9 +52,7 @@ export interface IAssignmentDef {
   id: string;
   title: string;
   description: string;
-  type: AssignmentType;
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
-  subject: string;          // e.g. "Mathematics" / "Computer Science"
   points: number;
   estimatedMinutes?: number;
   slug?: string | null;
@@ -95,9 +67,7 @@ export interface IAssignmentDef {
 export interface ICreateAssignmentDefPayload {
   title: string;
   description?: string;
-  type: AssignmentType;
   difficulty: IAssignmentDef['difficulty'];
-  subject: string;
   points: number;
   estimatedMinutes?: number;
   slug?: string;

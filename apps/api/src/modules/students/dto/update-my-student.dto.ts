@@ -1,5 +1,5 @@
 import { IsDateString, IsEnum, IsOptional, IsString, Length } from 'class-validator';
-import { Gender } from '@cp/shared';
+
 
 export class UpdateMyStudentDto {
   @IsOptional()
@@ -20,14 +20,6 @@ export class UpdateMyStudentDto {
   @IsOptional()
   @IsString()
   avatarUrl?: string | null;
-
-  @IsOptional()
-  @IsDateString()
-  dateOfBirth?: string | null;
-
-  @IsOptional()
-  @IsEnum(Gender)
-  gender?: Gender | null;
 
   @IsOptional()
   @IsString()

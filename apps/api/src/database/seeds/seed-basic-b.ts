@@ -9,7 +9,7 @@ import { Course } from '../../modules/courses/course.entity';
 import { Assignment } from '../../modules/assignments/assignment.entity';
 import { ClassCourse } from '../../modules/classes/class-course.entity';
 import { CourseAssignment } from '../../modules/courses/course-assignment.entity';
-import { ClassStatus, AssignmentType, PublishStatus } from '@cp/shared';
+import { ClassStatus, PublishStatus } from '@cp/shared';
 
 async function run() {
   console.log('🚀 Starting Automated Seed Script for BASIC B...');
@@ -275,9 +275,7 @@ async function run() {
       const assignment = new Assignment();
       assignment.title = title;
       assignment.description = description;
-      assignment.type = AssignmentType.CODING;
       assignment.difficulty = difficulty;
-      assignment.subject = 'Computer Science';
       assignment.points = points;
       assignment.estimatedMinutes = isHard ? 45 : 30;
       assignment.slug = slug;

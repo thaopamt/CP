@@ -50,7 +50,6 @@ export class ClassesService extends TypeOrmCrudService<ClassEntity> {
           dayOfWeek: s.dayOfWeek,
           startTime: s.startTime,
           endTime: s.endTime,
-          room: s.room ?? null,
         }),
       );
       await tx.getRepository(ClassSession).save(rows);

@@ -17,7 +17,7 @@ const PAGE_SIZE = 10;
 export default function StudentAssignmentsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [category, setCategory] = useState<string>('all');
+
   const [difficulty, setDifficulty] = useState<DifficultyLevel | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -26,7 +26,7 @@ export default function StudentAssignmentsPage() {
     page,
     limit: PAGE_SIZE,
     search: searchQuery,
-    category,
+
     difficulty,
   });
 
@@ -34,8 +34,7 @@ export default function StudentAssignmentsPage() {
   const total = data?.total ?? 0;
   const pageCount = data?.pageCount ?? 1;
 
-  // For now we hardcode subjects since we're doing server-side filtering without a facets API
-  const CATEGORY_KEYS = ['all', 'Mathematics', 'Computer Science', 'Physics'];
+
 
   function resetPage<T>(setter: (v: T) => void) {
     return (v: T) => {
@@ -65,18 +64,6 @@ export default function StudentAssignmentsPage() {
         </div>
         
         <div className="flex w-full sm:w-auto items-center gap-sm">
-          <div className="relative flex-1 sm:w-40">
-            <select 
-              value={category} 
-              onChange={(e) => resetPage(setCategory)(e.target.value)}
-              className="w-full bg-surface-container-low border border-outline-variant rounded-xl pl-4 pr-10 py-2.5 text-sm text-on-surface appearance-none focus:ring-2 focus:ring-primary outline-none cursor-pointer transition-all"
-            >
-              <option value="all">All Subjects</option>
-              {CATEGORY_KEYS.filter(c => c !== 'all').map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <Icon name="expand_more" className="absolute right-3 top-1/2 -translate-y-1/2 text-outline-variant pointer-events-none" size={20} />
-          </div>
-
           <div className="relative flex-1 sm:w-40">
             <select 
               value={difficulty} 

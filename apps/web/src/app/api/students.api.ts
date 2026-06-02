@@ -9,7 +9,6 @@
  */
 import {
   EnrollmentStatus,
-  Gender,
   GuardianRelationship,
   ICreateStudentPayload,
   IGuardian,
@@ -41,7 +40,6 @@ interface ApiGuardian {
   fullName: string;
   relationship: GuardianRelationship;
   phoneNumber: string;
-  email: string | null;
   isPrimary: boolean;
 }
 
@@ -49,11 +47,7 @@ interface ApiStudentProfile {
   id: string;
   userId: string;
   user: ApiUser;
-  studentId: string;
-  dateOfBirth: string | null;
-  gender: Gender | null;
   homeAddress: string | null;
-  school: string | null;
   grade: number;
   cohortYear: number;
   enrolledAt: string;
@@ -75,8 +69,6 @@ export interface UpdateMyStudentPayload {
   lastName?: string;
   username?: string | null;
   avatarUrl?: string | null;
-  dateOfBirth?: string | null;
-  gender?: Gender | null;
   homeAddress?: string | null;
 }
 
@@ -88,7 +80,6 @@ function toGuardian(g: ApiGuardian): IGuardian {
     fullName: g.fullName,
     relationship: g.relationship,
     phoneNumber: g.phoneNumber,
-    email: g.email,
     isPrimary: g.isPrimary,
   };
 }
@@ -97,16 +88,12 @@ function toStudent(s: ApiStudentProfile): IStudentProfile {
   return {
     id: s.id,
     userId: s.user.id,
-    studentId: s.studentId,
     firstName: s.user.firstName,
     lastName: s.user.lastName,
     email: s.user.email,
     username: s.user.username ?? null,
     avatarUrl: s.user.avatarUrl ?? null,
-    dateOfBirth: s.dateOfBirth,
-    gender: s.gender,
     homeAddress: s.homeAddress,
-    school: s.school,
     grade: s.grade,
     cohortYear: s.cohortYear,
     enrolledAt: s.enrolledAt,
@@ -142,7 +129,6 @@ function buildStudentsQuery(p: StudentsListParams): Record<string, unknown> {
     const q = p.search.trim();
     conditions.push({
       $or: [
-        { studentId: { $cont: q } },
         { 'user.firstName': { $cont: q } },
         { 'user.lastName': { $cont: q } },
         { 'user.email': { $cont: q } },

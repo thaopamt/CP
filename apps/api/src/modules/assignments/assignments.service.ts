@@ -58,9 +58,6 @@ export class AssignmentsService extends TypeOrmCrudService<Assignment> {
       }));
     }
 
-    if (filters.category) {
-      query.andWhere('a.subject = :category', { category: filters.category });
-    }
 
     if (filters.difficulty) {
       query.andWhere('a.difficulty = :difficulty', { difficulty: filters.difficulty });

@@ -182,7 +182,6 @@ export default function StudentDashboardPage() {
                         <Icon name={q.icon} size={24} />
                       </div>
                       <div>
-                        <span className={`text-[10px] font-bold uppercase tracking-wider text-${q.colorPrefix}-500 bg-${q.colorPrefix}-500/10 px-2 py-0.5 rounded-full`}>{q.subject}</span>
                         <h3 className={`font-bold text-white mt-1 group-hover:text-${q.colorPrefix}-400 transition-colors`}>{q.title}</h3>
                       </div>
                     </div>

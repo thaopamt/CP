@@ -16,9 +16,6 @@ import {
   useConfirm,
 } from '@cp/ui';
 import {
-  ASSIGNMENT_TYPE_ICON,
-  ASSIGNMENT_TYPE_LABEL,
-  AssignmentType,
   IAssignmentDef,
   ICreateAssignmentDefPayload,
   PublishStatus,
@@ -43,7 +40,6 @@ export default function AssignmentsListPage() {
 
   const [search, setSearch] = useState('');
   const confirm = useConfirm();
-  const [type, setType] = useState<AssignmentType | 'all'>('all');
   const [difficulty, setDifficulty] = useState<'EASY' | 'MEDIUM' | 'HARD' | 'all'>('all');
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
@@ -52,7 +48,6 @@ export default function AssignmentsListPage() {
     page,
     limit: PAGE_SIZE,
     search,
-    type,
     difficulty,
   });
   const deleteAssignment = useDeleteAssignment();
@@ -88,16 +83,7 @@ export default function AssignmentsListPage() {
           </div>
         ),
       },
-      {
-        key: 'type',
-        header: t('pages.admin.assignmentsList.columns.type'),
-        cell: (a) => (
-          <span className="inline-flex items-center gap-xs">
-            <Icon name={ASSIGNMENT_TYPE_ICON[a.type]} size={16} className="text-primary" />
-            <span className="text-on-surface">{t(`enums.assignmentType.${a.type}`, ASSIGNMENT_TYPE_LABEL[a.type])}</span>
-          </span>
-        ),
-      },
+
       {
         key: 'difficulty',
         header: t('pages.admin.assignmentsList.columns.difficulty'),
@@ -107,11 +93,7 @@ export default function AssignmentsListPage() {
           </StatusBadge>
         ),
       },
-      {
-        key: 'subject',
-        header: t('pages.admin.assignmentsList.columns.subject'),
-        cell: (a) => <span className="text-on-surface-variant">{a.subject}</span>,
-      },
+
       {
         key: 'points',
         header: t('pages.admin.assignmentsList.columns.points'),
@@ -182,18 +164,7 @@ export default function AssignmentsListPage() {
           onChange={resetPage(setSearch)}
           placeholder={t('pages.admin.assignmentsList.searchPlaceholder')}
         />
-        <SelectFilter
-          label={t('pages.admin.assignmentsList.typeFilter')}
-          value={type}
-          onChange={(e) => resetPage(setType)(e.target.value as typeof type)}
-          options={[
-            { value: 'all', label: t('common.all') },
-            ...Object.values(AssignmentType).map((v) => ({
-              value: v,
-              label: t(`enums.assignmentType.${v}`, ASSIGNMENT_TYPE_LABEL[v]),
-            })),
-          ]}
-        />
+
         <SelectFilter
           label={t('pages.admin.assignmentsList.difficultyFilter')}
           value={difficulty}
@@ -252,9 +223,7 @@ function CreateAssignmentDialog({ onClose }: { onClose: () => void }) {
   const [draft, setDraft] = useState<ICreateAssignmentDefPayload>({
     title: '',
     description: '',
-    type: AssignmentType.QUIZ,
     difficulty: 'MEDIUM',
-    subject: '',
     points: 10,
     status: PublishStatus.PUBLISHED,
   });
@@ -314,15 +283,7 @@ function CreateAssignmentDialog({ onClose }: { onClose: () => void }) {
           />
         </FormField>
         <div className="grid grid-cols-2 gap-md">
-          <SelectFilter
-            label={t('pages.admin.assignmentsList.columns.type')}
-            value={draft.type}
-            onChange={(e) => patch('type', e.target.value as AssignmentType)}
-            options={Object.values(AssignmentType).map((v) => ({
-              value: v,
-              label: t(`enums.assignmentType.${v}`, ASSIGNMENT_TYPE_LABEL[v]),
-            }))}
-          />
+
           <SelectFilter
             label={t('pages.admin.assignmentsList.columns.difficulty')}
             value={draft.difficulty}
@@ -333,14 +294,7 @@ function CreateAssignmentDialog({ onClose }: { onClose: () => void }) {
               { value: 'HARD', label: t('enums.difficultyLevel.HARD') },
             ]}
           />
-          <FormField label={t('pages.admin.assignmentsList.columns.subject')} required>
-            <input
-              type="text"
-              value={draft.subject}
-              onChange={(e) => patch('subject', e.target.value)}
-              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-            />
-          </FormField>
+
           <FormField label={t('pages.admin.assignmentsList.columns.points')} required>
             <input
               type="number"
@@ -365,7 +319,7 @@ function CreateAssignmentDialog({ onClose }: { onClose: () => void }) {
           <Button
             variant="admin"
             onClick={submit}
-            disabled={create.isPending || !draft.title.trim() || !draft.subject.trim()}
+            disabled={create.isPending || !draft.title.trim()}
             trailingIcon={
               create.isPending ? <Icon name="progress_activity" size={18} className="animate-spin" /> : undefined
             }

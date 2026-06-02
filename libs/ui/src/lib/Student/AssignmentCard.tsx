@@ -1,4 +1,7 @@
 import { useTranslation } from 'react-i18next';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { AssignmentTab, IAssignment } from '@cp/shared';
 import { Button } from '../Button/Button';
 import { Icon } from '../Icon/Icon';
@@ -29,8 +32,7 @@ const ACTION_KEY: Record<AssignmentTab, string> = {
  * a thin progress bar above the action button.
  */
 export function AssignmentCard({ assignment, onAction, className }: AssignmentCardProps) {
-  const { t, i18n } = useTranslation();
-  const due = formatDue(assignment.dueAt, t, i18n.language);
+  const { t } = useTranslation();
   return (
     <article
       className={cn(
@@ -76,7 +78,11 @@ export function AssignmentCard({ assignment, onAction, className }: AssignmentCa
             </div>
           </header>
 
-          <p className="text-body-md text-on-surface-variant line-clamp-2">{assignment.description}</p>
+          <div className="text-body-md text-on-surface-variant line-clamp-2 prose prose-sm dark:prose-invert max-w-none prose-p:m-0 prose-headings:m-0 prose-ul:m-0 prose-ol:m-0 prose-code:bg-black/20 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
+            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+              {assignment.description || ''}
+            </ReactMarkdown>
+          </div>
 
           {assignment.progress != null && assignment.status !== AssignmentTab.COMPLETED && (
             <div className="mt-xs">
@@ -90,11 +96,7 @@ export function AssignmentCard({ assignment, onAction, className }: AssignmentCa
             </div>
           )}
 
-          <footer className="flex items-center justify-between gap-md mt-xs">
-            <div className="text-label-sm text-on-surface-variant inline-flex items-center gap-xs">
-              <Icon name="schedule" size={16} />
-              {due}
-            </div>
+          <footer className="flex items-center justify-end gap-md mt-xs">
             <Button
               variant={assignment.status === AssignmentTab.TODO ? 'student' : 'outline'}
               size="sm"
@@ -109,19 +111,3 @@ export function AssignmentCard({ assignment, onAction, className }: AssignmentCa
   );
 }
 
-function formatDue(
-  iso: string,
-  t: (k: string, v?: Record<string, unknown>) => string,
-  locale: string,
-): string {
-  const due = new Date(iso);
-  const now = new Date();
-  const diffDays = Math.round((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays === 0) return t('ui.assignment.dueToday');
-  if (diffDays === 1) return t('ui.assignment.dueTomorrow');
-  if (diffDays < 0) return t('ui.assignment.overdue', { count: Math.abs(diffDays) });
-  if (diffDays < 7) return t('ui.assignment.dueIn', { count: diffDays });
-  return t('ui.assignment.dueOn', {
-    date: due.toLocaleDateString(locale === 'vi' ? 'vi-VN' : 'en-US'),
-  });
-}

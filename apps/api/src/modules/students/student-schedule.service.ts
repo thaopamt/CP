@@ -17,7 +17,6 @@ export interface ScheduleSessionDto {
   dayOfWeek: string;
   startTime: string;
   endTime: string;
-  room: string | null;
   note: string | null;
 }
 
@@ -62,7 +61,6 @@ export class StudentScheduleService {
           dayOfWeek: s.dayOfWeek,
           startTime: s.startTime,
           endTime: s.endTime,
-          room: s.room ?? null,
           note: null,
         });
       }
@@ -81,7 +79,6 @@ export class StudentScheduleService {
       dayOfWeek: s.dayOfWeek,
       startTime: s.startTime,
       endTime: s.endTime,
-      room: s.room,
       note: s.note,
     };
   }
@@ -129,7 +126,6 @@ export class StudentScheduleService {
       dayOfWeek: dto.dayOfWeek,
       startTime: dto.startTime,
       endTime: dto.endTime,
-      room: dto.room ?? null,
       note: dto.note ?? null,
     });
     const saved = await this.repo.save(row);
@@ -146,7 +142,7 @@ export class StudentScheduleService {
     if (dto.dayOfWeek !== undefined) row.dayOfWeek = dto.dayOfWeek;
     if (dto.startTime !== undefined) row.startTime = dto.startTime;
     if (dto.endTime !== undefined) row.endTime = dto.endTime;
-    if (dto.room !== undefined) row.room = dto.room;
+
     if (dto.note !== undefined) row.note = dto.note;
 
     await this.repo.save(row);

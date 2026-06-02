@@ -79,7 +79,7 @@ function flattenEvents(classes: IClass[], customSchedules: IStudentScheduleSessi
         id: m.id,
         classId: cls.id,
         title: `${cls.name} (${cls.code})`,
-        location: m.room ?? cls.room ?? '—',
+        location: '—',
         teacherName,
         teacherInitials: cls.instructor ? initials(cls.instructor.fullName) : '–',
         day,
@@ -115,7 +115,7 @@ function flattenEvents(classes: IClass[], customSchedules: IStudentScheduleSessi
       id: `custom_${key}`,
       classId: cls.id,
       title: `${cls.name} (${cls.code})`,
-      location: sample.room ?? cls.room ?? '—',
+      location: '—',
       teacherName: cls.instructor?.fullName ?? unassignedLabel,
       teacherInitials: cls.instructor ? initials(cls.instructor.fullName) : '–',
       day,
@@ -141,10 +141,9 @@ function markConflicts(events: IScheduleEvent[], unassignedLabel: string): ISche
       const bEnd = other.startMinutes + other.durationMin;
       const overlap = e.startMinutes < bEnd && other.startMinutes < aEnd;
       if (!overlap) return false;
-      const sameRoom = e.location === other.location && e.location !== '—';
       const sameTeacher =
         e.teacherName === other.teacherName && e.teacherName !== unassignedLabel;
-      return sameRoom || sameTeacher;
+      return sameTeacher;
     });
     return conflicting ? { ...e, hasConflict: true } : e;
   });

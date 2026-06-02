@@ -110,9 +110,11 @@ export default function StudentClassesPage() {
               </div>
               
               <div>
-                <div className="text-label-sm text-on-surface-variant mb-1 font-mono">{enrollment.classId.substring(0, 8)}</div>
-                <h3 className="font-manrope text-title-md text-on-surface font-bold line-clamp-2">
-                  Class #{enrollment.classId.substring(0, 4)}
+                <div className="text-label-sm text-on-surface-variant mb-1 font-mono">
+                  {enrollment.classCode || enrollment.classId.substring(0, 8)}
+                </div>
+                <h3 className="font-manrope text-title-md text-on-surface font-bold line-clamp-2" title={enrollment.className}>
+                  {enrollment.className || `Class #${enrollment.classId.substring(0, 4)}`}
                 </h3>
               </div>
 

@@ -68,7 +68,6 @@ export interface IStudentRow {
   firstName: string;
   lastName: string;
   email: string;
-  studentId: string;
   grade: number;
   enrolledAt: string;
   status: EnrollmentStatus;
@@ -120,19 +119,7 @@ export interface IScheduleEvent {
 //  Student-management domain (v7) — extends IStudentRow with profile data
 // ────────────────────────────────────────────────────────────────────────
 
-export enum Gender {
-  FEMALE = 'FEMALE',
-  MALE = 'MALE',
-  OTHER = 'OTHER',
-  UNDISCLOSED = 'UNDISCLOSED',
-}
 
-export const GENDER_LABEL: Record<Gender, string> = {
-  [Gender.FEMALE]: 'Female',
-  [Gender.MALE]: 'Male',
-  [Gender.OTHER]: 'Other',
-  [Gender.UNDISCLOSED]: 'Prefer not to say',
-};
 
 export enum GuardianRelationship {
   MOTHER = 'MOTHER',
@@ -153,18 +140,12 @@ export interface IGuardian {
   fullName: string;
   relationship: GuardianRelationship;
   phoneNumber: string;
-  email?: string | null;
   isPrimary: boolean;
 }
 
-/**
- * Full student profile shape for the dashboard. Extends IStudentRow
- * with demographics, denormalized KPIs, and guardian list.
- */
 export interface IStudentProfile {
   id: string;                 // StudentProfile ID
   userId: string;             // User ID (auth)
-  studentId: string;          // institutional code (e.g. "STU-2024-8901")
   firstName: string;
   lastName: string;
   email: string;
@@ -172,10 +153,7 @@ export interface IStudentProfile {
   avatarUrl?: string | null;
 
   /** Demographics */
-  dateOfBirth?: string | null; // ISO date "YYYY-MM-DD"
-  gender?: Gender | null;
   homeAddress?: string | null;
-  school?: string | null;
 
   /** Enrollment */
   grade: number;              // 9..12
@@ -204,22 +182,16 @@ export interface IGuardianInput {
   fullName: string;
   relationship: GuardianRelationship;
   phoneNumber: string;
-  email?: string;
   isPrimary?: boolean;
 }
 
-/** POST /api/students payload */
 export interface ICreateStudentPayload {
   firstName: string;
   lastName: string;
   email: string;
   username?: string;
   password: string;
-  studentId?: string;         // auto-generated server-side if absent
-  dateOfBirth?: string;
-  gender?: Gender;
   homeAddress?: string;
-  school?: string;
   grade: number;
   cohortYear?: number;
   startDate?: string;

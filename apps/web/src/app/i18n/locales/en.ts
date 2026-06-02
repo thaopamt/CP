@@ -392,14 +392,7 @@ const en = {
       IN_REVIEW: 'In Review',
       COMPLETED: 'Completed',
     },
-    assignmentType: {
-      CODING: 'Coding',
-      WRITING: 'Writing',
-      QUIZ: 'Quiz',
-      READING: 'Reading',
-      PROJECT: 'Project',
-      ASSESSMENT: 'Assessment',
-    },
+
     publishStatus: {
       DRAFT: 'Draft',
       PUBLISHED: 'Published',
@@ -433,9 +426,9 @@ const en = {
           batch: 'Send batch reminder',
         },
         sessions: {
-          algebra: { title: 'Algebra II', room: 'Room 204' },
-          physics: { title: 'Physics Lab', room: 'Lab 3' },
-          history: { title: 'World History', room: 'Room 110' },
+          algebra: { title: 'Algebra II' },
+          physics: { title: 'Physics Lab' },
+          history: { title: 'World History' },
         },
         reminders: {
           sarah: 'Sarah Jenkins',
@@ -454,7 +447,7 @@ const en = {
         title: 'Student Directory',
         subtitle: 'Search, filter, and manage student records across all grades.',
         addStudent: 'Add Student',
-        searchPlaceholder: 'Search by name, email, or ID…',
+        searchPlaceholder: 'Search by name or email…',
         statusFilter: 'Status',
         gradeFilter: 'Grade',
         gradeOptions: {
@@ -469,7 +462,7 @@ const en = {
         },
         columns: {
           student: 'Student',
-          studentId: 'Student ID',
+
           grade: 'Grade',
           enrolled: 'Enrolled',
           status: 'Status',
@@ -495,11 +488,9 @@ const en = {
           firstName: 'First name',
           lastName: 'Last name',
           email: 'Email',
-          dateOfBirth: 'Date of birth',
-          gender: 'Gender',
+
           address: 'Home address',
-          studentId: 'Student ID',
-          studentIdHint: 'Leave blank to auto-generate (e.g. STU-2024-8901)',
+
           password: 'Temporary password',
           generatePassword: 'Generate strong',
           accountStatus: 'Account status',
@@ -510,7 +501,7 @@ const en = {
           guardianName: 'Full name',
           relationship: 'Relationship',
           guardianPhone: 'Phone number',
-          guardianEmail: 'Email',
+
           primaryContact: 'Primary contact',
         },
         actions: {
@@ -537,11 +528,7 @@ const en = {
         honorRoll: 'Honor roll',
         demographics: {
           title: 'Demographics',
-          dob: 'Date of birth',
-          email: 'Email',
-          address: 'Home address',
-          gender: 'Gender',
-          years: '{{count}} years old',
+
         },
         guardians: {
           title: 'Guardians',
@@ -586,7 +573,7 @@ const en = {
             dayOfWeek: 'Day',
             startTime: 'Start time',
             endTime: 'End time',
-            room: 'Room',
+
             note: 'Note',
           },
           save: 'Save',
@@ -638,7 +625,7 @@ const en = {
       },
       schedule: {
         title: 'Institutional Schedule',
-        subtitle: 'Weekly timetable with live conflict detection across rooms and teachers.',
+        subtitle: 'Weekly timetable with live conflict detection across teachers.',
         scheduleSession: 'Schedule Session',
         prevWeek: 'Previous week',
         nextWeek: 'Next week',
@@ -665,13 +652,7 @@ const en = {
           art: 'Studio Art',
           biology: 'Biology 101',
         },
-        rooms: {
-          r204: 'Room 204',
-          r110: 'Room 110',
-          lab3: 'Lab 3',
-          studioA: 'Studio A',
-          lab1: 'Lab 1',
-        },
+
       },
       attendance: {
         title: 'Attendance',
@@ -779,7 +760,7 @@ const en = {
             day: 'Day',
             startTime: 'Start',
             endTime: 'End',
-            sessionRoom: 'Room override',
+
           },
           actions: {
             cancel: 'Cancel',
@@ -819,14 +800,19 @@ const en = {
             activeStudents: 'Active students',
             seatsAvailable: '{{count}} seats available',
             nextSession: 'Next session',
-            nextSessionAt: '{{when}} · {{room}}',
+            nextSessionAt: '{{when}}',
             instructor: 'Primary instructor',
             contactInstructor: 'Contact',
           },
           tabs: {
+            courses: 'Courses',
             roster: 'Student roster',
             schedule: 'Visual schedule',
             activity: 'Activity timeline',
+          },
+          courses: {
+            title: 'Class courses',
+            subtitle: 'Manage course order, open course details, or remove courses from this class.',
           },
           roster: {
             search: 'Search students…',
@@ -834,7 +820,7 @@ const en = {
             export: 'Export',
             columns: {
               student: 'Student',
-              externalId: 'ID',
+
               attendance: 'Attendance',
               payment: 'Payment',
             },
@@ -852,15 +838,12 @@ const en = {
         title: 'Assignment Library',
         subtitle: 'Reusable assignment templates that can be attached to courses.',
         create: 'New Assignment',
-        searchPlaceholder: 'Search by title or subject…',
-        typeFilter: 'Type',
+        searchPlaceholder: 'Search by title…',
         difficultyFilter: 'Difficulty',
         empty: 'No assignments match the current filters.',
         columns: {
           title: 'Assignment',
-          type: 'Type',
           difficulty: 'Difficulty',
-          subject: 'Subject',
           points: 'Points',
           status: 'Status',
         },
@@ -920,6 +903,7 @@ const en = {
         sequenceTitle: 'Course sequence',
         sequenceSubtitle: 'Courses are delivered in this order. Reorder anytime.',
         empty: 'No courses attached yet. Pick from the catalog to build the curriculum.',
+        detachConfirm: 'Are you sure you want to remove this course from the class?',
         required: 'Required',
         summary: {
           courses: 'Courses',
@@ -1023,9 +1007,9 @@ const en = {
         items: '{{count}} items',
         newSubmissions: '{{count}} new',
         sessions: {
-          period1: { title: 'AP Computer Science A — Period 1', room: 'Room 204' },
-          period3: { title: 'AP Computer Science A — Period 3', room: 'Room 204' },
-          algorithms: { title: 'Algorithms Elective', room: 'Lab 3' },
+          period1: { title: 'AP Computer Science A — Period 1' },
+          period3: { title: 'AP Computer Science A — Period 3' },
+          algorithms: { title: 'Algorithms Elective' },
         },
         reviews: {
           quizTrees: { title: 'Quiz 4 — Trees & Heaps', context: 'AP Computer Science A · Period 3' },
@@ -1153,16 +1137,14 @@ const en = {
         achievements: 'Achievements',
         achievementsAll: 'All',
         quests: {
-          linear: { title: 'Linear Equations', subject: 'Math · Chapter 4', duration: 'In Progress' },
+          linear: { title: 'Linear Equations', duration: 'In Progress' },
           photosynthesis: {
             title: 'Photosynthesis Lab',
-            subject: 'Science · Lab 2',
             duration: 'Due in 2 days',
           },
-          robot: { title: 'Robot Pathfinder', subject: 'Coding · Quest 3', duration: 'In Progress' },
+          robot: { title: 'Robot Pathfinder', duration: 'In Progress' },
           reading: {
             title: 'Reading: The Outsiders',
-            subject: 'English · Chapter 7',
             duration: 'Done',
           },
         },

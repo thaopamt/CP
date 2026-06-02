@@ -21,7 +21,4 @@ export class ClassSession extends BaseEntity {
 
   @Column({ type: 'time', name: 'end_time' })
   endTime!: string;
-
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  room!: string | null;
 }

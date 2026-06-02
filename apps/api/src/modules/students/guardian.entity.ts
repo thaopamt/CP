@@ -23,9 +23,6 @@ export class Guardian extends BaseEntity {
   @Column({ type: 'varchar', length: 32, name: 'phone_number' })
   phoneNumber!: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  email!: string | null;
-
   @Column({ type: 'boolean', default: false, name: 'is_primary' })
   isPrimary!: boolean;
 }

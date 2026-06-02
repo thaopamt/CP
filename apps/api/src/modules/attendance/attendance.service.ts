@@ -120,7 +120,7 @@ export class AttendanceService {
       dayOfWeek: string;
       startTime: string;
       endTime: string;
-      room: string | null;
+
       records: any[];
     }> = [];
 
@@ -171,7 +171,7 @@ export class AttendanceService {
         dayOfWeek: s.dayOfWeek,
         startTime: s.startTime,
         endTime: s.endTime,
-        room: s.room,
+
         records,
       });
     }
@@ -209,7 +209,7 @@ export class AttendanceService {
         dayOfWeek: sample.dayOfWeek,
         startTime: sample.startTime,
         endTime: sample.endTime,
-        room: sample.room,
+
         records,
       });
     }

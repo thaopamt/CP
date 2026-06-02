@@ -24,10 +24,6 @@ export class CreateStudentScheduleDto {
   @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'endTime must be HH:MM' })
   endTime!: string;
 
-  @IsOptional()
-  @IsString()
-  @Length(1, 100)
-  room?: string;
 
   @IsOptional()
   @IsString()
@@ -54,10 +50,6 @@ export class UpdateStudentScheduleDto {
   @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'endTime must be HH:MM' })
   endTime?: string;
 
-  @IsOptional()
-  @IsString()
-  @Length(1, 100)
-  room?: string | null;
 
   @IsOptional()
   @IsString()

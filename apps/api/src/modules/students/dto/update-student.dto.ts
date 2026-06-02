@@ -15,7 +15,6 @@ import {
 } from 'class-validator';
 import {
   EnrollmentStatus,
-  Gender,
 } from '@cp/shared';
 
 import { GuardianDto } from './create-student.dto';
@@ -38,20 +37,8 @@ export class UpdateStudentDto {
   @IsOptional() @IsString() @Length(3, 80)
   username?: string;
 
-  @IsOptional() @IsString() @Length(1, 32)
-  studentId?: string;
-
-  @IsOptional() @IsDateString()
-  dateOfBirth?: string;
-
-  @IsOptional() @IsEnum(Gender)
-  gender?: Gender;
-
   @IsOptional() @IsString()
   homeAddress?: string;
-
-  @IsOptional() @IsString() @Length(1, 255)
-  school?: string;
 
   @IsOptional() @IsInt() @Min(1) @Max(13)
   grade?: number;

@@ -17,7 +17,7 @@ export interface IClassSession {
   /** ISO datetime */
   startTime: string;
   endTime: string;
-  room: string;
+
   studentCount: number;
   status: ClassSessionStatus;
 }
@@ -57,7 +57,6 @@ export const ATTENDANCE_STATUS_LABEL: Record<AttendanceStatus, string> = {
 export interface IRosterStudent {
   id: string;
   name: string;
-  studentId: string;
   avatarUrl?: string | null;
 }
 
@@ -88,7 +87,7 @@ export interface ISessionAttendance {
   dayOfWeek: string;
   startTime: string;
   endTime: string;
-  room: string | null;
+
   records: IAttendanceEntry[];
 }
 

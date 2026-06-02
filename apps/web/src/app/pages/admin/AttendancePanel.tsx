@@ -233,9 +233,7 @@ export function AttendancePanel({ classId, date, onClose }: AttendancePanelProps
                             {t(`${pfx}.customSession`, 'Tuỳ chỉnh')}
                           </span>
                         )}
-                        {session.room && (
-                          <span className="text-label-sm text-on-surface-variant">· {session.room}</span>
-                        )}
+
                       </div>
                       <div className="flex items-center gap-xs">
                         <button

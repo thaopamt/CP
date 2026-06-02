@@ -6,7 +6,7 @@ import {
   OneToMany,
   OneToOne,
 } from 'typeorm';
-import { EnrollmentStatus, Gender } from '@cp/shared';
+import { EnrollmentStatus } from '@cp/shared';
 
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../users/user.entity';
@@ -28,23 +28,8 @@ export class StudentProfile extends BaseEntity {
   @JoinColumn({ name: 'user_id' })
   user!: User;
 
-  /** Institutional ID (e.g. "STU-2024-8901") — distinct from the auth user.id UUID */
-  @Index({ unique: true })
-  @Column({ type: 'varchar', length: 32, name: 'student_id' })
-  studentId!: string;
-
-  // ── Demographics ──────────────────────────────────────────────────
-  @Column({ type: 'date', name: 'date_of_birth', nullable: true })
-  dateOfBirth!: string | null;
-
-  @Column({ type: 'enum', enum: Gender, nullable: true })
-  gender!: Gender | null;
-
   @Column({ type: 'text', name: 'home_address', nullable: true })
   homeAddress!: string | null;
-
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  school!: string | null;
 
   // ── Enrollment ────────────────────────────────────────────────────
   @Index()

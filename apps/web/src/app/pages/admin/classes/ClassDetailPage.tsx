@@ -13,6 +13,7 @@ import {
   TabPills,
   Timeline,
   TimelineItem,
+  useConfirm,
 } from '@cp/ui';
 import {
   ClassStatus,
@@ -20,14 +21,22 @@ import {
   IClassEnrollment,
   IClassMeeting,
   PaymentStatus,
+  IClassCourseLink,
 } from '@cp/shared';
 
 import { useClass, useEnrollmentsByClass, useEnrollStudent, useDropEnrollment } from '../../../api/class.queries';
+import {
+  useAttachClassCourses,
+  useClassCourses,
+  useDetachClassCourse,
+  useReorderClassCourses,
+} from '../../../api/curriculum.queries';
 import { AssignStudentsModal } from './AssignStudentsModal';
 import { RemoveStudentModal } from './RemoveStudentModal';
+import { CoursePickerDialog } from './ClassCurriculumPage';
 import { useToast } from '@cp/ui';
 
-type Tab = 'roster' | 'schedule' | 'activity';
+type Tab = 'courses' | 'roster' | 'schedule' | 'activity';
 
 export default function ClassDetailPage() {
   const { t } = useTranslation();
@@ -36,14 +45,20 @@ export default function ClassDetailPage() {
 
   const classQuery = useClass(classId);
   const rosterQuery = useEnrollmentsByClass(classId);
+  const coursesQuery = useClassCourses(classId);
   const enrollStudent = useEnrollStudent();
   const dropEnrollment = useDropEnrollment(classId ?? '');
+  const attachCourse = useAttachClassCourses(classId ?? '');
+  const detachCourse = useDetachClassCourse(classId ?? '');
+  const reorderCourses = useReorderClassCourses(classId ?? '');
 
-  const [tab, setTab] = useState<Tab>('roster');
+  const [tab, setTab] = useState<Tab>('courses');
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [isCoursePickerOpen, setIsCoursePickerOpen] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [studentToRemove, setStudentToRemove] = useState<IClassEnrollment | null>(null);
   const toast = useToast();
+  const confirm = useConfirm();
 
   const handleAssignStudents = async (studentIds: string[]) => {
     if (!classId) return;
@@ -129,11 +144,7 @@ export default function ClassDetailPage() {
         </div>
       ),
     },
-    {
-      key: 'externalId',
-      header: t('pages.admin.classes.detail.roster.columns.externalId'),
-      cell: (row: IClassEnrollment) => <span className="text-on-surface-variant font-mono text-[12px]">{row.studentExternalId}</span>,
-    },
+
     {
       key: 'attendance',
       header: t('pages.admin.classes.detail.roster.columns.attendance'),
@@ -214,8 +225,23 @@ export default function ClassDetailPage() {
   }
 
   const roster = rosterQuery.data ?? [];
+  const classCourses = (coursesQuery.data ?? []).slice().sort((a, b) => a.order - b.order);
   const seatsAvailable = Math.max(0, cls.capacity - cls.enrolledCount);
   const nextSession = cls.sessions[0];
+
+  function moveCourseUp(idx: number) {
+    if (idx <= 0) return;
+    const ids = classCourses.map((link) => link.id);
+    [ids[idx - 1], ids[idx]] = [ids[idx], ids[idx - 1]];
+    reorderCourses.mutate(ids);
+  }
+
+  function moveCourseDown(idx: number) {
+    if (idx >= classCourses.length - 1) return;
+    const ids = classCourses.map((link) => link.id);
+    [ids[idx], ids[idx + 1]] = [ids[idx + 1], ids[idx]];
+    reorderCourses.mutate(ids);
+  }
 
   return (
     <div className="flex flex-col gap-lg">
@@ -282,7 +308,7 @@ export default function ClassDetailPage() {
           value={nextSession ? `${dayLabel(nextSession.dayOfWeek)} · ${formatTime(nextSession.startTime)}` : '—'}
           caption={t('pages.admin.classes.detail.kpi.nextSessionAt', {
             when: nextSession ? `${dayLabel(nextSession.dayOfWeek)} ${formatTime(nextSession.startTime)}` : '—',
-            room: nextSession?.room ?? '—',
+
           })}
           highlight
         />
@@ -295,6 +321,7 @@ export default function ClassDetailPage() {
             value={tab}
             onChange={setTab}
             options={[
+              { value: 'courses', label: t('pages.admin.classes.detail.tabs.courses'), count: classCourses.length },
               { value: 'roster', label: t('pages.admin.classes.detail.tabs.roster'), count: cls.enrolledCount },
               { value: 'schedule', label: t('pages.admin.classes.detail.tabs.schedule'), count: cls.sessions.length },
               { value: 'activity', label: t('pages.admin.classes.detail.tabs.activity') },
@@ -302,6 +329,73 @@ export default function ClassDetailPage() {
             className="mb-md"
           />
         </header>
+
+        {tab === 'courses' && (
+          <div className="flex flex-col">
+            <div className="flex flex-col gap-xs p-md border-b border-outline-variant/30 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h3 className="font-manrope text-headline-sm text-on-surface">
+                  {t('pages.admin.classes.detail.courses.title')}
+                </h3>
+                <p className="text-label-sm text-on-surface-variant">
+                  {t('pages.admin.classes.detail.courses.subtitle')}
+                </p>
+              </div>
+              <Button
+                variant="admin"
+                size="sm"
+                leadingIcon={<Icon name="library_add" size={16} />}
+                onClick={() => setIsCoursePickerOpen(true)}
+              >
+                {t('pages.admin.classCurriculum.addCourses')}
+              </Button>
+            </div>
+            {coursesQuery.isLoading ? (
+              <div className="p-xl text-center text-on-surface-variant">{t('common.loading')}</div>
+            ) : classCourses.length === 0 ? (
+              <div className="p-xl text-center">
+                <Icon name="school" size={36} className="mx-auto mb-sm text-on-surface-variant/50" />
+                <p className="text-body-md text-on-surface-variant">
+                  {t('pages.admin.classCurriculum.empty')}
+                </p>
+                <Button
+                  variant="admin"
+                  size="sm"
+                  className="mt-md"
+                  leadingIcon={<Icon name="library_add" size={16} />}
+                  onClick={() => setIsCoursePickerOpen(true)}
+                >
+                  {t('pages.admin.classCurriculum.addCourses')}
+                </Button>
+              </div>
+            ) : (
+              <ul className="divide-y divide-outline-variant/30">
+                {classCourses.map((link, idx) => (
+                  <ClassCourseRow
+                    key={link.id}
+                    link={link}
+                    index={idx}
+                    isFirst={idx === 0}
+                    isLast={idx === classCourses.length - 1}
+                    onMoveUp={() => moveCourseUp(idx)}
+                    onMoveDown={() => moveCourseDown(idx)}
+                    onDetach={async () => {
+                      const ok = await confirm({
+                        title: t('common.confirmDelete', 'Confirm'),
+                        message: t('pages.admin.classCurriculum.detachConfirm', 'Are you sure you want to remove this course from the class?'),
+                        intent: 'danger',
+                      });
+                      if (ok) detachCourse.mutate(link.id);
+                    }}
+                    onOpen={() => navigate(`/admin/courses/${link.course.id}`)}
+                    detaching={detachCourse.isPending}
+                    reordering={reorderCourses.isPending}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
 
         {tab === 'roster' && (
           <div className="flex flex-col">
@@ -352,7 +446,7 @@ export default function ClassDetailPage() {
                             <div className="text-[12px] text-on-surface font-semibold">
                               {formatTime(s.startTime)}–{formatTime(s.endTime)}
                             </div>
-                            <div className="text-[11px] text-on-surface-variant">{s.room ?? '—'}</div>
+
                           </div>
                         ))}
                       </div>
@@ -392,7 +486,101 @@ export default function ClassDetailPage() {
         student={studentToRemove}
         isSubmitting={dropEnrollment.isPending}
       />
+
+      {isCoursePickerOpen && classId && (
+        <CoursePickerDialog
+          alreadyAttachedIds={new Set(classCourses.map((link) => link.course.id))}
+          onClose={() => setIsCoursePickerOpen(false)}
+          onConfirm={async (ids) => {
+            try {
+              await attachCourse.mutateAsync(ids);
+              setIsCoursePickerOpen(false);
+              toast.success(t('pages.admin.classCurriculum.picker.success', 'Courses attached successfully.'));
+            } catch (err: any) {
+              console.error('Attach course error:', err);
+              toast.error(err?.response?.data?.message || err.message || t('common.error', 'Failed to attach courses.'));
+            }
+          }}
+          isSubmitting={attachCourse.isPending}
+        />
+      )}
     </div>
+  );
+}
+
+function ClassCourseRow({
+  link,
+  index,
+  isFirst,
+  isLast,
+  onMoveUp,
+  onMoveDown,
+  onDetach,
+  onOpen,
+  detaching,
+  reordering,
+}: {
+  link: IClassCourseLink;
+  index: number;
+  isFirst: boolean;
+  isLast: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onDetach: () => void;
+  onOpen: () => void;
+  detaching: boolean;
+  reordering: boolean;
+}) {
+  const { t } = useTranslation();
+  const course = link.course;
+
+  return (
+    <li className="flex items-center gap-md p-md md:p-lg group hover:bg-surface-container-high/30 transition-colors">
+      <span className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container grid place-items-center font-bold text-label-sm shrink-0">
+        {index + 1}
+      </span>
+      <button type="button" onClick={onOpen} className="flex-1 min-w-0 text-left hover:text-primary">
+        <div className="text-on-surface font-medium truncate">{course.title}</div>
+        <div className="text-[12px] text-on-surface-variant flex items-center gap-sm flex-wrap">
+          <span className="font-mono">{course.code}</span>
+          <span className="w-1 h-1 rounded-full bg-outline-variant" />
+          <span>{course.subject}</span>
+          <span className="w-1 h-1 rounded-full bg-outline-variant" />
+          <span>{t('pages.admin.coursesList.weeks', { count: course.durationWeeks })}</span>
+          <span className="w-1 h-1 rounded-full bg-outline-variant" />
+          <span>{t('pages.admin.coursesList.assignmentCount', { count: course.assignmentCount, points: course.totalPoints })}</span>
+        </div>
+      </button>
+      <div className="flex items-center gap-xs">
+        <button
+          type="button"
+          onClick={onMoveUp}
+          disabled={isFirst || reordering}
+          className="p-1 rounded text-on-surface-variant hover:text-primary disabled:opacity-30 disabled:hover:text-on-surface-variant"
+          aria-label={t('pages.admin.courseDetail.moveUp')}
+        >
+          <Icon name="arrow_upward" size={18} />
+        </button>
+        <button
+          type="button"
+          onClick={onMoveDown}
+          disabled={isLast || reordering}
+          className="p-1 rounded text-on-surface-variant hover:text-primary disabled:opacity-30 disabled:hover:text-on-surface-variant"
+          aria-label={t('pages.admin.courseDetail.moveDown')}
+        >
+          <Icon name="arrow_downward" size={18} />
+        </button>
+        <button
+          type="button"
+          onClick={onDetach}
+          disabled={detaching}
+          className="p-1 rounded text-on-surface-variant hover:text-error disabled:opacity-30"
+          aria-label={t('common.delete')}
+        >
+          <Icon name="delete" size={18} />
+        </button>
+      </div>
+    </li>
   );
 }
 

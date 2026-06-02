@@ -92,11 +92,7 @@ export default function StudentsListPage() {
           </button>
         ),
       },
-      {
-        key: 'studentId',
-        header: t('pages.admin.students.columns.studentId'),
-        cell: (s) => <span className="text-on-surface-variant font-mono text-[12px]">{s.studentId}</span>,
-      },
+
       {
         key: 'grade',
         header: t('pages.admin.students.columns.grade'),
@@ -105,11 +101,17 @@ export default function StudentsListPage() {
       {
         key: 'enrolledAt',
         header: t('pages.admin.students.columns.enrolled'),
-        cell: (s) => (
-          <span className="text-on-surface-variant whitespace-nowrap">
-            {new Date(s.enrolledAt).toLocaleDateString(locale)}
-          </span>
-        ),
+        cell: (s) => {
+          const d = new Date(s.enrolledAt);
+          const day = String(d.getDate()).padStart(2, '0');
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const year = d.getFullYear();
+          return (
+            <span className="text-on-surface-variant whitespace-nowrap">
+              {`${day}/${month}/${year}`}
+            </span>
+          );
+        },
       },
       {
         key: 'status',

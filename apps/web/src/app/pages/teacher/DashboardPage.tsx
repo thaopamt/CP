@@ -26,7 +26,7 @@ export default function TeacherDashboardPage() {
         title: t('pages.teacher.dashboard.sessions.period1.title'),
         startTime: today(8, 30).toISOString(),
         endTime: today(9, 20).toISOString(),
-        room: t('pages.teacher.dashboard.sessions.period1.room'),
+
         studentCount: 28,
         status: ClassSessionStatus.COMPLETED,
       },
@@ -35,7 +35,7 @@ export default function TeacherDashboardPage() {
         title: t('pages.teacher.dashboard.sessions.period3.title'),
         startTime: today(10, 30).toISOString(),
         endTime: today(11, 20).toISOString(),
-        room: t('pages.teacher.dashboard.sessions.period3.room'),
+
         studentCount: 24,
         status: ClassSessionStatus.ACTIVE,
       },
@@ -44,7 +44,7 @@ export default function TeacherDashboardPage() {
         title: t('pages.teacher.dashboard.sessions.algorithms.title'),
         startTime: today(13, 0).toISOString(),
         endTime: today(14, 30).toISOString(),
-        room: t('pages.teacher.dashboard.sessions.algorithms.room'),
+
         studentCount: 16,
         status: ClassSessionStatus.UPCOMING,
       },

@@ -15,7 +15,6 @@ import {
 } from 'class-validator';
 import {
   EnrollmentStatus,
-  Gender,
   GuardianRelationship,
   ICreateStudentPayload,
 } from '@cp/shared';
@@ -31,10 +30,6 @@ export class GuardianDto {
   @IsString()
   @Length(1, 32)
   phoneNumber!: string;
-
-  @IsOptional()
-  @IsEmail()
-  email?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -57,21 +52,8 @@ export class CreateStudentDto implements ICreateStudentPayload {
   @IsString() @Length(6, 128)
   password!: string;
 
-  /** Auto-generated server-side if omitted (e.g. "STU-2024-8901") */
-  @IsOptional() @IsString() @Length(1, 32)
-  studentId?: string;
-
-  @IsOptional() @IsDateString()
-  dateOfBirth?: string;
-
-  @IsOptional() @IsEnum(Gender)
-  gender?: Gender;
-
   @IsOptional() @IsString()
   homeAddress?: string;
-
-  @IsOptional() @IsString() @Length(1, 255)
-  school?: string;
 
   @IsInt() @Min(1) @Max(13)
   grade!: number;

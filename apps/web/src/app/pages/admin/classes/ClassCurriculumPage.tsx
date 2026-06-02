@@ -304,7 +304,7 @@ function CourseRow({
   );
 }
 
-function CoursePickerDialog({
+export function CoursePickerDialog({
   alreadyAttachedIds,
   onClose,
   onConfirm,

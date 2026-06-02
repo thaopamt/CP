@@ -12,7 +12,6 @@
  *   ?sort=createdAt,DESC
  */
 import {
-  ClassDepartment,
   ClassStatus,
   EnrollmentLifecycle,
   IClass,
@@ -49,16 +48,15 @@ interface ApiClassMeeting {
   dayOfWeek: string; // serialized enum
   startTime: string;
   endTime: string;
-  room: string | null;
+
 }
 
 interface ApiClassEntity {
   id: string;
   name: string;
   code: string;
-  department: ClassDepartment;
   description: string | null;
-  room: string | null;
+
   capacity: number;
   enrolledCount: number;
   status: ClassStatus;
@@ -74,6 +72,7 @@ interface ApiClassEntity {
 interface ApiEnrollment {
   id: string;
   classId: string;
+  class?: ApiClassEntity;
   studentId: string;
   student: ApiUser;
   status: EnrollmentLifecycle;
@@ -101,7 +100,7 @@ function toMeeting(s: ApiClassMeeting): IClassMeeting {
     dayOfWeek: s.dayOfWeek as IClassMeeting['dayOfWeek'],
     startTime: s.startTime,
     endTime: s.endTime,
-    room: s.room,
+
   };
 }
 
@@ -110,9 +109,8 @@ function toClass(c: ApiClassEntity): IClass {
     id: c.id,
     name: c.name,
     code: c.code,
-    department: c.department,
     description: c.description,
-    room: c.room,
+
     capacity: c.capacity,
     enrolledCount: c.enrolledCount,
     status: c.status,
@@ -130,6 +128,8 @@ function toEnrollment(e: ApiEnrollment): IClassEnrollment {
   return {
     id: e.id,
     classId: e.classId,
+    className: e.class?.name,
+    classCode: e.class?.code,
     studentId: e.studentId,
     studentName: `${u.firstName} ${u.lastName}`.trim(),
     studentEmail: u.email,
@@ -146,14 +146,12 @@ function toEnrollment(e: ApiEnrollment): IClassEnrollment {
 export interface ClassesListParams {
   page?: number;
   limit?: number;
-  department?: ClassDepartment | 'all';
   status?: ClassStatus | 'all';
   search?: string;
 }
 
 function buildClassesQuery(p: ClassesListParams): Record<string, unknown> {
   const conditions: Array<Record<string, unknown>> = [];
-  if (p.department && p.department !== 'all') conditions.push({ department: p.department });
   if (p.status && p.status !== 'all') conditions.push({ status: p.status });
   if (p.search?.trim()) {
     const q = p.search.trim();
@@ -227,6 +225,7 @@ export const enrollmentsApi = {
     const { data } = await apiClient.get<CrudListResponse<ApiEnrollment>>('/enrollments', {
       params: {
         s: JSON.stringify({ studentId }),
+        join: 'class',
         limit: 100,
         sort: 'createdAt,DESC',
       },

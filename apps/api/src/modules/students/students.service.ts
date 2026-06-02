@@ -37,12 +37,6 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
     if (existingByEmail) {
       throw new ConflictException(`Email ${dto.email} is already registered`);
     }
-    const studentId = dto.studentId ?? generateStudentId(dto.cohortYear ?? new Date().getFullYear());
-    const existingByStudentId = await this.repo.findOne({ where: { studentId } });
-    if (existingByStudentId) {
-      throw new ConflictException(`Student ID ${studentId} already exists`);
-    }
-
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
     return this.ds.transaction(async (tx) => {
@@ -66,11 +60,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       const profile = await profileRepo.save(
         profileRepo.create({
           userId: user.id,
-          studentId,
-          dateOfBirth: dto.dateOfBirth ?? null,
-          gender: dto.gender ?? null,
           homeAddress: dto.homeAddress ?? null,
-          school: dto.school ?? null,
           grade: dto.grade,
           cohortYear: dto.cohortYear ?? new Date().getFullYear() + (12 - dto.grade),
           startDate: dto.startDate ?? null,
@@ -85,7 +75,6 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
             fullName: g.fullName,
             relationship: g.relationship,
             phoneNumber: g.phoneNumber,
-            email: g.email ?? null,
             // First guardian is primary by default unless caller specifies
             isPrimary: g.isPrimary ?? idx === 0,
           }),
@@ -126,11 +115,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
 
       // Profile-side updates
       const profilePatch: Partial<StudentProfile> = {};
-      if (dto.studentId !== undefined) profilePatch.studentId = dto.studentId;
-      if (dto.dateOfBirth !== undefined) profilePatch.dateOfBirth = dto.dateOfBirth;
-      if (dto.gender !== undefined) profilePatch.gender = dto.gender;
       if (dto.homeAddress !== undefined) profilePatch.homeAddress = dto.homeAddress;
-      if (dto.school !== undefined) profilePatch.school = dto.school;
       if (dto.grade !== undefined) profilePatch.grade = dto.grade;
       if (dto.cohortYear !== undefined) profilePatch.cohortYear = dto.cohortYear;
       if (dto.startDate !== undefined) profilePatch.startDate = dto.startDate;
@@ -151,7 +136,6 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
                 fullName: g.fullName,
                 relationship: g.relationship,
                 phoneNumber: g.phoneNumber,
-                email: g.email ?? null,
                 isPrimary: g.isPrimary ?? idx === 0,
               }),
             ),
@@ -213,8 +197,6 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       }
 
       const profilePatch: Partial<StudentProfile> = {};
-      if (dto.dateOfBirth !== undefined) profilePatch.dateOfBirth = dto.dateOfBirth || null;
-      if (dto.gender !== undefined) profilePatch.gender = dto.gender || null;
       if (dto.homeAddress !== undefined) profilePatch.homeAddress = dto.homeAddress?.trim() || null;
 
       if (Object.keys(profilePatch).length) {
@@ -316,7 +298,6 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       activeQuests = assignments.map((a, idx) => ({
         id: a.id,
         title: a.title,
-        subject: a.subject || 'General',
         icon: idx % 2 === 0 ? 'functions' : 'code',
         duration: a.estimatedMinutes ? `${a.estimatedMinutes} mins` : '20 mins',
         progress: 0, // Mocked until detailed submission progress is calculated
@@ -363,8 +344,4 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
   }
 }
 
-/** "STU-{cohortYear}-{4-digit random}" */
-function generateStudentId(cohortYear: number): string {
-  const suffix = Math.floor(Math.random() * 9000 + 1000).toString();
-  return `STU-${cohortYear}-${suffix}`;
-}
+

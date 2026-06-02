@@ -1,7 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button, Icon, PageHeader, StatusBadge } from '@cp/ui';
-import { AssignmentType, PublishStatus } from '@cp/shared';
+import { PublishStatus } from '@cp/shared';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -124,7 +124,7 @@ export default function AssignmentDetailPage() {
             </section>
 
             {/* Test Cases Preview (If coding challenge) */}
-            {assignment.type === AssignmentType.CODING && assignment.codingConfig?.testCases && (
+            {assignment.codingConfig?.testCases && (
               <section className="bg-surface-container-lowest rounded-xl border border-outline-variant p-lg shadow-sm">
                 <h3 className="font-student-card-title text-student-card-title text-on-surface mb-md pb-sm border-b border-outline-variant/50">
                   Sample Test Cases
@@ -175,22 +175,7 @@ export default function AssignmentDetailPage() {
               </h3>
               
               <div className="space-y-sm">
-                <div className="flex justify-between py-xs border-b border-outline-variant/30">
-                  <span className="text-sm text-on-surface-variant">Type</span>
-                  <span className="text-sm font-medium text-on-surface">{assignment.type}</span>
-                </div>
-                <div className="flex justify-between py-xs border-b border-outline-variant/30">
-                  <span className="text-sm text-on-surface-variant">Difficulty</span>
-                  <StatusBadge tone={DIFFICULTY_TONE[assignment.difficulty]}>{assignment.difficulty}</StatusBadge>
-                </div>
-                <div className="flex justify-between py-xs border-b border-outline-variant/30">
-                  <span className="text-sm text-on-surface-variant">Points</span>
-                  <span className="text-sm font-medium text-on-surface">{assignment.points}</span>
-                </div>
-                <div className="flex justify-between py-xs border-b border-outline-variant/30">
-                  <span className="text-sm text-on-surface-variant">Subject</span>
-                  <span className="text-sm font-medium text-on-surface">{assignment.subject}</span>
-                </div>
+
                 {assignment.slug && (
                   <div className="flex justify-between py-xs border-b border-outline-variant/30">
                     <span className="text-sm text-on-surface-variant">Slug</span>
@@ -213,7 +198,7 @@ export default function AssignmentDetailPage() {
             </section>
 
             {/* Execution Limits Card */}
-            {assignment.type === AssignmentType.CODING && assignment.codingConfig && (
+            {assignment.codingConfig && (
               <section className="bg-surface-container-lowest rounded-xl border border-outline-variant p-lg shadow-sm">
                 <h3 className="font-student-card-title text-student-card-title text-on-surface mb-md flex items-center gap-sm">
                   <Icon name="speed" className="text-primary" />
@@ -242,7 +227,7 @@ export default function AssignmentDetailPage() {
             )}
 
             {/* Advanced Config Card */}
-            {assignment.type === AssignmentType.CODING && assignment.codingConfig && (
+            {assignment.codingConfig && (
               <section className="bg-surface-container-lowest rounded-xl border border-outline-variant p-lg shadow-sm">
                 <h3 className="font-student-card-title text-student-card-title text-on-surface mb-md flex items-center gap-sm">
                   <Icon name="settings_applications" className="text-primary" />

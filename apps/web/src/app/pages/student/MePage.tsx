@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar, Icon, useToast, TabPills } from '@cp/ui';
-import { Gender } from '@cp/shared';
+
 import { useAuthStore } from '../../stores/auth.store';
 import {
   useCurrentStudent,
@@ -30,8 +30,7 @@ export default function MePage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
-  const [dateOfBirth, setDateOfBirth] = useState('');
-  const [gender, setGender] = useState('');
+
   const [address, setAddress] = useState('');
 
   // Password Form State
@@ -48,8 +47,7 @@ export default function MePage() {
       setFirstName(student.firstName || '');
       setLastName(student.lastName || '');
       setUsername(student.username || '');
-      setDateOfBirth(student.dateOfBirth ? student.dateOfBirth.split('T')[0] : '');
-      setGender(student.gender || 'MALE');
+
       setAddress(student.homeAddress || '');
     } else if (user) {
       setFirstName(user.firstName || '');
@@ -65,8 +63,7 @@ export default function MePage() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         username: username.trim() || null,
-        dateOfBirth: dateOfBirth || null,
-        gender: (gender || null) as Gender | null,
+
         homeAddress: address.trim() || null,
       });
       updateUser({
@@ -203,10 +200,7 @@ export default function MePage() {
             <p className="text-gray-400 font-medium mt-1 text-sm md:text-base">{student?.email || user?.email}</p>
             
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-4 text-xs font-semibold text-gray-400">
-              <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full flex items-center gap-1.5">
-                <Icon name="badge" size={14} className="text-emerald-400" />
-                ID: {student?.studentId || 'N/A'}
-              </span>
+
               <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full flex items-center gap-1.5">
                 <Icon name="school" size={14} className="text-cyan-400" />
                 {i18n.language === 'vi' ? `Khối ${student?.grade || 10}` : `Grade ${student?.grade || 10}`}
@@ -344,33 +338,7 @@ export default function MePage() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase mb-2">
-                    {i18n.language === 'vi' ? 'Ngày sinh' : 'Date of Birth'}
-                  </label>
-                  <input
-                    type="date"
-                    value={dateOfBirth}
-                    onChange={(e) => setDateOfBirth(e.target.value)}
-                    className="w-full bg-[#161622] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
-                  />
-                </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase mb-2">
-                    {i18n.language === 'vi' ? 'Giới tính' : 'Gender'}
-                  </label>
-                  <select
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value)}
-                    className="w-full bg-[#161622] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
-                  >
-                    <option value="MALE">{i18n.language === 'vi' ? 'Nam' : 'Male'}</option>
-                    <option value="FEMALE">{i18n.language === 'vi' ? 'Nữ' : 'Female'}</option>
-                    <option value="OTHER">{i18n.language === 'vi' ? 'Khác' : 'Other'}</option>
-                    <option value="UNDISCLOSED">{i18n.language === 'vi' ? 'Không tiết lộ' : 'Prefer not to say'}</option>
-                  </select>
-                </div>
 
                 <div className="md:col-span-2">
                   <label className="block text-xs font-bold text-gray-400 uppercase mb-2">

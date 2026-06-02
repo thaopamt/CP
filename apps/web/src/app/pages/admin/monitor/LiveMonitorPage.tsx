@@ -285,7 +285,11 @@ function DetailModal({
                           <pre className="mt-1 whitespace-pre-wrap rounded bg-white/5 p-2 text-xs text-gray-300">{example.output || '(empty)'}</pre>
                         </div>
                         {example.explanation && (
-                          <p className="text-xs leading-5 text-gray-400">{example.explanation}</p>
+                          <div className="prose prose-invert prose-sm max-w-none prose-p:leading-5 prose-p:text-gray-400 prose-code:bg-white/5 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[11px] prose-code:before:content-none prose-code:after:content-none prose-p:m-0">
+                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                              {example.explanation}
+                            </ReactMarkdown>
+                          </div>
                         )}
                       </div>
                     </div>

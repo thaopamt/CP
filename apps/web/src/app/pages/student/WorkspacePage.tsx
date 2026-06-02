@@ -2,8 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DifficultyBadge, Icon } from '@cp/ui';
 import {
-  ASSIGNMENT_TYPE_LABEL,
-  ASSIGNMENT_TYPE_ICON,
   DifficultyLevel,
   ICodeExecutionResponse,
 } from '@cp/shared';
@@ -428,7 +426,6 @@ export default function StudentWorkspacePage() {
     );
   }
 
-  const typeIcon = ASSIGNMENT_TYPE_ICON[assignment.type] ?? 'assignment';
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#1a1a2e] text-gray-200" style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
@@ -442,7 +439,7 @@ export default function StudentWorkspacePage() {
           <div className="w-px h-5 bg-white/10" />
           <div className="flex items-center gap-2 min-w-0">
             <span className={`material-symbols-outlined text-base ${assignment.difficulty === 'EASY' ? 'text-emerald-400' : assignment.difficulty === 'MEDIUM' ? 'text-amber-400' : 'text-red-400'}`}>
-              {typeIcon}
+              assignment
             </span>
             <h1 className="text-sm font-semibold text-white truncate max-w-[300px]">{assignment.title}</h1>
             <DifficultyBadge difficulty={assignment.difficulty as DifficultyLevel} />
@@ -515,8 +512,7 @@ export default function StudentWorkspacePage() {
                 <h2 className="text-xl font-bold text-white mb-3">{assignment.title}</h2>
                 <div className="flex flex-wrap items-center gap-2 mb-5">
                   <DifficultyBadge difficulty={assignment.difficulty as DifficultyLevel} />
-                  <span className="text-xs text-gray-400 bg-white/5 px-2 py-0.5 rounded">{ASSIGNMENT_TYPE_LABEL[assignment.type]}</span>
-                  <span className="text-xs text-gray-400 bg-white/5 px-2 py-0.5 rounded">{assignment.subject}</span>
+
                   <span className="inline-flex items-center gap-1 text-xs text-amber-400 font-semibold">
                     <Icon name="bolt" size={13} />{assignment.points} pts
                   </span>
@@ -579,7 +575,11 @@ export default function StudentWorkspacePage() {
                           {tc.explanation && (
                             <div>
                               <span className="text-[11px] text-gray-500 font-semibold uppercase">Explanation:</span>
-                              <p className="text-sm text-gray-400 mt-1">{tc.explanation}</p>
+                              <div className="prose prose-sm dark:prose-invert max-w-none text-gray-400 mt-1 prose-p:m-0 prose-code:bg-black/20 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
+                                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                                  {tc.explanation}
+                                </ReactMarkdown>
+                              </div>
                             </div>
                           )}
                         </div>
