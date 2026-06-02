@@ -32,11 +32,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: ${DB_USER:-cp}
-      DB_PASSWORD: ${DB_PASSWORD:-cp}
-      DB_NAME: ${DB_NAME:-cp}
+      DATABASE_URL: postgresql://${DB_USER:-cp}:${DB_PASSWORD:-cp}@postgres:5432/${DB_NAME:-cp}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://cp.thaopamt.site}
