@@ -1,0 +1,184 @@
+import { useMemo, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { Button, Card, Icon, useToast } from '@cp/ui';
+import { SimFailReason, simulate, validateCommands, BlockType } from '@cp/shared';
+
+import { useStudentMazeLevel, useSubmitMaze } from '../../../api/maze.queries';
+import { MazeBlocklyEditor, MazeBlocklyEditorHandle } from '../../../features/maze/MazeBlocklyEditor';
+import { MazeGrid } from '../../../features/maze/MazeGrid';
+import { useMazeAnimation } from '../../../features/maze/useMazeAnimation';
+
+type Outcome =
+  | { kind: 'success' }
+  | { kind: 'fail'; reason: SimFailReason }
+  | null;
+
+export default function MazeSolvePage() {
+  const { levelId } = useParams<{ levelId: string }>();
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const toast = useToast();
+
+  const { data: level, isLoading, isError } = useStudentMazeLevel(levelId);
+  const submitMutation = useSubmitMaze();
+
+  const editorRef = useRef<MazeBlocklyEditorHandle>(null);
+  const [blockCount, setBlockCount] = useState(0);
+  const [outcome, setOutcome] = useState<Outcome>(null);
+
+  const grid = level?.gridConfig;
+  const animation = useMazeAnimation(
+    grid?.start ?? { x: 0, y: 0 },
+    grid?.startDir ?? 0,
+  );
+
+  const overLimit = level?.maxBlocks != null && blockCount > level.maxBlocks;
+
+  const failMessage = (reason: SimFailReason): string => {
+    switch (reason) {
+      case 'HIT_WALL':
+        return t('maze.result.hitWall');
+      case 'OUT_OF_BOUNDS':
+        return t('maze.result.outOfBounds');
+      case 'STEP_LIMIT':
+        return t('maze.result.stepLimit');
+      default:
+        return t('maze.result.notReached');
+    }
+  };
+
+  const handleRun = () => {
+    if (!level || !grid || !editorRef.current) return;
+    setOutcome(null);
+
+    const ast = editorRef.current.getAst();
+    const validation = validateCommands(
+      ast,
+      (level.allowedBlocks ?? []) as BlockType[],
+      level.maxBlocks ?? null,
+    );
+    if (!validation.ok) {
+      toast.warning(validation.errors[0]);
+      return;
+    }
+
+    // Local simulation drives the animation.
+    const result = simulate(grid, ast);
+    animation.play(result);
+
+    // Server re-grades authoritatively; its verdict is final.
+    submitMutation.mutate(
+      { levelId: level.id, workspaceXml: editorRef.current.getXml(), commandTree: ast },
+      {
+        onSuccess: (res) => {
+          if (res.reachedGoal) {
+            setOutcome({ kind: 'success' });
+            toast.success(t('maze.result.success'));
+          } else {
+            setOutcome({ kind: 'fail', reason: res.failReason ?? null });
+          }
+        },
+        onError: () => toast.error(t('maze.result.submitError')),
+      },
+    );
+  };
+
+  const handleReset = () => {
+    animation.reset();
+    setOutcome(null);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="grid place-items-center py-20 text-on-surface-variant">
+        <span className="material-symbols-outlined animate-spin text-3xl">progress_activity</span>
+      </div>
+    );
+  }
+  if (isError || !level || !grid) {
+    return <Card className="m-6 p-8 text-center text-on-surface-variant">{t('maze.notFound')}</Card>;
+  }
+
+  return (
+    <div className="flex flex-col gap-md pt-md h-[calc(100vh-2rem)]">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3">
+        <button
+          onClick={() => navigate('/student/maze')}
+          className="flex items-center gap-1 text-on-surface-variant hover:text-primary"
+        >
+          <Icon name="arrow_back" /> {t('maze.back')}
+        </button>
+        <h1 className="font-bold text-headline-md text-on-surface">{level.title}</h1>
+        <div className="w-20" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-md flex-1 min-h-0">
+        {/* Left: Blockly */}
+        <Card className="flex flex-col p-0 overflow-hidden min-h-[420px]">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-outline-variant bg-surface-container-low">
+            <span className="text-label-sm font-semibold text-on-surface-variant">
+              {t('maze.workspace')}
+            </span>
+            {level.maxBlocks != null && (
+              <span
+                className={`text-label-sm font-bold ${overLimit ? 'text-error' : 'text-on-surface-variant'}`}
+              >
+                {t('maze.blocksUsed', { used: blockCount, max: level.maxBlocks })}
+              </span>
+            )}
+          </div>
+          <div className="flex-1 min-h-0">
+            <MazeBlocklyEditor
+              ref={editorRef}
+              allowedBlocks={(level.allowedBlocks ?? []) as BlockType[]}
+              onBlockCountChange={setBlockCount}
+            />
+          </div>
+        </Card>
+
+        {/* Right: maze + controls */}
+        <Card className="flex flex-col items-center gap-md p-5">
+          <p className="text-body-md text-on-surface-variant text-center">{level.description}</p>
+
+          <div className="flex-1 grid place-items-center w-full">
+            <MazeGrid
+              grid={grid}
+              charPos={animation.charPos}
+              charDir={animation.charDir}
+              crashed={animation.crashed}
+            />
+          </div>
+
+          {/* Outcome banner */}
+          {outcome?.kind === 'success' && (
+            <div className="w-full rounded-2xl bg-emerald-100 text-emerald-800 px-4 py-3 text-center font-bold">
+              {t('maze.result.success')}
+            </div>
+          )}
+          {outcome?.kind === 'fail' && (
+            <div className="w-full rounded-2xl bg-amber-100 text-amber-800 px-4 py-3 text-center font-semibold">
+              {failMessage(outcome.reason)}
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <Button variant="outline" size="lg" onClick={handleReset} leadingIcon={<Icon name="restart_alt" />}>
+              {t('maze.reset')}
+            </Button>
+            <Button
+              variant="student"
+              size="lg"
+              onClick={handleRun}
+              disabled={animation.isPlaying || submitMutation.isPending || overLimit}
+              leadingIcon={<Icon name="play_arrow" />}
+            >
+              {t('maze.run')}
+            </Button>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}

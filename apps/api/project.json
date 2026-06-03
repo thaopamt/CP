@@ -42,7 +42,8 @@
         "commands": [
           "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-admin.ts",
           "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-basic-a.ts",
-          "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-basic-b.ts"
+          "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-basic-b.ts",
+          "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-maze.ts"
         ],
         "parallel": false,
         "cwd": "."

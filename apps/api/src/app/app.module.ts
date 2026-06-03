@@ -15,6 +15,7 @@ import { QuestsModule } from '../modules/quests/quests.module';
 import { LiveMonitorModule } from '../modules/live-monitor/live-monitor.module';
 import { GlobalChatModule } from '../modules/global-chat/global-chat.module';
 import { AttendanceModule } from '../modules/attendance/attendance.module';
+import { MazeModule } from '../modules/maze/maze.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { AttendanceModule } from '../modules/attendance/attendance.module';
     LiveMonitorModule,
     GlobalChatModule,
     AttendanceModule,
+    MazeModule,
   ],
 })
 export class AppModule {}

@@ -9,6 +9,7 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/student', icon: 'home', key: 'nav.student.home', end: true },
   { to: '/student/classes', icon: 'school', key: 'nav.student.classes' },
   { to: '/student/assignments', icon: 'assignment', key: 'nav.student.assignments' },
+  { to: '/student/maze', icon: 'extension', key: 'nav.student.maze' },
   { to: '/student/submissions', icon: 'history', key: 'nav.student.submissions' },
   { to: '/student/quests', icon: 'rocket_launch', key: 'nav.student.quests' },
   { to: '/student/chat', icon: 'forum', key: 'nav.student.globalChat' },

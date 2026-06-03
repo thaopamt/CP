@@ -22,6 +22,8 @@ import { GlobalChatMessageReadEntity } from '../modules/global-chat/entities/glo
 import { NotificationEntity } from '../modules/global-chat/entities/global-chat-notification.entity';
 import { Quest } from '../modules/quests/quest.entity';
 import { StudentQuest } from '../modules/quests/student-quest.entity';
+import { MazeLevel } from '../modules/maze/maze-level.entity';
+import { MazeSubmission } from '../modules/maze/maze-submission.entity';
 
 // Load env in CLI context (TypeORM CLI doesn't go through ConfigModule)
 loadEnv({ path: join(process.cwd(), 'apps/api/.env') });
@@ -60,6 +62,8 @@ export const AppDataSource = new DataSource({
     AuditLogEntity,
     Quest,
     StudentQuest,
+    MazeLevel,
+    MazeSubmission,
   ],
   migrations: [join(__dirname, 'migrations/*.{ts,js}')],
   synchronize: false,

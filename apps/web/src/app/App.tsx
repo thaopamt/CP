@@ -51,12 +51,18 @@ const AdminQuestsList = lazy(() => import('./pages/admin/quests/QuestsListPage')
 const AdminQuestCreate = lazy(() => import('./pages/admin/quests/QuestCreatePage'));
 const AdminQuestEdit = lazy(() => import('./pages/admin/quests/QuestEditPage'));
 const LiveMonitorPage = lazy(() => import('./pages/admin/monitor/LiveMonitorPage'));
+const AdminMazeList = lazy(() => import('./pages/admin/maze/MazeLevelsListPage'));
+const AdminMazeCreate = lazy(() => import('./pages/admin/maze/MazeLevelCreatePage'));
+const AdminMazeEdit = lazy(() => import('./pages/admin/maze/MazeLevelEditPage'));
+const AdminMazeProgress = lazy(() => import('./pages/admin/maze/MazeProgressPage'));
 const TeacherDashboard = lazy(() => import('./pages/teacher/DashboardPage'));
 const TeacherClasses = lazy(() => import('./pages/teacher/ClassesPage'));
 const TeacherAttendance = lazy(() => import('./pages/teacher/AttendancePage'));
 const TeacherChallenges = lazy(() => import('./pages/teacher/CodingChallengePage'));
 const TeacherMonitoring = lazy(() => import('./pages/teacher/MonitoringPage'));
 const StudentDashboard = lazy(() => import('./pages/student/DashboardPage'));
+const StudentMazeLevels = lazy(() => import('./pages/student/maze/MazeLevelsPage'));
+const StudentMazeSolve = lazy(() => import('./pages/student/maze/MazeSolvePage'));
 const StudentQuests = lazy(() => import('./pages/student/QuestsPage'));
 const StudentAssignments = lazy(() => import('./pages/student/AssignmentsPage'));
 const StudentWorkspace = lazy(() => import('./pages/student/WorkspacePage'));
@@ -126,6 +132,10 @@ export default function App() {
                 <Route path="quests/new" element={<AdminQuestCreate />} />
                 <Route path="quests/:id/edit" element={<AdminQuestEdit />} />
                 <Route path="monitor" element={<LiveMonitorPage />} />
+                <Route path="maze" element={<AdminMazeList />} />
+                <Route path="maze/new" element={<AdminMazeCreate />} />
+                <Route path="maze/progress" element={<AdminMazeProgress />} />
+                <Route path="maze/:id/edit" element={<AdminMazeEdit />} />
                 <Route path="chat" element={<GlobalChatPage />} />
                 <Route path="submissions" element={<SubmissionsPage />} />
                 <Route path="me" element={<AdminMe />} />
@@ -165,6 +175,8 @@ export default function App() {
                 <Route path="classes/:classId/courses/:courseId" element={<StudentCourseDetail />} />
                 <Route path="assignments" element={<StudentAssignments />} />
                 <Route path="assignments/:id" element={<StudentAssignmentDetail />} />
+                <Route path="maze" element={<StudentMazeLevels />} />
+                <Route path="maze/:levelId" element={<StudentMazeSolve />} />
                 <Route path="workspace" element={<StudentWorkspace />} />
                 <Route path="workspace/:problemId" element={<StudentWorkspace />} />
                 <Route path="quests" element={<StudentQuests />} />
