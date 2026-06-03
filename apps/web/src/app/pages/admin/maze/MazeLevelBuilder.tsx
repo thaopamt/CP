@@ -37,6 +37,7 @@ export const emptyDraft = (): MazeLevelDraft => ({
     start: { x: 0, y: 0 },
     startDir: Direction.EAST,
     goal: { x: 4, y: 4 },
+    items: [],
   },
   allowedBlocks: [BlockType.MOVE_FORWARD, BlockType.TURN_LEFT, BlockType.TURN_RIGHT],
   maxBlocks: null,
@@ -47,13 +48,21 @@ export const emptyDraft = (): MazeLevelDraft => ({
   classIds: [],
 });
 
-type PaintMode = 'wall' | 'start' | 'goal';
+type PaintMode = 'wall' | 'start' | 'goal' | 'item';
 
 const ALL_BLOCKS: BlockType[] = [
   BlockType.MOVE_FORWARD,
   BlockType.TURN_LEFT,
   BlockType.TURN_RIGHT,
   BlockType.REPEAT,
+  BlockType.FOREVER,
+  BlockType.WHILE,
+  BlockType.IF,
+  BlockType.BREAK,
+  BlockType.CONDITION,
+  BlockType.LOGIC,
+  BlockType.MATH,
+  BlockType.VARIABLE,
 ];
 
 const DIRECTIONS: { dir: Direction; icon: string }[] = [
@@ -100,6 +109,8 @@ export function MazeLevelBuilder({ draft, onChange, onSave, saving }: Props) {
     });
   };
 
+  const items = grid.items ?? [];
+
   const handleCellClick = (cell: Cell) => {
     if (paintMode === 'start') {
       if (sameCell(cell, grid.goal)) return;
@@ -111,11 +122,21 @@ export function MazeLevelBuilder({ draft, onChange, onSave, saving }: Props) {
       setGrid({ goal: cell, walls: grid.walls.filter((w) => !sameCell(w, cell)) });
       return;
     }
-    // wall toggle — but never on start/goal
+    if (paintMode === 'item') {
+      if (sameCell(cell, grid.start) || sameCell(cell, grid.goal)) return;
+      const exists = items.some((w) => sameCell(w, cell));
+      setGrid({
+        items: exists ? items.filter((w) => !sameCell(w, cell)) : [...items, cell],
+        walls: grid.walls.filter((w) => !sameCell(w, cell)),
+      });
+      return;
+    }
+    // wall toggle — but never on start/goal/item
     if (sameCell(cell, grid.start) || sameCell(cell, grid.goal)) return;
     const exists = grid.walls.some((w) => sameCell(w, cell));
     setGrid({
       walls: exists ? grid.walls.filter((w) => !sameCell(w, cell)) : [...grid.walls, cell],
+      items: items.filter((w) => !sameCell(w, cell)),
     });
   };
 
@@ -331,7 +352,7 @@ export function MazeLevelBuilder({ draft, onChange, onSave, saving }: Props) {
       <div className="flex flex-col gap-md">
         <Card className="p-5 flex flex-col items-center gap-4">
           <div className="flex gap-2 self-start">
-            {(['wall', 'start', 'goal'] as PaintMode[]).map((mode) => (
+            {(['wall', 'start', 'goal', 'item'] as PaintMode[]).map((mode) => (
               <button
                 key={mode}
                 onClick={() => setPaintMode(mode)}

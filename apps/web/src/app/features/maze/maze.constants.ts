@@ -1,16 +1,4 @@
-import { BlockType, Direction } from '@cp/shared';
-
-/** Blockly block name ↔ engine BlockType. */
-export const BLOCK_NAME: Record<BlockType, string> = {
-  [BlockType.MOVE_FORWARD]: 'maze_move_forward',
-  [BlockType.TURN_LEFT]: 'maze_turn_left',
-  [BlockType.TURN_RIGHT]: 'maze_turn_right',
-  [BlockType.REPEAT]: 'maze_repeat',
-};
-
-export const NAME_BLOCK: Record<string, BlockType> = Object.fromEntries(
-  Object.entries(BLOCK_NAME).map(([k, v]) => [v, k as BlockType]),
-) as Record<string, BlockType>;
+import { Direction } from '@cp/shared';
 
 /** Pixel size of one grid cell when rendering the maze. */
 export const CELL_SIZE = 56;

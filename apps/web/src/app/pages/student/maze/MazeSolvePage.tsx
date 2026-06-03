@@ -28,10 +28,8 @@ export default function MazeSolvePage() {
   const [outcome, setOutcome] = useState<Outcome>(null);
 
   const grid = level?.gridConfig;
-  const animation = useMazeAnimation(
-    grid?.start ?? { x: 0, y: 0 },
-    grid?.startDir ?? 0,
-  );
+  const animation = useMazeAnimation(grid);
+  const varEntries = Object.entries(animation.vars);
 
   const overLimit = level?.maxBlocks != null && blockCount > level.maxBlocks;
 
@@ -148,8 +146,23 @@ export default function MazeSolvePage() {
               charPos={animation.charPos}
               charDir={animation.charDir}
               crashed={animation.crashed}
+              items={animation.items}
             />
           </div>
+
+          {/* Variable watcher */}
+          {varEntries.length > 0 && (
+            <div className="flex flex-wrap gap-2 w-full justify-center">
+              {varEntries.map(([name, value]) => (
+                <span
+                  key={name}
+                  className="rounded-full bg-surface-container-high px-3 py-1 text-label-sm font-semibold text-on-surface"
+                >
+                  {name} = {value}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Outcome banner */}
           {outcome?.kind === 'success' && (

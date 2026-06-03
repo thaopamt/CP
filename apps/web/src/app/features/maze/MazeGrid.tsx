@@ -7,6 +7,8 @@ interface Props {
   charDir: Direction;
   /** Briefly flash the character red when it crashes into a wall / boundary. */
   crashed?: boolean;
+  /** Items still on the board (overrides grid.items during animation). */
+  items?: Cell[];
   /** Editable mode: clicking a cell calls onCellClick (used by the admin builder). */
   onCellClick?: (cell: Cell) => void;
 }
@@ -14,10 +16,11 @@ interface Props {
 const wallKey = (c: Cell) => `${c.x},${c.y}`;
 
 /** Pure SVG renderer of the maze playfield + character. */
-export function MazeGrid({ grid, charPos, charDir, crashed, onCellClick }: Props) {
+export function MazeGrid({ grid, charPos, charDir, crashed, items, onCellClick }: Props) {
   const w = grid.width * CELL_SIZE;
   const h = grid.height * CELL_SIZE;
   const walls = new Set(grid.walls.map(wallKey));
+  const itemCells = items ?? grid.items ?? [];
 
   const cells: { x: number; y: number }[] = [];
   for (let y = 0; y < grid.height; y++) {
@@ -47,6 +50,21 @@ export function MazeGrid({ grid, charPos, charDir, crashed, onCellClick }: Props
           />
         );
       })}
+
+      {/* Items */}
+      {itemCells.map((it) => (
+        <text
+          key={`item-${wallKey(it)}`}
+          x={it.x * CELL_SIZE + CELL_SIZE / 2}
+          y={it.y * CELL_SIZE + CELL_SIZE / 2}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontSize={CELL_SIZE * 0.5}
+          style={{ pointerEvents: 'none' }}
+        >
+          💎
+        </text>
+      ))}
 
       {/* Goal */}
       <text
