@@ -1,14 +1,20 @@
-import { Controller, Post, Get, Body, UseGuards, Req, Param, Query } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req, Param, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
 import { ExecutionService } from './execution.service';
 import { Submission, SubmissionTestResult } from './submission.entity';
+import { SubmissionEventsGateway } from './submission-events.gateway';
 import { Assignment } from '../assignments/assignment.entity';
 import { QuestsService } from '../quests/quests.service';
-import { ICodeExecutionRequest, ISubmitCodePayload, SubmissionStatus, UserRole } from '@cp/shared';
+import {
+  ICodeExecutionRequest,
+  IRealtimeSubmission,
+  ISubmissionJudgeProgress,
+  ISubmissionRealtimeTestResult,
+  ISubmitCodePayload,
+  SubmissionStatus,
+} from '@cp/shared';
 
 @Controller('submissions')
 @UseGuards(JwtAuthGuard)
@@ -20,6 +26,7 @@ export class SubmissionsController {
     @InjectRepository(Assignment)
     private readonly assignmentRepo: Repository<Assignment>,
     private readonly questsService: QuestsService,
+    private readonly submissionEvents: SubmissionEventsGateway,
   ) {}
 
   @Post('run')
@@ -43,11 +50,9 @@ export class SubmissionsController {
   }
 
   /**
-   * Admin / Teacher: get all submissions from all students.
+   * Authenticated feed: get all submissions from all students.
    */
   @Get('all')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   async getAllSubmissions() {
     const submissions = await this.submissionRepo.find({
       order: { createdAt: 'DESC' },
@@ -78,8 +83,10 @@ export class SubmissionsController {
     });
 
     if (!assignment) {
-      throw new Error('Assignment not found');
+      throw new NotFoundException('Assignment not found');
     }
+
+    const totalCount = this.getAssignmentTotalCount(assignment);
 
     // Initial submission entry
     const submission = this.submissionRepo.create({
@@ -88,8 +95,23 @@ export class SubmissionsController {
       language: payload.language,
       code: payload.code,
       status: SubmissionStatus.PENDING,
+      totalCount,
     });
     await this.submissionRepo.save(submission);
+
+    const liveSubmission = await this.findSubmissionForRealtime(submission.id);
+    const liveTestResults: ISubmissionRealtimeTestResult[] = [];
+
+    this.emitRealtimeEvent('created', liveSubmission, {
+      phase: 'queued',
+      currentTestCaseIndex: null,
+      completedCount: 0,
+      passedCount: 0,
+      totalCount,
+      status: SubmissionStatus.PENDING,
+      message: 'Submission queued',
+      updatedAt: new Date().toISOString(),
+    }, liveTestResults);
 
     try {
       // Grade the submission
@@ -97,6 +119,38 @@ export class SubmissionsController {
         assignment,
         payload.language,
         payload.code,
+        {
+          onTestCaseStart: ({ testCaseIndex, totalCount }) => {
+            this.emitRealtimeEvent('testcase_started', liveSubmission, {
+              phase: 'running',
+              currentTestCaseIndex: testCaseIndex,
+              completedCount: liveTestResults.length,
+              passedCount: liveTestResults.filter((tr) => tr.status === SubmissionStatus.ACCEPTED).length,
+              totalCount,
+              status: SubmissionStatus.PENDING,
+              message: `Judging testcase #${testCaseIndex + 1}`,
+              updatedAt: new Date().toISOString(),
+            }, liveTestResults);
+          },
+          onTestCaseComplete: ({ testResult, completedCount, passedCount, totalCount, totalTime, maxMemory, status }) => {
+            liveTestResults.push(testResult);
+            liveSubmission.passedCount = passedCount;
+            liveSubmission.totalCount = totalCount;
+            liveSubmission.totalExecutionTimeMs = totalTime;
+            liveSubmission.maxMemoryBytes = maxMemory;
+
+            this.emitRealtimeEvent('testcase_finished', liveSubmission, {
+              phase: completedCount === totalCount ? 'completed' : 'running',
+              currentTestCaseIndex: null,
+              completedCount,
+              passedCount,
+              totalCount,
+              status,
+              message: `Finished testcase #${testResult.testCaseIndex + 1}`,
+              updatedAt: new Date().toISOString(),
+            }, liveTestResults, testResult);
+          },
+        },
       );
 
       // Update submission with results
@@ -118,6 +172,18 @@ export class SubmissionsController {
       });
 
       await this.submissionRepo.save(submission);
+      const completedSubmission = await this.findSubmissionForRealtime(submission.id);
+
+      this.emitRealtimeEvent('completed', completedSubmission, {
+        phase: 'completed',
+        currentTestCaseIndex: null,
+        completedCount: gradeResult.testResults.length,
+        passedCount: gradeResult.passedCount,
+        totalCount: gradeResult.totalCount,
+        status: gradeResult.status,
+        message: 'Submission graded',
+        updatedAt: new Date().toISOString(),
+      });
 
       if (submission.status === SubmissionStatus.ACCEPTED) {
         // Trigger quest progress
@@ -133,7 +199,111 @@ export class SubmissionsController {
     } catch (error: any) {
       submission.status = SubmissionStatus.INTERNAL_ERROR;
       await this.submissionRepo.save(submission);
+      const failedSubmission = await this.findSubmissionForRealtime(submission.id);
+      this.emitRealtimeEvent('failed', failedSubmission, {
+        phase: 'failed',
+        currentTestCaseIndex: null,
+        completedCount: liveTestResults.length,
+        passedCount: liveTestResults.filter((tr) => tr.status === SubmissionStatus.ACCEPTED).length,
+        totalCount,
+        status: SubmissionStatus.INTERNAL_ERROR,
+        message: error?.message || 'Submission failed',
+        updatedAt: new Date().toISOString(),
+      }, liveTestResults);
       throw error;
     }
+  }
+
+  private async findSubmissionForRealtime(submissionId: string): Promise<Submission> {
+    const submission = await this.submissionRepo.findOne({
+      where: { id: submissionId },
+      relations: ['testResults', 'assignment', 'user'],
+    });
+    if (!submission) {
+      throw new NotFoundException('Submission not found');
+    }
+    submission.testResults = (submission.testResults ?? []).sort((a, b) => a.testCaseIndex - b.testCaseIndex);
+    return submission;
+  }
+
+  private emitRealtimeEvent(
+    event: 'created' | 'testcase_started' | 'testcase_finished' | 'completed' | 'failed',
+    submission: Submission,
+    progress: ISubmissionJudgeProgress,
+    liveTestResults?: ISubmissionRealtimeTestResult[],
+    testResult?: ISubmissionRealtimeTestResult,
+  ) {
+    this.submissionEvents.publishSubmissionEvent({
+      event,
+      submission: this.serializeRealtimeSubmission(submission, progress, liveTestResults),
+      testResult,
+      currentTestCaseIndex: progress.currentTestCaseIndex,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  private serializeRealtimeSubmission(
+    submission: Submission,
+    progress?: ISubmissionJudgeProgress,
+    liveTestResults?: ISubmissionRealtimeTestResult[],
+  ): IRealtimeSubmission {
+    return {
+      id: submission.id,
+      userId: submission.userId,
+      assignmentId: submission.assignmentId,
+      language: submission.language,
+      code: submission.code,
+      status: submission.status,
+      totalExecutionTimeMs: submission.totalExecutionTimeMs ?? undefined,
+      maxMemoryBytes: submission.maxMemoryBytes ?? undefined,
+      passedCount: submission.passedCount ?? 0,
+      totalCount: submission.totalCount ?? 0,
+      testResults: (liveTestResults ?? submission.testResults ?? [])
+        .map((tr) => this.serializeRealtimeTestResult(tr))
+        .sort((a, b) => a.testCaseIndex - b.testCaseIndex),
+      createdAt: this.toIso(submission.createdAt),
+      updatedAt: this.toIso(submission.updatedAt),
+      assignment: submission.assignment
+        ? {
+            id: submission.assignment.id,
+            title: submission.assignment.title,
+            codingConfig: submission.assignment.codingConfig,
+          }
+        : undefined,
+      user: submission.user
+        ? {
+            id: submission.user.id,
+            username: submission.user.username,
+            firstName: submission.user.firstName,
+            lastName: submission.user.lastName,
+            role: submission.user.role,
+            avatarUrl: submission.user.avatarUrl,
+          }
+        : undefined,
+      judgeProgress: progress,
+    };
+  }
+
+  private serializeRealtimeTestResult(tr: SubmissionTestResult | ISubmissionRealtimeTestResult): ISubmissionRealtimeTestResult {
+    return {
+      id: tr.id,
+      submissionId: tr.submissionId,
+      testCaseIndex: tr.testCaseIndex,
+      status: tr.status,
+      expectedOutput: tr.expectedOutput,
+      actualOutput: tr.actualOutput,
+      executionTimeMs: tr.executionTimeMs ?? null,
+      memoryBytes: tr.memoryBytes ?? null,
+      errorMessage: tr.errorMessage ?? null,
+    };
+  }
+
+  private getAssignmentTotalCount(assignment: Assignment): number {
+    const totalCount = assignment.codingConfig?.testCases?.length ?? 0;
+    return totalCount > 0 ? totalCount : 1;
+  }
+
+  private toIso(value: Date | string): string {
+    return value instanceof Date ? value.toISOString() : value;
   }
 }

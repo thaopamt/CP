@@ -26,11 +26,13 @@ interface Props {
   allowedBlocks: BlockType[];
   /** Notified with the current block count whenever the workspace changes. */
   onBlockCountChange?: (count: number) => void;
+  /** Notified with the parsed program (the chain under "Khi bắt đầu") on change. */
+  onProgramChange?: (ast: Command[]) => void;
   initialXml?: string;
 }
 
 export const MazeBlocklyEditor = forwardRef<MazeBlocklyEditorHandle, Props>(
-  ({ allowedBlocks, onBlockCountChange, initialXml }, ref) => {
+  ({ allowedBlocks, onBlockCountChange, onProgramChange, initialXml }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const workspaceRef = useRef<Blockly.WorkspaceSvg | null>(null);
 
@@ -85,7 +87,9 @@ export const MazeBlocklyEditor = forwardRef<MazeBlocklyEditorHandle, Props>(
       start.setMovable(true);
 
       const onChange = () => {
-        onBlockCountChange?.(countBlocks(workspaceToAst(workspace)));
+        const ast = workspaceToAst(workspace);
+        onBlockCountChange?.(countBlocks(ast));
+        onProgramChange?.(ast);
       };
       workspace.addChangeListener(onChange);
       onChange();

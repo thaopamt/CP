@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import { Assignment } from '../assignments/assignment.entity';
-import { ICodeExecutionResponse, SubmissionStatus } from '@cp/shared';
+import { ICodeExecutionResponse, ISubmissionRealtimeTestResult, SubmissionStatus } from '@cp/shared';
 
 /** Default limits when not specified by the assignment */
 const DEFAULT_TIME_LIMIT_S = 5;          // 5 seconds
@@ -12,6 +12,19 @@ const LEGACY_MEMORY_LIMIT_KB_THRESHOLD = 16_384;
 const LEGACY_TIME_LIMIT_MS_THRESHOLD = 1_000;
 const DEFAULT_PISTON_RUN_TIMEOUT_MS = 30_000;
 const DEFAULT_PISTON_MEMORY_LIMIT_BYTES = 512_000_000;
+
+export interface GradeSubmissionHooks {
+  onTestCaseStart?: (progress: { testCaseIndex: number; totalCount: number }) => void | Promise<void>;
+  onTestCaseComplete?: (progress: {
+    testResult: ISubmissionRealtimeTestResult;
+    completedCount: number;
+    passedCount: number;
+    totalCount: number;
+    totalTime: number;
+    maxMemory: number;
+    status: SubmissionStatus;
+  }) => void | Promise<void>;
+}
 
 @Injectable()
 export class ExecutionService {
@@ -144,7 +157,7 @@ export class ExecutionService {
    * Grade a submission against an assignment's test cases.
    * Checks for TLE based on codingConfig.timeLimit (seconds).
    */
-  async gradeSubmission(assignment: Assignment, language: string, code: string) {
+  async gradeSubmission(assignment: Assignment, language: string, code: string, hooks: GradeSubmissionHooks = {}) {
     const config = assignment.codingConfig;
 
     // Resolve limits from assignment config
@@ -153,6 +166,7 @@ export class ExecutionService {
 
     if (!config || !config.testCases || config.testCases.length === 0) {
       this.logger.warn(`Assignment ${assignment.id} has no test cases. Running code once as acceptance.`);
+      await hooks.onTestCaseStart?.({ testCaseIndex: 0, totalCount: 1 });
       // Run code once without stdin — if it compiles and runs, mark accepted
       const res = await this.runCode(language, code, '', timeLimitMs, memoryLimitBytes);
       const hasError = (res.compile && res.compile.code !== 0) || res.run.code !== 0;
@@ -170,6 +184,25 @@ export class ExecutionService {
       }
 
       const wallTimeMs = res.run.wall_time ?? 0;
+      const testResult: ISubmissionRealtimeTestResult = {
+        testCaseIndex: 0,
+        status,
+        expectedOutput: '(no test cases)',
+        actualOutput: res.run.stdout || res.run.stderr || '',
+        errorMessage: res.compile?.stderr || res.run.stderr || null,
+        executionTimeMs: wallTimeMs,
+        memoryBytes: res.run.memory ?? 0,
+      };
+
+      await hooks.onTestCaseComplete?.({
+        testResult,
+        completedCount: 1,
+        passedCount: status === SubmissionStatus.ACCEPTED ? 1 : 0,
+        totalCount: 1,
+        totalTime: wallTimeMs,
+        maxMemory: res.run.memory ?? 0,
+        status,
+      });
 
       return {
         status,
@@ -177,15 +210,7 @@ export class ExecutionService {
         totalCount: 1,
         maxMemory: res.run.memory ?? 0,
         totalTime: wallTimeMs,
-        testResults: [{
-          testCaseIndex: 0,
-          status,
-          expectedOutput: '(no test cases)',
-          actualOutput: res.run.stdout || res.run.stderr || '',
-          errorMessage: res.compile?.stderr || res.run.stderr || null,
-          executionTimeMs: wallTimeMs,
-          memoryBytes: res.run.memory ?? 0,
-        }],
+        testResults: [testResult],
       };
     }
 
@@ -197,6 +222,7 @@ export class ExecutionService {
 
     for (let i = 0; i < config.testCases.length; i++) {
       const testCase = config.testCases[i];
+      await hooks.onTestCaseStart?.({ testCaseIndex: i, totalCount: config.testCases.length });
       const res = await this.runCode(language, code, testCase.input, timeLimitMs, memoryLimitBytes);
 
       let status = SubmissionStatus.ACCEPTED;
@@ -246,7 +272,7 @@ export class ExecutionService {
         }
       }
 
-      testResults.push({
+      const testResult: ISubmissionRealtimeTestResult = {
         testCaseIndex: i,
         status,
         expectedOutput: testCase.output,
@@ -254,6 +280,18 @@ export class ExecutionService {
         errorMessage: errorMsg || null,
         executionTimeMs: wallTimeMs,
         memoryBytes: memoryBytes,
+      };
+
+      testResults.push(testResult);
+
+      await hooks.onTestCaseComplete?.({
+        testResult,
+        completedCount: testResults.length,
+        passedCount,
+        totalCount: config.testCases.length,
+        totalTime,
+        maxMemory,
+        status: finalStatus,
       });
     }
 
