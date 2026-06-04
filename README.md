@@ -22,17 +22,14 @@ design/         # Stitch UI prototypes (read-only reference)
 # 1. Install deps
 pnpm install
 
-# 2. Boot Postgres (Docker)
-docker run -d --name cp-pg -p 5432:5432 \
-  -e POSTGRES_USER=cp -e POSTGRES_PASSWORD=cp -e POSTGRES_DB=cp postgres:16-alpine
-
-# 3. Env
+# 2. Env — set DATABASE_URL to your external PostgreSQL
 cp .env.example apps/api/.env
+# Edit apps/api/.env and set DATABASE_URL=postgresql://user:password@host:5432/dbname
 
-# 4. Boot the API (TypeORM synchronize creates tables in dev)
+# 3. Boot the API (TypeORM synchronize creates tables in dev)
 pnpm exec nx serve api
 
-# 5. Boot the web app
+# 4. Boot the web app
 pnpm exec nx serve web
 #    open http://localhost:5173
 ```

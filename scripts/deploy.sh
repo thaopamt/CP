@@ -5,9 +5,6 @@
 # ─────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-APP_DIR="/opt/cp-system"
-COMPOSE_FILE="docker/docker-compose.production.yml"
-
 echo "══════════════════════════════════════════════════"
 echo "  CP System — Deploying to cp.thaopamt.site"
 echo "  $(date '+%Y-%m-%d %H:%M:%S')"
@@ -31,21 +28,21 @@ fi
 
 # ── Build & deploy ────────────────────────────────────────────────────
 echo "→ Building Docker images..."
-docker compose -f "$COMPOSE_FILE" --env-file .env build
+docker compose build
 
 echo "→ Restarting services..."
-docker compose -f "$COMPOSE_FILE" --env-file .env down --remove-orphans
-docker compose -f "$COMPOSE_FILE" --env-file .env up -d
+docker compose down --remove-orphans
+docker compose up -d
 
-# ── Wait for health checks ───────────────────────────────────────────
-echo "→ Waiting for PostgreSQL..."
+# ── Wait for API readiness ───────────────────────────────────────────
+echo "→ Waiting for API to be ready..."
 for i in {1..30}; do
-  if docker exec cp_postgres pg_isready -U cp 2>/dev/null; then
-    echo "  ✓ PostgreSQL ready"
+  if docker exec cp_api wget -q --spider http://localhost:3000/api 2>/dev/null; then
+    echo "  ✓ API ready"
     break
   fi
   if [ $i -eq 30 ]; then
-    echo "  ✗ PostgreSQL is not ready yet. Please check logs."
+    echo "  ⚠ API is not ready yet. Please check logs."
   fi
   sleep 2
 done
@@ -61,4 +58,4 @@ echo "  🌐 https://cp.thaopamt.site"
 echo "══════════════════════════════════════════════════"
 echo ""
 
-docker compose -f "$COMPOSE_FILE" --env-file .env ps
+docker compose ps

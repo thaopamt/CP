@@ -2,6 +2,7 @@
 # ─────────────────────────────────────────────────────────────────────
 # seed.sh — Seeding script for CP System
 # Works locally on Mac/PC and inside production server using Docker!
+# Database is always external (not in Docker).
 # ─────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
@@ -31,6 +32,13 @@ if [ -f ".env" ]; then
   done < .env
 fi
 
+# Check DATABASE_URL is set
+if [ -z "${DATABASE_URL:-}" ]; then
+  warn "DATABASE_URL chưa được cấu hình!"
+  warn "Hãy đặt DATABASE_URL trong .env hoặc export trước khi chạy."
+  exit 1
+fi
+
 # Determine if we are running in Docker mode or Local mode
 DOCKER_MODE=false
 if ! command -v pnpm &>/dev/null || ! command -v node &>/dev/null; then
@@ -48,19 +56,10 @@ fi
 if [ "$DOCKER_MODE" = true ]; then
   info "Đang chạy seed data bằng DOCKER container..."
 
-  # Find the network name
-  NETWORK_NAME=$(docker network ls --format "{{.Name}}" | grep -E "docker_default|cp-system_default" | head -n 1 || echo "docker_default")
-
-  info "Kết nối tới database network: ${NETWORK_NAME}"
-
-  # Set database host to container name inside docker network
-  export DB_HOST="postgres"
-
   docker run --rm \
-    --network "$NETWORK_NAME" \
     -v "$PROJECT_ROOT":/app \
     -w /app \
-    -e DATABASE_URL="postgresql://${DB_USER:-cp}:${DB_PASSWORD:-cp}@cp_postgres:${DB_PORT:-5432}/${DB_NAME:-cp}" \
+    -e DATABASE_URL="${DATABASE_URL}" \
     -e JWT_SECRET="${JWT_SECRET:-dev-only-change-me}" \
     -e NODE_ENV="production" \
     node:20-alpine \
@@ -80,15 +79,13 @@ if [ "$DOCKER_MODE" = true ]; then
 # ── Local Seeding Mode ───────────────────────────────────────────────
 else
   info "Đang chạy seed data bằng Node.js LOCAL..."
-  
-  export DB_HOST="${DB_HOST:-localhost}"
-  
+
   info "Đang chạy Database Schema Sync..."
   pnpm nx run api:typeorm-sync
-  
+
   info "Bắt đầu seeding Users & Classes..."
   pnpm nx run api:seed
-  
+
   info "Bắt đầu seeding Quests..."
   pnpm nx run api:seed:quests
 fi
