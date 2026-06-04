@@ -24,10 +24,9 @@ export class ClassesService extends TypeOrmCrudService<ClassEntity> {
   }
 
   /**
-   * Override the @Crud `createOne` flow because a class always ships
-   * with 1+ sessions. The instructor reference is optional — if present
-   * we validate it points at an existing user, otherwise the class is
-   * created unassigned and someone can fill it in later.
+   * Override the @Crud `createOne` flow so the class row and optional
+   * legacy sessions land atomically. New scheduling is student-level,
+   * so classes can be created without any weekly sessions.
    *
    * Wrapped in a transaction so the row + sessions land atomically.
    */
@@ -44,7 +43,7 @@ export class ClassesService extends TypeOrmCrudService<ClassEntity> {
       });
       const saved = await tx.getRepository(ClassEntity).save(cls);
 
-      const rows = dto.sessions.map((s) =>
+      const rows = (dto.sessions ?? []).map((s) =>
         tx.getRepository(ClassSession).create({
           classId: saved.id,
           dayOfWeek: s.dayOfWeek,
@@ -52,7 +51,9 @@ export class ClassesService extends TypeOrmCrudService<ClassEntity> {
           endTime: s.endTime,
         }),
       );
-      await tx.getRepository(ClassSession).save(rows);
+      if (rows.length > 0) {
+        await tx.getRepository(ClassSession).save(rows);
+      }
 
       // Re-fetch with the eager-loaded sessions populated
       const loaded = await tx.getRepository(ClassEntity).findOne({

@@ -1,9 +1,8 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Icon,
   Button,
-  Avatar,
   StatusBadge,
   useToast,
   useConfirm,
@@ -17,7 +16,6 @@ import {
   useDeleteCustomSession,
   useClearCustomSchedule,
 } from '../../../api/studentSchedule.queries';
-import { useEnrollmentsByStudent } from '../../../api/class.queries';
 
 const DAY_ORDER: DayOfWeek[] = [
   DayOfWeek.MON,
@@ -39,7 +37,6 @@ interface Props {
 // ── Modal for add/edit ──────────────────────────────────────────────────
 
 interface SessionFormData {
-  classId: string;
   dayOfWeek: DayOfWeek;
   startTime: string;
   endTime: string;
@@ -50,14 +47,12 @@ interface SessionFormData {
 function SessionModal({
   open,
   editing,
-  enrolledClasses,
   onClose,
   onSubmit,
   isSubmitting,
 }: {
   open: boolean;
   editing: IStudentScheduleSession | null;
-  enrolledClasses: { id: string; name: string; code: string }[];
   onClose: () => void;
   onSubmit: (data: SessionFormData) => void;
   isSubmitting: boolean;
@@ -66,16 +61,12 @@ function SessionModal({
   const pfx = 'pages.admin.studentProfile.schedule';
 
   const [form, setForm] = useState<SessionFormData>(() => ({
-    classId: editing?.classId ?? '',
     dayOfWeek: editing?.dayOfWeek ?? DayOfWeek.MON,
     startTime: editing ? formatTime(editing.startTime) : '08:00',
     endTime: editing ? formatTime(editing.endTime) : '09:00',
 
     note: editing?.note ?? '',
   }));
-
-  // Reset form when editing changes
-  const resetKey = editing?.id ?? 'new';
 
   const update = useCallback(
     <K extends keyof SessionFormData>(key: K, value: SessionFormData[K]) =>
@@ -107,23 +98,6 @@ function SessionModal({
             onSubmit(form);
           }}
         >
-          {/* Class (optional) */}
-          <label className="flex flex-col gap-xs">
-            <span className="text-label-sm text-on-surface-variant">{t(`${pfx}.fields.class`)}</span>
-            <select
-              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm text-body-md text-on-surface"
-              value={form.classId}
-              onChange={(e) => update('classId', e.target.value)}
-            >
-              <option value="">{t(`${pfx}.fields.noClass`)}</option>
-              {enrolledClasses.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.code})
-                </option>
-              ))}
-            </select>
-          </label>
-
           {/* Day */}
           <label className="flex flex-col gap-xs">
             <span className="text-label-sm text-on-surface-variant">{t(`${pfx}.fields.dayOfWeek`)}</span>
@@ -203,7 +177,6 @@ export default function StudentScheduleTab({ studentId }: Props) {
   const pfx = 'pages.admin.studentProfile.schedule';
 
   const scheduleQuery = useStudentSchedule(studentId);
-  const enrollmentsQuery = useEnrollmentsByStudent(studentId);
   const addSession = useAddCustomSession(studentId);
   const updateSession = useUpdateCustomSession(studentId);
   const deleteSession = useDeleteCustomSession(studentId);
@@ -211,22 +184,6 @@ export default function StudentScheduleTab({ studentId }: Props) {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<IStudentScheduleSession | null>(null);
-
-  // Build enrolled classes list for dropdown
-  const enrolledClasses = useMemo(() => {
-    if (!enrollmentsQuery.data) return [];
-    // Build from classSessions in schedule data (they carry className/classCode)
-    const schedule = scheduleQuery.data;
-    if (!schedule) return [];
-
-    const map = new Map<string, { id: string; name: string; code: string }>();
-    for (const s of schedule.classSessions) {
-      if (s.classId && s.className && s.classCode && !map.has(s.classId)) {
-        map.set(s.classId, { id: s.classId, name: s.className, code: s.classCode });
-      }
-    }
-    return Array.from(map.values());
-  }, [enrollmentsQuery.data, scheduleQuery.data]);
 
   const handleOpenAdd = useCallback(() => {
     setEditingSession(null);
@@ -241,10 +198,10 @@ export default function StudentScheduleTab({ studentId }: Props) {
   const handleSubmit = useCallback(
     async (data: SessionFormData) => {
       const payload: ICreateStudentSchedulePayload = {
+        classId: null,
         dayOfWeek: data.dayOfWeek,
         startTime: data.startTime,
         endTime: data.endTime,
-        ...(data.classId ? { classId: data.classId } : {}),
 
         ...(data.note ? { note: data.note } : {}),
       };
@@ -319,7 +276,7 @@ export default function StudentScheduleTab({ studentId }: Props) {
     );
   }
 
-  const { isCustom, sessions, classSessions } = schedule;
+  const { isCustom, sessions } = schedule;
 
   // Group sessions by day for the mini timetable
   const groupByDay = (items: IStudentScheduleSession[]) => {
@@ -333,8 +290,6 @@ export default function StudentScheduleTab({ studentId }: Props) {
   };
 
   const effectiveByDay = groupByDay(sessions);
-  const classRefByDay = groupByDay(classSessions);
-
   return (
     <div className="p-md md:p-lg flex flex-col gap-lg">
       {/* Header row */}
@@ -344,7 +299,7 @@ export default function StudentScheduleTab({ studentId }: Props) {
             {t(`${pfx}.effectiveSchedule`)}
           </h4>
           <StatusBadge tone={isCustom ? 'warning' : 'info'}>
-            {isCustom ? t(`${pfx}.customBadge`) : t(`${pfx}.classBadge`)}
+            {isCustom ? t(`${pfx}.customBadge`) : t(`${pfx}.emptyBadge`)}
           </StatusBadge>
         </div>
         <div className="flex items-center gap-sm flex-wrap">
@@ -403,12 +358,6 @@ export default function StudentScheduleTab({ studentId }: Props) {
                       <div className="text-[12px] text-on-surface font-semibold">
                         {formatTime(s.startTime)}–{formatTime(s.endTime)}
                       </div>
-                      {s.className && (
-                        <div className="text-[11px] text-on-surface-variant truncate">
-                          {s.className} ({s.classCode})
-                        </div>
-                      )}
-
                       {isCustom && (
                         <div className="flex justify-end mt-xs">
                           <button
@@ -433,50 +382,11 @@ export default function StudentScheduleTab({ studentId }: Props) {
         </div>
       )}
 
-      {/* If using custom, show class schedule as reference below */}
-      {isCustom && classSessions.length > 0 && (
-        <div className="mt-md">
-          <h5 className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-sm">
-            {t(`${pfx}.classScheduleRef`)}
-          </h5>
-          <div className="grid grid-cols-1 md:grid-cols-7 gap-sm opacity-60">
-            {DAY_ORDER.map((day) => {
-              const daySessions = classRefByDay.get(day) ?? [];
-              return (
-                <div key={day} className="bg-surface-container-low/50 rounded-lg p-sm min-h-[60px]">
-                  <div className="text-label-sm font-bold text-on-surface-variant mb-xs">
-                    {t(`enums.dayOfWeek.${day}`)}
-                  </div>
-                  <div className="flex flex-col gap-xs">
-                    {daySessions.map((s) => (
-                      <div
-                        key={s.id}
-                        className="rounded-md bg-surface-container-highest/30 border-l-4 border-outline-variant px-sm py-xs"
-                      >
-                        <div className="text-[11px] text-on-surface-variant font-medium">
-                          {formatTime(s.startTime)}–{formatTime(s.endTime)}
-                        </div>
-                        {s.className && (
-                          <div className="text-[10px] text-on-surface-variant truncate">
-                            {s.className}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* Session modal */}
       <SessionModal
         key={editingSession?.id ?? 'new'}
         open={isModalOpen}
         editing={editingSession}
-        enrolledClasses={enrolledClasses}
         onClose={() => {
           setIsModalOpen(false);
           setEditingSession(null);

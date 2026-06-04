@@ -11,6 +11,8 @@ import { StudentProfile } from '../modules/students/student-profile.entity';
 import { Guardian } from '../modules/students/guardian.entity';
 import { StudentSchedule } from '../modules/students/student-schedule.entity';
 import { AttendanceRecord } from '../modules/attendance/attendance.entity';
+import { ScheduleSlotAttendanceRecord } from '../modules/attendance/schedule-slot-attendance.entity';
+import { ScheduleSlotCancellation } from '../modules/attendance/schedule-slot-cancellation.entity';
 import { Assignment } from '../modules/assignments/assignment.entity';
 import { Course } from '../modules/courses/course.entity';
 import { CourseAssignment } from '../modules/courses/course-assignment.entity';
@@ -50,6 +52,8 @@ export const AppDataSource = new DataSource({
     Guardian,
     StudentSchedule,
     AttendanceRecord,
+    ScheduleSlotAttendanceRecord,
+    ScheduleSlotCancellation,
     Assignment,
     Course,
     CourseAssignment,
@@ -69,4 +73,3 @@ export const AppDataSource = new DataSource({
   synchronize: false,
   logging: ['error', 'warn'],
 });
-

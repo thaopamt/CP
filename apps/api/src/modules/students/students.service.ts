@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { TypeOrmCrudService } from '@dataui/crud-typeorm';
 import * as bcrypt from 'bcryptjs';
+import { randomUUID } from 'node:crypto';
 import { DataSource, Repository, In, MoreThanOrEqual, Not } from 'typeorm';
 import { EnrollmentStatus, UserRole, SubmissionStatus } from '@cp/shared';
 
@@ -32,10 +33,12 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
    * Returns the freshly-loaded profile with guardians eager-attached.
    */
   async createStudent(dto: CreateStudentDto): Promise<StudentProfile> {
+    const email = `student-${randomUUID()}@internal.local`;
+    const { firstName, lastName } = this.splitFullName(dto.fullName);
     // Pre-validate uniqueness so we can return 409 with a clear message
-    const existingByEmail = await this.users.findOne({ where: { email: dto.email } });
+    const existingByEmail = await this.users.findOne({ where: { email } });
     if (existingByEmail) {
-      throw new ConflictException(`Email ${dto.email} is already registered`);
+      throw new ConflictException(`Email ${email} is already registered`);
     }
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
@@ -46,10 +49,10 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
 
       const user = await userRepo.save(
         userRepo.create({
-          email: dto.email,
+          email,
           username: dto.username || null,
-          firstName: dto.firstName,
-          lastName: dto.lastName,
+          firstName,
+          lastName,
           role: UserRole.STUDENT,
           passwordHash,
           isActive: true,
@@ -74,7 +77,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
             studentProfileId: profile.id,
             fullName: g.fullName,
             relationship: g.relationship,
-            phoneNumber: g.phoneNumber,
+            phoneNumber: g.phoneNumber ?? '',
             // First guardian is primary by default unless caller specifies
             isPrimary: g.isPrimary ?? idx === 0,
           }),
@@ -101,15 +104,17 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       const guardianRepo = tx.getRepository(Guardian);
 
       // User-side updates
-      if (dto.firstName || dto.lastName || dto.email || dto.username !== undefined) {
+      if (dto.fullName !== undefined || dto.username !== undefined) {
+        const userPatch: Partial<User> = {};
+        if (dto.fullName !== undefined) {
+          Object.assign(userPatch, this.splitFullName(dto.fullName));
+        }
+        if (dto.username !== undefined) {
+          userPatch.username = dto.username || null;
+        }
         await userRepo.update(
           { id: profile.userId },
-          {
-            ...(dto.firstName ? { firstName: dto.firstName } : {}),
-            ...(dto.lastName ? { lastName: dto.lastName } : {}),
-            ...(dto.email ? { email: dto.email } : {}),
-            ...(dto.username !== undefined ? { username: dto.username || null } : {}),
-          },
+          userPatch,
         );
       }
 
@@ -150,6 +155,17 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       if (!loaded) throw new NotFoundException();
       return loaded;
     });
+  }
+
+  private splitFullName(fullName: string): Pick<User, 'firstName' | 'lastName'> {
+    const parts = fullName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length <= 1) {
+      return { firstName: parts[0] ?? 'Student', lastName: '' };
+    }
+    return {
+      firstName: parts.slice(0, -1).join(' '),
+      lastName: parts[parts.length - 1],
+    };
   }
 
   async getStudentByUserId(userId: string): Promise<StudentProfile> {
@@ -343,5 +359,3 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
     };
   }
 }
-
-

@@ -7,22 +7,13 @@ import {
   FormField,
   Icon,
   PageHeader,
-  SelectFilter,
   WizardSteps,
 } from '@cp/ui';
 import {
-  DayOfWeek,
   ICreateClassPayload,
 } from '@cp/shared';
 
 import { useCreateClass } from '../../../api/class.queries';
-
-type SessionDraft = {
-  dayOfWeek: DayOfWeek;
-  startTime: string;
-  endTime: string;
-
-};
 
 type Draft = {
   name: string;
@@ -30,7 +21,6 @@ type Draft = {
   description: string;
   term: string;
   capacity: number;
-  sessions: SessionDraft[];
 };
 
 const INITIAL_DRAFT: Draft = {
@@ -39,16 +29,12 @@ const INITIAL_DRAFT: Draft = {
   description: '',
   term: '',
   capacity: 30,
-  sessions: [
-    { dayOfWeek: DayOfWeek.MON, startTime: '09:00', endTime: '10:30' },
-  ],
 };
 
 /**
- * Class Create — 3-step wizard.
+ * Class Create — 2-step wizard.
  *   1. Basics (name · code · department · description)
- *   2. Schedule (one or more weekly sessions: day/start/end/room)
- *   3. Capacity & instructor
+ *   2. Capacity & term
  *
  * On submit, posts the `ICreateClassPayload` to `POST /api/classes`
  * (currently mocked — wire via apiClient when backend is reachable).
@@ -60,7 +46,6 @@ export default function ClassCreatePage() {
   const steps = useMemo(
     () => [
       { key: 'basics', label: t('pages.admin.classes.create.steps.basics') },
-      { key: 'schedule', label: t('pages.admin.classes.create.steps.schedule') },
       { key: 'capacity', label: t('pages.admin.classes.create.steps.capacity') },
     ],
     [t],
@@ -83,18 +68,6 @@ export default function ClassCreatePage() {
       if (!draft.code.trim()) e.code = t('pages.admin.classes.create.validation.codeRequired');
     }
     if (idx === 1) {
-      if (draft.sessions.length === 0) {
-        e.sessions = t('pages.admin.classes.create.validation.sessionMin');
-      } else {
-        for (let i = 0; i < draft.sessions.length; i++) {
-          const s = draft.sessions[i];
-          if (s.startTime >= s.endTime) {
-            e[`sessions.${i}.time`] = t('pages.admin.classes.create.validation.timeOrder');
-          }
-        }
-      }
-    }
-    if (idx === 2) {
       if (draft.capacity < 1) e.capacity = t('pages.admin.classes.create.validation.capacityRange');
     }
     setErrors(e);
@@ -120,12 +93,6 @@ export default function ClassCreatePage() {
       description: draft.description || undefined,
       capacity: draft.capacity,
       term: draft.term,
-      sessions: draft.sessions.map((s) => ({
-        dayOfWeek: s.dayOfWeek,
-        startTime: s.startTime,
-        endTime: s.endTime,
-
-      })),
     };
     try {
       const created = await createClass.mutateAsync(payload);
@@ -136,30 +103,6 @@ export default function ClassCreatePage() {
       const flat = Array.isArray(msg) ? msg.join(', ') : msg;
       setErrors({ submit: flat ?? (err as Error).message });
     }
-  }
-
-  function addSession() {
-    setDraft((prev) => ({
-      ...prev,
-      sessions: [
-        ...prev.sessions,
-        { dayOfWeek: DayOfWeek.WED, startTime: '09:00', endTime: '10:30' },
-      ],
-    }));
-  }
-
-  function updateSession(idx: number, p: Partial<SessionDraft>) {
-    setDraft((prev) => ({
-      ...prev,
-      sessions: prev.sessions.map((s, i) => (i === idx ? { ...s, ...p } : s)),
-    }));
-  }
-
-  function removeSession(idx: number) {
-    setDraft((prev) => ({
-      ...prev,
-      sessions: prev.sessions.filter((_, i) => i !== idx),
-    }));
   }
 
   return (
@@ -229,77 +172,6 @@ export default function ClassCreatePage() {
         )}
 
         {step === 1 && (
-          <div className="flex flex-col gap-md">
-            <header className="flex items-center justify-between">
-              <h3 className="font-manrope text-headline-md text-on-surface">
-                {t('pages.admin.classes.create.fields.sessions')}
-              </h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                leadingIcon={<Icon name="add" size={16} />}
-                onClick={addSession}
-              >
-                {t('pages.admin.classes.create.fields.addSession')}
-              </Button>
-            </header>
-
-            {errors.sessions && <div className="text-[12px] text-error">{errors.sessions}</div>}
-
-            <div className="flex flex-col gap-sm">
-              {draft.sessions.map((s, i) => (
-                <div
-                  key={i}
-                  className="grid grid-cols-1 md:grid-cols-[120px_1fr_1fr_auto] gap-sm items-end p-sm rounded-lg bg-surface-container-low border border-outline-variant/40"
-                >
-                  <FormField label={t('pages.admin.classes.create.fields.day')}>
-                    <select
-                      value={s.dayOfWeek}
-                      onChange={(e) => updateSession(i, { dayOfWeek: e.target.value as DayOfWeek })}
-                      className="bg-surface-container-lowest border border-outline-variant rounded-md px-sm py-xs"
-                    >
-                      {Object.values(DayOfWeek).map((d) => (
-                        <option key={d} value={d}>
-                          {t(`enums.dayOfWeek.${d}`)}
-                        </option>
-                      ))}
-                    </select>
-                  </FormField>
-                  <FormField label={t('pages.admin.classes.create.fields.startTime')}>
-                    <input
-                      type="time"
-                      value={s.startTime}
-                      onChange={(e) => updateSession(i, { startTime: e.target.value })}
-                      className="bg-surface-container-lowest border border-outline-variant rounded-md px-sm py-xs"
-                    />
-                  </FormField>
-                  <FormField
-                    label={t('pages.admin.classes.create.fields.endTime')}
-                    error={errors[`sessions.${i}.time`]}
-                  >
-                    <input
-                      type="time"
-                      value={s.endTime}
-                      onChange={(e) => updateSession(i, { endTime: e.target.value })}
-                      className="bg-surface-container-lowest border border-outline-variant rounded-md px-sm py-xs"
-                    />
-                  </FormField>
-
-                  <button
-                    type="button"
-                    onClick={() => removeSession(i)}
-                    className="p-1 rounded text-on-surface-variant hover:text-error"
-                    aria-label={t('pages.admin.classes.create.fields.removeSession')}
-                  >
-                    <Icon name="delete" size={20} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
             <FormField
               label={t('pages.admin.classes.create.fields.capacity')}
@@ -330,7 +202,7 @@ export default function ClassCreatePage() {
         )}
       </div>
 
-      {/* Submit error from the API (e.g. duplicate code, missing instructor) */}
+      {/* Submit error from the API (e.g. duplicate code) */}
       {errors.submit && (
         <div className="bg-error-container/60 text-on-error-container rounded-md px-md py-sm text-label-sm">
           {errors.submit}

@@ -88,38 +88,38 @@ export function WeekGrid({
         }}
       >
         {/* Header row */}
-        <div className="border-b border-outline-variant/40 bg-surface-container-low/80 backdrop-blur-sm sticky top-0 z-20" />
+        <div className="h-12 border-b border-outline-variant/40 bg-surface-container-low/95 backdrop-blur-sm sticky top-0 left-0 z-30" />
         {dayLabels.map((label, i) => {
           const isToday = i === todayIndex;
           return (
             <div
               key={label}
               className={cn(
-                'p-sm text-center text-label-sm font-semibold border-b border-l border-outline-variant/40 bg-surface-container-low/80 backdrop-blur-sm sticky top-0 z-20 transition-colors',
+                'relative h-12 px-sm text-center text-label-sm font-semibold border-b border-l border-outline-variant/40 bg-surface-container-low/95 backdrop-blur-sm sticky top-0 z-20 transition-colors flex items-center justify-center',
                 isToday && 'text-primary bg-primary/5 font-bold',
               )}
             >
-              {isToday ? (
-                <span className="inline-flex items-center gap-xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                  {label}
-                </span>
-              ) : (
-                label
+              {isToday && (
+                <span className="absolute top-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
               )}
+              <span className="leading-none">{label}</span>
             </div>
           );
         })}
 
         {/* Time column */}
-        <div className="relative border-r border-outline-variant/20 bg-surface-container-lowest/50 select-none" style={{ height: totalPx }}>
+        <div
+          className="sticky left-0 z-20 border-r border-outline-variant/30 bg-surface-container-lowest select-none shadow-[4px_0_10px_-10px_rgba(0,0,0,0.35)]"
+          style={{ height: totalPx }}
+        >
           {slots.map((m, i) => {
             const topPosition = slots.length > 1 ? (i / (slots.length - 1)) * totalPx : 0;
+            const labelTop = Math.min(Math.max(topPosition, 12), Math.max(totalPx - 12, 12));
             return (
               <div
                 key={m}
-                className="absolute left-0 right-0 text-[11px] font-medium text-on-surface-variant/80 pr-sm text-right -translate-y-1/2 transition-all duration-200"
-                style={{ top: topPosition }}
+                className="absolute right-sm text-[11px] font-semibold text-on-surface-variant bg-surface-container-lowest px-1.5 py-0.5 rounded border border-outline-variant/30 -translate-y-1/2 transition-all duration-200"
+                style={{ top: labelTop }}
               >
                 {minutesLabel(m)}
               </div>
@@ -174,7 +174,10 @@ export function WeekGrid({
                     className="absolute inset-x-1 transition-all duration-300 hover:z-10"
                     style={{ top, height }}
                   >
-                    <EventCard event={evt} onClick={() => onEventClick?.(evt)} />
+                    <EventCard
+                      event={evt}
+                      onClick={onEventClick ? () => onEventClick(evt) : undefined}
+                    />
                   </div>
                 );
               })}

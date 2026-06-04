@@ -20,14 +20,14 @@ import { IGuardian, ISubjectGrade } from '@cp/shared';
 import { useStudent, useResetPasswordStudent } from '../../../api/student.queries';
 import { ResetPasswordModal } from './ResetPasswordModal';
 import StudentScheduleTab from './StudentScheduleTab';
+import StudentAttendanceHistoryTab from './StudentAttendanceHistoryTab';
 
 type Tab = 'academics' | 'courses' | 'attendance' | 'activity' | 'schedule';
 
 export default function StudentProfilePage() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { studentId: idParam } = useParams<{ studentId: string }>();
-  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
   const toast = useToast();
 
   const studentQuery = useStudent(idParam);
@@ -140,19 +140,6 @@ export default function StudentProfilePage() {
         {/* Left column */}
         <aside className="lg:col-span-4 flex flex-col gap-md">
           <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-md">
-            <h3 className="font-manrope text-headline-md text-on-surface mb-sm">
-              {t('pages.admin.studentProfile.demographics.title')}
-            </h3>
-            <dl className="flex flex-col gap-sm">
-              <Detail
-                icon="mail"
-                label={t('pages.admin.studentProfile.demographics.email')}
-                value={s.email}
-              />
-            </dl>
-          </div>
-
-          <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-md">
             <header className="flex items-center justify-between mb-sm">
               <h3 className="font-manrope text-headline-md text-on-surface">
                 {t('pages.admin.studentProfile.guardians.title')}
@@ -258,9 +245,7 @@ export default function StudentProfilePage() {
               </div>
             )}
             {tab === 'attendance' && (
-              <div className="p-md md:p-lg text-center text-on-surface-variant">
-                {t('pages.admin.studentProfile.attendance.empty')}
-              </div>
+              <StudentAttendanceHistoryTab studentId={s.userId} />
             )}
             {tab === 'activity' && (
               <div className="p-md md:p-lg text-center text-on-surface-variant">
@@ -291,18 +276,6 @@ export default function StudentProfilePage() {
   );
 }
 
-function Detail({ icon, label, value }: { icon: string; label: string; value: string }) {
-  return (
-    <div className="flex items-start gap-sm">
-      <Icon name={icon} size={18} className="text-primary mt-0.5" />
-      <div className="min-w-0">
-        <dt className="text-[12px] text-on-surface-variant uppercase tracking-wider">{label}</dt>
-        <dd className="text-on-surface text-body-md break-words">{value}</dd>
-      </div>
-    </div>
-  );
-}
-
 function GuardianRow({ guardian: g }: { guardian: IGuardian }) {
   const initials = g.fullName
     .split(' ')
@@ -323,17 +296,21 @@ function GuardianRow({ guardian: g }: { guardian: IGuardian }) {
             </StatusBadge>
           )}
         </div>
-        <div className="text-[12px] text-on-surface-variant">
-          {g.phoneNumber}
-        </div>
+        {g.phoneNumber && (
+          <div className="text-[12px] text-on-surface-variant">
+            {g.phoneNumber}
+          </div>
+        )}
       </div>
-      <a
-        href={`tel:${g.phoneNumber}`}
-        className="p-1 rounded text-on-surface-variant hover:text-primary"
-        aria-label="Call"
-      >
-        <Icon name="call" size={18} />
-      </a>
+      {g.phoneNumber && (
+        <a
+          href={`tel:${g.phoneNumber}`}
+          className="p-1 rounded text-on-surface-variant hover:text-primary"
+          aria-label="Call"
+        >
+          <Icon name="call" size={18} />
+        </a>
+      )}
 
     </li>
   );
@@ -371,4 +348,3 @@ function KpiCard({
     </div>
   );
 }
-

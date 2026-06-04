@@ -12,16 +12,14 @@ import {
   ENROLLMENT_STATUS_LABEL,
   EnrollmentStatus,
   GuardianRelationship,
-  ICreateStudentPayload,
+  IUpdateStudentPayload,
   IGuardianInput,
 } from '@cp/shared';
 
 import { useStudent, useUpdateStudent } from '../../../api/student.queries';
 
 type Draft = {
-  firstName: string;
-  lastName: string;
-  email: string;
+  fullName: string;
   username: string;
 
   grade: number;
@@ -40,9 +38,7 @@ const LANG_OPTIONS = [
 ];
 
 const INITIAL: Draft = {
-  firstName: '',
-  lastName: '',
-  email: '',
+  fullName: '',
   username: '',
 
   grade: 1,
@@ -69,9 +65,7 @@ export default function StudentEditPage() {
     if (studentQuery.data && !initialized) {
       const s = studentQuery.data;
       setDraft({
-        firstName: s.firstName,
-        lastName: s.lastName,
-        email: s.email,
+        fullName: `${s.firstName} ${s.lastName}`.trim(),
         username: s.username ?? '',
 
         grade: s.grade,
@@ -120,35 +114,28 @@ export default function StudentEditPage() {
 
   function validate(): boolean {
     const e: Record<string, string> = {};
-    if (!draft.firstName.trim()) e.firstName = t('pages.admin.studentCreate.validation.firstNameRequired');
-    if (!draft.lastName.trim()) e.lastName = t('pages.admin.studentCreate.validation.lastNameRequired');
-    if (!draft.email.trim()) e.email = t('pages.admin.studentCreate.validation.emailRequired');
+    if (!draft.fullName.trim()) e.fullName = t('pages.admin.studentCreate.validation.fullNameRequired');
 
     if (draft.grade < 1 || draft.grade > 9) e.grade = t('pages.admin.studentCreate.validation.gradeRange');
-    draft.guardians.forEach((g, i) => {
-      if (!g.phoneNumber.trim()) e[`g.${i}.phone`] = t('pages.admin.studentCreate.validation.guardianPhoneRequired');
-    });
     setErrors(e);
     return Object.keys(e).length === 0;
   }
 
   async function submit() {
     if (!validate()) return;
-    const payload: Partial<ICreateStudentPayload> = {
-      firstName: draft.firstName.trim(),
-      lastName: draft.lastName.trim(),
-      email: draft.email.trim(),
+    const payload: IUpdateStudentPayload = {
+      fullName: draft.fullName.trim(),
       username: draft.username.trim() || undefined,
 
       grade: draft.grade,
       startDate: draft.startDate || undefined,
       status: draft.status,
       guardians: draft.guardians
-        .filter((g) => g.fullName.trim() || g.phoneNumber.trim())
+        .filter((g) => g.fullName.trim() || g.phoneNumber?.trim())
         .map((g) => ({
           fullName: g.fullName.trim(),
           relationship: g.relationship,
-          phoneNumber: g.phoneNumber.trim(),
+          phoneNumber: g.phoneNumber?.trim() ?? '',
           isPrimary: g.isPrimary ?? false,
         })),
     };
@@ -204,38 +191,14 @@ export default function StudentEditPage() {
       <FormSection icon="badge" title={t('pages.admin.studentCreate.sections.basics')}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
           <FormField
-            label={t('pages.admin.studentCreate.fields.firstName')}
+            label={t('pages.admin.studentCreate.fields.fullName')}
             required
-            error={errors.firstName}
+            error={errors.fullName}
           >
             <input
               type="text"
-              value={draft.firstName}
-              onChange={(e) => patch({ firstName: e.target.value })}
-              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-            />
-          </FormField>
-          <FormField
-            label={t('pages.admin.studentCreate.fields.lastName')}
-            required
-            error={errors.lastName}
-          >
-            <input
-              type="text"
-              value={draft.lastName}
-              onChange={(e) => patch({ lastName: e.target.value })}
-              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-            />
-          </FormField>
-          <FormField
-            label={t('pages.admin.studentCreate.fields.email')}
-            required
-            error={errors.email}
-          >
-            <input
-              type="email"
-              value={draft.email}
-              onChange={(e) => patch({ email: e.target.value })}
+              value={draft.fullName}
+              onChange={(e) => patch({ fullName: e.target.value })}
               className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
             />
           </FormField>
@@ -347,7 +310,6 @@ export default function StudentEditPage() {
               </FormField>
               <FormField
                 label={t('pages.admin.studentCreate.fields.guardianPhone')}
-                required
                 error={errors[`g.${i}.phone`]}
               >
                 <input

@@ -10,19 +10,27 @@ import {
 } from '@cp/ui';
 import {
   ENROLLMENT_STATUS_LABEL,
+  DayOfWeek,
   EnrollmentStatus,
 
   GuardianRelationship,
   ICreateStudentPayload,
+  ICreateStudentSchedulePayload,
   IGuardianInput,
 } from '@cp/shared';
 
 import { useCreateStudent } from '../../../api/student.queries';
+import { studentScheduleApi } from '../../../api/studentSchedule.api';
+
+type ScheduleDraft = {
+  dayOfWeek: DayOfWeek;
+  startTime: string;
+  endTime: string;
+  note: string;
+};
 
 type Draft = {
-  firstName: string;
-  lastName: string;
-  email: string;
+  fullName: string;
   username: string;
   password: string;
 
@@ -31,6 +39,7 @@ type Draft = {
   status: EnrollmentStatus;
   isAccountActive: boolean;
   defaultLanguage: string;
+  schedules: ScheduleDraft[];
   guardians: IGuardianInput[];
 };
 
@@ -42,9 +51,7 @@ const LANG_OPTIONS = [
 ];
 
 const INITIAL: Draft = {
-  firstName: '',
-  lastName: '',
-  email: '',
+  fullName: '',
   username: '',
   password: '',
 
@@ -53,6 +60,7 @@ const INITIAL: Draft = {
   status: EnrollmentStatus.ACTIVE,
   isAccountActive: true,
   defaultLanguage: 'cpp',
+  schedules: [],
   guardians: [
     { fullName: '', relationship: GuardianRelationship.GUARDIAN, phoneNumber: '', isPrimary: true },
   ],
@@ -94,6 +102,30 @@ export default function StudentCreatePage() {
     }));
   }
 
+  function addSchedule() {
+    setDraft((prev) => ({
+      ...prev,
+      schedules: [
+        ...prev.schedules,
+        { dayOfWeek: DayOfWeek.MON, startTime: '08:00', endTime: '09:30', note: '' },
+      ],
+    }));
+  }
+
+  function patchSchedule(idx: number, p: Partial<ScheduleDraft>) {
+    setDraft((prev) => ({
+      ...prev,
+      schedules: prev.schedules.map((s, i) => (i === idx ? { ...s, ...p } : s)),
+    }));
+  }
+
+  function removeSchedule(idx: number) {
+    setDraft((prev) => ({
+      ...prev,
+      schedules: prev.schedules.filter((_, i) => i !== idx),
+    }));
+  }
+
   function generatePassword() {
     const out = Array.from(crypto.getRandomValues(new Uint8Array(12)))
       .map((b) => 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$'[b % 56])
@@ -103,15 +135,15 @@ export default function StudentCreatePage() {
 
   function validate(): boolean {
     const e: Record<string, string> = {};
-    if (!draft.firstName.trim()) e.firstName = t('pages.admin.studentCreate.validation.firstNameRequired');
-    if (!draft.lastName.trim()) e.lastName = t('pages.admin.studentCreate.validation.lastNameRequired');
-    if (!draft.email.trim()) e.email = t('pages.admin.studentCreate.validation.emailRequired');
+    if (!draft.fullName.trim()) e.fullName = t('pages.admin.studentCreate.validation.fullNameRequired');
     if (!draft.password.trim() || draft.password.length < 6)
       e.password = t('pages.admin.studentCreate.validation.passwordMin');
 
     if (draft.grade < 1 || draft.grade > 9) e.grade = t('pages.admin.studentCreate.validation.gradeRange');
-    draft.guardians.forEach((g, i) => {
-      if (!g.phoneNumber.trim()) e[`g.${i}.phone`] = t('pages.admin.studentCreate.validation.guardianPhoneRequired');
+    draft.schedules.forEach((s, i) => {
+      if (!s.startTime || !s.endTime || s.startTime >= s.endTime) {
+        e[`schedule.${i}.time`] = t('pages.admin.studentCreate.validation.scheduleTime');
+      }
     });
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -120,9 +152,7 @@ export default function StudentCreatePage() {
   async function submit() {
     if (!validate()) return;
     const payload: ICreateStudentPayload = {
-      firstName: draft.firstName.trim(),
-      lastName: draft.lastName.trim(),
-      email: draft.email.trim(),
+      fullName: draft.fullName.trim(),
       username: draft.username.trim() || undefined,
       password: draft.password,
 
@@ -130,17 +160,25 @@ export default function StudentCreatePage() {
       startDate: draft.startDate || undefined,
       status: draft.status,
       guardians: draft.guardians
-        .filter((g) => g.fullName.trim() || g.phoneNumber.trim())
+        .filter((g) => g.fullName.trim() || g.phoneNumber?.trim())
         .map((g) => ({
           fullName: g.fullName.trim(),
           relationship: g.relationship,
-          phoneNumber: g.phoneNumber.trim(),
+          phoneNumber: g.phoneNumber?.trim() ?? '',
 
           isPrimary: g.isPrimary ?? false,
         })),
     };
     try {
       const created = await createStudent.mutateAsync(payload);
+      const schedules: ICreateStudentSchedulePayload[] = draft.schedules.map((s) => ({
+        classId: null,
+        dayOfWeek: s.dayOfWeek,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        ...(s.note.trim() ? { note: s.note.trim() } : {}),
+      }));
+      await Promise.all(schedules.map((schedule) => studentScheduleApi.addCustomSession(created.userId, schedule)));
       navigate(`/admin/students/${created.id}`);
     } catch (err) {
       const msg =
@@ -169,38 +207,14 @@ export default function StudentCreatePage() {
       <FormSection icon="badge" title={t('pages.admin.studentCreate.sections.basics')}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
           <FormField
-            label={t('pages.admin.studentCreate.fields.firstName')}
+            label={t('pages.admin.studentCreate.fields.fullName')}
             required
-            error={errors.firstName}
+            error={errors.fullName}
           >
             <input
               type="text"
-              value={draft.firstName}
-              onChange={(e) => patch({ firstName: e.target.value })}
-              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-            />
-          </FormField>
-          <FormField
-            label={t('pages.admin.studentCreate.fields.lastName')}
-            required
-            error={errors.lastName}
-          >
-            <input
-              type="text"
-              value={draft.lastName}
-              onChange={(e) => patch({ lastName: e.target.value })}
-              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-            />
-          </FormField>
-          <FormField
-            label={t('pages.admin.studentCreate.fields.email')}
-            required
-            error={errors.email}
-          >
-            <input
-              type="email"
-              value={draft.email}
-              onChange={(e) => patch({ email: e.target.value })}
+              value={draft.fullName}
+              onChange={(e) => patch({ fullName: e.target.value })}
               className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
             />
           </FormField>
@@ -300,6 +314,80 @@ export default function StudentCreatePage() {
         </div>
       </FormSection>
 
+      <FormSection
+        icon="calendar_month"
+        title={t('pages.admin.studentCreate.sections.schedule')}
+        action={
+          <Button variant="ghost" size="sm" leadingIcon={<Icon name="add" size={16} />} onClick={addSchedule}>
+            {t('pages.admin.studentCreate.fields.addSchedule')}
+          </Button>
+        }
+      >
+        {draft.schedules.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-outline-variant bg-surface-container-low px-md py-lg text-center text-body-sm text-on-surface-variant">
+            {t('pages.admin.studentCreate.schedule.empty')}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-sm">
+            {draft.schedules.map((s, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_1.4fr_auto] gap-sm items-end p-sm rounded-lg bg-surface-container-low border border-outline-variant/40"
+              >
+                <FormField label={t('pages.admin.studentCreate.fields.scheduleDay')}>
+                  <select
+                    value={s.dayOfWeek}
+                    onChange={(e) => patchSchedule(i, { dayOfWeek: e.target.value as DayOfWeek })}
+                    className="bg-surface-container-lowest border border-outline-variant rounded-md px-sm py-xs"
+                  >
+                    {Object.values(DayOfWeek).map((day) => (
+                      <option key={day} value={day}>
+                        {t(`enums.dayOfWeek.${day}`)}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
+                <FormField label={t('pages.admin.studentCreate.fields.scheduleStart')}>
+                  <input
+                    type="time"
+                    value={s.startTime}
+                    onChange={(e) => patchSchedule(i, { startTime: e.target.value })}
+                    className="bg-surface-container-lowest border border-outline-variant rounded-md px-sm py-xs"
+                  />
+                </FormField>
+                <FormField
+                  label={t('pages.admin.studentCreate.fields.scheduleEnd')}
+                  error={errors[`schedule.${i}.time`]}
+                >
+                  <input
+                    type="time"
+                    value={s.endTime}
+                    onChange={(e) => patchSchedule(i, { endTime: e.target.value })}
+                    className="bg-surface-container-lowest border border-outline-variant rounded-md px-sm py-xs"
+                  />
+                </FormField>
+                <FormField label={t('pages.admin.studentCreate.fields.scheduleNote')}>
+                  <input
+                    type="text"
+                    value={s.note}
+                    onChange={(e) => patchSchedule(i, { note: e.target.value })}
+                    className="bg-surface-container-lowest border border-outline-variant rounded-md px-sm py-xs"
+                  />
+                </FormField>
+                <button
+                  type="button"
+                  onClick={() => removeSchedule(i)}
+                  className="p-1 rounded text-on-surface-variant hover:text-error"
+                  aria-label={t('common.delete')}
+                >
+                  <Icon name="delete" size={20} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </FormSection>
+
       {/* Section 4: Guardians */}
       <FormSection
         icon="family_restroom"
@@ -329,7 +417,6 @@ export default function StudentCreatePage() {
               </FormField>
               <FormField
                 label={t('pages.admin.studentCreate.fields.guardianPhone')}
-                required
                 error={errors[`g.${i}.phone`]}
               >
                 <input

@@ -85,9 +85,8 @@ export class StudentScheduleService {
 
   /**
    * Returns the effective schedule for a student.
-   * If custom sessions exist → isCustom=true and sessions = custom.
-   * Otherwise → isCustom=false and sessions = merged from enrolled classes.
-   * `classSessions` is always returned for admin reference.
+   * Scheduling is explicit at the student level; class-derived sessions are
+   * retained only as a compatibility reference for legacy data.
    */
   async getSchedule(studentId: string): Promise<StudentScheduleResponse> {
     const custom = await this.repo.find({
@@ -101,7 +100,7 @@ export class StudentScheduleService {
     return {
       studentId,
       isCustom,
-      sessions: isCustom ? custom.map((s) => this.toDto(s)) : classSessions,
+      sessions: custom.map((s) => this.toDto(s)),
       classSessions,
     };
   }

@@ -1,12 +1,10 @@
 import { Type } from 'class-transformer';
 import {
-  ArrayMinSize,
   IsArray,
   IsEnum,
   IsInt,
   IsOptional,
   IsString,
-  IsUUID,
   Length,
   Matches,
   Min,
@@ -55,10 +53,9 @@ export class CreateClassDto implements ICreateClassPayload {
   term!: string;
 
   @IsArray()
-  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => ClassSessionDto)
-  sessions!: ClassSessionDto[];
+  sessions?: ClassSessionDto[];
 
   @IsOptional()
   @IsEnum(ClassStatus)

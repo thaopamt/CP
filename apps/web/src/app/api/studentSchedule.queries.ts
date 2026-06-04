@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ICreateStudentSchedulePayload } from '@cp/shared';
 
 import { studentScheduleApi } from './studentSchedule.api';
+import { attendanceKeys } from './attendance.queries';
 
 export const scheduleQueryKeys = {
   schedule: (studentId: string) => ['studentSchedule', studentId] as const,
@@ -28,6 +29,7 @@ export function useAddCustomSession(studentId: string) {
       studentScheduleApi.addCustomSession(studentId, payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: scheduleQueryKeys.schedule(studentId) });
+      void qc.invalidateQueries({ queryKey: attendanceKeys.allCustom() });
     },
   });
 }
@@ -39,6 +41,7 @@ export function useUpdateCustomSession(studentId: string) {
       studentScheduleApi.updateCustomSession(studentId, vars.sessionId, vars.payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: scheduleQueryKeys.schedule(studentId) });
+      void qc.invalidateQueries({ queryKey: attendanceKeys.allCustom() });
     },
   });
 }
@@ -50,6 +53,7 @@ export function useDeleteCustomSession(studentId: string) {
       studentScheduleApi.deleteCustomSession(studentId, sessionId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: scheduleQueryKeys.schedule(studentId) });
+      void qc.invalidateQueries({ queryKey: attendanceKeys.allCustom() });
     },
   });
 }
@@ -60,6 +64,7 @@ export function useClearCustomSchedule(studentId: string) {
     mutationFn: () => studentScheduleApi.clearAllCustom(studentId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: scheduleQueryKeys.schedule(studentId) });
+      void qc.invalidateQueries({ queryKey: attendanceKeys.allCustom() });
     },
   });
 }

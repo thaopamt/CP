@@ -14,6 +14,7 @@ import {
   IGuardian,
   IStudentProfile,
   IStudentDashboardData,
+  IUpdateStudentPayload,
 } from '@cp/shared';
 
 import { apiClient } from '../lib/api-client';
@@ -131,7 +132,7 @@ function buildStudentsQuery(p: StudentsListParams): Record<string, unknown> {
       $or: [
         { 'user.firstName': { $cont: q } },
         { 'user.lastName': { $cont: q } },
-        { 'user.email': { $cont: q } },
+        { 'user.username': { $cont: q } },
       ],
     });
   }
@@ -181,7 +182,7 @@ export const studentsApi = {
     return toStudent(data);
   },
 
-  async update(id: string, patch: Partial<ICreateStudentPayload>): Promise<IStudentProfile> {
+  async update(id: string, patch: IUpdateStudentPayload): Promise<IStudentProfile> {
     const { data } = await apiClient.patch<ApiStudentProfile>(`/students/${id}`, patch);
     return toStudent(data);
   },

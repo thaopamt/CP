@@ -113,6 +113,7 @@ export interface IScheduleEvent {
   track: SubjectTrack;
   hasConflict?: boolean;
   isCustom?: boolean;
+  isCancelled?: boolean;
 }
 
 // ────────────────────────────────────────────────────────────────────────
@@ -181,18 +182,27 @@ export interface IStudentProfile {
 export interface IGuardianInput {
   fullName: string;
   relationship: GuardianRelationship;
-  phoneNumber: string;
+  phoneNumber?: string;
   isPrimary?: boolean;
 }
 
 export interface ICreateStudentPayload {
-  firstName: string;
-  lastName: string;
-  email: string;
+  fullName: string;
   username?: string;
   password: string;
   homeAddress?: string;
   grade: number;
+  cohortYear?: number;
+  startDate?: string;
+  status?: EnrollmentStatus;
+  guardians?: IGuardianInput[];
+}
+
+export interface IUpdateStudentPayload {
+  fullName?: string;
+  username?: string;
+  homeAddress?: string;
+  grade?: number;
   cohortYear?: number;
   startDate?: string;
   status?: EnrollmentStatus;

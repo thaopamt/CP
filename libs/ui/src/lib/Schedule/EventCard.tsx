@@ -38,30 +38,35 @@ interface EventCardProps {
  */
 export function EventCard({ event, className, ...props }: EventCardProps) {
   const tone = TRACK_TONE[event.track];
+  const interactive = !!props.onClick;
   return (
     <div
       onClick={props.onClick}
       className={cn(
-        'h-full rounded-lg border-l-4 px-sm py-xs flex flex-col gap-xs overflow-hidden shadow-elev-1 hover:shadow-elev-2 transition-shadow cursor-pointer',
+        'h-full rounded-lg border-l-4 px-sm py-xs flex flex-col items-center justify-center gap-1 overflow-hidden shadow-elev-1 transition-shadow text-center',
+        interactive && 'cursor-pointer hover:shadow-elev-2',
         tone.bg,
         tone.ring,
+        event.isCancelled && 'opacity-60 grayscale',
         event.hasConflict && 'ring-2 ring-error',
         className,
       )}
     >
-      <div className="flex items-start gap-xs">
-        <h5 className={cn('text-label-sm font-bold flex-1 truncate', tone.text)}>{event.title}</h5>
+      <div className="flex items-center justify-center gap-xs w-full">
+        <h5 className={cn('text-title-md leading-none font-extrabold tabular-nums', tone.text)}>{event.title}</h5>
         {event.hasConflict && (
           <Icon name="warning" size={16} className="text-error shrink-0" />
         )}
       </div>
-      {event.isCustom && (
-        <span className="w-fit px-xs py-[2px] rounded bg-tertiary-container/80 text-on-tertiary-container text-[9px] font-extrabold uppercase tracking-widest mt-[-2px]">
-          Tuỳ chỉnh
-        </span>
+      {event.location && (
+        <div className="text-[10px] leading-tight text-on-surface-variant truncate">{event.location}</div>
       )}
-      <div className="text-[11px] text-on-surface-variant truncate mt-auto">{event.location}</div>
-      <div className="text-[11px] text-on-surface mt-auto truncate">{event.teacherName}</div>
+      {event.isCancelled && (
+        <div className="text-[10px] leading-tight font-semibold text-error truncate">Đã huỷ</div>
+      )}
+      {event.teacherName && (
+        <div className="text-[11px] text-on-surface mt-auto truncate">{event.teacherName}</div>
+      )}
     </div>
   );
 }

@@ -5,12 +5,20 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { IBulkAttendancePayload } from '@cp/shared';
 
 import { attendanceApi } from './attendance.api';
+import type {
+  BulkScheduleSlotAttendancePayload,
+  ScheduleSlotAttendanceParams,
+  SetScheduleSlotCancellationPayload,
+} from './attendance.api';
 
 export const attendanceKeys = {
   classDate: (classId: string, date: string) => ['attendance', classId, date] as const,
   classSummary: (classId: string) => ['attendanceSummary', classId] as const,
-  studentHistory: (studentId: string) => ['attendanceHistory', studentId] as const,
+  studentHistory: (studentId: string, params: { classId?: string; from?: string; to?: string }) =>
+    ['attendanceHistory', studentId, params] as const,
   allCustom: () => ['attendanceAllCustom'] as const,
+  scheduleSlot: (params: ScheduleSlotAttendanceParams) => ['attendanceScheduleSlot', params] as const,
+  scheduleSlotSummaries: (params: { from: string; to: string }) => ['attendanceScheduleSlotSummaries', params] as const,
 };
 
 export function useClassDateAttendance(classId: string | undefined, date: string) {
@@ -41,9 +49,73 @@ export function useClassAttendanceSummary(classId: string | undefined) {
   });
 }
 
+export function useStudentAttendanceHistory(
+  studentId: string | undefined,
+  params: { classId?: string; from?: string; to?: string },
+) {
+  return useQuery({
+    queryKey: studentId ? attendanceKeys.studentHistory(studentId, params) : ['attendanceHistory', 'noop'],
+    queryFn: () => attendanceApi.getStudentHistory(studentId as string, params),
+    enabled: !!studentId,
+  });
+}
+
 export function useAllCustomSchedules() {
   return useQuery({
     queryKey: attendanceKeys.allCustom(),
     queryFn: () => attendanceApi.getAllCustomSchedules(),
+  });
+}
+
+export function useScheduleSlotAttendance(params: ScheduleSlotAttendanceParams | null) {
+  return useQuery({
+    queryKey: params ? attendanceKeys.scheduleSlot(params) : ['attendanceScheduleSlot', 'noop'],
+    queryFn: () => attendanceApi.getScheduleSlotAttendance(params as ScheduleSlotAttendanceParams),
+    enabled: !!params,
+  });
+}
+
+export function useScheduleSlotSummaries(params: { from: string; to: string }) {
+  return useQuery({
+    queryKey: attendanceKeys.scheduleSlotSummaries(params),
+    queryFn: () => attendanceApi.getScheduleSlotSummaries(params),
+  });
+}
+
+export function useBulkUpsertScheduleSlotAttendance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: BulkScheduleSlotAttendancePayload) =>
+      attendanceApi.bulkUpsertScheduleSlotAttendance(payload),
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({
+        queryKey: attendanceKeys.scheduleSlot({
+          date: vars.date,
+          dayOfWeek: vars.dayOfWeek,
+          startTime: vars.startTime,
+          endTime: vars.endTime,
+        }),
+      });
+      void qc.invalidateQueries({ queryKey: ['attendanceScheduleSlotSummaries'] });
+    },
+  });
+}
+
+export function useSetScheduleSlotCancellation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: SetScheduleSlotCancellationPayload) =>
+      attendanceApi.setScheduleSlotCancellation(payload),
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({
+        queryKey: attendanceKeys.scheduleSlot({
+          date: vars.date,
+          dayOfWeek: vars.dayOfWeek,
+          startTime: vars.startTime,
+          endTime: vars.endTime,
+        }),
+      });
+      void qc.invalidateQueries({ queryKey: ['attendanceScheduleSlotSummaries'] });
+    },
   });
 }

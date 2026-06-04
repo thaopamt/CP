@@ -28,9 +28,8 @@ const initials = (s: Pick<IStudentProfile, 'firstName' | 'lastName'>) =>
   `${s.firstName[0] ?? ''}${s.lastName[0] ?? ''}`.toUpperCase();
 
 export default function StudentsListPage() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
 
   const [search, setSearch] = useState('');
   const [grade, setGrade] = useState<number | 'all'>('all');
@@ -87,7 +86,9 @@ export default function StudentsListPage() {
             <Avatar size="sm" initials={initials(s)} src={s.avatarUrl ?? undefined} />
             <div className="min-w-0">
               <div className="text-on-surface font-medium truncate">{fullName(s)}</div>
-              <div className="text-[12px] text-on-surface-variant truncate">{s.email}</div>
+              {s.username && (
+                <div className="text-[12px] text-on-surface-variant truncate">{s.username}</div>
+              )}
             </div>
           </button>
         ),
@@ -153,7 +154,7 @@ export default function StudentsListPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, locale, navigate, deleteStudent],
+    [t, navigate, deleteStudent],
   );
 
   return (

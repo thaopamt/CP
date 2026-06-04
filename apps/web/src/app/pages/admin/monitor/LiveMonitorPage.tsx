@@ -431,7 +431,7 @@ export default function LiveMonitorPage() {
       <div className="px-6 py-4 shrink-0">
         <PageHeader
           title="Live Code Monitor"
-          description="Theo dõi quá trình làm bài của học sinh theo thời gian thực"
+          subtitle="Theo dõi quá trình làm bài của học sinh theo thời gian thực"
         />
       </div>
 

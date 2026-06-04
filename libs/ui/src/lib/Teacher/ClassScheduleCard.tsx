@@ -57,10 +57,6 @@ export function ClassScheduleCard({ session, onOpen, className }: ClassScheduleC
         </div>
         <div className="flex items-center gap-md text-label-sm text-on-surface-variant mt-xs">
           <span className="inline-flex items-center gap-xs">
-            <Icon name="meeting_room" size={16} />
-            {session.room}
-          </span>
-          <span className="inline-flex items-center gap-xs">
             <Icon name="groups" size={16} />
             {t('ui.classScheduleCard.students', { count: session.studentCount })}
           </span>

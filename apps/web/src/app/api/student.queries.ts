@@ -6,7 +6,7 @@
  *   ['students', 'detail', id]     → profile dashboard
  */
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ICreateStudentPayload } from '@cp/shared';
+import { ICreateStudentPayload, IUpdateStudentPayload } from '@cp/shared';
 
 import { StudentsListParams, UpdateMyStudentPayload, studentsApi } from './students.api';
 import { assignmentsApi } from './curriculum.api';
@@ -57,7 +57,7 @@ export function useCreateStudent() {
 export function useUpdateStudent(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (patch: Partial<ICreateStudentPayload>) => studentsApi.update(id, patch),
+    mutationFn: (patch: IUpdateStudentPayload) => studentsApi.update(id, patch),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: studentQueryKeys.detail(id) });
       void qc.invalidateQueries({ queryKey: ['students', 'list'] });

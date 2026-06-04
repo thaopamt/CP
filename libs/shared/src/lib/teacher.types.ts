@@ -121,6 +121,37 @@ export interface IAttendanceClassSummary {
   presentRate: number;
 }
 
+export interface IStudentAttendanceHistoryItem {
+  id?: string;
+  source: 'schedule-slot' | 'class';
+  date: string;
+  dayOfWeek?: string;
+  startTime?: string | null;
+  endTime?: string | null;
+  classId?: string | null;
+  className?: string | null;
+  status: AttendanceStatus;
+  note?: string | null;
+  cancelled?: boolean;
+}
+
+export interface IStudentAttendanceHistory {
+  studentId: string;
+  from: string;
+  to: string;
+  records: IStudentAttendanceHistoryItem[];
+  summary: {
+    total: number;
+    present: number;
+    late: number;
+    absent: number;
+    unmarked: number;
+    cancelled: number;
+    attended: number;
+    attendanceRate: number;
+  };
+}
+
 // ── Coding Challenge Builder ──────────────────────────────────────────────
 
 export enum ChallengeDifficulty {

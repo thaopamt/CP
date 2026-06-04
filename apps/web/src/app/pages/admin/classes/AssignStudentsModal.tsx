@@ -166,7 +166,7 @@ export function AssignStudentsModal({
                         </span>
                       </div>
                       <div className="w-24 text-right font-body-md text-body-md text-on-surface-variant truncate">
-                        {s.studentId}
+                        {s.userId.slice(0, 8).toUpperCase()}
                       </div>
                       <div className="w-24 text-right">
                         <span className="inline-flex items-center px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-[12px] whitespace-nowrap">

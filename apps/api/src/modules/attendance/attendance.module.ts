@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AttendanceRecord } from './attendance.entity';
+import { ScheduleSlotAttendanceRecord } from './schedule-slot-attendance.entity';
+import { ScheduleSlotCancellation } from './schedule-slot-cancellation.entity';
 import { ClassEntity } from '../classes/class.entity';
 import { ClassSession } from '../classes/class-session.entity';
 import { Enrollment } from '../classes/enrollment.entity';
@@ -13,6 +15,8 @@ import { AttendanceService } from './attendance.service';
   imports: [
     TypeOrmModule.forFeature([
       AttendanceRecord,
+      ScheduleSlotAttendanceRecord,
+      ScheduleSlotCancellation,
       ClassEntity,
       ClassSession,
       Enrollment,

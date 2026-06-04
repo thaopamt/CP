@@ -3,7 +3,7 @@
  *
  * Distinguish between:
  *   - "Course" / curriculum (syllabus, modules, lessons) → see admin.types.ts
- *   - "Class" / offering (scheduled instance with teacher, room, roster) → here
+ *   - "Class" / named student group/cohort. Scheduling is now student-level.
  */
 
 export enum ClassStatus {
@@ -79,6 +79,7 @@ export interface IClass {
   status: ClassStatus;
   /** Term label, e.g. "Fall 2024" */
   term: string;
+  instructor?: IClassInstructor | null;
   /** 0..100 — denormalized for the detail-page KPI */
   attendanceRate?: number;
   sessions: IClassMeeting[];
@@ -109,7 +110,7 @@ export interface ICreateClassPayload {
   description?: string;
   capacity: number;
   term: string;
-  sessions: Array<{
+  sessions?: Array<{
     dayOfWeek: DayOfWeek;
     startTime: string;
     endTime: string;
@@ -119,10 +120,11 @@ export interface ICreateClassPayload {
 
 // ── Student schedule (admin-managed) ────────────────────────────────────
 
-/** A single schedule session — either custom (admin-managed) or derived from a class */
+/** A single admin-managed schedule session for one student. */
 export interface IStudentScheduleSession {
   id: string;
   studentId: string;
+  studentName?: string | null;
   classId?: string | null;
   /** Denormalized for display — name of the linked class */
   className?: string | null;
@@ -139,21 +141,20 @@ export interface IStudentScheduleSession {
 /** GET /api/students/:id/schedule response */
 export interface IStudentSchedule {
   studentId: string;
-  /** true when custom sessions override the class-derived schedule */
+  /** true when the student has explicit schedule sessions */
   isCustom: boolean;
-  /** Effective sessions — custom if isCustom, else merged class sessions */
+  /** Effective student-level sessions */
   sessions: IStudentScheduleSession[];
-  /** Class-derived sessions — always returned so admin can compare */
+  /** Deprecated compatibility field; class no longer owns schedule by default. */
   classSessions: IStudentScheduleSession[];
 }
 
 /** Payload for POST /api/students/:id/schedule/custom */
 export interface ICreateStudentSchedulePayload {
-  classId?: string;
+  classId?: string | null;
   dayOfWeek: DayOfWeek;
   startTime: string;
   endTime: string;
 
   note?: string;
 }
-

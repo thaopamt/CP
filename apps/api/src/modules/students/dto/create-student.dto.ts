@@ -3,7 +3,6 @@ import {
   IsArray,
   IsBoolean,
   IsDateString,
-  IsEmail,
   IsEnum,
   IsInt,
   IsOptional,
@@ -27,9 +26,10 @@ export class GuardianDto {
   @IsEnum(GuardianRelationship)
   relationship!: GuardianRelationship;
 
+  @IsOptional()
   @IsString()
-  @Length(1, 32)
-  phoneNumber!: string;
+  @Length(0, 32)
+  phoneNumber?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -37,14 +37,8 @@ export class GuardianDto {
 }
 
 export class CreateStudentDto implements ICreateStudentPayload {
-  @IsString() @Length(1, 80)
-  firstName!: string;
-
-  @IsString() @Length(1, 80)
-  lastName!: string;
-
-  @IsEmail()
-  email!: string;
+  @IsString() @Length(1, 160)
+  fullName!: string;
 
   @IsOptional() @IsString() @Length(3, 80)
   username?: string;

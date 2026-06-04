@@ -9,13 +9,17 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { UserRole } from '@cp/shared';
+import { DayOfWeek, UserRole } from '@cp/shared';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AttendanceService } from './attendance.service';
-import { BulkUpsertAttendanceDto } from './dto/attendance.dto';
+import {
+  BulkUpsertAttendanceDto,
+  BulkUpsertScheduleSlotAttendanceDto,
+  SetScheduleSlotCancellationDto,
+} from './dto/attendance.dto';
 
 /**
  * Admin-only attendance endpoints.
@@ -44,6 +48,59 @@ export class AttendanceController {
   @Get('custom-schedules')
   async getAllCustomSchedules() {
     return this.service.getAllCustomSchedules();
+  }
+
+  @Get('schedule-slots')
+  async getScheduleSlotAttendance(
+    @Query('date') date: string,
+    @Query('dayOfWeek') dayOfWeek: DayOfWeek,
+    @Query('startTime') startTime: string,
+    @Query('endTime') endTime: string,
+  ) {
+    const d = date || new Date().toISOString().slice(0, 10);
+    return this.service.getScheduleSlotAttendance(d, dayOfWeek, startTime, endTime);
+  }
+
+  @Get('schedule-slots/summaries')
+  async getScheduleSlotSummaries(
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    const today = new Date().toISOString().slice(0, 10);
+    return this.service.getScheduleSlotSummaries(from || today, to || from || today);
+  }
+
+  @Post('schedule-slots')
+  async bulkUpsertScheduleSlotAttendance(
+    @Body() dto: BulkUpsertScheduleSlotAttendanceDto,
+    @Req() req: any,
+  ) {
+    const markedBy = req.user?.id ?? req.user?.sub ?? null;
+    return this.service.bulkUpsertScheduleSlotAttendance(
+      dto.date,
+      dto.dayOfWeek,
+      dto.startTime,
+      dto.endTime,
+      dto.records,
+      markedBy,
+    );
+  }
+
+  @Post('schedule-slots/cancel')
+  async setScheduleSlotCancellation(
+    @Body() dto: SetScheduleSlotCancellationDto,
+    @Req() req: any,
+  ) {
+    const cancelledBy = req.user?.id ?? req.user?.sub ?? null;
+    return this.service.setScheduleSlotCancellation(
+      dto.date,
+      dto.dayOfWeek,
+      dto.startTime,
+      dto.endTime,
+      dto.cancelled,
+      cancelledBy,
+      dto.note,
+    );
   }
 
   @Get('classes/:classId')

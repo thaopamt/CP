@@ -8,11 +8,9 @@ import { useEnrollmentsByStudent, useDropEnrollment } from '../../api/class.quer
 
 const STATUS_TONE: Record<EnrollmentLifecycle, 'success' | 'warning' | 'error' | 'neutral'> = {
   ACTIVE: 'success',
-  PENDING_PAYMENT: 'warning',
   DROPPED: 'error',
   COMPLETED: 'neutral',
-  INVITED: 'neutral',
-  WAITLISTED: 'warning',
+  WAITLIST: 'warning',
 };
 
 export default function StudentClassesPage() {

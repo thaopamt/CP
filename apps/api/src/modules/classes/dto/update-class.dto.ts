@@ -1,12 +1,10 @@
 import { Type } from 'class-transformer';
 import {
-  ArrayMinSize,
   IsArray,
   IsEnum,
   IsInt,
   IsOptional,
   IsString,
-  IsUUID,
   Length,
   Min,
   ValidateNested,
@@ -43,7 +41,6 @@ export class UpdateClassDto {
 
   @IsOptional()
   @IsArray()
-  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => ClassSessionDto)
   sessions?: ClassSessionDto[];

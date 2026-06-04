@@ -3,7 +3,6 @@ import {
   IsArray,
   IsBoolean,
   IsDateString,
-  IsEmail,
   IsEnum,
   IsInt,
   IsOptional,
@@ -25,14 +24,8 @@ import { GuardianDto } from './create-student.dto';
  * semantics for a small list).
  */
 export class UpdateStudentDto {
-  @IsOptional() @IsString() @Length(1, 80)
-  firstName?: string;
-
-  @IsOptional() @IsString() @Length(1, 80)
-  lastName?: string;
-
-  @IsOptional() @IsEmail()
-  email?: string;
+  @IsOptional() @IsString() @Length(1, 160)
+  fullName?: string;
 
   @IsOptional() @IsString() @Length(3, 80)
   username?: string;
