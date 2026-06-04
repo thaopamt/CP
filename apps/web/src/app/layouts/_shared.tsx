@@ -3,6 +3,7 @@ import { fullName, IUser } from '@cp/shared';
 import { useGlobalChatSocket } from '../hooks/useGlobalChatSocket';
 import { useAuthStore } from '../stores/auth.store';
 import { useGlobalChatStore } from '../stores/globalChat.store';
+import { useUIStore } from '../stores/ui.store';
 
 /**
  * Initials avatar shared by all three portal top bars.
@@ -24,6 +25,8 @@ export function UserAvatar({ user, size = 'md' }: { user: IUser | null; size?: '
 export function LogoutButton() {
   const { t } = useTranslation();
   const clear = useAuthStore((s) => s.clear);
+  const { isSidebarCollapsed } = useUIStore();
+  
   return (
     <button
       type="button"
@@ -31,10 +34,11 @@ export function LogoutButton() {
         clear();
         window.location.assign('/login');
       }}
-      className="flex items-center gap-sm px-md py-sm text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors text-label-sm"
+      className={`flex items-center ${isSidebarCollapsed ? 'justify-center px-0' : 'gap-sm px-md'} py-sm text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors text-label-sm overflow-hidden`}
+      title={isSidebarCollapsed ? t('common.signOut') : undefined}
     >
-      <span className="material-symbols-outlined text-[20px]">logout</span>
-      {t('common.signOut')}
+      <span className="material-symbols-outlined text-[20px] shrink-0">logout</span>
+      {!isSidebarCollapsed && <span className="truncate">{t('common.signOut')}</span>}
     </button>
   );
 }

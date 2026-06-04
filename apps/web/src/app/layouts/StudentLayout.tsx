@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
+import { useUIStore } from '../stores/ui.store';
 import { useStudentLivePresence } from '../hooks/useStudentLivePresence';
 import { GlobalChatRealtimeBridge, GlobalChatUnreadBadge, LogoutButton, UserAvatar, ThemeToggle } from './_shared';
 
@@ -29,7 +30,11 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
 export default function StudentLayout() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
+  const { isSidebarCollapsed, toggleSidebar } = useUIStore();
   const location = useLocation();
+
+  const sidebarWidth = isSidebarCollapsed ? 'w-[80px]' : 'w-[240px] lg:w-[280px]';
+  const marginLeft = isSidebarCollapsed ? 'md:ml-[80px]' : 'md:ml-[240px] lg:ml-[280px]';
 
   useStudentLivePresence(location.pathname);
 
@@ -37,20 +42,33 @@ export default function StudentLayout() {
     <div className="min-h-screen bg-surface text-on-surface font-inter">
       <GlobalChatRealtimeBridge />
       {/* Sidebar — full height on desktop */}
-      <nav className="hidden md:flex flex-col w-[240px] lg:w-[280px] fixed top-0 bottom-0 left-0 p-md gap-sm bg-surface-container-lowest border-r border-outline-variant z-50">
+      <nav className={`hidden md:flex flex-col ${sidebarWidth} fixed top-0 bottom-0 left-0 p-md gap-sm bg-surface-container-lowest border-r border-outline-variant z-50 transition-all duration-300`}>
+        {/* Collapse toggle button */}
+        <button 
+          onClick={toggleSidebar}
+          className="absolute -right-3 top-8 w-6 h-6 bg-surface-container-high border border-outline-variant rounded-full grid place-items-center text-on-surface-variant hover:text-primary hover:bg-surface-container-highest z-50 transition-colors shadow-sm"
+          aria-label="Toggle Sidebar"
+        >
+          <span className="material-symbols-outlined text-[16px]">
+            {isSidebarCollapsed ? 'chevron_right' : 'chevron_left'}
+          </span>
+        </button>
+
         {/* Brand block — parity with Admin/Teacher */}
-        <div className="flex items-center gap-md px-sm py-lg">
-          <div className="w-10 h-10 rounded-2xl bg-primary text-on-primary grid place-items-center font-manrope font-extrabold">
+        <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-md px-sm'} py-lg relative`}>
+          <div className="w-10 h-10 rounded-2xl bg-primary text-on-primary grid place-items-center font-manrope font-extrabold shrink-0">
             EN
           </div>
-          <div>
-            <h1 className="text-label-sm font-extrabold text-primary leading-tight">
-              {t('brand.studentPortal')}
-            </h1>
-            <p className="text-[12px] text-on-surface-variant opacity-80">
-              {t('brand.portalSubtitleStudent')}
-            </p>
-          </div>
+          {!isSidebarCollapsed && (
+            <div className="overflow-hidden">
+              <h1 className="text-label-sm font-extrabold text-primary leading-tight truncate">
+                {t('brand.studentPortal')}
+              </h1>
+              <p className="text-[12px] text-on-surface-variant opacity-80 truncate">
+                {t('brand.portalSubtitleStudent')}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-xs flex-1 mt-sm">
@@ -59,18 +77,23 @@ export default function StudentLayout() {
               key={item.to}
               to={item.to}
               end={item.end}
+              title={isSidebarCollapsed ? t(item.key) : undefined}
               className={({ isActive }) =>
                 [
-                  'flex items-center gap-md px-md py-sm rounded-2xl transition-all text-label-sm',
+                  'flex items-center py-sm rounded-2xl transition-all text-label-sm overflow-hidden',
+                  isSidebarCollapsed ? 'justify-center px-0' : 'gap-md px-md',
                   isActive
                     ? 'bg-primary-container text-on-primary-container font-bold'
                     : 'text-on-surface-variant hover:bg-surface-container-highest',
                 ].join(' ')
               }
             >
-              <span className="material-symbols-outlined">{item.icon}</span>
-              <span className="truncate">{t(item.key)}</span>
-              {item.to.endsWith('/chat') && <GlobalChatUnreadBadge />}
+              <span className="relative flex items-center justify-center">
+                <span className="material-symbols-outlined shrink-0">{item.icon}</span>
+                {item.to.endsWith('/chat') && isSidebarCollapsed && <GlobalChatUnreadBadge compact />}
+              </span>
+              {!isSidebarCollapsed && <span className="truncate">{t(item.key)}</span>}
+              {!isSidebarCollapsed && item.to.endsWith('/chat') && <GlobalChatUnreadBadge />}
             </NavLink>
           ))}
         </div>
@@ -94,7 +117,7 @@ export default function StudentLayout() {
       </header>
 
       {/* Desktop top bar — sticky to the right of the sidebar */}
-      <header className="hidden md:flex md:ml-[240px] lg:ml-[280px] sticky top-0 h-16 bg-surface/80 backdrop-blur-md border-b border-outline-variant items-center justify-between gap-sm px-lg z-40">
+      <header className={`hidden md:flex ${marginLeft} sticky top-0 h-16 bg-surface/80 backdrop-blur-md border-b border-outline-variant items-center justify-between gap-sm px-lg z-40 transition-all duration-300`}>
         <div className="flex relative">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">
             search
@@ -115,7 +138,7 @@ export default function StudentLayout() {
         </div>
       </header>
 
-      <main className="pt-16 md:pt-0 md:ml-[240px] lg:ml-[280px] px-md md:px-lg lg:px-xl pb-24 md:pb-lg">
+      <main className={`pt-16 md:pt-0 ${marginLeft} px-md md:px-lg lg:px-xl pb-24 md:pb-lg transition-all duration-300`}>
         <Outlet />
       </main>
 

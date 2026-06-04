@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
+import { useUIStore } from '../stores/ui.store';
 import { GlobalChatRealtimeBridge, GlobalChatUnreadBadge, LogoutButton, UserAvatar, ThemeToggle } from './_shared';
 
 const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
@@ -27,23 +28,40 @@ const MOBILE_NAV = NAV.slice(0, 4);
 export default function TeacherLayout() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
+  const { isSidebarCollapsed, toggleSidebar } = useUIStore();
+
+  const sidebarWidth = isSidebarCollapsed ? 'w-[80px]' : 'w-[280px]';
+  const marginLeft = isSidebarCollapsed ? 'md:ml-[80px]' : 'md:ml-[280px]';
 
   return (
     <div className="min-h-screen bg-surface text-on-surface font-inter">
       <GlobalChatRealtimeBridge />
-      <nav className="hidden md:flex flex-col w-[280px] h-screen fixed top-0 left-0 p-md gap-sm bg-surface-container-low border-r border-outline-variant z-50">
-        <div className="flex items-center gap-md px-sm py-lg">
-          <div className="w-10 h-10 rounded-lg bg-primary text-on-primary grid place-items-center font-manrope font-extrabold">
+      <nav className={`hidden md:flex flex-col ${sidebarWidth} h-screen fixed top-0 left-0 p-md gap-sm bg-surface-container-low border-r border-outline-variant z-50 transition-all duration-300`}>
+        {/* Collapse toggle button */}
+        <button 
+          onClick={toggleSidebar}
+          className="absolute -right-3 top-8 w-6 h-6 bg-surface-container-high border border-outline-variant rounded-full grid place-items-center text-on-surface-variant hover:text-primary hover:bg-surface-container-highest z-50 transition-colors shadow-sm"
+          aria-label="Toggle Sidebar"
+        >
+          <span className="material-symbols-outlined text-[16px]">
+            {isSidebarCollapsed ? 'chevron_right' : 'chevron_left'}
+          </span>
+        </button>
+
+        <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-md px-sm'} py-lg relative`}>
+          <div className="w-10 h-10 rounded-lg bg-primary text-on-primary grid place-items-center font-manrope font-extrabold shrink-0">
             EN
           </div>
-          <div>
-            <h1 className="text-label-sm font-extrabold text-primary leading-tight">
-              {t('brand.teacherPortal')}
-            </h1>
-            <p className="text-[12px] text-on-surface-variant opacity-80">
-              {t('brand.portalSubtitleTeacher')}
-            </p>
-          </div>
+          {!isSidebarCollapsed && (
+            <div className="overflow-hidden">
+              <h1 className="text-label-sm font-extrabold text-primary leading-tight truncate">
+                {t('brand.teacherPortal')}
+              </h1>
+              <p className="text-[12px] text-on-surface-variant opacity-80 truncate">
+                {t('brand.portalSubtitleTeacher')}
+              </p>
+            </div>
+          )}
         </div>
         <div className="flex flex-col gap-xs mt-sm flex-1">
           {NAV.map((item) => (
@@ -51,18 +69,23 @@ export default function TeacherLayout() {
               key={item.to}
               to={item.to}
               end={item.end}
+              title={isSidebarCollapsed ? t(item.key) : undefined}
               className={({ isActive }) =>
                 [
-                  'flex items-center gap-md px-md py-sm rounded-lg transition-all text-label-sm',
+                  'flex items-center py-sm rounded-lg transition-all text-label-sm overflow-hidden',
+                  isSidebarCollapsed ? 'justify-center px-0' : 'gap-md px-md',
                   isActive
                     ? 'bg-primary-container text-on-primary-container font-bold'
                     : 'text-on-surface-variant hover:bg-surface-container-highest',
                 ].join(' ')
               }
             >
-              <span className="material-symbols-outlined">{item.icon}</span>
-              <span className="truncate">{t(item.key)}</span>
-              {item.to.endsWith('/chat') && <GlobalChatUnreadBadge />}
+              <span className="relative flex items-center justify-center">
+                <span className="material-symbols-outlined shrink-0">{item.icon}</span>
+                {item.to.endsWith('/chat') && isSidebarCollapsed && <GlobalChatUnreadBadge compact />}
+              </span>
+              {!isSidebarCollapsed && <span className="truncate">{t(item.key)}</span>}
+              {!isSidebarCollapsed && item.to.endsWith('/chat') && <GlobalChatUnreadBadge />}
             </NavLink>
           ))}
         </div>
@@ -85,7 +108,7 @@ export default function TeacherLayout() {
       </header>
 
       {/* Desktop top bar — utility cluster only (sidebar already shows portal identity) */}
-      <header className="hidden md:flex md:ml-[280px] sticky top-0 h-16 bg-surface/90 backdrop-blur-md border-b border-outline-variant items-center justify-end gap-sm px-lg z-40">
+      <header className={`hidden md:flex ${marginLeft} sticky top-0 h-16 bg-surface/90 backdrop-blur-md border-b border-outline-variant items-center justify-end gap-sm px-lg z-40 transition-all duration-300`}>
         <button className="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high relative" aria-label={t('topBar.notifications')}>
           <span className="material-symbols-outlined">notifications</span>
           <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full" />
@@ -95,7 +118,7 @@ export default function TeacherLayout() {
         <UserAvatar user={user} size="sm" />
       </header>
 
-      <div className="md:ml-[280px] pt-16 md:pt-0 pb-24 md:pb-0">
+      <div className={`${marginLeft} pt-16 md:pt-0 pb-24 md:pb-0 transition-all duration-300`}>
         <main className="px-md md:px-lg lg:px-xl py-lg">
           <Outlet />
         </main>
