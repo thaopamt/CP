@@ -16,9 +16,14 @@ import {
  * unrecognized is dropped (the validator rejects illegal programs).
  */
 export function workspaceToAst(workspace: Blockly.Workspace): Command[] {
+  // The program is exactly the chain connected under the "Khi bắt đầu" block.
+  // Any stray blocks elsewhere on the canvas are intentionally ignored.
+  const start = workspace.getBlocksByType('maze_start', false)[0];
+  if (start) {
+    return walkChain(start.getNextBlock(), workspace);
+  }
+  // Fallback (no start block, e.g. legacy workspaces): first statement stack.
   const topBlocks = workspace.getTopBlocks(true).filter((b) => b.isEnabled());
-  // Prefer a top block that is a statement (has a previous/next connection);
-  // value blocks left floating on the canvas are ignored.
   const root = topBlocks.find((b) => b.previousConnection || b.nextConnection) ?? topBlocks[0];
   return root ? walkChain(root, workspace) : [];
 }

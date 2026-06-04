@@ -41,6 +41,14 @@ export function registerMazeBlocks(): void {
 
   Blockly.defineBlocksWithJsonArray([
     {
+      // Fixed program root. Only blocks connected under it are executed.
+      type: 'maze_start',
+      message0: '▶ Khi bắt đầu',
+      nextStatement: null,
+      colour: '#9E5BBA',
+      tooltip: 'Chương trình chạy từ đây. Hãy nối các khối lệnh vào bên dưới.',
+    },
+    {
       type: 'maze_move_forward',
       message0: 'đi tới',
       previousStatement: null,

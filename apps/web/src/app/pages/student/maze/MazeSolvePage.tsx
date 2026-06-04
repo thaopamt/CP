@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Icon, useToast } from '@cp/ui';
@@ -112,20 +112,26 @@ export default function MazeSolvePage() {
         <div className="w-20" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-md flex-1 min-h-0">
-        {/* Left: Blockly */}
-        <Card className="flex flex-col p-0 overflow-hidden min-h-[420px] lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-md flex-1 min-h-0">
+        {/* Left: Blockly workspace (3/4, stretches to fill) */}
+        <Card className="flex flex-col p-0 overflow-hidden min-h-[420px] lg:col-span-3">
           <div className="flex items-center justify-between px-4 py-2 border-b border-outline-variant bg-surface-container-low">
             <span className="text-label-sm font-semibold text-on-surface-variant">
               {t('maze.workspace')}
             </span>
-            {level.maxBlocks != null && (
-              <span
-                className={`text-label-sm font-bold ${overLimit ? 'text-error' : 'text-on-surface-variant'}`}
-              >
-                {t('maze.blocksUsed', { used: blockCount, max: level.maxBlocks })}
-              </span>
-            )}
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-label-sm font-bold ${
+                overLimit
+                  ? 'bg-error/15 text-error'
+                  : 'bg-primary/10 text-primary'
+              }`}
+              title={t('maze.blocksHint')}
+            >
+              <Icon name="widgets" />
+              {level.maxBlocks != null
+                ? t('maze.blocksUsed', { used: blockCount, max: level.maxBlocks })
+                : t('maze.blocksUsedNoLimit', { used: blockCount })}
+            </span>
           </div>
           <div className="flex-1 min-h-0">
             <MazeBlocklyEditor
@@ -136,8 +142,9 @@ export default function MazeSolvePage() {
           </div>
         </Card>
 
-        {/* Right: maze + controls */}
-        <Card className="flex flex-col items-center gap-md p-5 lg:col-span-1">
+        {/* Right column: top = problem + maze + controls, bottom = guide */}
+        <div className="flex flex-col gap-md min-h-0">
+        <Card className="flex flex-col items-center gap-md p-5 overflow-y-auto flex-1 !rounded-none">
           <p className="text-body-md text-on-surface-variant text-center">{level.description}</p>
 
           <div className="flex-1 grid place-items-center w-full">
@@ -176,6 +183,12 @@ export default function MazeSolvePage() {
             </div>
           )}
 
+          {overLimit && level.maxBlocks != null && (
+            <div className="w-full rounded-2xl bg-error/15 text-error px-4 py-2 text-center text-label-sm font-semibold">
+              {t('maze.overLimit', { max: level.maxBlocks })}
+            </div>
+          )}
+
           <div className="flex gap-3">
             <Button variant="outline" size="lg" onClick={handleReset} leadingIcon={<Icon name="restart_alt" />}>
               {t('maze.reset')}
@@ -191,6 +204,24 @@ export default function MazeSolvePage() {
             </Button>
           </div>
         </Card>
+
+        {/* Bottom: guide / hints */}
+        <Card className="p-4 overflow-y-auto">
+          <h3 className="flex items-center gap-1 font-bold text-on-surface mb-2">
+            <Icon name="lightbulb" /> {t('maze.guide.title')}
+          </h3>
+          <ol className="list-decimal list-inside space-y-1 text-body-md text-on-surface-variant">
+            <li>{t('maze.guide.step1')}</li>
+            <li>{t('maze.guide.step2')}</li>
+            <li>{t('maze.guide.step3')}</li>
+          </ol>
+          <p className="mt-2 text-label-sm font-semibold text-primary">
+            {level.maxBlocks != null
+              ? t('maze.guide.limit', { max: level.maxBlocks })
+              : t('maze.guide.noLimit')}
+          </p>
+        </Card>
+        </div>
       </div>
     </div>
   );

@@ -73,13 +73,29 @@ export const MazeBlocklyEditor = forwardRef<MazeBlocklyEditorHandle, Props>(
         }
       }
 
+      // Ensure exactly one fixed, undeletable "Khi bắt đầu" root exists.
+      let start = workspace.getBlocksByType('maze_start', false)[0];
+      if (!start) {
+        start = workspace.newBlock('maze_start');
+        (start as Blockly.BlockSvg).initSvg();
+        (start as Blockly.BlockSvg).render();
+        start.moveBy(24, 24);
+      }
+      start.setDeletable(false);
+      start.setMovable(true);
+
       const onChange = () => {
         onBlockCountChange?.(countBlocks(workspaceToAst(workspace)));
       };
       workspace.addChangeListener(onChange);
       onChange();
 
+      // Keep the workspace sized to its (flexible) container.
+      const ro = new ResizeObserver(() => Blockly.svgResize(workspace));
+      ro.observe(containerRef.current);
+
       return () => {
+        ro.disconnect();
         workspace.removeChangeListener(onChange);
         workspace.dispose();
         workspaceRef.current = null;

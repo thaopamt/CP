@@ -1253,6 +1253,17 @@ const vi: AppResources = {
     run: 'Chạy',
     reset: 'Đặt lại',
     blocksUsed: 'Đã dùng: {{used}}/{{max}} khối',
+    blocksUsedNoLimit: 'Đã dùng: {{used}} khối',
+    blocksHint: 'Số khối lệnh em đang dùng',
+    overLimit: 'Vượt quá {{max}} khối cho phép — hãy dùng vòng lặp để rút gọn nhé!',
+    guide: {
+      title: 'Hướng dẫn',
+      step1: 'Kéo các khối lệnh và nối vào bên dưới khối "▶ Khi bắt đầu".',
+      step2: 'Bấm "Chạy" để xem robot 🤖 di chuyển tới ngôi sao ⭐.',
+      step3: 'Bấm "Đặt lại" nếu muốn làm lại từ đầu.',
+      limit: 'Bài này chỉ cho dùng tối đa {{max}} khối — hãy dùng vòng lặp cho gọn!',
+      noLimit: 'Bài này không giới hạn số khối.',
+    },
     blocks: {
       move_forward: 'đi tới',
       turn_left: 'quay trái',

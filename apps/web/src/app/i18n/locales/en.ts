@@ -1255,6 +1255,17 @@ const en = {
     run: 'Run',
     reset: 'Reset',
     blocksUsed: 'Blocks used: {{used}}/{{max}}',
+    blocksUsedNoLimit: 'Blocks used: {{used}}',
+    blocksHint: 'Number of blocks you are using',
+    overLimit: 'Over the {{max}}-block limit — use a loop to shorten it!',
+    guide: {
+      title: 'How to play',
+      step1: 'Drag command blocks and snap them under the "▶ When run" block.',
+      step2: 'Press "Run" to watch the robot 🤖 move to the star ⭐.',
+      step3: 'Press "Reset" to start over.',
+      limit: 'This level allows at most {{max}} blocks — use loops to be efficient!',
+      noLimit: 'No block limit on this level.',
+    },
     blocks: {
       move_forward: 'move forward',
       turn_left: 'turn left',

@@ -30,8 +30,9 @@ export function MazeGrid({ grid, charPos, charDir, crashed, items, onCellClick }
   return (
     <svg
       viewBox={`0 0 ${w} ${h}`}
-      className="max-h-full max-w-full rounded-2xl border border-outline-variant bg-emerald-50"
-      style={{ width: w, height: h }}
+      preserveAspectRatio="xMidYMid meet"
+      className="h-auto w-full border border-outline-variant bg-emerald-50"
+      style={{ maxWidth: w, maxHeight: '100%' }}
     >
       {cells.map((c) => {
         const isWall = walls.has(wallKey(c));

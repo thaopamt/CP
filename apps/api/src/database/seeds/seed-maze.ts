@@ -4,7 +4,7 @@ import { ClassEntity } from '../../modules/classes/class.entity';
 import { Course } from '../../modules/courses/course.entity';
 import { ClassCourse } from '../../modules/classes/class-course.entity';
 import { MazeLevel } from '../../modules/maze/maze-level.entity';
-import { BlockType, Cell, Direction, GridConfig, PublishStatus, SensorType, simulate, Command } from '@cp/shared';
+import { BlockType, Cell, countBlocks, Direction, GridConfig, PublishStatus, SensorType, simulate, Command } from '@cp/shared';
 
 /**
  * Seeds maze levels (basic → advanced) under a "Lập trình kéo-thả" course
@@ -659,25 +659,70 @@ const MAP_LEVELS: LevelSeed[] = [
     ],
   }),
   mapLevel({
-    title: 'Mê cung 36 — Vô địch',
-    description: 'Thử thách cuối cùng — tổng hợp mọi kỹ năng!',
+    title: 'Mê cung 36 — Xoắn ốc vô địch',
+    description: 'Thử thách cuối cùng: đi xoắn ốc từ ngoài vào tới ngôi sao ở giữa!',
     difficulty: 'HARD', startDir: E, allowedBlocks: A5,
     map: [
-      'S........G',
-      '.########.',
-      '.#......#.',
-      '.#.####.#.',
-      '.#.#..#.#.',
-      '.#.#.##.#.',
-      '.#.#....#.',
-      '.#.######.',
-      '.#........',
-      '.#########',
+      'S......',
+      '######.',
+      '.....#.',
+      '.#G#.#.',
+      '.#...#.',
+      '.#####.',
+      '.......',
     ],
   }),
 ];
 
 const ALL_LEVELS: LevelSeed[] = [...LEVELS, ...MAP_LEVELS];
+
+// ── Difficulty: tighten the block budget on every level ─────────────────────
+// A maxBlocks limit forces students toward loops instead of repeating moves by
+// hand. We compute the budget from a COMPACT solution (run-length-encode straight
+// runs into `repeat`), then add a little slack by tier so the level stays fair.
+
+const PRIMITIVE = new Set<string>([BlockType.MOVE_FORWARD, BlockType.TURN_LEFT, BlockType.TURN_RIGHT]);
+const SLACK: Record<LevelSeed['difficulty'], number> = { EASY: 2, MEDIUM: 1, HARD: 0 };
+
+/** Run-length-encode consecutive identical primitive commands into `repeat`. */
+function compress(cmds: Command[], allowRepeat: boolean): Command[] {
+  if (!allowRepeat) return cmds;
+  const out: Command[] = [];
+  let i = 0;
+  while (i < cmds.length) {
+    const head = cmds[i];
+    let j = i + 1;
+    while (j < cmds.length && cmds[j].type === head.type && PRIMITIVE.has(head.type)) j++;
+    const run = j - i;
+    // Compress only runs of ≥3 (a 2-run is the same cost as a repeat block).
+    if (run >= 3 && PRIMITIVE.has(head.type)) {
+      out.push(repeat(run, [head]));
+    } else {
+      for (let k = 0; k < run; k++) out.push(head);
+    }
+    i = j;
+  }
+  return out;
+}
+
+/** Replace each level's solution with its compact form and set a tight maxBlocks. */
+function applyBlockLimits(levels: LevelSeed[]): void {
+  for (const lvl of levels) {
+    // Respect an explicitly hand-tuned tiny limit (e.g. the "must use loop" level 5).
+    const allowRepeat = lvl.allowedBlocks.includes(BlockType.REPEAT);
+    const compact = compress(lvl.intendedSolution, allowRepeat);
+    const base = countBlocks(compact);
+    const limit = base + SLACK[lvl.difficulty];
+    // Never loosen an existing tighter limit.
+    lvl.maxBlocks = lvl.maxBlocks != null ? Math.min(lvl.maxBlocks, limit) : limit;
+    lvl.intendedSolution = compact;
+    if (countBlocks(compact) > (lvl.maxBlocks ?? Infinity)) {
+      throw new Error(`Level "${lvl.title}" không có lời giải vừa giới hạn ${lvl.maxBlocks} khối`);
+    }
+  }
+}
+
+applyBlockLimits(ALL_LEVELS);
 
 async function run() {
   console.log('🧩 Seeding maze levels...');
@@ -739,9 +784,9 @@ async function run() {
     }
   }
 
-  // Clean up previously-seeded maze levels (cascades to submissions).
-  const titles = ALL_LEVELS.map((l) => l.title);
-  await levelRepo.createQueryBuilder().delete().where('title IN (:...titles)', { titles }).execute();
+  // Clean up previously-seeded maze levels (cascades to submissions). Match by
+  // the shared "Mê cung " title prefix so renamed levels never leave orphans.
+  await levelRepo.createQueryBuilder().delete().where("title LIKE 'Mê cung %'").execute();
 
   // Insert levels.
   let order = 1;
