@@ -31,7 +31,7 @@ echo "→ Building Docker images..."
 docker compose build
 
 echo "→ Restarting services..."
-docker compose down --remove-orphans
+# docker compose down --remove-orphans
 docker compose up -d
 
 # ── Wait for API readiness ───────────────────────────────────────────
