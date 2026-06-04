@@ -56,6 +56,14 @@ export const MazeBlocklyEditor = forwardRef<MazeBlocklyEditorHandle, Props>(
         move: { scrollbars: true, drag: true, wheel: false },
       });
       workspaceRef.current = workspace;
+      
+      const toolbox = workspace.getToolbox();
+      if (toolbox) {
+        const flyout = toolbox.getFlyout() as any;
+        if (flyout) {
+          flyout.autoClose = false;
+        }
+      }
 
       if (initialXml) {
         try {

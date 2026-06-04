@@ -133,3 +133,10 @@
     color: #ffffff !important;
   }
 }
+
+/* Fix for Blockly flyout scrollbar remaining visible when flyout is hidden */
+.blocklyFlyout[style*="display: none"] ~ .blocklyFlyoutScrollbar,
+.blocklyFlyout[style*="display: none"] ~ g.blocklyScrollbarVertical,
+.blocklyFlyout[style*="display: none"] ~ g.blocklyScrollbarHorizontal {
+    display: none !important;
+}

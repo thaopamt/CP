@@ -112,9 +112,9 @@ export default function MazeSolvePage() {
         <div className="w-20" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-md flex-1 min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-md flex-1 min-h-0">
         {/* Left: Blockly */}
-        <Card className="flex flex-col p-0 overflow-hidden min-h-[420px]">
+        <Card className="flex flex-col p-0 overflow-hidden min-h-[420px] lg:col-span-2">
           <div className="flex items-center justify-between px-4 py-2 border-b border-outline-variant bg-surface-container-low">
             <span className="text-label-sm font-semibold text-on-surface-variant">
               {t('maze.workspace')}
@@ -137,7 +137,7 @@ export default function MazeSolvePage() {
         </Card>
 
         {/* Right: maze + controls */}
-        <Card className="flex flex-col items-center gap-md p-5">
+        <Card className="flex flex-col items-center gap-md p-5 lg:col-span-1">
           <p className="text-body-md text-on-surface-variant text-center">{level.description}</p>
 
           <div className="flex-1 grid place-items-center w-full">
