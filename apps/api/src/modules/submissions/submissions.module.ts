@@ -6,11 +6,13 @@ import { InteractiveExecGateway } from './interactive-exec.gateway';
 import { Submission, SubmissionTestResult } from './submission.entity';
 import { Assignment } from '../assignments/assignment.entity';
 import { QuestsModule } from '../quests/quests.module';
+import { TestcasesModule } from '../testcases/testcases.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Submission, SubmissionTestResult, Assignment]),
     QuestsModule,
+    TestcasesModule,
   ],
   controllers: [SubmissionsController],
   providers: [ExecutionService, InteractiveExecGateway],

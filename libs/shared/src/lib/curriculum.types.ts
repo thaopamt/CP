@@ -36,7 +36,20 @@ export interface ICodingConfig {
   outputLimit?: number;
   checkerType?: 'standard' | 'exact' | 'custom';
   allowedLanguages?: string[];
+  /**
+   * Inline test cases stored in the DB. Small, typically the visible samples
+   * shown to students. Heavy grading test cases live on disk instead — see
+   * {@link hiddenTestCount}.
+   */
   testCases?: ICodingTestCase[];
+  /**
+   * Number of disk-backed hidden grading test cases for this assignment.
+   * Their content is NOT stored in the DB; the judge reads the `.inp`/`.out`
+   * files from the testcase storage directory keyed by assignment id. These
+   * are graded after the inline {@link testCases}, so their effective indices
+   * are `testCases.length .. testCases.length + hiddenTestCount - 1`.
+   */
+  hiddenTestCount?: number;
   allowViewHiddenTestCases?: boolean;
 }
 

@@ -1,6 +1,22 @@
 import { apiClient } from '../lib/api-client';
 import { ICodeExecutionRequest, ICodeExecutionResponse, ISubmitCodePayload, ISubmitCodeResponse } from '@cp/shared';
 
+export interface SubmissionListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  language?: string;
+}
+
+export interface SubmissionListResult {
+  data: any[];
+  total: number;
+  page: number;
+  pageCount: number;
+  stats: { total: number; accepted: number; wrong: number; other: number };
+}
+
 export const submissionsApi = {
   runCode: async (payload: ICodeExecutionRequest): Promise<ICodeExecutionResponse> => {
     const { data } = await apiClient.post('/submissions/run', payload);
@@ -17,15 +33,15 @@ export const submissionsApi = {
     return data;
   },
 
-  /** Student: get all own submissions across all assignments */
-  getAllMySubmissions: async (): Promise<any[]> => {
-    const { data } = await apiClient.get('/submissions/my');
+  /** Student: own submissions across all assignments — paginated + filtered */
+  getAllMySubmissions: async (params: SubmissionListParams = {}): Promise<SubmissionListResult> => {
+    const { data } = await apiClient.get('/submissions/my', { params });
     return data;
   },
 
-  /** Admin/Teacher: get all submissions from all students */
-  getAllSubmissions: async (): Promise<any[]> => {
-    const { data } = await apiClient.get('/submissions/all');
+  /** Admin/Teacher: all submissions — paginated + filtered */
+  getAllSubmissions: async (params: SubmissionListParams = {}): Promise<SubmissionListResult> => {
+    const { data } = await apiClient.get('/submissions/all', { params });
     return data;
   },
 };

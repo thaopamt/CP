@@ -220,7 +220,7 @@ export default function AssignmentDetailPage() {
                   </div>
                   <div className="bg-surface-container-low p-sm rounded-lg border border-outline-variant/50">
                     <span className="block text-xs text-on-surface-variant mb-1">Hidden Tests</span>
-                    <span className="block font-mono text-sm text-on-surface">{assignment.codingConfig.testCases?.filter(t => t.isHidden).length || 0} files</span>
+                    <span className="block font-mono text-sm text-on-surface">{(assignment.codingConfig.testCases?.filter(t => t.isHidden).length || 0) + (assignment.codingConfig.hiddenTestCount || 0)} files</span>
                   </div>
                 </div>
               </section>

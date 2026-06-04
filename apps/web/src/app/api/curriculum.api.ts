@@ -243,6 +243,33 @@ export const assignmentsApi = {
     await apiClient.delete(`/assignments/${id}`);
   },
 
+  /** Upload a ZIP of `.inp`/`.out` files as the hidden grading test cases. */
+  async uploadTestcases(id: string, file: File): Promise<{ hiddenTestCount: number }> {
+    const form = new FormData();
+    form.append('file', file);
+    const { data } = await apiClient.post<{ hiddenTestCount: number }>(
+      `/assignments/${id}/testcases`,
+      form,
+    );
+    return data;
+  },
+
+  /** Remove all hidden grading test cases for an assignment. */
+  async clearTestcases(id: string): Promise<{ hiddenTestCount: number }> {
+    const { data } = await apiClient.delete<{ hiddenTestCount: number }>(
+      `/assignments/${id}/testcases`,
+    );
+    return data;
+  },
+
+  /** Read hidden grading test case contents (admin / allowed viewers only). */
+  async getTestcases(id: string): Promise<{ input: string; output: string }[]> {
+    const { data } = await apiClient.get<{ input: string; output: string }[]>(
+      `/assignments/${id}/testcases`,
+    );
+    return data;
+  },
+
   async getImplicitClasses(id: string): Promise<string[]> {
     const { data } = await apiClient.get<string[]>(`/assignments/${id}/implicit-classes`);
     return data;

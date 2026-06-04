@@ -411,7 +411,8 @@ export default function StudentWorkspacePage() {
       const cases = sub.testResults && sub.testResults.length > 0
         ? sub.testResults.map((tr) => {
           const tc = assignment?.codingConfig?.testCases?.[tr.testCaseIndex];
-          const isHidden = tc?.isHidden;
+          // Indices beyond the inline samples are disk-backed hidden grading tests.
+          const isHidden = tr.testCaseIndex >= (assignment?.codingConfig?.testCases?.length ?? 0) || !!tc?.isHidden;
           const allowView = assignment?.codingConfig?.allowViewHiddenTestCases;
           const hideDetails = isHidden && !allowView;
 
@@ -454,7 +455,7 @@ export default function StudentWorkspacePage() {
     const cases = sub.testResults && sub.testResults.length > 0
       ? sub.testResults.map((tr: any) => {
         const tc = assignment?.codingConfig?.testCases?.[tr.testCaseIndex];
-        const isHidden = tc?.isHidden;
+        const isHidden = tr.testCaseIndex >= (assignment?.codingConfig?.testCases?.length ?? 0) || !!tc?.isHidden;
         const allowView = assignment?.codingConfig?.allowViewHiddenTestCases;
         const hideDetails = isHidden && !allowView;
 

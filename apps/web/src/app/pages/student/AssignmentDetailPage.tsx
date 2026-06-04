@@ -718,7 +718,8 @@ export default function StudentAssignmentDetailPage() {
                     {selectedSubmission.testResults && selectedSubmission.testResults.length > 0 ? (
                       selectedSubmission.testResults.map((tr: any, idx: number) => {
                         const tc = assignment?.codingConfig?.testCases?.[tr.testCaseIndex];
-                        const isHidden = tc?.isHidden;
+                        // Indices beyond the inline samples are disk-backed hidden grading tests.
+                        const isHidden = tr.testCaseIndex >= (assignment?.codingConfig?.testCases?.length ?? 0) || !!tc?.isHidden;
                         const allowView = assignment?.codingConfig?.allowViewHiddenTestCases;
                         const hideDetails = isHidden && !allowView;
                         const isAccepted = tr.status === 'ACCEPTED';

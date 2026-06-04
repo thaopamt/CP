@@ -9,6 +9,9 @@ out-tsc/
 .nx/cache
 .nx/workspace-data
 
+# Disk-backed grading test cases (TESTCASE_STORAGE_DIR)
+storage/
+
 # Env
 .env
 .env.local

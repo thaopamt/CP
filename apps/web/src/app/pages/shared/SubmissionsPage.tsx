@@ -1,10 +1,12 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@cp/ui';
+import { Icon, Pagination } from '@cp/ui';
 import { SubmissionStatus, UserRole } from '@cp/shared';
 import { useAllMySubmissions, useAllSubmissions } from '../../api/submissions.queries';
 import { useAuthStore } from '../../stores/auth.store';
+
+const PAGE_SIZE = 20;
 
 /* ── Status config ──────────────────────────────────────────────── */
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string; border: string }> = {
@@ -53,6 +55,28 @@ function formatDateFull(dateStr: string) {
   }
 }
 
+/**
+ * Test case input/output can be very large (competitive problems). Only show a
+ * short preview in the submission detail — the full payload lives on the server.
+ */
+const PREVIEW_MAX_CHARS = 500;
+const PREVIEW_MAX_LINES = 15;
+function previewText(value: string | null | undefined): { text: string; truncated: boolean } {
+  const text = value ?? '';
+  let out = text;
+  let truncated = false;
+  const lines = out.split('\n');
+  if (lines.length > PREVIEW_MAX_LINES) {
+    out = lines.slice(0, PREVIEW_MAX_LINES).join('\n');
+    truncated = true;
+  }
+  if (out.length > PREVIEW_MAX_CHARS) {
+    out = out.slice(0, PREVIEW_MAX_CHARS);
+    truncated = true;
+  }
+  return { text: out, truncated };
+}
+
 /* ── Main Component ──────────────────────────────────────────────── */
 export default function SubmissionsPage() {
   const { t } = useTranslation();
@@ -61,17 +85,42 @@ export default function SubmissionsPage() {
   const user = useAuthStore((s) => s.user);
   
   const isAdminOrTeacher = user?.role === UserRole.ADMIN || user?.role === UserRole.TEACHER;
-  
-  const { data: mySubmissions = [], isLoading: loadingMy } = useAllMySubmissions();
-  const { data: allSubmissions = [], isLoading: loadingAll } = useAllSubmissions();
-  
-  const submissions = isAdminOrTeacher ? allSubmissions : mySubmissions;
-  const isLoading = isAdminOrTeacher ? loadingAll : loadingMy;
 
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [langFilter, setLangFilter] = useState<string>('ALL');
+  const [page, setPage] = useState(1);
   const [selectedSub, setSelectedSub] = useState<any>(null);
+
+  // Debounce the search box so we don't refetch on every keystroke.
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(id);
+  }, [search]);
+
+  // Any filter change resets to page 1.
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, statusFilter, langFilter]);
+
+  const params = {
+    page,
+    limit: PAGE_SIZE,
+    search: debouncedSearch || undefined,
+    status: statusFilter,
+    language: langFilter,
+  };
+  // Students hit /my; admins & teachers hit /all. Only the relevant query runs.
+  const myQuery = useAllMySubmissions(params, !isAdminOrTeacher);
+  const allQuery = useAllSubmissions(params, isAdminOrTeacher);
+  const result = isAdminOrTeacher ? allQuery.data : myQuery.data;
+  const isLoading = isAdminOrTeacher ? allQuery.isLoading : myQuery.isLoading;
+
+  const submissions = result?.data ?? [];
+  const total = result?.total ?? 0;
+  const pageCount = result?.pageCount ?? 1;
+  const stats = result?.stats ?? { total: 0, accepted: 0, wrong: 0, other: 0 };
 
   // Close modal on Escape
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -81,32 +130,6 @@ export default function SubmissionsPage() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
-
-  // Filter & search
-  const filtered = useMemo(() => {
-    return submissions.filter((sub: any) => {
-      if (statusFilter !== 'ALL' && sub.status !== statusFilter) return false;
-      if (langFilter !== 'ALL' && sub.language !== langFilter) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        const title = sub.assignment?.title?.toLowerCase() || '';
-        const studentName = isAdminOrTeacher
-          ? `${sub.user?.firstName || ''} ${sub.user?.lastName || ''}`.toLowerCase()
-          : '';
-        if (!title.includes(q) && !studentName.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [submissions, statusFilter, langFilter, search, isAdminOrTeacher]);
-
-  // Stats
-  const stats = useMemo(() => {
-    const total = submissions.length;
-    const accepted = submissions.filter((s: any) => s.status === SubmissionStatus.ACCEPTED).length;
-    const wrong = submissions.filter((s: any) => s.status === SubmissionStatus.WRONG_ANSWER).length;
-    const other = total - accepted - wrong;
-    return { total, accepted, wrong, other };
-  }, [submissions]);
 
   const portalPrefix = location.pathname.startsWith('/admin') ? '/admin' : location.pathname.startsWith('/teacher') ? '/teacher' : '/student';
 
@@ -172,7 +195,7 @@ export default function SubmissionsPage() {
         </select>
 
         <span className="text-label-sm text-on-surface-variant ml-auto">
-          {filtered.length} / {submissions.length} {t('pages.submissions.results', 'results')}
+          {total} {t('pages.submissions.results', 'results')}
         </span>
       </div>
 
@@ -181,11 +204,11 @@ export default function SubmissionsPage() {
         <div className="flex items-center justify-center py-xl">
           <Icon name="progress_activity" size={32} className="animate-spin text-primary" />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : submissions.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-xl gap-md text-center">
           <span className="material-symbols-outlined text-[64px] text-on-surface-variant/30">history</span>
           <p className="text-body-lg text-on-surface-variant">
-            {submissions.length === 0
+            {!debouncedSearch && statusFilter === 'ALL' && langFilter === 'ALL'
               ? t('pages.submissions.empty', 'No submissions yet. Start solving problems!')
               : t('pages.submissions.noMatch', 'No submissions match your filters.')}
           </p>
@@ -205,7 +228,7 @@ export default function SubmissionsPage() {
 
           {/* Table rows */}
           <div className="divide-y divide-outline-variant">
-            {filtered.map((sub: any) => {
+            {submissions.map((sub: any) => {
               const sc = STATUS_CONFIG[sub.status] || STATUS_CONFIG[SubmissionStatus.INTERNAL_ERROR];
 
               return (
@@ -265,6 +288,13 @@ export default function SubmissionsPage() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* ── Pagination ───────────────────────────────────────────── */}
+      {pageCount > 1 && (
+        <div className="flex justify-center pt-sm">
+          <Pagination page={page} pageCount={pageCount} onChange={setPage} />
         </div>
       )}
 
@@ -390,6 +420,11 @@ function SubmissionModal({
                 const tcInput = sub.assignment?.codingConfig?.testCases?.[tr.testCaseIndex]?.input;
                 const tcExpected = tr.expectedOutput || sub.assignment?.codingConfig?.testCases?.[tr.testCaseIndex]?.expectedOutput;
 
+                // Only render a short preview of potentially huge payloads.
+                const inputPv = previewText(tcInput);
+                const expectedPv = previewText(tcExpected);
+                const actualPv = previewText(tr.actualOutput);
+
                 return (
                   <div key={idx} className={`rounded-xl border ${trSc.border} overflow-hidden transition-all`}>
                     {/* Row header — clickable */}
@@ -432,7 +467,7 @@ function SubmissionModal({
                         <div>
                           <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Input</span>
                           <pre className="mt-0.5 text-[11px] font-mono text-on-surface bg-surface-container-highest rounded-lg px-sm py-xs max-h-[100px] overflow-auto whitespace-pre-wrap break-all">
-                            {tcInput || '(empty)'}
+                            {inputPv.text || '(empty)'}{inputPv.truncated && <span className="text-on-surface-variant"> … (đã rút gọn)</span>}
                           </pre>
                         </div>
 
@@ -440,7 +475,7 @@ function SubmissionModal({
                         <div>
                           <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Expected Output</span>
                           <pre className="mt-0.5 text-[11px] font-mono text-on-surface bg-surface-container-highest rounded-lg px-sm py-xs max-h-[100px] overflow-auto whitespace-pre-wrap break-all">
-                            {tcExpected || '(empty)'}
+                            {expectedPv.text || '(empty)'}{expectedPv.truncated && <span className="text-on-surface-variant"> … (đã rút gọn)</span>}
                           </pre>
                         </div>
 
@@ -448,11 +483,11 @@ function SubmissionModal({
                         <div>
                           <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Your Output</span>
                           <pre className={`mt-0.5 text-[11px] font-mono rounded-lg px-sm py-xs max-h-[100px] overflow-auto whitespace-pre-wrap break-all ${
-                            tr.status === SubmissionStatus.ACCEPTED 
-                              ? 'text-emerald-600 bg-emerald-500/5' 
+                            tr.status === SubmissionStatus.ACCEPTED
+                              ? 'text-emerald-600 bg-emerald-500/5'
                               : 'text-red-500 bg-red-500/5'
                           }`}>
-                            {tr.actualOutput || '(empty)'}
+                            {actualPv.text || '(empty)'}{actualPv.truncated && <span className="text-on-surface-variant"> … (đã rút gọn)</span>}
                           </pre>
                         </div>
 

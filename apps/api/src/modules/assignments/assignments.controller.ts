@@ -1,4 +1,20 @@
-import { Body, Controller, Param, ParseUUIDPipe, Patch, Post, Get, UseGuards, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  ForbiddenException,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Get,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
+  Query,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Crud, CrudController, Override } from '@dataui/crud';
 import { UserRole } from '@cp/shared';
 
@@ -11,16 +27,18 @@ import { Assignment } from './assignment.entity';
 import { AssignmentsService } from './assignments.service';
 import { CreateAssignmentDto, UpdateAssignmentDto } from './dto/create-assignment.dto';
 
+/** Max size (bytes) accepted for an uploaded test case archive. */
+const MAX_TESTCASE_ZIP_BYTES = 100 * 1024 * 1024; // 100 MB
+
 @Crud({
   model: { type: Assignment },
   dto: { create: CreateAssignmentDto, update: UpdateAssignmentDto, replace: CreateAssignmentDto },
   query: { sort: [{ field: 'createdAt', order: 'DESC' }] },
   routes: {
-    exclude: ['updateOneBase'],
+    exclude: ['updateOneBase', 'deleteOneBase'],
     createOneBase: { decorators: [Roles(UserRole.ADMIN)] },
     createManyBase: { decorators: [Roles(UserRole.ADMIN)] },
     replaceOneBase: { decorators: [Roles(UserRole.ADMIN)] },
-    deleteOneBase: { decorators: [Roles(UserRole.ADMIN)] },
   },
   params: { id: { field: 'id', type: 'uuid', primary: true } },
 })
@@ -86,5 +104,57 @@ export class AssignmentsController implements CrudController<Assignment> {
     @Body() dto: UpdateAssignmentDto,
   ): Promise<Assignment> {
     return this.service.updateAssignment(id, dto);
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Delete(':id')
+  async deleteOne(@Param('id', new ParseUUIDPipe()) id: string): Promise<Assignment> {
+    return this.service.deleteAssignment(id);
+  }
+
+  /**
+   * Upload a ZIP of `.inp`/`.out` files as the assignment's hidden grading test
+   * cases. Content is parsed server-side and written to disk; only the count is
+   * persisted in the DB. Replaces any previously uploaded set.
+   */
+  @Roles(UserRole.ADMIN)
+  @Post(':id/testcases')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_TESTCASE_ZIP_BYTES } }))
+  async uploadTestcases(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @UploadedFile() file: { buffer: Buffer; originalname?: string } | undefined,
+  ): Promise<{ hiddenTestCount: number }> {
+    if (!file?.buffer?.length) {
+      throw new BadRequestException('No ZIP file uploaded');
+    }
+    const assignment = await this.service.uploadHiddenTestcases(id, file.buffer);
+    return { hiddenTestCount: assignment.codingConfig?.hiddenTestCount ?? 0 };
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Delete(':id/testcases')
+  async clearTestcases(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<{ hiddenTestCount: number }> {
+    await this.service.clearHiddenTestcases(id);
+    return { hiddenTestCount: 0 };
+  }
+
+  /**
+   * Read hidden grading test case contents. Admins always; other roles only
+   * when the assignment explicitly allows viewing hidden test cases.
+   */
+  @Get(':id/testcases')
+  async getTestcases(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    if (user.role !== UserRole.ADMIN) {
+      const assignment = await this.service.getById(id);
+      if (!assignment.codingConfig?.allowViewHiddenTestCases) {
+        throw new ForbiddenException('Hidden test cases are not viewable for this assignment');
+      }
+    }
+    return this.service.getHiddenTestcases(id);
   }
 }

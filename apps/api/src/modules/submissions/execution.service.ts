@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import { Assignment } from '../assignments/assignment.entity';
 import { ICodeExecutionResponse, SubmissionStatus } from '@cp/shared';
+import { TestcaseStorageService } from '../testcases/testcase-storage.service';
 
 /** Default limits when not specified by the assignment */
 const DEFAULT_TIME_LIMIT_S = 5;          // 5 seconds
@@ -15,6 +16,8 @@ const DEFAULT_PISTON_MEMORY_LIMIT_BYTES = 512_000_000;
 
 @Injectable()
 export class ExecutionService {
+  constructor(private readonly testcaseStorage: TestcaseStorageService) {}
+
   private readonly logger = new Logger(ExecutionService.name);
   private readonly pistonApiUrl = process.env.PISTON_API_URL || 'http://localhost:2000/api/v2/execute';
   private readonly pistonRunTimeoutMs = this.readPositiveIntEnv(
@@ -151,7 +154,14 @@ export class ExecutionService {
     const timeLimitMs = this.resolveTimeLimitMs(config?.timeLimit, assignment.id);
     const memoryLimitBytes = this.resolveMemoryLimitBytes(config?.memoryLimit, assignment.id);
 
-    if (!config || !config.testCases || config.testCases.length === 0) {
+    // Inline test cases live in the DB (small, visible samples); heavy hidden
+    // grading test cases live on disk. The judge grades the inline ones first,
+    // then the disk-backed ones, so indices stay contiguous.
+    const inlineCases = config?.testCases ?? [];
+    const hiddenCount = config?.hiddenTestCount ?? 0;
+    const totalCases = inlineCases.length + hiddenCount;
+
+    if (!config || totalCases === 0) {
       this.logger.warn(`Assignment ${assignment.id} has no test cases. Running code once as acceptance.`);
       // Run code once without stdin — if it compiles and runs, mark accepted
       const res = await this.runCode(language, code, '', timeLimitMs, memoryLimitBytes);
@@ -195,9 +205,21 @@ export class ExecutionService {
     let totalTime = 0;
     let finalStatus = SubmissionStatus.ACCEPTED;
 
-    for (let i = 0; i < config.testCases.length; i++) {
-      const testCase = config.testCases[i];
-      const res = await this.runCode(language, code, testCase.input, timeLimitMs, memoryLimitBytes);
+    for (let i = 0; i < totalCases; i++) {
+      // Resolve this test case's input/expected output from inline config or
+      // from the disk-backed hidden set.
+      let tcInput: string;
+      let tcOutput: string;
+      if (i < inlineCases.length) {
+        tcInput = inlineCases[i].input;
+        tcOutput = inlineCases[i].output;
+      } else {
+        const hidden = await this.testcaseStorage.readTestcase(assignment.id, i - inlineCases.length);
+        tcInput = hidden.input;
+        tcOutput = hidden.output;
+      }
+
+      const res = await this.runCode(language, code, tcInput, timeLimitMs, memoryLimitBytes);
 
       let status = SubmissionStatus.ACCEPTED;
       let actualOutput = res.run.stdout;
@@ -233,7 +255,7 @@ export class ExecutionService {
         }
       } else {
         // Compare output (trim trailing whitespace/newlines)
-        const expected = testCase.output.trim();
+        const expected = tcOutput.trim();
         const actual = actualOutput.trim();
 
         if (expected !== actual) {
@@ -249,7 +271,7 @@ export class ExecutionService {
       testResults.push({
         testCaseIndex: i,
         status,
-        expectedOutput: testCase.output,
+        expectedOutput: tcOutput,
         actualOutput,
         errorMessage: errorMsg || null,
         executionTimeMs: wallTimeMs,
@@ -260,7 +282,7 @@ export class ExecutionService {
     return {
       status: finalStatus,
       passedCount,
-      totalCount: config.testCases.length,
+      totalCount: totalCases,
       maxMemory,
       totalTime,
       testResults,

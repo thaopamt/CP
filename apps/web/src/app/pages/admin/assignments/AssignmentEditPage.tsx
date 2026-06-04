@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '@cp/ui';
 import { useAssignment, useUpdateAssignment, useImplicitClasses } from '../../../api/curriculum.queries';
+import { assignmentsApi } from '../../../api/curriculum.api';
 import { useClassesList } from '../../../api/class.queries';
 import { PublishStatus, ICodingTestCase } from '@cp/shared';
 import ReactMarkdown from 'react-markdown';
@@ -9,7 +10,6 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { Icon } from '@cp/ui';
-import JSZip from 'jszip';
 
 export default function AssignmentEditPage() {
   const { id } = useParams<{ id: string }>();
@@ -44,59 +44,45 @@ export default function AssignmentEditPage() {
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
   const [testCaseTab, setTestCaseTab] = useState<'upload' | 'manual'>('upload');
   const zipInputRef = useRef<HTMLInputElement>(null);
-  const [uploadedFiles, setUploadedFiles] = useState<ICodingTestCase[]>([]);
+  // Hidden grading test cases are stored on disk on the server. We stage a new
+  // ZIP here and upload it on save; `hiddenTestCount` reflects what's stored.
+  const [hiddenZipFile, setHiddenZipFile] = useState<File | null>(null);
+  const [hiddenTestCount, setHiddenTestCount] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
-  const parseTestCaseFiles = useCallback(async (file: File) => {
-    setUploading(true);
-    try {
-      const zip = await JSZip.loadAsync(file);
-      const fileMap = new Map<string, { inp?: string; out?: string }>();
-      for (const [path, entry] of Object.entries(zip.files)) {
-        if (entry.dir) continue;
-        const filename = path.split('/').pop() || '';
-        const match = filename.match(/^(?:input|test)?(\d+)\.(?:inp|in|txt)$/i)
-          || filename.match(/^(?:output|ans)?(\d+)\.(?:out|ans|txt)$/i);
-        if (!match) continue;
-        const num = match[1];
-        const isInput = /\.(inp|in)$/i.test(filename) || /^input/i.test(filename) || /^test.*\.in$/i.test(filename);
-        const isOutput = /\.(out|ans)$/i.test(filename) || /^output/i.test(filename) || /^ans/i.test(filename);
-        if (!fileMap.has(num)) fileMap.set(num, {});
-        const content = await entry.async('string');
-        if (isInput) fileMap.get(num)!.inp = content.trim();
-        else if (isOutput) fileMap.get(num)!.out = content.trim();
-      }
-      const sorted = Array.from(fileMap.entries()).sort(([a], [b]) => parseInt(a) - parseInt(b));
-      const cases: ICodingTestCase[] = sorted
-        .filter(([, v]) => v.inp !== undefined)
-        .map(([, v]) => ({ input: v.inp || '', output: v.out || '', isHidden: true }));
-      if (cases.length === 0) {
-        toast.error('No valid test case files found.');
-      } else {
-        setUploadedFiles(cases);
-        setTestCases(prev => [...prev, ...cases]);
-        toast.success(`Imported ${cases.length} test case${cases.length > 1 ? 's' : ''} from ZIP`);
-      }
-    } catch (err: any) {
-      toast.error('Failed to parse ZIP: ' + (err.message || 'Unknown error'));
-    } finally {
-      setUploading(false);
+  const stageZipFile = useCallback((file: File) => {
+    if (!(file.name.endsWith('.zip') || file.type === 'application/zip')) {
+      toast.error('Please choose a .zip file');
+      return;
     }
+    setHiddenZipFile(file);
+    toast.success(`"${file.name}" ready — it will be uploaded on save`);
   }, [toast]);
 
   const handleZipDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault(); setDragOver(false);
     const file = e.dataTransfer.files[0];
-    if (file && (file.name.endsWith('.zip') || file.type === 'application/zip')) parseTestCaseFiles(file);
-    else toast.error('Please drop a .zip file');
-  }, [parseTestCaseFiles, toast]);
+    if (file) stageZipFile(file);
+  }, [stageZipFile]);
 
   const handleZipSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) parseTestCaseFiles(file);
+    if (file) stageZipFile(file);
     e.target.value = '';
-  }, [parseTestCaseFiles]);
+  }, [stageZipFile]);
+
+  const handleClearHidden = useCallback(async () => {
+    if (!id) return;
+    try {
+      await assignmentsApi.clearTestcases(id);
+      setHiddenTestCount(0);
+      setHiddenZipFile(null);
+      toast.success('Cleared hidden grading test cases');
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || e.message || 'Failed to clear test cases');
+    }
+  }, [id, toast]);
 
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
@@ -143,12 +129,25 @@ export default function AssignmentEditPage() {
         setCheckerType(assignment.codingConfig.checkerType || 'standard');
         setAllowViewHiddenTestCases(assignment.codingConfig.allowViewHiddenTestCases || false);
         setTestCases(assignment.codingConfig.testCases || []);
+        setHiddenTestCount(assignment.codingConfig.hiddenTestCount || 0);
       }
     }
   }, [assignment]);
 
   const handlePublish = async () => {
     try {
+      setUploading(true);
+      // Upload new hidden grading test cases first so the count we persist below
+      // reflects the freshly uploaded set.
+      let nextHiddenCount = hiddenTestCount;
+      if (hiddenZipFile && id) {
+        const res = await assignmentsApi.uploadTestcases(id, hiddenZipFile);
+        nextHiddenCount = res.hiddenTestCount;
+        setHiddenTestCount(nextHiddenCount);
+        setHiddenZipFile(null);
+        toast.success(`Uploaded ${nextHiddenCount} hidden grading test case${nextHiddenCount === 1 ? '' : 's'}`);
+      }
+
       await update.mutateAsync({
         title,
         slug: slug || undefined,
@@ -165,13 +164,16 @@ export default function AssignmentEditPage() {
           checkerType,
           allowViewHiddenTestCases,
           allowedLanguages: ['C++ 20', 'Java 17', 'Python 3', 'JavaScript'],
-          testCases
+          testCases,
+          hiddenTestCount: nextHiddenCount,
         }
       });
       toast.success('Assignment updated successfully!');
       navigate(`/admin/assignments/${id}`);
     } catch (e: any) {
       toast.error(e?.response?.data?.message || e.message || 'Error creating assignment');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -457,37 +459,42 @@ export default function AssignmentEditPage() {
                     {uploading ? (
                       <>
                         <span className="material-symbols-outlined text-4xl text-primary mb-sm animate-spin">progress_activity</span>
-                        <p className="font-label-sm text-on-surface">Parsing ZIP file...</p>
+                        <p className="font-label-sm text-on-surface">Uploading test cases...</p>
                       </>
                     ) : (
                       <>
                         <span className="material-symbols-outlined text-4xl text-outline-variant mb-sm">cloud_upload</span>
                         <p className="font-label-sm text-on-surface mb-xs">Click to upload or drag and drop</p>
                         <p className="text-xs text-on-surface-variant">ZIP containing paired files: <code className="bg-surface-variant px-1 rounded">1.inp/1.out</code>, <code className="bg-surface-variant px-1 rounded">1.in/1.out</code></p>
+                        <p className="text-xs text-on-surface-variant mt-xs">Stored on the server (not the database); uploaded when you save. Re-uploading replaces the current set.</p>
                       </>
                     )}
                   </div>
-                  {uploadedFiles.length > 0 && (
-                    <div className="mt-md p-md bg-primary-container/10 border border-primary/20 rounded-lg">
-                      <div className="flex items-center justify-between mb-sm">
-                        <div className="flex items-center gap-sm">
-                          <span className="material-symbols-outlined text-primary text-lg">check_circle</span>
-                          <span className="font-label-sm text-on-surface font-bold">{uploadedFiles.length} test case{uploadedFiles.length > 1 ? 's' : ''} imported</span>
-                        </div>
-                        <button type="button" onClick={() => { setTestCases(prev => prev.filter(tc => !uploadedFiles.includes(tc))); setUploadedFiles([]); }} className="text-error hover:bg-error-container p-1 rounded transition-colors text-xs flex items-center gap-1">
-                          <span className="material-symbols-outlined text-sm">delete</span> Clear
-                        </button>
+
+                  {/* Currently stored on the server */}
+                  {hiddenTestCount > 0 && !hiddenZipFile && (
+                    <div className="mt-md p-md bg-surface-container-low border border-outline-variant rounded-lg flex items-center justify-between">
+                      <div className="flex items-center gap-sm">
+                        <span className="material-symbols-outlined text-primary text-lg">database</span>
+                        <span className="font-label-sm text-on-surface font-bold">{hiddenTestCount} hidden grading test case{hiddenTestCount === 1 ? '' : 's'} stored</span>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-xs">
-                        {uploadedFiles.map((tc, i) => (
-                          <div key={i} className="bg-surface-container-lowest rounded px-sm py-xs text-xs font-mono">
-                            <span className="text-on-surface-variant">#{i + 1}:</span>
-                            <span className="text-on-surface ml-1">{tc.input.substring(0, 20)}{tc.input.length > 20 ? '…' : ''}</span>
-                            <span className="text-primary ml-1">→</span>
-                            <span className="text-on-surface ml-1">{tc.output.substring(0, 15)}{tc.output.length > 15 ? '…' : ''}</span>
-                          </div>
-                        ))}
+                      <button type="button" onClick={handleClearHidden} className="text-error hover:bg-error-container p-1 rounded transition-colors text-xs flex items-center gap-1">
+                        <span className="material-symbols-outlined text-sm">delete</span> Clear
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Newly staged file (uploaded on save) */}
+                  {hiddenZipFile && (
+                    <div className="mt-md p-md bg-primary-container/10 border border-primary/20 rounded-lg flex items-center justify-between">
+                      <div className="flex items-center gap-sm min-w-0">
+                        <span className="material-symbols-outlined text-primary text-lg">folder_zip</span>
+                        <span className="font-label-sm text-on-surface font-bold truncate">{hiddenZipFile.name}</span>
+                        <span className="text-xs text-on-surface-variant shrink-0">({(hiddenZipFile.size / 1024).toFixed(1)} KB)</span>
                       </div>
+                      <button type="button" onClick={() => setHiddenZipFile(null)} className="text-error hover:bg-error-container p-1 rounded transition-colors text-xs flex items-center gap-1 shrink-0">
+                        <span className="material-symbols-outlined text-sm">delete</span> Remove
+                      </button>
                     </div>
                   )}
                 </div>
