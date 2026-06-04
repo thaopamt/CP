@@ -1,5 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { submissionsApi } from './submissions.api';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { submissionsApi, SubmissionListParams } from './submissions.api';
 import { ICodeExecutionRequest, ISubmitCodePayload } from '@cp/shared';
 
 export function useRunCode() {
@@ -28,18 +28,20 @@ export function useSubmissions(assignmentId: string) {
   });
 }
 
-/** Student: get all own submissions across all assignments */
-export function useAllMySubmissions() {
+/** Student: own submissions across all assignments — paginated + filtered */
+export function useAllMySubmissions(params: SubmissionListParams = {}) {
   return useQuery({
-    queryKey: ['submissions-all-my'],
-    queryFn: () => submissionsApi.getAllMySubmissions(),
+    queryKey: ['submissions-all-my', params],
+    queryFn: () => submissionsApi.getAllMySubmissions(params),
+    placeholderData: keepPreviousData,
   });
 }
 
-/** Admin/Teacher: get all submissions from all students */
-export function useAllSubmissions() {
+/** Admin/Teacher: all submissions — paginated + filtered */
+export function useAllSubmissions(params: SubmissionListParams = {}) {
   return useQuery({
-    queryKey: ['submissions-all'],
-    queryFn: () => submissionsApi.getAllSubmissions(),
+    queryKey: ['submissions-all', params],
+    queryFn: () => submissionsApi.getAllSubmissions(params),
+    placeholderData: keepPreviousData,
   });
 }

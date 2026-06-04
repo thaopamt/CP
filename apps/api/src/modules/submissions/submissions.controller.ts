@@ -1,6 +1,6 @@
-import { Controller, Post, Get, Body, UseGuards, Req, Param, NotFoundException } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req, Param, Query, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, In, Repository } from 'typeorm';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ExecutionService } from './execution.service';
 import { Submission, SubmissionTestResult } from './submission.entity';
@@ -25,6 +25,8 @@ export class SubmissionsController {
     private readonly submissionRepo: Repository<Submission>,
     @InjectRepository(Assignment)
     private readonly assignmentRepo: Repository<Assignment>,
+    @InjectRepository(SubmissionTestResult)
+    private readonly testResultRepo: Repository<SubmissionTestResult>,
     private readonly questsService: QuestsService,
     private readonly submissionEvents: SubmissionEventsGateway,
   ) {}
@@ -35,31 +37,142 @@ export class SubmissionsController {
   }
 
   /**
-   * Student: get all own submissions across all assignments.
+   * Student: own submissions across all assignments — paginated + filtered.
    */
   @Get('my')
-  async getAllMySubmissions(@Req() req: any) {
-    const userId = req.user.sub;
-    const submissions = await this.submissionRepo.find({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-      relations: ['testResults', 'assignment', 'user'],
-      take: 200,
+  async getAllMySubmissions(
+    @Req() req: any,
+    @Query('page') pageStr?: string,
+    @Query('limit') limitStr?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('language') language?: string,
+  ) {
+    return this.queryPaginated({
+      userId: req.user.sub,
+      page: this.toInt(pageStr, 1),
+      limit: this.toInt(limitStr, 20),
+      search,
+      status,
+      language,
     });
-    return submissions;
   }
 
   /**
-   * Authenticated feed: get all submissions from all students.
+   * Authenticated feed: all students' submissions — paginated + filtered.
    */
   @Get('all')
-  async getAllSubmissions() {
-    const submissions = await this.submissionRepo.find({
-      order: { createdAt: 'DESC' },
-      relations: ['testResults', 'assignment', 'user'],
-      take: 200,
+  async getAllSubmissions(
+    @Query('page') pageStr?: string,
+    @Query('limit') limitStr?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('language') language?: string,
+  ) {
+    return this.queryPaginated({
+      page: this.toInt(pageStr, 1),
+      limit: this.toInt(limitStr, 20),
+      search,
+      status,
+      language,
     });
-    return submissions;
+  }
+
+  private toInt(v: string | undefined, fallback: number): number {
+    const n = parseInt(v ?? '', 10);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+  }
+
+  /**
+   * Shared paginated/filtered submission query. Joins assignment + user for the
+   * page, loads testResults for the page rows separately (so one-to-many never
+   * corrupts the LIMIT), and returns status stats over the filtered scope.
+   */
+  private async queryPaginated(opts: {
+    userId?: string;
+    page: number;
+    limit: number;
+    search?: string;
+    status?: string;
+    language?: string;
+  }) {
+    const limit = Math.min(opts.limit, 100);
+    const search = opts.search?.trim();
+    const status = opts.status && opts.status !== 'ALL' ? opts.status : undefined;
+    const language = opts.language && opts.language !== 'ALL' ? opts.language : undefined;
+
+    // Apply scope (user) + search + language to a query builder. Status is applied
+    // only to the list, NOT to the stats, so the stat cards show the distribution.
+    const applyScope = (qb: ReturnType<Repository<Submission>['createQueryBuilder']>) => {
+      if (opts.userId) qb.andWhere('s.userId = :userId', { userId: opts.userId });
+      if (language) qb.andWhere('s.language = :language', { language });
+      if (search) {
+        qb.andWhere(
+          new Brackets((b) => {
+            b.where('a.title ILIKE :q')
+              .orWhere('u.firstName ILIKE :q')
+              .orWhere('u.lastName ILIKE :q')
+              .orWhere('u.username ILIKE :q');
+          }),
+          { q: `%${search}%` },
+        );
+      }
+    };
+
+    const listQb = this.submissionRepo
+      .createQueryBuilder('s')
+      .leftJoinAndSelect('s.assignment', 'a')
+      .leftJoinAndSelect('s.user', 'u')
+      .orderBy('s.createdAt', 'DESC');
+    applyScope(listQb);
+    if (status) listQb.andWhere('s.status = :status', { status });
+
+    const [rows, total] = await listQb
+      .skip((opts.page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    // Attach testResults for the page rows.
+    if (rows.length) {
+      const ids = rows.map((r) => r.id);
+      const trs = await this.testResultRepo.find({ where: { submissionId: In(ids) } });
+      const byId = new Map<string, SubmissionTestResult[]>();
+      for (const tr of trs) {
+        const list = byId.get(tr.submissionId) ?? [];
+        list.push(tr);
+        byId.set(tr.submissionId, list);
+      }
+      for (const r of rows) (r as any).testResults = byId.get(r.id) ?? [];
+    }
+
+    // Status distribution over the filtered scope (ignores the status filter + paging).
+    const statsQb = this.submissionRepo
+      .createQueryBuilder('s')
+      .leftJoin('s.assignment', 'a')
+      .leftJoin('s.user', 'u')
+      .select('s.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('s.status');
+    applyScope(statsQb);
+    const statRows = await statsQb.getRawMany<{ status: string; count: string }>();
+
+    let statTotal = 0;
+    let accepted = 0;
+    let wrong = 0;
+    for (const r of statRows) {
+      const c = Number(r.count);
+      statTotal += c;
+      if (r.status === SubmissionStatus.ACCEPTED) accepted += c;
+      else if (r.status === SubmissionStatus.WRONG_ANSWER) wrong += c;
+    }
+
+    return {
+      data: rows,
+      total,
+      page: opts.page,
+      pageCount: Math.max(1, Math.ceil(total / limit)),
+      stats: { total: statTotal, accepted, wrong, other: statTotal - accepted - wrong },
+    };
   }
 
   @Get('assignment/:assignmentId')

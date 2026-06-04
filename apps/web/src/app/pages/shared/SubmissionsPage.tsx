@@ -1,9 +1,11 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@cp/ui';
+import { Icon, Pagination } from '@cp/ui';
 import { SubmissionStatus } from '@cp/shared';
 import { useAllSubmissions } from '../../api/submissions.queries';
+
+const PAGE_SIZE = 20;
 import { useSubmissionRealtimeFeed } from '../../hooks/useSubmissionRealtimeFeed';
 
 /* ── Status config ──────────────────────────────────────────────── */
@@ -108,13 +110,38 @@ export default function SubmissionsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { data: submissions = [], isLoading } = useAllSubmissions();
-  const { isConnected: realtimeConnected } = useSubmissionRealtimeFeed();
-
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [langFilter, setLangFilter] = useState<string>('ALL');
+  const [page, setPage] = useState(1);
   const [selectedSubId, setSelectedSubId] = useState<string | null>(null);
+
+  // Debounce the search box so we don't refetch on every keystroke.
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(id);
+  }, [search]);
+
+  // Any filter change resets to page 1.
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, statusFilter, langFilter]);
+
+  const { data: result, isLoading } = useAllSubmissions({
+    page,
+    limit: PAGE_SIZE,
+    search: debouncedSearch || undefined,
+    status: statusFilter,
+    language: langFilter,
+  });
+  const { isConnected: realtimeConnected } = useSubmissionRealtimeFeed();
+
+  const submissions = result?.data ?? [];
+  const total = result?.total ?? 0;
+  const pageCount = result?.pageCount ?? 1;
+  const stats = result?.stats ?? { total: 0, accepted: 0, wrong: 0, other: 0 };
+
   const selectedSub = useMemo(
     () => submissions.find((sub: any) => sub.id === selectedSubId) ?? null,
     [selectedSubId, submissions],
@@ -128,30 +155,6 @@ export default function SubmissionsPage() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
-
-  // Filter & search
-  const filtered = useMemo(() => {
-    return submissions.filter((sub: any) => {
-      if (statusFilter !== 'ALL' && sub.status !== statusFilter) return false;
-      if (langFilter !== 'ALL' && sub.language !== langFilter) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        const title = sub.assignment?.title?.toLowerCase() || '';
-        const studentName = `${sub.user?.username || ''} ${sub.user?.firstName || ''} ${sub.user?.lastName || ''}`.toLowerCase();
-        if (!title.includes(q) && !studentName.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [submissions, statusFilter, langFilter, search]);
-
-  // Stats
-  const stats = useMemo(() => {
-    const total = submissions.length;
-    const accepted = submissions.filter((s: any) => s.status === SubmissionStatus.ACCEPTED).length;
-    const wrong = submissions.filter((s: any) => s.status === SubmissionStatus.WRONG_ANSWER).length;
-    const other = total - accepted - wrong;
-    return { total, accepted, wrong, other };
-  }, [submissions]);
 
   const portalPrefix = location.pathname.startsWith('/admin') ? '/admin' : location.pathname.startsWith('/teacher') ? '/teacher' : '/student';
 
@@ -222,7 +225,7 @@ export default function SubmissionsPage() {
         </span>
 
         <span className="text-label-sm text-on-surface-variant">
-          {filtered.length} / {submissions.length} {t('pages.submissions.results', 'results')}
+          {total} {t('pages.submissions.results', 'results')}
         </span>
       </div>
 
@@ -231,11 +234,11 @@ export default function SubmissionsPage() {
         <div className="flex items-center justify-center py-xl">
           <Icon name="progress_activity" size={32} className="animate-spin text-primary" />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : submissions.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-xl gap-md text-center">
           <span className="material-symbols-outlined text-[64px] text-on-surface-variant/30">history</span>
           <p className="text-body-lg text-on-surface-variant">
-            {submissions.length === 0
+            {!debouncedSearch && statusFilter === 'ALL' && langFilter === 'ALL'
               ? t('pages.submissions.empty', 'No submissions yet. Start solving problems!')
               : t('pages.submissions.noMatch', 'No submissions match your filters.')}
           </p>
@@ -255,7 +258,7 @@ export default function SubmissionsPage() {
 
           {/* Table rows */}
           <div className="divide-y divide-outline-variant">
-            {filtered.map((sub: any) => {
+            {submissions.map((sub: any) => {
               const sc = STATUS_CONFIG[sub.status] || STATUS_CONFIG[SubmissionStatus.INTERNAL_ERROR];
               const progressText = getJudgeProgressText(sub);
 
@@ -321,6 +324,13 @@ export default function SubmissionsPage() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* ── Pagination ───────────────────────────────────────────── */}
+      {pageCount > 1 && (
+        <div className="flex justify-center pt-sm">
+          <Pagination page={page} pageCount={pageCount} onChange={setPage} />
         </div>
       )}
 

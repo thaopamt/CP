@@ -53,27 +53,43 @@ export function useSubmissionRealtimeFeed() {
 function applySubmissionEvent(queryClient: QueryClient, payload: ISubmissionRealtimeEvent, userId: string) {
   const submission = payload.submission as SubmissionRow;
 
-  queryClient.setQueryData(['submissions-all'], (old: unknown) => mergeSubmissionList(old, submission));
+  // setQueriesData matches by key prefix, so it updates every cached page/filter
+  // variant of the paginated lists (queryKey: ['submissions-all', params]).
+  queryClient.setQueriesData({ queryKey: ['submissions-all'] }, (old: unknown) => mergeSubmissionList(old, submission));
 
   if (submission.userId === userId) {
-    queryClient.setQueryData(['submissions-all-my'], (old: unknown) => mergeSubmissionList(old, submission));
-    queryClient.setQueryData(['submissions', submission.assignmentId], (old: unknown) => mergeSubmissionList(old, submission));
+    queryClient.setQueriesData({ queryKey: ['submissions-all-my'] }, (old: unknown) => mergeSubmissionList(old, submission));
+    queryClient.setQueriesData({ queryKey: ['submissions', submission.assignmentId] }, (old: unknown) => mergeSubmissionList(old, submission));
   }
 }
 
+const byCreatedDesc = (a: SubmissionRow, b: SubmissionRow) =>
+  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+
 function mergeSubmissionList(old: unknown, incoming: SubmissionRow) {
-  if (!Array.isArray(old)) {
-    return [incoming];
+  // Paginated shape: { data, total, page, pageCount, stats }.
+  if (old && typeof old === 'object' && Array.isArray((old as any).data)) {
+    const page = old as { data: SubmissionRow[]; total?: number; page?: number };
+    const index = page.data.findIndex((s) => s.id === incoming.id);
+    if (index === -1) {
+      // A brand-new submission only belongs at the top of page 1.
+      if (page.page && page.page !== 1) return old;
+      const limit = page.data.length || 20;
+      return { ...page, data: [incoming, ...page.data].slice(0, limit), total: (page.total ?? page.data.length) + 1 };
+    }
+    const next = [...page.data];
+    next[index] = mergeSubmission(next[index], incoming);
+    next.sort(byCreatedDesc);
+    return { ...page, data: next };
   }
 
+  // Legacy array shape (e.g. per-assignment list).
+  if (!Array.isArray(old)) return old;
   const index = old.findIndex((sub: SubmissionRow) => sub.id === incoming.id);
-  if (index === -1) {
-    return [incoming, ...old].slice(0, 200);
-  }
-
+  if (index === -1) return [incoming, ...old].slice(0, 200);
   const next = [...old];
   next[index] = mergeSubmission(next[index], incoming);
-  return next.sort((a: SubmissionRow, b: SubmissionRow) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return next.sort(byCreatedDesc);
 }
 
 function mergeSubmission(existing: SubmissionRow | undefined, incoming: SubmissionRow): SubmissionRow {
@@ -92,7 +108,7 @@ function mergeSubmission(existing: SubmissionRow | undefined, incoming: Submissi
     },
     testResults: mergedTestResults,
     judgeProgress: incoming.judgeProgress ?? existing?.judgeProgress,
-  };
+  } as SubmissionRow;
 }
 
 function mergeTestResults(

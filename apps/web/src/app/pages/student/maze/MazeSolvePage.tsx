@@ -1,14 +1,13 @@
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Icon, useToast } from '@cp/ui';
-import { Command, SimFailReason, simulate, validateCommands, BlockType } from '@cp/shared';
+import { SimFailReason, simulate, validateCommands, BlockType } from '@cp/shared';
 
 import { useStudentMazeLevel, useSubmitMaze } from '../../../api/maze.queries';
 import { useLiveCodingSync } from '../../../hooks/useLiveCodingSync';
 import { MazeBlocklyEditor, MazeBlocklyEditorHandle } from '../../../features/maze/MazeBlocklyEditor';
 import { MazeGrid } from '../../../features/maze/MazeGrid';
-import { programToText } from '../../../features/maze/program-to-text';
 import { useMazeAnimation } from '../../../features/maze/useMazeAnimation';
 
 type Outcome =
@@ -27,12 +26,12 @@ export default function MazeSolvePage() {
 
   const editorRef = useRef<MazeBlocklyEditorHandle>(null);
   const [blockCount, setBlockCount] = useState(0);
-  const [program, setProgram] = useState<Command[]>([]);
+  const [workspaceXml, setWorkspaceXml] = useState('');
   const [outcome, setOutcome] = useState<Outcome>(null);
 
-  // Stream the student's program (as readable pseudocode) into the live monitor.
-  const programText = useMemo(() => programToText(program), [program]);
-  useLiveCodingSync(levelId, programText, 'maze', 0, {
+  // Stream the student's Blockly workspace XML into the live monitor so teachers
+  // can see the actual blocks (rendered read-only on the monitor side).
+  useLiveCodingSync(levelId, workspaceXml, 'maze', 0, {
     title: level?.title ? `🧩 ${level.title}` : undefined,
     description: level?.description,
   });
@@ -148,7 +147,7 @@ export default function MazeSolvePage() {
               ref={editorRef}
               allowedBlocks={(level.allowedBlocks ?? []) as BlockType[]}
               onBlockCountChange={setBlockCount}
-              onProgramChange={setProgram}
+              onProgramChange={(_ast, xml) => setWorkspaceXml(xml)}
             />
           </div>
         </Card>
