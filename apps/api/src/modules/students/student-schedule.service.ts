@@ -3,9 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { StudentSchedule } from './student-schedule.entity';
-import { Enrollment } from '../classes/enrollment.entity';
-import { ClassSession } from '../classes/class-session.entity';
-import { ClassEntity } from '../classes/class.entity';
 import { CreateStudentScheduleDto, UpdateStudentScheduleDto } from './dto/student-schedule.dto';
 
 export interface ScheduleSessionDto {
@@ -24,50 +21,13 @@ export interface StudentScheduleResponse {
   studentId: string;
   isCustom: boolean;
   sessions: ScheduleSessionDto[];
-  classSessions: ScheduleSessionDto[];
 }
 
 @Injectable()
 export class StudentScheduleService {
   constructor(
     @InjectRepository(StudentSchedule) private readonly repo: Repository<StudentSchedule>,
-    @InjectRepository(Enrollment) private readonly enrollments: Repository<Enrollment>,
-    @InjectRepository(ClassSession) private readonly classSessions: Repository<ClassSession>,
-    @InjectRepository(ClassEntity) private readonly classes: Repository<ClassEntity>,
   ) {}
-
-  /**
-   * Build the merged class-schedule for a student by collecting all sessions
-   * from every class the student is actively enrolled in.
-   */
-  private async getClassSessions(studentId: string): Promise<ScheduleSessionDto[]> {
-    const enrollments = await this.enrollments.find({ where: { studentId } });
-    if (enrollments.length === 0) return [];
-
-    const classIds = enrollments.map((e) => e.classId);
-    const sessions: ScheduleSessionDto[] = [];
-
-    for (const classId of classIds) {
-      const cls = await this.classes.findOne({ where: { id: classId } });
-      if (!cls) continue;
-      const classSess = await this.classSessions.find({ where: { classId } });
-      for (const s of classSess) {
-        sessions.push({
-          id: s.id,
-          studentId,
-          classId: cls.id,
-          className: cls.name,
-          classCode: cls.code,
-          dayOfWeek: s.dayOfWeek,
-          startTime: s.startTime,
-          endTime: s.endTime,
-          note: null,
-        });
-      }
-    }
-
-    return sessions;
-  }
 
   private toDto(s: StudentSchedule): ScheduleSessionDto {
     return {
@@ -85,8 +45,7 @@ export class StudentScheduleService {
 
   /**
    * Returns the effective schedule for a student.
-   * Scheduling is explicit at the student level; class-derived sessions are
-   * retained only as a compatibility reference for legacy data.
+   * Scheduling is explicit at the student level.
    */
   async getSchedule(studentId: string): Promise<StudentScheduleResponse> {
     const custom = await this.repo.find({
@@ -94,14 +53,12 @@ export class StudentScheduleService {
       relations: ['class'],
       order: { dayOfWeek: 'ASC', startTime: 'ASC' },
     });
-    const classSessions = await this.getClassSessions(studentId);
     const isCustom = custom.length > 0;
 
     return {
       studentId,
       isCustom,
       sessions: custom.map((s) => this.toDto(s)),
-      classSessions,
     };
   }
 
@@ -112,10 +69,6 @@ export class StudentScheduleService {
       order: { dayOfWeek: 'ASC', startTime: 'ASC' },
     });
     return rows.map((s) => this.toDto(s));
-  }
-
-  async getClassSchedule(studentId: string): Promise<ScheduleSessionDto[]> {
-    return this.getClassSessions(studentId);
   }
 
   async createCustomSession(studentId: string, dto: CreateStudentScheduleDto): Promise<ScheduleSessionDto> {

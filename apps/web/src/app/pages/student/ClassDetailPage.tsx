@@ -1,16 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon, StatusBadge } from '@cp/ui';
-import { DayOfWeek, IClassMeeting, PublishStatus } from '@cp/shared';
+import { PublishStatus } from '@cp/shared';
 import { useClass } from '../../api/class.queries';
 import { useClassCourses } from '../../api/curriculum.queries';
 
-type Tab = 'overview' | 'courses' | 'schedule' | 'classmates';
+type Tab = 'overview' | 'courses' | 'classmates';
 
 /**
  * Student Class Detail Page — shows a student-friendly view of the class
- * they're enrolled in: info header, schedule, and basic classmate list.
+ * they're enrolled in.
  */
 export default function StudentClassDetailPage() {
   const { t } = useTranslation();
@@ -22,22 +22,6 @@ export default function StudentClassDetailPage() {
   const [tab, setTab] = useState<Tab>('overview');
 
   const cls = classQuery.data;
-
-  const dayLabel = (d: DayOfWeek) => t(`enums.dayOfWeek.${d}`);
-  const formatTime = (timeStr?: string) =>
-    timeStr ? timeStr.split(':').slice(0, 2).join(':') : '';
-
-  // Group sessions by day of week
-  const scheduleByDay = useMemo(() => {
-    if (!cls) return new Map<DayOfWeek, IClassMeeting[]>();
-    const out = new Map<DayOfWeek, IClassMeeting[]>();
-    for (const s of cls.sessions) {
-      const arr = out.get(s.dayOfWeek) ?? [];
-      arr.push(s);
-      out.set(s.dayOfWeek, arr);
-    }
-    return out;
-  }, [cls]);
 
   // Loading state
   if (classQuery.isLoading || !cls) {
@@ -68,7 +52,6 @@ export default function StudentClassDetailPage() {
     );
   }
 
-  const nextSession = cls.sessions[0];
   const statusTone =
     cls.status === 'ACTIVE'
       ? 'success'
@@ -141,21 +124,12 @@ export default function StudentClassDetailPage() {
       </div>
 
       {/* ── Quick stat cards ────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-md">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-md">
         <StatCard icon="calendar_month" label="Term" value={cls.term} />
         <StatCard
           icon="groups"
           label="Students"
           value={`${cls.enrolledCount} / ${cls.capacity}`}
-        />
-        <StatCard
-          icon="event"
-          label="Next Class"
-          value={
-            nextSession
-              ? `${dayLabel(nextSession.dayOfWeek)} ${formatTime(nextSession.startTime)}`
-              : '—'
-          }
         />
         <StatCard
           icon="menu_book"
@@ -170,7 +144,6 @@ export default function StudentClassDetailPage() {
           [
             { key: 'overview', icon: 'info', label: 'Overview' },
             { key: 'courses', icon: 'menu_book', label: 'Courses' },
-            { key: 'schedule', icon: 'calendar_month', label: 'Schedule' },
             { key: 'classmates', icon: 'groups', label: 'Classmates' },
           ] as const
         ).map((t) => (
@@ -345,66 +318,6 @@ export default function StudentClassDetailPage() {
                       <div className="shrink-0 self-center text-on-surface-variant/40">
                         <Icon name="chevron_right" size={24} />
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {tab === 'schedule' && (
-          <div className="p-lg md:p-xl">
-            {cls.sessions.length === 0 ? (
-              <div className="text-center py-xl">
-                <Icon name="event_busy" size={48} className="text-outline mx-auto mb-sm" />
-                <p className="text-body-md text-on-surface-variant">No sessions scheduled yet.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-sm">
-                {(Object.values(DayOfWeek) as DayOfWeek[]).map((d) => {
-                  const sessions = scheduleByDay.get(d) ?? [];
-                  const hasSession = sessions.length > 0;
-                  return (
-                    <div
-                      key={d}
-                      className={[
-                        'rounded-xl p-md min-h-[120px] transition-colors',
-                        hasSession
-                          ? 'bg-primary-container/20 border border-primary/20'
-                          : 'bg-surface-container-low border border-transparent',
-                      ].join(' ')}
-                    >
-                      <div
-                        className={[
-                          'text-label-sm font-bold mb-sm',
-                          hasSession ? 'text-primary' : 'text-on-surface-variant/50',
-                        ].join(' ')}
-                      >
-                        {dayLabel(d)}
-                      </div>
-                      {sessions.length > 0 ? (
-                        <div className="flex flex-col gap-xs">
-                          {sessions.map((s) => (
-                            <div
-                              key={s.id}
-                              className="rounded-lg bg-primary-container/40 border-l-4 border-primary px-sm py-xs"
-                            >
-                              <div className="text-[13px] font-semibold text-on-surface">
-                                {formatTime(s.startTime)} – {formatTime(s.endTime)}
-                              </div>
-                              <div className="text-[11px] text-on-surface-variant flex items-center gap-xs mt-0.5">
-                                <Icon name="location_on" size={12} />
-
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-[12px] text-on-surface-variant/40 italic">
-                          No class
-                        </div>
-                      )}
                     </div>
                   );
                 })}

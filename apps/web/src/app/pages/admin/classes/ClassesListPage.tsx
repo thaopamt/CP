@@ -18,12 +18,10 @@ import {
 } from '@cp/ui';
 import {
   ClassStatus,
-  DayOfWeek,
   IClass,
 } from '@cp/shared';
 
 import { useClassesList, useDeleteClass } from '../../../api/class.queries';
-import { formatSchedule } from './format';
 
 const PAGE_SIZE = 10;
 
@@ -45,7 +43,6 @@ export default function ClassesListPage() {
   });
   const deleteClass = useDeleteClass();
 
-  const dayLabel = (d: DayOfWeek) => t(`enums.dayOfWeek.${d}`);
   const initials = (name: string) =>
     name.split(' ').slice(0, 2).map((p) => p[0]).join('').toUpperCase();
 
@@ -88,16 +85,6 @@ export default function ClassesListPage() {
             <div className="text-on-surface font-medium truncate">{row.name}</div>
             <div className="text-[12px] text-on-surface-variant">{row.code} · {row.term}</div>
           </button>
-        ),
-      },
-
-      {
-        key: 'schedule',
-        header: t('pages.admin.classes.list.columns.schedule'),
-        cell: (row) => (
-          <span className="text-on-surface-variant whitespace-nowrap">
-            {formatSchedule(row.sessions, dayLabel)}
-          </span>
         ),
       },
 

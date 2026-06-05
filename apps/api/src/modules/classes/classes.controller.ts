@@ -1,5 +1,5 @@
-import { Body, Controller, Post, Patch, UseGuards, Param, ParseUUIDPipe, BadRequestException } from '@nestjs/common';
-import { Crud, CrudController, Override, ParsedRequest, CrudRequest, ParsedBody } from '@dataui/crud';
+import { Body, Controller, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Crud, CrudController, Override } from '@dataui/crud';
 import { UserRole } from '@cp/shared';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -15,7 +15,7 @@ import { UpdateClassDto } from './dto/update-class.dto';
  *
  *   GET    /api/classes           — list (any auth user)
  *   GET    /api/classes/:id       — one (any auth user)
- *   POST   /api/classes           — create with sessions (ADMIN, custom override)
+ *   POST   /api/classes           — create class (ADMIN, custom override)
  *   PATCH  /api/classes/:id       — partial (ADMIN)
  *   PUT    /api/classes/:id       — full replace (ADMIN)
  *   DELETE /api/classes/:id       — soft delete via @DeleteDateColumn (ADMIN)
@@ -31,7 +31,6 @@ import { UpdateClassDto } from './dto/update-class.dto';
     sort: [{ field: 'createdAt', order: 'DESC' }],
     join: {
       instructor: { eager: true },
-      sessions: { eager: true },
     },
   },
   routes: {
@@ -52,7 +51,7 @@ export class ClassesController implements CrudController<ClassEntity> {
   @Roles(UserRole.ADMIN)
   @Post()
   async createOne(@Body() dto: CreateClassDto): Promise<ClassEntity> {
-    return this.service.createWithSessions(dto);
+    return this.service.createClass(dto);
   }
 
   @Roles(UserRole.ADMIN)
@@ -61,6 +60,6 @@ export class ClassesController implements CrudController<ClassEntity> {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateClassDto,
   ): Promise<ClassEntity> {
-    return this.service.updateWithSessions(id, dto);
+    return this.service.updateClass(id, dto);
   }
 }

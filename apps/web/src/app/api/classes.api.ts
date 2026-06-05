@@ -2,7 +2,7 @@
  * Thin axios wrapper around the NestJS @dataui/crud endpoints for
  * `/api/classes` and `/api/enrollments`. Translates between:
  *   - the on-the-wire shape (TypeORM entities with eager `instructor` and
- *     `sessions` relations)
+ *     enrollment metadata)
  *   - the `IClass` / `IClassEnrollment` shapes from `@cp/shared` (what
  *     the UI consumes)
  *
@@ -17,7 +17,6 @@ import {
   IClass,
   IClassEnrollment,
   IClassInstructor,
-  IClassMeeting,
   ICreateClassPayload,
   PaymentStatus,
 } from '@cp/shared';
@@ -43,14 +42,6 @@ interface ApiUser {
   // The User entity has plenty more fields but this is all we read
 }
 
-interface ApiClassMeeting {
-  id: string;
-  dayOfWeek: string; // serialized enum
-  startTime: string;
-  endTime: string;
-
-}
-
 interface ApiClassEntity {
   id: string;
   name: string;
@@ -64,7 +55,6 @@ interface ApiClassEntity {
   attendanceRate: number;
   instructorId: string | null;
   instructor: ApiUser | null;
-  sessions: ApiClassMeeting[];
   createdAt: string;
   updatedAt: string;
 }
@@ -94,16 +84,6 @@ function toInstructor(u: ApiUser | null): IClassInstructor | null {
   };
 }
 
-function toMeeting(s: ApiClassMeeting): IClassMeeting {
-  return {
-    id: s.id,
-    dayOfWeek: s.dayOfWeek as IClassMeeting['dayOfWeek'],
-    startTime: s.startTime,
-    endTime: s.endTime,
-
-  };
-}
-
 function toClass(c: ApiClassEntity): IClass {
   return {
     id: c.id,
@@ -117,7 +97,6 @@ function toClass(c: ApiClassEntity): IClass {
     term: c.term,
     attendanceRate: c.attendanceRate ?? 0,
     instructor: toInstructor(c.instructor),
-    sessions: (c.sessions ?? []).map(toMeeting),
     createdAt: c.createdAt,
     updatedAt: c.updatedAt,
   };

@@ -4,13 +4,11 @@ import { AttendanceStatus } from '@cp/shared';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../users/user.entity';
 import { ClassEntity } from '../classes/class.entity';
-import { ClassSession } from '../classes/class-session.entity';
 
 /**
- * Stores one attendance mark per student, per class, per session, per date.
- *
- * If the class has multiple sessions on the same day (e.g. morning + afternoon),
- * each session gets its own attendance row.
+ * Stores one attendance mark per student, per class/date. `sessionId` is kept
+ * nullable for legacy rows that were created before class-owned schedules moved
+ * to student-level schedule slots.
  */
 @Entity({ name: 'attendance_records' })
 @Unique('UQ_attendance', ['studentId', 'classId', 'sessionId', 'date'])
@@ -34,10 +32,6 @@ export class AttendanceRecord extends BaseEntity {
   /** The class session this attendance relates to. Null for ad-hoc attendance. */
   @Column({ type: 'uuid', name: 'session_id', nullable: true })
   sessionId!: string | null;
-
-  @ManyToOne(() => ClassSession, { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'session_id' })
-  session!: ClassSession | null;
 
   /** The calendar date (YYYY-MM-DD) for this attendance record. */
   @Index()

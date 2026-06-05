@@ -4,7 +4,6 @@
  * Endpoints:
  *   GET    /api/students/:id/schedule           — effective schedule
  *   GET    /api/students/:id/schedule/custom     — custom sessions
- *   GET    /api/students/:id/schedule/classes    — class-derived sessions
  *   POST   /api/students/:id/schedule/custom     — add custom session
  *   PATCH  /api/students/:id/schedule/custom/:sid — update custom session
  *   DELETE /api/students/:id/schedule/custom/:sid — delete one
@@ -29,13 +28,6 @@ export const studentScheduleApi = {
   async getCustomSessions(studentId: string): Promise<IStudentScheduleSession[]> {
     const { data } = await apiClient.get<IStudentScheduleSession[]>(
       `/students/${studentId}/schedule/custom`,
-    );
-    return data;
-  },
-
-  async getClassSchedule(studentId: string): Promise<IStudentScheduleSession[]> {
-    const { data } = await apiClient.get<IStudentScheduleSession[]>(
-      `/students/${studentId}/schedule/classes`,
     );
     return data;
   },

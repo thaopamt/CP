@@ -20,9 +20,8 @@ import { CreateStudentScheduleDto, UpdateStudentScheduleDto } from './dto/studen
 /**
  * Admin-only endpoints for viewing and managing a student's schedule.
  *
- *   GET    /api/students/:id/schedule           — effective schedule (custom or fallback)
+ *   GET    /api/students/:id/schedule           — student-level schedule
  *   GET    /api/students/:id/schedule/custom     — custom sessions only
- *   GET    /api/students/:id/schedule/classes    — class-derived sessions only
  *   POST   /api/students/:id/schedule/custom     — add a custom session
  *   PATCH  /api/students/:id/schedule/custom/:sessionId — update a custom session
  *   DELETE /api/students/:id/schedule/custom/:sessionId — remove one custom session
@@ -46,13 +45,6 @@ export class StudentScheduleController {
     @Param('id', ParseUUIDPipe) studentId: string,
   ): Promise<ScheduleSessionDto[]> {
     return this.service.getCustomSessions(studentId);
-  }
-
-  @Get('classes')
-  async getClassSchedule(
-    @Param('id', ParseUUIDPipe) studentId: string,
-  ): Promise<ScheduleSessionDto[]> {
-    return this.service.getClassSchedule(studentId);
   }
 
   @Post('custom')

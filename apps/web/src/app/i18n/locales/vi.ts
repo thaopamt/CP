@@ -588,7 +588,6 @@ const vi: AppResources = {
           deleteSession: 'Xoá',
           empty: 'Chưa có khung giờ nào cho học sinh này.',
           emptyCustom: 'Chưa có khung giờ nào. Bấm "Thêm buổi học" để tạo.',
-          classScheduleRef: 'Lịch lớp cũ (tham chiếu)',
           effectiveSchedule: 'Lịch học sinh',
           fields: {
             class: 'Lớp (tuỳ chọn)',
@@ -737,7 +736,7 @@ const vi: AppResources = {
       classes: {
         list: {
           title: 'Danh sách lớp học',
-          subtitle: 'Quản lý lớp học, lịch dạy và sĩ số ghi danh.',
+          subtitle: 'Quản lý lớp học và sĩ số ghi danh.',
           createClass: 'Tạo lớp mới',
           searchPlaceholder: 'Tìm theo tên lớp, mã lớp hoặc giáo viên…',
           filters: {
@@ -746,7 +745,6 @@ const vi: AppResources = {
           },
           columns: {
             class: 'Lớp',
-            schedule: 'Lịch học',
             enrollment: 'Sĩ số',
             status: 'Trạng thái',
           },
@@ -767,12 +765,12 @@ const vi: AppResources = {
         },
         attendance: {
           title: 'Điểm danh',
-          subtitle: 'Điểm danh học sinh theo từng buổi của lớp',
+          subtitle: 'Điểm danh học sinh theo khung giờ đã xếp',
           selectClass: 'Lớp',
           selectClassPlaceholder: '-- Chọn lớp --',
           selectDate: 'Ngày',
           noClassSelected: 'Hãy chọn một lớp để xem danh sách điểm danh cho ngày được chọn.',
-          noSessions: 'Không có buổi học nào được xếp lịch cho lớp này vào ngày được chọn.',
+          noSessions: 'Không có khung giờ học sinh nào được gắn với lớp này vào ngày được chọn.',
           markAllPresent: 'Đánh dấu tất cả có mặt',
           allPresent: 'Có mặt tất cả',
           markAllAbsent: 'Đánh dấu tất cả vắng mặt',
@@ -789,10 +787,9 @@ const vi: AppResources = {
         },
         create: {
           title: 'Tạo lớp mới',
-          subtitle: 'Tạo một nhóm học bất kỳ; lịch học được gắn riêng theo học sinh.',
+          subtitle: 'Tạo nhóm học để quản lý ghi danh và chương trình.',
           steps: {
             basics: 'Thông tin cơ bản',
-            schedule: 'Lịch học',
             capacity: 'Sĩ số & Giáo viên',
           },
           fields: {
@@ -805,13 +802,6 @@ const vi: AppResources = {
             term: 'Học kỳ',
             termPh: 'VD: Học kỳ Thu 2024',
             capacity: 'Sĩ số tối đa',
-            sessions: 'Buổi học hằng tuần',
-            addSession: '+ Thêm buổi',
-            removeSession: 'Xoá',
-            day: 'Thứ',
-            startTime: 'Giờ bắt đầu',
-            endTime: 'Giờ kết thúc',
-
           },
           actions: {
             cancel: 'Huỷ',
@@ -824,8 +814,6 @@ const vi: AppResources = {
             nameRequired: 'Tên lớp là bắt buộc',
             codeRequired: 'Mã môn là bắt buộc',
             capacityRange: 'Sĩ số phải từ 1 trở lên',
-            sessionMin: 'Buổi học không còn bắt buộc ở lớp',
-            timeOrder: 'Giờ kết thúc phải sau giờ bắt đầu',
           },
         },
         edit: {
@@ -850,15 +838,12 @@ const vi: AppResources = {
             attendanceTrend: '+{{value}}% so với tuần trước',
             activeStudents: 'Học sinh đang học',
             seatsAvailable: 'Còn {{count}} chỗ',
-            nextSession: 'Buổi kế tiếp',
-            nextSessionAt: '{{when}}',
             instructor: 'Giáo viên chính',
             contactInstructor: 'Liên hệ',
           },
           tabs: {
             courses: 'Khoá học',
             roster: 'Danh sách HS',
-            schedule: 'Lịch học',
             activity: 'Hoạt động',
           },
           courses: {
@@ -876,9 +861,6 @@ const vi: AppResources = {
               payment: 'Học phí',
             },
             empty: 'Chưa có học sinh nào ghi danh.',
-          },
-          schedule: {
-            empty: 'Chưa có buổi học nào.',
           },
           activity: {
             empty: 'Chưa có hoạt động nào.',

@@ -593,7 +593,6 @@ const en = {
           deleteSession: 'Delete',
           empty: 'No scheduled slots for this student yet.',
           emptyCustom: 'No scheduled slots yet. Click "Add Session" to create one.',
-          classScheduleRef: 'Legacy class schedule (reference)',
           effectiveSchedule: 'Student Schedule',
           fields: {
             class: 'Class (optional)',
@@ -742,7 +741,7 @@ const en = {
       classes: {
         list: {
           title: 'Class Rosters',
-          subtitle: 'Manage class offerings, schedules, and enrollment.',
+          subtitle: 'Manage class rosters and enrollment.',
           createClass: 'Create Class',
           searchPlaceholder: 'Search by class name, code, instructor…',
           filters: {
@@ -751,7 +750,6 @@ const en = {
           },
           columns: {
             class: 'Class',
-            schedule: 'Schedule',
             enrollment: 'Enrollment',
             status: 'Status',
           },
@@ -772,12 +770,12 @@ const en = {
         },
         attendance: {
           title: 'Attendance',
-          subtitle: 'Mark attendance by class session',
+          subtitle: 'Mark attendance by scheduled slot',
           selectClass: 'Class',
           selectClassPlaceholder: '-- Select class --',
           selectDate: 'Date',
           noClassSelected: 'Select a class to view its attendance roster for the selected date.',
-          noSessions: 'No sessions are scheduled for this class on the selected date.',
+          noSessions: 'No student schedule slots are linked to this class on the selected date.',
           markAllPresent: 'Mark all present',
           allPresent: 'All present',
           markAllAbsent: 'Mark all absent',
@@ -794,10 +792,9 @@ const en = {
         },
         create: {
           title: 'Create Class',
-          subtitle: 'Create a named student group; schedule is assigned per student.',
+          subtitle: 'Create a named student group for enrollment and curriculum.',
           steps: {
             basics: 'Basic information',
-            schedule: 'Schedule',
             capacity: 'Capacity & instructor',
           },
           fields: {
@@ -810,13 +807,6 @@ const en = {
             term: 'Term',
             termPh: 'e.g. Fall 2024',
             capacity: 'Max students',
-            sessions: 'Weekly sessions',
-            addSession: '+ Add session',
-            removeSession: 'Remove',
-            day: 'Day',
-            startTime: 'Start',
-            endTime: 'End',
-
           },
           actions: {
             cancel: 'Cancel',
@@ -829,8 +819,6 @@ const en = {
             nameRequired: 'Class name is required',
             codeRequired: 'Course code is required',
             capacityRange: 'Capacity must be at least 1',
-            sessionMin: 'Sessions are no longer required on classes',
-            timeOrder: 'End time must be after start time',
           },
         },
         edit: {
@@ -855,15 +843,12 @@ const en = {
             attendanceTrend: '+{{value}}% from last week',
             activeStudents: 'Active students',
             seatsAvailable: '{{count}} seats available',
-            nextSession: 'Next session',
-            nextSessionAt: '{{when}}',
             instructor: 'Primary instructor',
             contactInstructor: 'Contact',
           },
           tabs: {
             courses: 'Courses',
             roster: 'Student roster',
-            schedule: 'Visual schedule',
             activity: 'Activity timeline',
           },
           courses: {
@@ -881,9 +866,6 @@ const en = {
               payment: 'Payment',
             },
             empty: 'No students enrolled yet.',
-          },
-          schedule: {
-            empty: 'No sessions scheduled yet.',
           },
           activity: {
             empty: 'No activity recorded yet.',

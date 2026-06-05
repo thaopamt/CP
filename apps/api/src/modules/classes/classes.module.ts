@@ -4,7 +4,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../users/user.entity';
 import { Course } from '../courses/course.entity';
 import { ClassEntity } from './class.entity';
-import { ClassSession } from './class-session.entity';
 import { Enrollment } from './enrollment.entity';
 import { ClassCourse } from './class-course.entity';
 import { ClassesController } from './classes.controller';
@@ -18,7 +17,6 @@ import { ClassCoursesService } from './class-courses.service';
   imports: [
     TypeOrmModule.forFeature([
       ClassEntity,
-      ClassSession,
       Enrollment,
       ClassCourse,
       Course,

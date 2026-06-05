@@ -3,7 +3,7 @@
  *
  * Distinguish between:
  *   - "Course" / curriculum (syllabus, modules, lessons) → see admin.types.ts
- *   - "Class" / named student group/cohort. Scheduling is now student-level.
+ *   - "Class" / named student group/cohort. Scheduling is student-level.
  */
 
 export enum ClassStatus {
@@ -46,19 +46,6 @@ export enum PaymentStatus {
 
 // ── Domain DTOs (wire shape) ─────────────────────────────────────────────
 
-/**
- * A recurring weekly slot when a class meets. Renamed from `IClassSession`
- * to avoid collision with `teacher.types.IClassSession` (which is the
- * one-off "class session for today" model used by the Teacher Dashboard).
- */
-export interface IClassMeeting {
-  id: string;
-  dayOfWeek: DayOfWeek;
-  /** "HH:MM" in 24h */
-  startTime: string;
-  endTime: string;
-}
-
 export interface IClassInstructor {
   id: string;
   fullName: string;
@@ -82,7 +69,6 @@ export interface IClass {
   instructor?: IClassInstructor | null;
   /** 0..100 — denormalized for the detail-page KPI */
   attendanceRate?: number;
-  sessions: IClassMeeting[];
   createdAt: string;
   updatedAt: string;
 }
@@ -110,12 +96,6 @@ export interface ICreateClassPayload {
   description?: string;
   capacity: number;
   term: string;
-  sessions?: Array<{
-    dayOfWeek: DayOfWeek;
-    startTime: string;
-    endTime: string;
-
-  }>;
 }
 
 // ── Student schedule (admin-managed) ────────────────────────────────────
@@ -145,8 +125,6 @@ export interface IStudentSchedule {
   isCustom: boolean;
   /** Effective student-level sessions */
   sessions: IStudentScheduleSession[];
-  /** Deprecated compatibility field; class no longer owns schedule by default. */
-  classSessions: IStudentScheduleSession[];
 }
 
 /** Payload for POST /api/students/:id/schedule/custom */

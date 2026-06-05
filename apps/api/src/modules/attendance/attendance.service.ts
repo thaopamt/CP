@@ -4,7 +4,6 @@ import { In, Repository } from 'typeorm';
 import { AttendanceStatus, DayOfWeek, IStudentAttendanceHistoryItem } from '@cp/shared';
 
 import { AttendanceRecord } from './attendance.entity';
-import { ClassSession } from '../classes/class-session.entity';
 import { ClassEntity } from '../classes/class.entity';
 import { Enrollment } from '../classes/enrollment.entity';
 import { StudentSchedule } from '../students/student-schedule.entity';
@@ -27,7 +26,6 @@ const JS_DOW_TO_ENUM: Record<number, DayOfWeek> = {
 export class AttendanceService {
   constructor(
     @InjectRepository(AttendanceRecord) private readonly repo: Repository<AttendanceRecord>,
-    @InjectRepository(ClassSession) private readonly sessions: Repository<ClassSession>,
     @InjectRepository(ClassEntity) private readonly classes: Repository<ClassEntity>,
     @InjectRepository(Enrollment) private readonly enrollments: Repository<Enrollment>,
     @InjectRepository(StudentSchedule) private readonly studentSchedules: Repository<StudentSchedule>,
@@ -38,67 +36,32 @@ export class AttendanceService {
   ) {}
 
   /**
-   * Given a class and a calendar date, return the class sessions that occur
-   * on that day of the week.
+   * Class-owned weekly sessions have been removed. Keep this endpoint shape for
+   * older callers while returning an empty list.
    */
-  async getSessionsForDate(classId: string, date: string) {
-    const dow = JS_DOW_TO_ENUM[new Date(date).getUTCDay()];
-    if (!dow) return [];
-    const sessions = await this.sessions.find({
-      where: { classId, dayOfWeek: dow },
-      order: { startTime: 'ASC' },
-    });
-    return sessions;
+  async getSessionsForDate(classId: string, _date: string) {
+    const cls = await this.classes.findOne({ where: { id: classId } });
+    if (!cls) throw new NotFoundException(`Class ${classId} not found`);
+    return [];
   }
 
   /**
-   * Build the full attendance payload for a class on a date:
-   * sessions occurring that day + enrolled students + custom schedule students + existing records.
+   * Build the attendance payload for student-level schedules linked to a class
+   * on a date.
    */
   async getClassDateAttendance(classId: string, date: string) {
     const cls = await this.classes.findOne({ where: { id: classId } });
     if (!cls) throw new NotFoundException(`Class ${classId} not found`);
 
     const dow = JS_DOW_TO_ENUM[new Date(date).getUTCDay()];
-    const sessions = await this.getSessionsForDate(classId, date);
-    const enrollments = await this.enrollments.find({
-      where: { classId, student: { isActive: true } },
-      relations: ['student'],
-    });
-
-    const enrolledStudentIds = enrollments.map((e) => e.studentId);
-    
-    // Find all custom schedules for this class on this day
     const customSchedulesForClassDay = dow
       ? await this.studentSchedules.find({
           where: { classId, dayOfWeek: dow, student: { isActive: true } },
           relations: ['student'],
         })
       : [];
-      
-    // Combine to get all potential student IDs
-    const allStudentIds = new Set<string>([
-      ...enrolledStudentIds,
-      ...customSchedulesForClassDay.map((s) => s.studentId),
-    ]);
-    
-    // Identify which students are in "custom mode" (have ANY custom schedule)
-    const customModeStudentIds = new Set<string>();
-    if (allStudentIds.size > 0) {
-      const qb = this.studentSchedules.createQueryBuilder('ss')
-        .select('DISTINCT ss.student_id', 'studentId')
-        .where('ss.student_id IN (:...ids)', { ids: Array.from(allStudentIds) });
-      const rows = await qb.getRawMany();
-      for (const row of rows) {
-        customModeStudentIds.add(row.studentId);
-      }
-    }
 
-    // Build a map of studentId -> { id, firstName, lastName } for easy access
     const studentInfoMap = new Map<string, { id: string; name: string }>();
-    for (const e of enrollments) {
-      studentInfoMap.set(e.studentId, { id: e.studentId, name: `${e.student.firstName} ${e.student.lastName}` });
-    }
     for (const s of customSchedulesForClassDay) {
       if (!studentInfoMap.has(s.studentId)) {
         studentInfoMap.set(s.studentId, { id: s.studentId, name: `${s.student.firstName} ${s.student.lastName}` });
@@ -110,17 +73,11 @@ export class AttendanceService {
       where: { classId, date },
     });
 
-    // Build a lookup: `${studentId}:${sessionId}` → record. For custom records, pseudoId is 'custom-startTime-endTime'.
     const recordMap = new Map<string, AttendanceRecord>();
     for (const r of existing) {
-      // In DB, custom sessions have sessionId = null.
-      // Wait, how do we map existing DB records with sessionId=null to our pseudo-IDs?
-      // Since we group custom sessions by time, and DB only has one null sessionId per student/class/date,
-      // we can just map 'null' to the custom session pseudo-ID later.
       recordMap.set(`${r.studentId}:${r.sessionId ?? 'null'}`, r);
     }
 
-    // Build the output sessions array
     const sessionAttendances: Array<{
       sessionId: string;
       dayOfWeek: string;
@@ -130,64 +87,8 @@ export class AttendanceService {
       records: any[];
     }> = [];
 
-    // Track which custom schedules exactly matched an official session
-    const matchedCustomScheduleIds = new Set<string>();
-
-    // 1. Official Sessions
-    for (const s of sessions) {
-      const records: any[] = [];
-      for (const studentId of allStudentIds) {
-        const isCustomMode = customModeStudentIds.has(studentId);
-        
-        // Should this student be in this official session?
-        let shouldInclude = false;
-        
-        if (!isCustomMode && enrolledStudentIds.includes(studentId)) {
-          // Normal enrolled student
-          shouldInclude = true;
-        } else if (isCustomMode) {
-          // Check if they have a custom schedule that EXACTLY matches this official session
-          const exactCustomMatch = customSchedulesForClassDay.find(
-            (cs) => cs.studentId === studentId && cs.startTime === s.startTime && cs.endTime === s.endTime
-          );
-          if (exactCustomMatch) {
-            shouldInclude = true;
-            matchedCustomScheduleIds.add(exactCustomMatch.id);
-          }
-        }
-
-        if (shouldInclude) {
-          const rec = recordMap.get(`${studentId}:${s.id}`) || recordMap.get(`${studentId}:null`);
-          records.push({
-            id: rec?.id ?? undefined,
-            studentId,
-            studentName: studentInfoMap.get(studentId)?.name ?? 'Unknown',
-            classId,
-            sessionId: s.id,
-            date,
-            status: rec?.status ?? AttendanceStatus.UNMARKED,
-            note: rec?.note ?? null,
-          });
-        }
-      }
-      
-      // Only add session if it has students, OR if it's an official session (always show official sessions even if empty)
-      sessionAttendances.push({
-        sessionId: s.id,
-        dayOfWeek: s.dayOfWeek,
-        startTime: s.startTime,
-        endTime: s.endTime,
-
-        records,
-      });
-    }
-
-    // 2. Custom Sessions (Unmatched)
-    const unmatchedCustomSchedules = customSchedulesForClassDay.filter(cs => !matchedCustomScheduleIds.has(cs.id));
-    
-    // Group unmatched by startTime_endTime
-    const customGroups = new Map<string, typeof unmatchedCustomSchedules>();
-    for (const cs of unmatchedCustomSchedules) {
+    const customGroups = new Map<string, typeof customSchedulesForClassDay>();
+    for (const cs of customSchedulesForClassDay) {
       const key = `${cs.startTime}_${cs.endTime}`;
       if (!customGroups.has(key)) customGroups.set(key, []);
       customGroups.get(key)!.push(cs);
@@ -342,7 +243,6 @@ export class AttendanceService {
 
     const qb = this.repo.createQueryBuilder('a')
       .leftJoinAndSelect('a.class', 'class')
-      .leftJoinAndSelect('a.session', 'session')
       .where('a.student_id = :studentId', { studentId })
       .andWhere('a.date >= :from', { from: rangeFrom })
       .andWhere('a.date <= :to', { to: rangeTo });
@@ -363,8 +263,8 @@ export class AttendanceService {
         id: row.id,
         source: 'class',
         date: row.date,
-        startTime: row.session?.startTime ?? null,
-        endTime: row.session?.endTime ?? null,
+        startTime: null,
+        endTime: null,
         classId: row.classId,
         className: row.class?.name ?? null,
         status: row.status,

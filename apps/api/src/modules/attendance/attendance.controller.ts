@@ -24,7 +24,7 @@ import {
 /**
  * Admin-only attendance endpoints.
  *
- *   GET  /api/attendance/classes/:classId/sessions?date=  — sessions on that date
+ *   GET  /api/attendance/classes/:classId/sessions?date=  — legacy class sessions (empty)
  *   GET  /api/attendance/classes/:classId?date=           — full attendance data
  *   POST /api/attendance/classes/:classId                 — bulk upsert
  *   GET  /api/attendance/classes/:classId/summary         — stats summary

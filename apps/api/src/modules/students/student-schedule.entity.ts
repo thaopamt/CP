@@ -8,9 +8,7 @@ import { ClassEntity } from '../classes/class.entity';
 /**
  * Admin-managed custom schedule session for a student.
  *
- * When a student has at least one row here the system uses these sessions
- * as the student's effective schedule. Otherwise the schedule is the merge
- * of all class sessions from the student's active enrollments.
+ * These rows are the source of truth for a student's effective schedule.
  */
 @Entity({ name: 'student_schedules' })
 export class StudentSchedule extends BaseEntity {

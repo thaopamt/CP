@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { User } from '../users/user.entity';
 import { ClassEntity } from '../classes/class.entity';
-import { ClassSession } from '../classes/class-session.entity';
 import { Enrollment } from '../classes/enrollment.entity';
 import { StudentProfile } from './student-profile.entity';
 import { Guardian } from './guardian.entity';
@@ -22,7 +21,6 @@ import { StudentScheduleService } from './student-schedule.service';
       User,
       StudentSchedule,
       ClassEntity,
-      ClassSession,
       Enrollment,
     ]),
   ],

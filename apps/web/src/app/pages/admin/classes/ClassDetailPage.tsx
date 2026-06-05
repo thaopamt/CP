@@ -17,9 +17,7 @@ import {
 } from '@cp/ui';
 import {
   ClassStatus,
-  DayOfWeek,
   IClassEnrollment,
-  IClassMeeting,
   PaymentStatus,
   IClassCourseLink,
 } from '@cp/shared';
@@ -36,7 +34,7 @@ import { RemoveStudentModal } from './RemoveStudentModal';
 import { CoursePickerDialog } from './ClassCurriculumPage';
 import { useToast } from '@cp/ui';
 
-type Tab = 'courses' | 'roster' | 'schedule' | 'activity';
+type Tab = 'courses' | 'roster' | 'activity';
 
 export default function ClassDetailPage() {
   const { t } = useTranslation();
@@ -89,24 +87,10 @@ export default function ClassDetailPage() {
     }
   };
 
-  const dayLabel = (d: DayOfWeek) => t(`enums.dayOfWeek.${d}`);
   const initials = (name: string) =>
     name.split(' ').slice(0, 2).map((p) => p[0]).join('').toUpperCase();
-  const formatTime = (timeStr?: string) => timeStr ? timeStr.split(':').slice(0, 2).join(':') : '';
 
   const cls = classQuery.data;
-
-  // ── Hooks MUST be called unconditionally (Rules of Hooks) ────────────
-  const scheduleByDay = useMemo(() => {
-    if (!cls) return new Map<DayOfWeek, IClassMeeting[]>();
-    const out = new Map<DayOfWeek, IClassMeeting[]>();
-    for (const s of cls.sessions) {
-      const arr = out.get(s.dayOfWeek) ?? [];
-      arr.push(s);
-      out.set(s.dayOfWeek, arr);
-    }
-    return out;
-  }, [cls]);
 
   const activity: TimelineItem[] = useMemo(() => {
     if (!cls || cls.enrolledCount === 0) return [];
@@ -227,7 +211,6 @@ export default function ClassDetailPage() {
   const roster = rosterQuery.data ?? [];
   const classCourses = (coursesQuery.data ?? []).slice().sort((a, b) => a.order - b.order);
   const seatsAvailable = Math.max(0, cls.capacity - cls.enrolledCount);
-  const nextSession = cls.sessions[0];
 
   function moveCourseUp(idx: number) {
     if (idx <= 0) return;
@@ -286,7 +269,7 @@ export default function ClassDetailPage() {
         }
       />
 
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-md">
+      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-md">
         <KpiCard
           icon="check_circle"
           iconColor="text-tertiary"
@@ -301,17 +284,6 @@ export default function ClassDetailPage() {
           value={`${cls.enrolledCount} / ${cls.capacity}`}
           caption={t('pages.admin.classes.detail.kpi.seatsAvailable', { count: seatsAvailable })}
         />
-        <KpiCard
-          icon="event"
-          iconColor="text-secondary"
-          label={t('pages.admin.classes.detail.kpi.nextSession')}
-          value={nextSession ? `${dayLabel(nextSession.dayOfWeek)} · ${formatTime(nextSession.startTime)}` : '—'}
-          caption={t('pages.admin.classes.detail.kpi.nextSessionAt', {
-            when: nextSession ? `${dayLabel(nextSession.dayOfWeek)} ${formatTime(nextSession.startTime)}` : '—',
-
-          })}
-          highlight
-        />
 
       </section>
 
@@ -323,7 +295,6 @@ export default function ClassDetailPage() {
             options={[
               { value: 'courses', label: t('pages.admin.classes.detail.tabs.courses'), count: classCourses.length },
               { value: 'roster', label: t('pages.admin.classes.detail.tabs.roster'), count: cls.enrolledCount },
-              { value: 'schedule', label: t('pages.admin.classes.detail.tabs.schedule'), count: cls.sessions.length },
               { value: 'activity', label: t('pages.admin.classes.detail.tabs.activity') },
             ]}
             className="mb-md"
@@ -421,40 +392,6 @@ export default function ClassDetailPage() {
                 </span>
               }
             />
-          </div>
-        )}
-
-        {tab === 'schedule' && (
-          <div className="p-md md:p-lg">
-            {cls.sessions.length === 0 ? (
-              <p className="text-label-sm text-on-surface-variant text-center py-xl">
-                {t('pages.admin.classes.detail.schedule.empty')}
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-7 gap-sm">
-                {(Object.values(DayOfWeek) as DayOfWeek[]).map((d) => {
-                  const sessions = scheduleByDay.get(d) ?? [];
-                  return (
-                    <div key={d} className="bg-surface-container-low rounded-lg p-sm min-h-[140px]">
-                      <div className="text-label-sm font-bold text-on-surface mb-sm">{dayLabel(d)}</div>
-                      <div className="flex flex-col gap-xs">
-                        {sessions.map((s) => (
-                          <div
-                            key={s.id}
-                            className="rounded-md bg-primary-container/30 border-l-4 border-primary px-sm py-xs"
-                          >
-                            <div className="text-[12px] text-on-surface font-semibold">
-                              {formatTime(s.startTime)}–{formatTime(s.endTime)}
-                            </div>
-
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
         )}
 

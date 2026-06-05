@@ -5,7 +5,6 @@ import { join } from 'node:path';
 
 import { User } from '../modules/users/user.entity';
 import { ClassEntity } from '../modules/classes/class.entity';
-import { ClassSession } from '../modules/classes/class-session.entity';
 import { Enrollment } from '../modules/classes/enrollment.entity';
 import { StudentProfile } from '../modules/students/student-profile.entity';
 import { Guardian } from '../modules/students/guardian.entity';
@@ -46,7 +45,6 @@ export const AppDataSource = new DataSource({
   entities: [
     User,
     ClassEntity,
-    ClassSession,
     Enrollment,
     StudentProfile,
     Guardian,
