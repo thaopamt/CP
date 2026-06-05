@@ -25,6 +25,7 @@ export const curriculumKeys = {
     list: (params: AssignmentsListParams) => ['assignments', 'list', params] as const,
     detail: (id: string) => ['assignments', 'detail', id] as const,
     implicitClasses: (id: string) => ['assignments', 'implicit-classes', id] as const,
+    testcaseManifest: (id: string) => ['assignments', 'testcases', 'manifest', id] as const,
   },
   courses: {
     list: (params: CoursesListParams) => ['courses', 'list', params] as const,
@@ -61,6 +62,14 @@ export function useImplicitClasses(id: string | undefined) {
   });
 }
 
+export function useAssignmentTestcaseManifest(id: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: id ? curriculumKeys.assignments.testcaseManifest(id) : ['assignments', 'testcases', 'manifest', 'noop'],
+    queryFn: () => assignmentsApi.getTestcaseManifest(id as string),
+    enabled: !!id && enabled,
+  });
+}
+
 export function useCreateAssignment() {
   const qc = useQueryClient();
   return useMutation({
@@ -77,6 +86,7 @@ export function useUpdateAssignment(id: string) {
     mutationFn: (patch: Partial<ICreateAssignmentDefPayload>) => assignmentsApi.update(id, patch),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: curriculumKeys.assignments.detail(id) });
+      void qc.invalidateQueries({ queryKey: curriculumKeys.assignments.testcaseManifest(id) });
       void qc.invalidateQueries({ queryKey: ['assignments', 'list'] });
     },
   });

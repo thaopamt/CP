@@ -20,6 +20,7 @@ import {
   IAssignment,
   AssignmentTab,
   IFeedback,
+  IHiddenTestcaseFilePair,
 } from '@cp/shared';
 
 import { apiClient } from '../lib/api-client';
@@ -236,10 +237,13 @@ export const assignmentsApi = {
   },
 
   /** Upload a ZIP of `.inp`/`.out` files as the hidden grading test cases. */
-  async uploadTestcases(id: string, file: File): Promise<{ hiddenTestCount: number }> {
+  async uploadTestcases(
+    id: string,
+    file: File,
+  ): Promise<{ hiddenTestCount: number; testcases: IHiddenTestcaseFilePair[] }> {
     const form = new FormData();
     form.append('file', file);
-    const { data } = await apiClient.post<{ hiddenTestCount: number }>(
+    const { data } = await apiClient.post<{ hiddenTestCount: number; testcases: IHiddenTestcaseFilePair[] }>(
       `/assignments/${id}/testcases`,
       form,
     );
@@ -258,6 +262,14 @@ export const assignmentsApi = {
   async getTestcases(id: string): Promise<{ input: string; output: string }[]> {
     const { data } = await apiClient.get<{ input: string; output: string }[]>(
       `/assignments/${id}/testcases`,
+    );
+    return data;
+  },
+
+  /** Read hidden grading test case file names for admin display. */
+  async getTestcaseManifest(id: string): Promise<IHiddenTestcaseFilePair[]> {
+    const { data } = await apiClient.get<IHiddenTestcaseFilePair[]>(
+      `/assignments/${id}/testcases/manifest`,
     );
     return data;
   },

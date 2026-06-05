@@ -6,7 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-import { useAssignment, useDeleteAssignment } from '../../../api/curriculum.queries';
+import { useAssignment, useAssignmentTestcaseManifest, useDeleteAssignment } from '../../../api/curriculum.queries';
 import { useToast, useConfirm } from '@cp/ui';
 
 const DIFFICULTY_TONE: Record<'EASY' | 'MEDIUM' | 'HARD', 'success' | 'warning' | 'error'> = {
@@ -22,6 +22,8 @@ export default function AssignmentDetailPage() {
   const { t } = useTranslation();
 
   const { data: assignment, isLoading, isError, error } = useAssignment(id);
+  const hiddenTestCount = assignment?.codingConfig?.hiddenTestCount || 0;
+  const { data: hiddenTestcaseFiles = [] } = useAssignmentTestcaseManifest(id, hiddenTestCount > 0);
   const deleteAssignment = useDeleteAssignment();
   const confirm = useConfirm();
 
@@ -220,8 +222,38 @@ export default function AssignmentDetailPage() {
                   </div>
                   <div className="bg-surface-container-low p-sm rounded-lg border border-outline-variant/50">
                     <span className="block text-xs text-on-surface-variant mb-1">Hidden Tests</span>
-                    <span className="block font-mono text-sm text-on-surface">{(assignment.codingConfig.testCases?.filter(t => t.isHidden).length || 0) + (assignment.codingConfig.hiddenTestCount || 0)} files</span>
+                    <span className="block font-mono text-sm text-on-surface">{(assignment.codingConfig.testCases?.filter(t => t.isHidden).length || 0) + hiddenTestCount} files</span>
                   </div>
+                </div>
+              </section>
+            )}
+
+            {hiddenTestcaseFiles.length > 0 && (
+              <section className="bg-surface-container-lowest rounded-xl border border-outline-variant p-lg shadow-sm">
+                <h3 className="font-student-card-title text-student-card-title text-on-surface mb-md flex items-center gap-sm">
+                  <Icon name="database" className="text-primary" />
+                  Hidden Testcases
+                </h3>
+                <div className="mb-sm text-sm font-medium text-on-surface">
+                  {hiddenTestcaseFiles.length} testcase{hiddenTestcaseFiles.length === 1 ? '' : 's'}
+                </div>
+                <div className="max-h-72 overflow-auto rounded-lg border border-outline-variant">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-surface-container-low text-on-surface-variant">
+                      <tr>
+                        <th className="px-md py-sm text-left font-label-sm">Input</th>
+                        <th className="px-md py-sm text-left font-label-sm">Output</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/60 bg-surface-container-lowest">
+                      {hiddenTestcaseFiles.map((tc, idx) => (
+                        <tr key={`${tc.inputFile}-${idx}`}>
+                          <td className="px-md py-sm font-mono text-xs text-on-surface">{tc.inputFile}</td>
+                          <td className="px-md py-sm font-mono text-xs text-on-surface">{tc.outputFile || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </section>
             )}

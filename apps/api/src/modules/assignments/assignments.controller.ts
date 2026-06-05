@@ -123,12 +123,12 @@ export class AssignmentsController implements CrudController<Assignment> {
   async uploadTestcases(
     @Param('id', new ParseUUIDPipe()) id: string,
     @UploadedFile() file: { buffer: Buffer; originalname?: string } | undefined,
-  ): Promise<{ hiddenTestCount: number }> {
+  ): Promise<{ hiddenTestCount: number; testcases: { inputFile: string; outputFile: string }[] }> {
     if (!file?.buffer?.length) {
       throw new BadRequestException('No ZIP file uploaded');
     }
-    const assignment = await this.service.uploadHiddenTestcases(id, file.buffer);
-    return { hiddenTestCount: assignment.codingConfig?.hiddenTestCount ?? 0 };
+    const { assignment, testcases } = await this.service.uploadHiddenTestcases(id, file.buffer);
+    return { hiddenTestCount: assignment.codingConfig?.hiddenTestCount ?? 0, testcases };
   }
 
   @Roles(UserRole.ADMIN)
@@ -138,6 +138,14 @@ export class AssignmentsController implements CrudController<Assignment> {
   ): Promise<{ hiddenTestCount: number }> {
     await this.service.clearHiddenTestcases(id);
     return { hiddenTestCount: 0 };
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Get(':id/testcases/manifest')
+  async getTestcaseManifest(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<{ inputFile: string; outputFile: string }[]> {
+    return this.service.getHiddenTestcaseManifest(id);
   }
 
   /**

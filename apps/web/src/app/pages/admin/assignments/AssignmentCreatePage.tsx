@@ -4,11 +4,44 @@ import { useToast } from '@cp/ui';
 import { useCreateAssignment } from '../../../api/curriculum.queries';
 import { assignmentsApi } from '../../../api/curriculum.api';
 import { useClassesList } from '../../../api/class.queries';
-import { PublishStatus, ICodingTestCase } from '@cp/shared';
+import { PublishStatus, ICodingTestCase, IHiddenTestcaseFilePair } from '@cp/shared';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import JSZip from 'jszip';
 import 'katex/dist/katex.min.css';
+
+async function readTestcaseManifestFromZip(file: File): Promise<IHiddenTestcaseFilePair[]> {
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const fileMap = new Map<string, { inputFile?: string; outputFile?: string }>();
+
+  for (const [zipPath, entry] of Object.entries(zip.files)) {
+    if (entry.dir) continue;
+    const filename = zipPath.split('/').pop() || '';
+    const match =
+      filename.match(/^(?:input|test)?(\d+)\.(?:inp|in|txt)$/i) ||
+      filename.match(/^(?:output|ans)?(\d+)\.(?:out|ans|txt)$/i);
+    if (!match) continue;
+
+    const num = match[1];
+    const isInput =
+      /\.(inp|in)$/i.test(filename) || /^input/i.test(filename) || /^test.*\.in$/i.test(filename);
+    const isOutput =
+      /\.(out|ans)$/i.test(filename) || /^output/i.test(filename) || /^ans/i.test(filename);
+
+    if (!fileMap.has(num)) fileMap.set(num, {});
+    if (isInput) fileMap.get(num)!.inputFile = filename;
+    else if (isOutput) fileMap.get(num)!.outputFile = filename;
+  }
+
+  return Array.from(fileMap.entries())
+    .sort(([a], [b]) => parseInt(a, 10) - parseInt(b, 10))
+    .filter(([, value]) => value.inputFile)
+    .map(([num, value]) => ({
+      inputFile: value.inputFile ?? `${num}.inp`,
+      outputFile: value.outputFile ?? `${num}.out`,
+    }));
+}
 
 export default function AssignmentCreatePage() {
   const navigate = useNavigate();
@@ -45,28 +78,35 @@ export default function AssignmentCreatePage() {
   // assignment is created — they are stored on disk, not in the DB. We stage the
   // file here and upload it on publish.
   const [hiddenZipFile, setHiddenZipFile] = useState<File | null>(null);
+  const [hiddenTestcaseFiles, setHiddenTestcaseFiles] = useState<IHiddenTestcaseFilePair[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
-  const stageZipFile = useCallback((file: File) => {
+  const stageZipFile = useCallback(async (file: File) => {
     if (!(file.name.endsWith('.zip') || file.type === 'application/zip')) {
       toast.error('Please choose a .zip file');
       return;
     }
-    setHiddenZipFile(file);
-    toast.success(`"${file.name}" ready — it will be uploaded on publish`);
+    try {
+      const testcases = await readTestcaseManifestFromZip(file);
+      setHiddenZipFile(file);
+      setHiddenTestcaseFiles(testcases);
+      toast.success(`"${file.name}" ready with ${testcases.length} hidden grading test case${testcases.length === 1 ? '' : 's'}`);
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to read ZIP file');
+    }
   }, [toast]);
 
   const handleZipDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files[0];
-    if (file) stageZipFile(file);
+    if (file) void stageZipFile(file);
   }, [stageZipFile]);
 
   const handleZipSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) stageZipFile(file);
+    if (file) void stageZipFile(file);
     e.target.value = ''; // reset so same file can be re-selected
   }, [stageZipFile]);
 
@@ -125,7 +165,8 @@ export default function AssignmentCreatePage() {
 
       // Upload the hidden grading test cases (stored on disk) if provided.
       if (hiddenZipFile && created?.id) {
-        const { hiddenTestCount } = await assignmentsApi.uploadTestcases(created.id, hiddenZipFile);
+        const { hiddenTestCount, testcases } = await assignmentsApi.uploadTestcases(created.id, hiddenZipFile);
+        setHiddenTestcaseFiles(testcases);
         toast.success(`Uploaded ${hiddenTestCount} hidden grading test case${hiddenTestCount === 1 ? '' : 's'}`);
       }
 
@@ -434,12 +475,44 @@ export default function AssignmentCreatePage() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => setHiddenZipFile(null)}
+                        onClick={() => {
+                          setHiddenZipFile(null);
+                          setHiddenTestcaseFiles([]);
+                        }}
                         className="text-error hover:bg-error-container p-1 rounded transition-colors text-xs flex items-center gap-1 shrink-0"
                       >
                         <span className="material-symbols-outlined text-sm">delete</span>
                         Remove
                       </button>
+                    </div>
+                  )}
+
+                  {hiddenTestcaseFiles.length > 0 && (
+                    <div className="mt-md overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest">
+                      <div className="flex items-center justify-between gap-sm border-b border-outline-variant px-md py-sm">
+                        <span className="font-label-sm text-on-surface font-bold">
+                          {hiddenTestcaseFiles.length} testcase{hiddenTestcaseFiles.length === 1 ? '' : 's'}
+                        </span>
+                        <span className="text-xs text-on-surface-variant">Preview from ZIP</span>
+                      </div>
+                      <div className="max-h-64 overflow-auto">
+                        <table className="w-full text-sm">
+                          <thead className="sticky top-0 bg-surface-container-low text-on-surface-variant">
+                            <tr>
+                              <th className="px-md py-sm text-left font-label-sm">Input</th>
+                              <th className="px-md py-sm text-left font-label-sm">Output</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-outline-variant/60">
+                            {hiddenTestcaseFiles.map((tc, idx) => (
+                              <tr key={`${tc.inputFile}-${idx}`}>
+                                <td className="px-md py-sm font-mono text-xs text-on-surface">{tc.inputFile}</td>
+                                <td className="px-md py-sm font-mono text-xs text-on-surface">{tc.outputFile || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </div>

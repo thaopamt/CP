@@ -756,10 +756,10 @@ export default function StudentAssignmentDetailPage() {
                             {/* Test case details (only for non-hidden) */}
                             {!hideDetails && !isAccepted && (
                               <div className="mt-2 space-y-2">
-                                {tc?.input && (
+                                {(tr.input || tc?.input) && (
                                   <div>
                                     <span className="text-[10px] text-gray-500 font-semibold uppercase">Input:</span>
-                                    <pre className="text-[11px] font-mono text-gray-400 mt-0.5 whitespace-pre-wrap bg-[#0d0d1a] rounded px-2 py-1 max-h-[80px] overflow-auto">{tc.input}</pre>
+                                    <pre className="text-[11px] font-mono text-gray-400 mt-0.5 whitespace-pre-wrap bg-[#0d0d1a] rounded px-2 py-1 max-h-[80px] overflow-auto">{tr.input || tc?.input}</pre>
                                   </div>
                                 )}
                                 {tr.expectedOutput && (

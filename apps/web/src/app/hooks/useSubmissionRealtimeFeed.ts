@@ -50,7 +50,11 @@ export function useSubmissionRealtimeFeed() {
   return { isConnected };
 }
 
-function applySubmissionEvent(queryClient: QueryClient, payload: ISubmissionRealtimeEvent, userId: string) {
+function applySubmissionEvent(
+  queryClient: QueryClient,
+  payload: ISubmissionRealtimeEvent,
+  userId: string,
+) {
   const submission = payload.submission as SubmissionRow;
 
   // setQueriesData matches by key prefix, so it updates every cached page/filter

@@ -89,6 +89,9 @@ export class SubmissionTestResult {
   })
   status!: SubmissionStatus;
 
+  @Column({ type: 'text', nullable: true })
+  input!: string | null;
+
   @Column({ type: 'text' })
   expectedOutput!: string;
 

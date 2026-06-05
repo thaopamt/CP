@@ -52,6 +52,7 @@ export interface ISubmissionTestResult {
   submissionId: string;
   testCaseIndex: number;
   status: SubmissionStatus;
+  input?: string | null;
   expectedOutput: string;
   actualOutput: string;
   executionTimeMs?: number;
@@ -78,6 +79,7 @@ export interface ISubmission {
 export interface ISubmissionRealtimeTestResult extends Partial<Pick<ISubmissionTestResult, 'id' | 'submissionId'>> {
   testCaseIndex: number;
   status: SubmissionStatus;
+  input?: string | null;
   expectedOutput: string;
   actualOutput: string;
   executionTimeMs?: number | null;

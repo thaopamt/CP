@@ -27,6 +27,11 @@ export interface ICodingTestCase {
   isHidden: boolean;
 }
 
+export interface IHiddenTestcaseFilePair {
+  inputFile: string;
+  outputFile: string;
+}
+
 export interface ICodingConfig {
   /** Seconds, as entered in the admin UI. */
   timeLimit?: number;

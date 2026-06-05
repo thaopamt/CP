@@ -197,6 +197,7 @@ export class ExecutionService {
       const testResult: ISubmissionRealtimeTestResult = {
         testCaseIndex: 0,
         status,
+        input: '',
         expectedOutput: '(no test cases)',
         actualOutput: res.run.stdout || res.run.stderr || '',
         errorMessage: res.compile?.stderr || res.run.stderr || null,
@@ -297,6 +298,7 @@ export class ExecutionService {
       const testResult: ISubmissionRealtimeTestResult = {
         testCaseIndex: i,
         status,
+        input: tcInput,
         expectedOutput: tcOutput,
         actualOutput,
         errorMessage: errorMsg || null,

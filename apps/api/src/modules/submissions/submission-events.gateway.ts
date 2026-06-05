@@ -15,6 +15,7 @@ import { User } from '../users/user.entity';
 import { UsersService } from '../users/users.service';
 
 const SUBMISSIONS_FEED_ROOM = 'submissions:feed';
+const SUBMISSIONS_REDACTED_FEED_ROOM = 'submissions:feed:redacted';
 
 type AuthenticatedSocket = Socket & {
   data: {
@@ -55,7 +56,11 @@ export class SubmissionEventsGateway implements OnGatewayConnection, OnGatewayDi
   @SubscribeMessage('submissions:join')
   async handleJoin(@ConnectedSocket() client: AuthenticatedSocket) {
     const user = await this.requireSocketUser(client);
-    client.join(SUBMISSIONS_FEED_ROOM);
+    if (user.role === 'ADMIN' || user.role === 'TEACHER') {
+      client.join(SUBMISSIONS_FEED_ROOM);
+    } else {
+      client.join(SUBMISSIONS_REDACTED_FEED_ROOM);
+    }
     client.join(this.userRoom(user.id));
     client.emit('submissions:joined', { scope: 'all' });
   }
@@ -63,6 +68,16 @@ export class SubmissionEventsGateway implements OnGatewayConnection, OnGatewayDi
   publishSubmissionEvent(payload: ISubmissionRealtimeEvent) {
     if (!this.server) return;
     this.server.to(SUBMISSIONS_FEED_ROOM).emit('submissions:changed', payload);
+  }
+
+  publishUserSubmissionEvent(userId: string, payload: ISubmissionRealtimeEvent) {
+    if (!this.server) return;
+    this.server.to(this.userRoom(userId)).emit('submissions:changed', payload);
+  }
+
+  publishRedactedSubmissionEvent(payload: ISubmissionRealtimeEvent) {
+    if (!this.server) return;
+    this.server.to(SUBMISSIONS_REDACTED_FEED_ROOM).emit('submissions:changed', payload);
   }
 
   private extractToken(client: Socket): string | null {

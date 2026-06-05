@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon, Pagination } from '@cp/ui';
 import { SubmissionStatus, UserRole } from '@cp/shared';
-import { useAllMySubmissions, useAllSubmissions } from '../../api/submissions.queries';
+import { useAllSubmissions } from '../../api/submissions.queries';
 import { useAuthStore } from '../../stores/auth.store';
 import { useSubmissionRealtimeFeed } from '../../hooks/useSubmissionRealtimeFeed';
 
@@ -161,11 +161,9 @@ export default function SubmissionsPage() {
     status: statusFilter,
     language: langFilter,
   };
-  // Students hit /my; admins & teachers hit /all. Only the relevant query runs.
-  const myQuery = useAllMySubmissions(params, !isAdminOrTeacher);
-  const allQuery = useAllSubmissions(params, isAdminOrTeacher);
-  const result = isAdminOrTeacher ? allQuery.data : myQuery.data;
-  const isLoading = isAdminOrTeacher ? allQuery.isLoading : myQuery.isLoading;
+  const allQuery = useAllSubmissions(params);
+  const result = allQuery.data;
+  const isLoading = allQuery.isLoading;
   const { isConnected: realtimeConnected } = useSubmissionRealtimeFeed();
 
   const submissions = result?.data ?? [];
@@ -371,6 +369,7 @@ export default function SubmissionsPage() {
         <SubmissionModal
           sub={selectedSub}
           portalPrefix={portalPrefix}
+          canViewHiddenByRole={isAdminOrTeacher}
           onClose={() => setSelectedSubId(null)}
           onNavigate={(assignmentId: string, submissionCode?: string, submissionLang?: string) => navigate(`${portalPrefix}/assignments/${assignmentId}`, { state: { submissionCode, submissionLang } })}
         />
@@ -382,11 +381,13 @@ export default function SubmissionsPage() {
 function SubmissionModal({
   sub,
   portalPrefix,
+  canViewHiddenByRole,
   onClose,
   onNavigate,
 }: {
   sub: any;
   portalPrefix: string;
+  canViewHiddenByRole: boolean;
   onClose: () => void;
   onNavigate: (assignmentId: string, code?: string, lang?: string) => void;
 }) {
@@ -509,10 +510,13 @@ function SubmissionModal({
                 const isExpanded = expandedTests.has(idx);
                 
                 // Extract input and expected output (fallback to assignment config if missing)
-                const tcInput = sub.assignment?.codingConfig?.testCases?.[tr.testCaseIndex]?.input;
-                const tcExpected = tr.expectedOutput
-                  || sub.assignment?.codingConfig?.testCases?.[tr.testCaseIndex]?.expectedOutput
-                  || sub.assignment?.codingConfig?.testCases?.[tr.testCaseIndex]?.output;
+                const inlineCases = sub.assignment?.codingConfig?.testCases ?? [];
+                const tc = inlineCases[tr.testCaseIndex];
+                const isHidden = tr.testCaseIndex >= inlineCases.length || !!tc?.isHidden;
+                const canViewHidden = canViewHiddenByRole || !!sub.assignment?.codingConfig?.allowViewHiddenTestCases;
+                const hideDetails = isHidden && !canViewHidden;
+                const tcInput = hideDetails ? null : tr.input ?? tc?.input;
+                const tcExpected = hideDetails ? null : tr.expectedOutput || tc?.expectedOutput || tc?.output;
 
                 // Only render a short preview of potentially huge payloads.
                 const inputPv = previewText(tcInput);
@@ -533,7 +537,7 @@ function SubmissionModal({
 
                       {/* Test info */}
                       <span className="text-label-sm text-on-surface font-medium flex-1">
-                        Test #{tr.testCaseIndex + 1}
+                        Test #{tr.testCaseIndex + 1}{hideDetails ? ' (Hidden)' : ''}
                       </span>
 
                       {/* Status badge */}
@@ -557,24 +561,29 @@ function SubmissionModal({
                     {/* Expanded detail */}
                     {isExpanded && (
                       <div className="px-sm py-sm space-y-sm bg-surface-container-lowest border-t border-outline-variant/30">
+                        {hideDetails && (
+                          <div className="rounded-lg bg-surface-container-highest px-sm py-sm text-[11px] text-on-surface-variant">
+                            Hidden testcase details are not viewable for this assignment.
+                          </div>
+                        )}
                         {/* Input */}
-                        <div>
+                        {!hideDetails && <div>
                           <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Input</span>
                           <pre className="mt-0.5 text-[11px] font-mono text-on-surface bg-surface-container-highest rounded-lg px-sm py-xs max-h-[100px] overflow-auto whitespace-pre-wrap break-all">
                             {inputPv.text || '(empty)'}{inputPv.truncated && <span className="text-on-surface-variant"> … (đã rút gọn)</span>}
                           </pre>
-                        </div>
+                        </div>}
 
                         {/* Expected Output */}
-                        <div>
+                        {!hideDetails && <div>
                           <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Expected Output</span>
                           <pre className="mt-0.5 text-[11px] font-mono text-on-surface bg-surface-container-highest rounded-lg px-sm py-xs max-h-[100px] overflow-auto whitespace-pre-wrap break-all">
                             {expectedPv.text || '(empty)'}{expectedPv.truncated && <span className="text-on-surface-variant"> … (đã rút gọn)</span>}
                           </pre>
-                        </div>
+                        </div>}
 
                         {/* Actual Output */}
-                        <div>
+                        {!hideDetails && <div>
                           <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Your Output</span>
                           <pre className={`mt-0.5 text-[11px] font-mono rounded-lg px-sm py-xs max-h-[100px] overflow-auto whitespace-pre-wrap break-all ${
                             runningTest || tr.isPlaceholder
@@ -594,7 +603,7 @@ function SubmissionModal({
                                   </>
                                 )}
                           </pre>
-                        </div>
+                        </div>}
 
                         {/* Error message if any */}
                         {tr.errorMessage && (

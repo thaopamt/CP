@@ -5,7 +5,7 @@ import { Repository, Brackets } from 'typeorm';
 
 import { Assignment } from './assignment.entity';
 import { CreateAssignmentDto, UpdateAssignmentDto } from './dto/create-assignment.dto';
-import { TestcaseStorageService } from '../testcases/testcase-storage.service';
+import { ITestcaseFilePair, TestcaseStorageService } from '../testcases/testcase-storage.service';
 
 @Injectable()
 export class AssignmentsService extends TypeOrmCrudService<Assignment> {
@@ -47,11 +47,14 @@ export class AssignmentsService extends TypeOrmCrudService<Assignment> {
    * persist the resulting count into its codingConfig. Content lives on disk;
    * only the count is stored in the DB.
    */
-  async uploadHiddenTestcases(id: string, zipBuffer: Buffer): Promise<Assignment> {
+  async uploadHiddenTestcases(
+    id: string,
+    zipBuffer: Buffer,
+  ): Promise<{ assignment: Assignment; testcases: ITestcaseFilePair[] }> {
     const assignment = await this.getById(id);
-    const count = await this.testcaseStorage.replaceFromZip(id, zipBuffer);
+    const { count, testcases } = await this.testcaseStorage.replaceFromZip(id, zipBuffer);
     assignment.codingConfig = { ...(assignment.codingConfig ?? {}), hiddenTestCount: count };
-    return this.assignments.save(assignment);
+    return { assignment: await this.assignments.save(assignment), testcases };
   }
 
   /** Remove all hidden grading test cases for an assignment. */
@@ -65,6 +68,10 @@ export class AssignmentsService extends TypeOrmCrudService<Assignment> {
   /** Read hidden grading test case contents (admin / allowed viewers only). */
   async getHiddenTestcases(id: string) {
     return this.testcaseStorage.readAll(id);
+  }
+
+  async getHiddenTestcaseManifest(id: string) {
+    return this.testcaseStorage.readManifest(id);
   }
 
   async getAssignmentsForStudent(

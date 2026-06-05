@@ -458,7 +458,7 @@ export default function StudentWorkspacePage() {
 
           return {
             status: tr.status === 'ACCEPTED' ? 'accepted' as const : tr.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const,
-            input: hideDetails ? 'Hidden Test Case' : tc?.input || 'Hidden Test Case',
+            input: hideDetails ? 'Hidden Test Case' : tr.input || tc?.input || 'Hidden Test Case',
             stdout: hideDetails ? '(Output hidden)' : tr.errorMessage || tr.actualOutput || 'No output',
             expected: hideDetails ? '(Hidden Expected)' : tr.expectedOutput || '',
           };
@@ -530,7 +530,7 @@ export default function StudentWorkspacePage() {
 
         return {
           status: tr.status === 'ACCEPTED' ? 'accepted' as const : tr.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const,
-          input: hideDetails ? 'Hidden Test Case' : tc?.input || 'Hidden Test Case',
+          input: hideDetails ? 'Hidden Test Case' : tr.input || tc?.input || 'Hidden Test Case',
           stdout: hideDetails ? '(Output hidden)' : tr.errorMessage || tr.actualOutput || 'No output',
           expected: hideDetails ? '(Hidden Expected)' : tr.expectedOutput || '',
         };

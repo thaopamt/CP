@@ -9,10 +9,12 @@ import { Submission, SubmissionTestResult } from './submission.entity';
 import { SubmissionEventsGateway } from './submission-events.gateway';
 import { Assignment } from '../assignments/assignment.entity';
 import { QuestsService } from '../quests/quests.service';
+import { TestcaseStorageService } from '../testcases/testcase-storage.service';
 import {
   ICodeExecutionRequest,
   IRealtimeSubmission,
   ISubmissionJudgeProgress,
+  ISubmissionRealtimeEvent,
   ISubmissionRealtimeTestResult,
   ISubmitCodePayload,
   SubmissionStatus,
@@ -32,6 +34,7 @@ export class SubmissionsController {
     private readonly testResultRepo: Repository<SubmissionTestResult>,
     private readonly questsService: QuestsService,
     private readonly submissionEvents: SubmissionEventsGateway,
+    private readonly testcaseStorage: TestcaseStorageService,
   ) {}
 
   @Post('run')
@@ -53,6 +56,7 @@ export class SubmissionsController {
   ) {
     return this.queryPaginated({
       userId: req.user.sub,
+      viewerRole: req.user.role,
       page: this.toInt(pageStr, 1),
       limit: this.toInt(limitStr, 20),
       search,
@@ -62,12 +66,14 @@ export class SubmissionsController {
   }
 
   /**
-   * Admin / Teacher: all students' submissions — paginated + filtered.
+   * All submissions across users. Students receive hidden testcase details
+   * redacted unless the assignment explicitly allows viewing hidden tests.
    */
   @Get('all')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT)
   async getAllSubmissions(
+    @Req() req: any,
     @Query('page') pageStr?: string,
     @Query('limit') limitStr?: string,
     @Query('search') search?: string,
@@ -75,6 +81,7 @@ export class SubmissionsController {
     @Query('language') language?: string,
   ) {
     return this.queryPaginated({
+      viewerRole: req.user.role,
       page: this.toInt(pageStr, 1),
       limit: this.toInt(limitStr, 20),
       search,
@@ -95,6 +102,7 @@ export class SubmissionsController {
    */
   private async queryPaginated(opts: {
     userId?: string;
+    viewerRole?: UserRole;
     page: number;
     limit: number;
     search?: string;
@@ -148,6 +156,8 @@ export class SubmissionsController {
         byId.set(tr.submissionId, list);
       }
       for (const r of rows) (r as any).testResults = byId.get(r.id) ?? [];
+      await Promise.all(rows.map((row) => this.hydrateMissingTestInputs(row)));
+      rows.forEach((row) => this.redactHiddenTestResultsForViewer(row, opts.viewerRole));
     }
 
     // Status distribution over the filtered scope (ignores status filter + paging).
@@ -186,8 +196,10 @@ export class SubmissionsController {
     const submissions = await this.submissionRepo.find({
       where: { userId, assignmentId },
       order: { createdAt: 'DESC' },
-      relations: ['testResults'],
+      relations: ['testResults', 'assignment'],
     });
+    await Promise.all(submissions.map((submission) => this.hydrateMissingTestInputs(submission)));
+    submissions.forEach((submission) => this.redactHiddenTestResultsForViewer(submission, req.user.role));
     return submissions;
   }
 
@@ -281,6 +293,7 @@ export class SubmissionsController {
         const trEntity = new SubmissionTestResult();
         trEntity.testCaseIndex = tr.testCaseIndex;
         trEntity.status = tr.status;
+        trEntity.input = tr.input ?? null;
         trEntity.expectedOutput = tr.expectedOutput;
         trEntity.actualOutput = tr.actualOutput;
         trEntity.errorMessage = tr.errorMessage;
@@ -310,6 +323,7 @@ export class SubmissionsController {
         });
       }
 
+      this.redactHiddenTestResultsForViewer(submission, req.user.role, assignment);
       return {
         submission,
         message: 'Submission graded successfully',
@@ -341,6 +355,7 @@ export class SubmissionsController {
       throw new NotFoundException('Submission not found');
     }
     submission.testResults = (submission.testResults ?? []).sort((a, b) => a.testCaseIndex - b.testCaseIndex);
+    await this.hydrateMissingTestInputs(submission);
     return submission;
   }
 
@@ -351,13 +366,22 @@ export class SubmissionsController {
     liveTestResults?: ISubmissionRealtimeTestResult[],
     testResult?: ISubmissionRealtimeTestResult,
   ) {
-    this.submissionEvents.publishSubmissionEvent({
+    const fullPayload: ISubmissionRealtimeEvent = {
       event,
       submission: this.serializeRealtimeSubmission(submission, progress, liveTestResults),
       testResult,
       currentTestCaseIndex: progress.currentTestCaseIndex,
       timestamp: new Date().toISOString(),
-    });
+    };
+    this.submissionEvents.publishSubmissionEvent(fullPayload);
+    const redactedPayload = this.redactHiddenRealtimeEventForViewer(fullPayload, UserRole.STUDENT);
+    this.submissionEvents.publishRedactedSubmissionEvent(redactedPayload);
+    if (submission.user?.role !== UserRole.ADMIN && submission.user?.role !== UserRole.TEACHER) {
+      this.submissionEvents.publishUserSubmissionEvent(
+        submission.userId,
+        redactedPayload,
+      );
+    }
   }
 
   private serializeRealtimeSubmission(
@@ -408,6 +432,7 @@ export class SubmissionsController {
       submissionId: tr.submissionId,
       testCaseIndex: tr.testCaseIndex,
       status: tr.status,
+      input: tr.input ?? null,
       expectedOutput: tr.expectedOutput,
       actualOutput: tr.actualOutput,
       executionTimeMs: tr.executionTimeMs ?? null,
@@ -417,8 +442,108 @@ export class SubmissionsController {
   }
 
   private getAssignmentTotalCount(assignment: Assignment): number {
-    const totalCount = assignment.codingConfig?.testCases?.length ?? 0;
+    const totalCount =
+      (assignment.codingConfig?.testCases?.length ?? 0) +
+      (assignment.codingConfig?.hiddenTestCount ?? 0);
     return totalCount > 0 ? totalCount : 1;
+  }
+
+  private async hydrateMissingTestInputs(submission: Submission): Promise<void> {
+    const testResults = submission.testResults ?? [];
+    if (!testResults.some((tr) => tr.input == null)) return;
+
+    let assignment: Assignment | undefined = submission.assignment;
+    if (!assignment) {
+      assignment = await this.assignmentRepo.findOne({ where: { id: submission.assignmentId } }) ?? undefined;
+    }
+    if (!assignment) return;
+
+    const inlineCases = assignment.codingConfig?.testCases ?? [];
+    await Promise.all(testResults.map(async (tr) => {
+      if (tr.input != null) return;
+      if (tr.testCaseIndex < inlineCases.length) {
+        tr.input = inlineCases[tr.testCaseIndex]?.input ?? '';
+        return;
+      }
+
+      const hiddenIndex = tr.testCaseIndex - inlineCases.length;
+      if (hiddenIndex < 0) {
+        tr.input = '';
+        return;
+      }
+
+      try {
+        const hidden = await this.testcaseStorage.readTestcase(assignment.id, hiddenIndex);
+        tr.input = hidden.input;
+      } catch {
+        tr.input = '';
+      }
+    }));
+  }
+
+  private redactHiddenTestResultsForViewer(
+    submission: Submission,
+    viewerRole?: UserRole,
+    assignment = submission.assignment,
+  ): void {
+    if (!assignment || this.canViewHiddenTestDetails(viewerRole, assignment)) return;
+
+    const inlineCases = assignment.codingConfig?.testCases ?? [];
+    for (const tr of submission.testResults ?? []) {
+      if (!this.isHiddenTestResult(assignment, tr.testCaseIndex, inlineCases)) continue;
+      tr.input = null;
+      tr.expectedOutput = '';
+      tr.actualOutput = '';
+      tr.errorMessage = null;
+    }
+  }
+
+  private redactHiddenRealtimeEventForViewer(
+    payload: ISubmissionRealtimeEvent,
+    viewerRole?: UserRole,
+  ): ISubmissionRealtimeEvent {
+    const assignment = {
+      id: payload.submission.assignmentId,
+      codingConfig: payload.submission.assignment?.codingConfig as Assignment['codingConfig'],
+    } as Assignment;
+    if (this.canViewHiddenTestDetails(viewerRole, assignment)) return payload;
+
+    const inlineCases = assignment.codingConfig?.testCases ?? [];
+    const redactTestResult = (tr: ISubmissionRealtimeTestResult): ISubmissionRealtimeTestResult => {
+      if (!this.isHiddenTestResult(assignment, tr.testCaseIndex, inlineCases)) return tr;
+      return {
+        ...tr,
+        input: null,
+        expectedOutput: '',
+        actualOutput: '',
+        errorMessage: null,
+      };
+    };
+
+    return {
+      ...payload,
+      submission: {
+        ...payload.submission,
+        testResults: payload.submission.testResults?.map(redactTestResult),
+      },
+      testResult: payload.testResult ? redactTestResult(payload.testResult) : undefined,
+    };
+  }
+
+  private canViewHiddenTestDetails(viewerRole: UserRole | undefined, assignment: Assignment): boolean {
+    return (
+      viewerRole === UserRole.ADMIN ||
+      viewerRole === UserRole.TEACHER ||
+      !!assignment.codingConfig?.allowViewHiddenTestCases
+    );
+  }
+
+  private isHiddenTestResult(
+    assignment: Assignment,
+    testCaseIndex: number,
+    inlineCases = assignment.codingConfig?.testCases ?? [],
+  ): boolean {
+    return testCaseIndex >= inlineCases.length || !!inlineCases[testCaseIndex]?.isHidden;
   }
 
   private toIso(value: Date | string): string {
