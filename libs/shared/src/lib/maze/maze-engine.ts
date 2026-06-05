@@ -20,6 +20,7 @@ import {
   MAZE_OP_LIMIT,
   SensorType,
   SimStep,
+  SimTraceEvent,
   SimulationResult,
 } from './maze.types';
 
@@ -80,6 +81,7 @@ export function simulate(
   const wallSet = new Set((grid.walls ?? []).map(key));
   const itemSet = new Set((grid.items ?? []).map(key));
   const steps: SimStep[] = [];
+  const trace: SimTraceEvent[] = [];
   const vars: Record<string, number> = {};
 
   let pos: Cell = { ...grid.start };
@@ -113,16 +115,39 @@ export function simulate(
     return { x, y };
   });
 
-  const pushStep = (action: SimStep['action'], crashed?: boolean) => {
+  const pushTraceFrame = (blockId?: string, crashed?: boolean) => {
+    if (!blockId) return;
+    trace.push({
+      index: trace.length,
+      pos: { ...pos },
+      dir,
+      blockId,
+      ...(crashed ? { crashed: true } : {}),
+      vars: snapshotVars(),
+      itemsLeft: itemsLeft(),
+    });
+  };
+
+  const pushTrace = (cmd: Command, crashed?: boolean) => {
+    pushTraceFrame(cmd.blockId, crashed);
+  };
+
+  const pushExprTrace = (expr: Expr) => {
+    pushTraceFrame(expr.blockId);
+  };
+
+  const pushStep = (action: SimStep['action'], cmd: Command, crashed?: boolean) => {
     steps.push({
       index: steps.length,
       pos: { ...pos },
       dir,
       action,
+      ...(cmd?.blockId ? { blockId: cmd.blockId } : {}),
       ...(crashed ? { crashed: true } : {}),
       vars: snapshotVars(),
       itemsLeft: itemsLeft(),
     });
+    pushTrace(cmd, crashed);
   };
 
   // ── Expression evaluation ────────────────────────────────────────────────
@@ -151,6 +176,7 @@ export function simulate(
   };
 
   const evalExpr = (e: Expr): number | boolean => {
+    pushExprTrace(e);
     switch (e.kind) {
       case 'num':
         return e.value;
@@ -221,29 +247,30 @@ export function simulate(
       switch (cmd.type) {
         case BlockType.TURN_LEFT:
           dir = rotate(dir, 'left');
-          pushStep('turnLeft');
+          pushStep('turnLeft', cmd);
           break;
         case BlockType.TURN_RIGHT:
           dir = rotate(dir, 'right');
-          pushStep('turnRight');
+          pushStep('turnRight', cmd);
           break;
         case BlockType.MOVE_FORWARD: {
           const next = cellAhead(dir);
           if (!inBounds(next)) {
             failReason = 'OUT_OF_BOUNDS';
-            pushStep('move', true);
+            pushStep('move', cmd, true);
             return 'abort';
           }
           if (wallSet.has(key(next))) {
             failReason = 'HIT_WALL';
-            pushStep('move', true);
+            pushStep('move', cmd, true);
             return 'abort';
           }
           pos = next;
-          pushStep('move');
+          pushStep('move', cmd);
           break;
         }
         case BlockType.REPEAT: {
+          pushTrace(cmd);
           const n = Math.trunc(evalNum(cmd.times));
           for (let i = 0; i < n; i++) {
             if (!charge()) return 'abort';
@@ -254,6 +281,7 @@ export function simulate(
           break;
         }
         case BlockType.FOREVER: {
+          pushTrace(cmd);
           // Terminates only via break, goal logic in the program, or the op budget.
           // eslint-disable-next-line no-constant-condition
           while (true) {
@@ -265,6 +293,7 @@ export function simulate(
           break;
         }
         case BlockType.WHILE: {
+          pushTrace(cmd);
           const wantTrue = cmd.mode === 'while';
           while (evalBool(cmd.cond) === wantTrue) {
             if (!charge()) return 'abort';
@@ -275,6 +304,7 @@ export function simulate(
           break;
         }
         case BlockType.IF: {
+          pushTrace(cmd);
           let taken = false;
           for (const br of cmd.branches) {
             if (evalBool(br.cond)) {
@@ -291,12 +321,15 @@ export function simulate(
           break;
         }
         case BlockType.BREAK:
+          pushTrace(cmd);
           return 'break';
         case 'var_set':
           vars[cmd.name] = num(evalExpr(cmd.value));
+          pushTrace(cmd);
           break;
         case 'var_change':
           vars[cmd.name] = (vars[cmd.name] ?? 0) + num(evalExpr(cmd.delta));
+          pushTrace(cmd);
           break;
       }
     }
@@ -308,6 +341,7 @@ export function simulate(
   return {
     reachedGoal: failReason === null && sameCell(pos, grid.goal),
     steps,
+    trace,
     blocksUsed: countBlocks(commands),
     failReason,
     finalPos: pos,

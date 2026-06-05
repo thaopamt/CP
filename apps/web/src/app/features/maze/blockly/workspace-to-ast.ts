@@ -47,32 +47,56 @@ function varName(block: Blockly.Block, ws: Blockly.Workspace, field = 'VAR'): st
   return v?.getName?.() ?? String(id ?? 'biến');
 }
 
+function withBlockId<T extends Command>(block: Blockly.Block, cmd: T): T {
+  return { ...cmd, blockId: block.id };
+}
+
+function withExprBlockId<T extends Expr>(block: Blockly.Block, expr: T): T {
+  return { ...expr, blockId: block.id };
+}
+
 function blockToCommand(block: Blockly.Block, ws: Blockly.Workspace): Command | null {
   switch (block.type) {
     case 'maze_move_forward':
-      return { type: BlockType.MOVE_FORWARD };
+      return withBlockId(block, { type: BlockType.MOVE_FORWARD });
     case 'maze_turn_left':
-      return { type: BlockType.TURN_LEFT };
+      return withBlockId(block, { type: BlockType.TURN_LEFT });
     case 'maze_turn_right':
-      return { type: BlockType.TURN_RIGHT };
+      return withBlockId(block, { type: BlockType.TURN_RIGHT });
 
     case 'controls_repeat_ext': {
       const timesExpr = parseExpr(block.getInputTargetBlock('TIMES'), ws);
       const times = timesExpr && timesExpr.kind === 'num' ? timesExpr.value : (timesExpr ?? 0);
-      return { type: BlockType.REPEAT, times, body: walkChain(block.getInputTargetBlock('DO'), ws) };
+      return withBlockId(block, {
+        type: BlockType.REPEAT,
+        times,
+        body: walkChain(block.getInputTargetBlock('DO'), ws),
+      });
     }
     case 'controls_repeat': {
       // Internal-field variant.
       const times = Number(block.getFieldValue('TIMES')) || 0;
-      return { type: BlockType.REPEAT, times, body: walkChain(block.getInputTargetBlock('DO'), ws) };
+      return withBlockId(block, {
+        type: BlockType.REPEAT,
+        times,
+        body: walkChain(block.getInputTargetBlock('DO'), ws),
+      });
     }
     case 'maze_forever':
-      return { type: BlockType.FOREVER, body: walkChain(block.getInputTargetBlock('DO'), ws) };
+      return withBlockId(block, {
+        type: BlockType.FOREVER,
+        body: walkChain(block.getInputTargetBlock('DO'), ws),
+      });
 
     case 'controls_whileUntil': {
       const mode = block.getFieldValue('MODE') === 'UNTIL' ? 'until' : 'while';
       const cond = parseExpr(block.getInputTargetBlock('BOOL'), ws) ?? { kind: 'bool', value: false };
-      return { type: BlockType.WHILE, mode, cond, body: walkChain(block.getInputTargetBlock('DO'), ws) };
+      return withBlockId(block, {
+        type: BlockType.WHILE,
+        mode,
+        cond,
+        body: walkChain(block.getInputTargetBlock('DO'), ws),
+      });
     }
 
     case 'controls_if': {
@@ -84,25 +108,29 @@ function blockToCommand(block: Blockly.Block, ws: Blockly.Workspace): Command | 
         i++;
       }
       const elseBody = block.getInput('ELSE') ? walkChain(block.getInputTargetBlock('ELSE'), ws) : undefined;
-      return { type: BlockType.IF, branches, ...(elseBody ? { elseBody } : {}) };
+      return withBlockId(block, {
+        type: BlockType.IF,
+        branches,
+        ...(elseBody ? { elseBody } : {}),
+      });
     }
 
     case 'controls_flow_statements':
       // BREAK or CONTINUE — the maze only supports break.
-      return { type: BlockType.BREAK };
+      return withBlockId(block, { type: BlockType.BREAK });
 
     case 'variables_set':
-      return {
+      return withBlockId(block, {
         type: 'var_set',
         name: varName(block, ws),
         value: parseExpr(block.getInputTargetBlock('VALUE'), ws) ?? { kind: 'num', value: 0 },
-      };
+      });
     case 'math_change':
-      return {
+      return withBlockId(block, {
         type: 'var_change',
         name: varName(block, ws),
         delta: parseExpr(block.getInputTargetBlock('DELTA'), ws) ?? { kind: 'num', value: 0 },
-      };
+      });
 
     default:
       return null;
@@ -131,45 +159,57 @@ function parseExpr(block: Blockly.Block | null, ws: Blockly.Workspace): Expr | n
 
   switch (block.type) {
     case 'math_number':
-      return { kind: 'num', value: Number(block.getFieldValue('NUM')) || 0 };
+      return withExprBlockId(block, {
+        kind: 'num',
+        value: Number(block.getFieldValue('NUM')) || 0,
+      });
     case 'logic_boolean':
-      return { kind: 'bool', value: block.getFieldValue('BOOL') === 'TRUE' };
+      return withExprBlockId(block, {
+        kind: 'bool',
+        value: block.getFieldValue('BOOL') === 'TRUE',
+      });
     case 'variables_get':
-      return { kind: 'var', name: varName(block, ws) };
+      return withExprBlockId(block, { kind: 'var', name: varName(block, ws) });
     case 'maze_condition':
-      return { kind: 'sensor', sensor: block.getFieldValue('COND') as SensorType };
+      return withExprBlockId(block, {
+        kind: 'sensor',
+        sensor: block.getFieldValue('COND') as SensorType,
+      });
     case 'logic_negate':
-      return { kind: 'not', a: parseExpr(block.getInputTargetBlock('BOOL'), ws) ?? { kind: 'bool', value: false } };
+      return withExprBlockId(block, {
+        kind: 'not',
+        a: parseExpr(block.getInputTargetBlock('BOOL'), ws) ?? { kind: 'bool', value: false },
+      });
     case 'logic_operation': {
       const op: LogicOp = block.getFieldValue('OP') === 'OR' ? 'or' : 'and';
-      return {
+      return withExprBlockId(block, {
         kind: 'logic',
         op,
         a: parseExpr(block.getInputTargetBlock('A'), ws) ?? { kind: 'bool', value: false },
         b: parseExpr(block.getInputTargetBlock('B'), ws) ?? { kind: 'bool', value: false },
-      };
+      });
     }
     case 'logic_compare':
-      return {
+      return withExprBlockId(block, {
         kind: 'compare',
         op: COMPARE[block.getFieldValue('OP')] ?? 'eq',
         a: parseExpr(block.getInputTargetBlock('A'), ws) ?? { kind: 'num', value: 0 },
         b: parseExpr(block.getInputTargetBlock('B'), ws) ?? { kind: 'num', value: 0 },
-      };
+      });
     case 'math_arithmetic':
-      return {
+      return withExprBlockId(block, {
         kind: 'arith',
         op: ARITH[block.getFieldValue('OP')] ?? 'add',
         a: parseExpr(block.getInputTargetBlock('A'), ws) ?? { kind: 'num', value: 0 },
         b: parseExpr(block.getInputTargetBlock('B'), ws) ?? { kind: 'num', value: 0 },
-      };
+      });
     case 'math_modulo':
-      return {
+      return withExprBlockId(block, {
         kind: 'arith',
         op: 'mod',
         a: parseExpr(block.getInputTargetBlock('DIVIDEND'), ws) ?? { kind: 'num', value: 0 },
         b: parseExpr(block.getInputTargetBlock('DIVISOR'), ws) ?? { kind: 'num', value: 1 },
-      };
+      });
     default:
       return null;
   }

@@ -77,59 +77,69 @@ export type ArithOp = 'add' | 'sub' | 'mul' | 'div' | 'mod' | 'pow';
 export type CompareOp = 'eq' | 'neq' | 'lt' | 'lte' | 'gt' | 'gte';
 export type LogicOp = 'and' | 'or';
 
+export interface ExprMeta {
+  /** Blockly block id, used by the student UI to highlight evaluated expressions. */
+  blockId?: string;
+}
+
 export type Expr =
-  | { kind: 'num'; value: number }
-  | { kind: 'bool'; value: boolean }
-  | { kind: 'var'; name: string }
-  | { kind: 'sensor'; sensor: SensorType }
-  | { kind: 'arith'; op: ArithOp; a: Expr; b: Expr }
-  | { kind: 'compare'; op: CompareOp; a: Expr; b: Expr }
-  | { kind: 'logic'; op: LogicOp; a: Expr; b: Expr }
-  | { kind: 'not'; a: Expr };
+  | ({ kind: 'num'; value: number } & ExprMeta)
+  | ({ kind: 'bool'; value: boolean } & ExprMeta)
+  | ({ kind: 'var'; name: string } & ExprMeta)
+  | ({ kind: 'sensor'; sensor: SensorType } & ExprMeta)
+  | ({ kind: 'arith'; op: ArithOp; a: Expr; b: Expr } & ExprMeta)
+  | ({ kind: 'compare'; op: CompareOp; a: Expr; b: Expr } & ExprMeta)
+  | ({ kind: 'logic'; op: LogicOp; a: Expr; b: Expr } & ExprMeta)
+  | ({ kind: 'not'; a: Expr } & ExprMeta);
 
 // ── Statement AST ───────────────────────────────────────────────────────────
 
-export interface MoveForwardCmd {
+export interface CommandMeta {
+  /** Blockly block id, used by the student UI to highlight the executing block. */
+  blockId?: string;
+}
+
+export interface MoveForwardCmd extends CommandMeta {
   type: BlockType.MOVE_FORWARD;
 }
-export interface TurnLeftCmd {
+export interface TurnLeftCmd extends CommandMeta {
   type: BlockType.TURN_LEFT;
 }
-export interface TurnRightCmd {
+export interface TurnRightCmd extends CommandMeta {
   type: BlockType.TURN_RIGHT;
 }
-export interface RepeatCmd {
+export interface RepeatCmd extends CommandMeta {
   type: BlockType.REPEAT;
   /** Number of iterations. Number for back-compat; Expr when driven by a variable/math. */
   times: number | Expr;
   body: Command[];
 }
-export interface ForeverCmd {
+export interface ForeverCmd extends CommandMeta {
   type: BlockType.FOREVER;
   body: Command[];
 }
-export interface WhileCmd {
+export interface WhileCmd extends CommandMeta {
   type: BlockType.WHILE;
   /** 'while' runs while cond is true; 'until' runs until cond becomes true. */
   mode: 'while' | 'until';
   cond: Expr;
   body: Command[];
 }
-export interface IfCmd {
+export interface IfCmd extends CommandMeta {
   type: BlockType.IF;
   /** if / else-if chain, evaluated in order. */
   branches: { cond: Expr; body: Command[] }[];
   elseBody?: Command[];
 }
-export interface BreakCmd {
+export interface BreakCmd extends CommandMeta {
   type: BlockType.BREAK;
 }
-export interface VarSetCmd {
+export interface VarSetCmd extends CommandMeta {
   type: 'var_set';
   name: string;
   value: Expr;
 }
-export interface VarChangeCmd {
+export interface VarChangeCmd extends CommandMeta {
   type: 'var_change';
   name: string;
   delta: Expr;
@@ -160,6 +170,8 @@ export interface SimStep {
   /** Character facing direction AFTER applying this step. */
   dir: Direction;
   action: 'move' | 'turnLeft' | 'turnRight';
+  /** Blockly block id that produced this visible step, when available. */
+  blockId?: string;
   /** True when a `move` was blocked (wall / out of bounds); pos stays put. */
   crashed?: boolean;
   /** Snapshot of variable values after this step, for the watcher panel. */
@@ -168,9 +180,28 @@ export interface SimStep {
   itemsLeft?: Cell[];
 }
 
+/** One UI execution frame, used to highlight executed Blockly blocks. */
+export interface SimTraceEvent {
+  index: number;
+  /** Character position at this point in execution. */
+  pos: Cell;
+  /** Character facing direction at this point in execution. */
+  dir: Direction;
+  /** Blockly block id for the node currently being executed/evaluated. */
+  blockId?: string;
+  /** True when this frame represents a blocked move. */
+  crashed?: boolean;
+  /** Snapshot of variable values at this point. */
+  vars?: Record<string, number>;
+  /** Items still on the board at this point. */
+  itemsLeft?: Cell[];
+}
+
 export interface SimulationResult {
   reachedGoal: boolean;
   steps: SimStep[];
+  /** UI execution trace; includes non-movement blocks and evaluated expressions. */
+  trace: SimTraceEvent[];
   /** Total statement node count (loops count as 1 + their body, recursively). */
   blocksUsed: number;
   failReason: SimFailReason;

@@ -7,8 +7,10 @@ interface AnimationState {
   charDir: Direction;
   crashed: boolean;
   isPlaying: boolean;
-  /** Index of the last applied step (-1 = at start). */
+  /** Index of the last applied execution frame (-1 = at start). */
   currentStep: number;
+  /** Blockly block id for the currently executing frame. */
+  activeBlockId: string | null;
   /** True once the whole sequence has finished playing. */
   done: boolean;
   /** Live variable values at the current step. */
@@ -33,6 +35,7 @@ export function useMazeAnimation(grid: GridConfig | undefined, resetKey?: string
     crashed: false,
     isPlaying: false,
     currentStep: -1,
+    activeBlockId: null,
     done: false,
     vars: {},
     items: startItems,
@@ -64,20 +67,30 @@ export function useMazeAnimation(grid: GridConfig | undefined, resetKey?: string
 
       let i = 0;
       const tick = () => {
-        const steps = resultRef.current?.steps ?? [];
-        if (i >= steps.length) {
-          setState((s) => ({ ...s, isPlaying: false, done: true, vars: result.vars ?? s.vars }));
+        const currentResult = resultRef.current;
+        const frames = currentResult?.trace?.length
+          ? currentResult.trace
+          : currentResult?.steps ?? [];
+        if (i >= frames.length) {
+          setState((s) => ({
+            ...s,
+            isPlaying: false,
+            activeBlockId: null,
+            done: true,
+            vars: result.vars ?? s.vars,
+          }));
           return;
         }
-        const step = steps[i];
+        const frame = frames[i];
         setState((s) => ({
           ...s,
-          charPos: step.pos,
-          charDir: step.dir,
-          crashed: !!step.crashed,
+          charPos: frame.pos,
+          charDir: frame.dir,
+          crashed: !!frame.crashed,
           currentStep: i,
-          vars: step.vars ?? s.vars,
-          items: step.itemsLeft ?? s.items,
+          activeBlockId: frame.blockId ?? null,
+          vars: frame.vars ?? s.vars,
+          items: frame.itemsLeft ?? s.items,
         }));
         i += 1;
         timerRef.current = setTimeout(tick, ANIMATION_INTERVAL_MS);

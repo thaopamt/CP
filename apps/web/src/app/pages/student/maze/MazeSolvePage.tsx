@@ -189,6 +189,7 @@ export default function MazeSolvePage() {
               key={level.id}
               ref={editorRef}
               allowedBlocks={(level.allowedBlocks ?? []) as BlockType[]}
+              activeBlockId={animation.activeBlockId}
               onBlockCountChange={setBlockCount}
               onProgramChange={(_ast, xml) => setWorkspaceXml(xml)}
             />
@@ -231,7 +232,7 @@ export default function MazeSolvePage() {
             </div>
           )}
           {outcome?.kind === 'fail' && (
-            <div className="w-full rounded-2xl bg-amber-100 text-amber-800 px-4 py-3 text-center font-semibold">
+            <div className="max-w-full rounded-lg bg-amber-100 px-3 py-1.5 text-center text-label-sm font-semibold leading-tight text-amber-800">
               {failMessage(outcome.reason)}
             </div>
           )}
@@ -242,15 +243,22 @@ export default function MazeSolvePage() {
             </div>
           )}
 
-          <div className="flex gap-3">
-            <Button variant="outline" size="sm" onClick={handleReset} leadingIcon={<Icon name="restart_alt" />}>
+          <div className="flex shrink-0 gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReset}
+              className="min-w-[108px] !rounded-full border-2 !border-outline-variant !bg-surface-container-low !text-on-surface-variant shadow-sm hover:!bg-surface-container-high"
+              leadingIcon={<Icon name="restart_alt" />}
+            >
               {t('maze.reset')}
             </Button>
             <Button
-              variant="student"
+              variant="outline"
               size="sm"
               onClick={handleRun}
               disabled={animation.isPlaying || submitMutation.isPending || overLimit}
+              className="min-w-[108px] !rounded-full border-2 !border-primary !bg-primary !text-white shadow-sm hover:!bg-primary/90"
               leadingIcon={<Icon name="play_arrow" />}
             >
               {t('maze.run')}

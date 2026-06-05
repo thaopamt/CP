@@ -24,6 +24,8 @@ export interface MazeBlocklyEditorHandle {
 
 interface Props {
   allowedBlocks: BlockType[];
+  /** Blockly block id to highlight while the maze animation is executing. */
+  activeBlockId?: string | null;
   /** Notified with the current block count whenever the workspace changes. */
   onBlockCountChange?: (count: number) => void;
   /** Notified with the parsed program + workspace XML on change. */
@@ -32,7 +34,7 @@ interface Props {
 }
 
 export const MazeBlocklyEditor = forwardRef<MazeBlocklyEditorHandle, Props>(
-  ({ allowedBlocks, onBlockCountChange, onProgramChange, initialXml }, ref) => {
+  ({ allowedBlocks, activeBlockId = null, onBlockCountChange, onProgramChange, initialXml }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const workspaceRef = useRef<Blockly.WorkspaceSvg | null>(null);
 
@@ -41,8 +43,15 @@ export const MazeBlocklyEditor = forwardRef<MazeBlocklyEditorHandle, Props>(
       getXml: () => (workspaceRef.current ? getWorkspaceXml(workspaceRef.current) : ''),
       getBlockCount: () =>
         workspaceRef.current ? countBlocks(workspaceToAst(workspaceRef.current)) : 0,
-      clear: () => workspaceRef.current?.clear(),
+      clear: () => {
+        workspaceRef.current?.highlightBlock(null);
+        workspaceRef.current?.clear();
+      },
     }));
+
+    useEffect(() => {
+      workspaceRef.current?.highlightBlock(activeBlockId);
+    }, [activeBlockId]);
 
     useEffect(() => {
       if (!containerRef.current) return;
