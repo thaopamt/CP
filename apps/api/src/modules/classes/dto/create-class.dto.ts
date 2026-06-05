@@ -1,10 +1,8 @@
 import {
   IsEnum,
-  IsInt,
   IsOptional,
   IsString,
   Length,
-  Min,
 } from 'class-validator';
 import {
   ClassStatus,
@@ -23,14 +21,6 @@ export class CreateClassDto implements ICreateClassPayload {
   @IsOptional()
   @IsString()
   description?: string;
-
-  @IsInt()
-  @Min(1)
-  capacity!: number;
-
-  @IsString()
-  @Length(1, 100)
-  term!: string;
 
   @IsOptional()
   @IsEnum(ClassStatus)

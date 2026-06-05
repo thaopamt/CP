@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -7,7 +7,6 @@ import {
   FormField,
   Icon,
   PageHeader,
-  WizardSteps,
 } from '@cp/ui';
 import {
   ICreateClassPayload,
@@ -19,14 +18,11 @@ type Draft = {
   name: string;
   code: string;
   description: string;
-  term: string;
-  capacity: number;
 };
 
 /**
- * Class Edit — same 3-step wizard as ClassCreatePage but pre-populated
- * with the existing class data. On submit PATCHes the class and navigates
- * back to its detail page.
+ * Class Edit — pre-populated with the existing class data. On submit PATCHes
+ * the class and navigates back to its detail page.
  */
 export default function ClassEditPage() {
   const { t } = useTranslation();
@@ -37,15 +33,6 @@ export default function ClassEditPage() {
   const updateClass = useUpdateClass(classId ?? '');
   const submitting = updateClass.isPending;
 
-  const steps = useMemo(
-    () => [
-      { key: 'basics', label: t('pages.admin.classes.create.steps.basics') },
-      { key: 'capacity', label: t('pages.admin.classes.create.steps.capacity') },
-    ],
-    [t],
-  );
-
-  const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -57,8 +44,6 @@ export default function ClassEditPage() {
         name: cls.name,
         code: cls.code,
         description: cls.description ?? '',
-        term: cls.term,
-        capacity: cls.capacity,
       });
     }
   }, [classQuery.data, draft]);
@@ -90,38 +75,24 @@ export default function ClassEditPage() {
     setDraft((prev) => (prev ? { ...prev, ...p } : prev));
   }
 
-  function validateStep(idx: number): boolean {
+  function validate(): boolean {
     const e: Record<string, string> = {};
-    if (idx === 0) {
-      if (!draft!.name.trim()) e.name = t('pages.admin.classes.create.validation.nameRequired');
-      if (!draft!.code.trim()) e.code = t('pages.admin.classes.create.validation.codeRequired');
-    }
-    if (idx === 1) {
-      if (draft!.capacity < 1) e.capacity = t('pages.admin.classes.create.validation.capacityRange');
-    }
+    if (!draft!.name.trim()) e.name = t('pages.admin.classes.create.validation.nameRequired');
+    if (!draft!.code.trim()) e.code = t('pages.admin.classes.create.validation.codeRequired');
     setErrors(e);
     return Object.keys(e).length === 0;
   }
 
-  function next() {
-    if (!validateStep(step)) return;
-    if (step < steps.length - 1) setStep(step + 1);
-    else void submit();
-  }
-
   function previous() {
-    if (step === 0) navigate(`/admin/classes/${classId}`);
-    else setStep(step - 1);
+    navigate(`/admin/classes/${classId}`);
   }
 
   async function submit() {
-    if (!validateStep(step)) return;
+    if (!validate()) return;
     const payload: Partial<ICreateClassPayload> = {
       name: draft!.name.trim(),
       code: draft!.code.trim(),
       description: draft!.description || undefined,
-      capacity: draft!.capacity,
-      term: draft!.term,
     };
     try {
       await updateClass.mutateAsync(payload);
@@ -151,85 +122,49 @@ export default function ClassEditPage() {
       />
 
       <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-md md:p-lg">
-        <WizardSteps steps={steps} current={step} className="mb-lg" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+          <FormField
+            label={t('pages.admin.classes.create.fields.name')}
+            required
+            error={errors.name}
+            className="md:col-span-2"
+          >
+            <input
+              type="text"
+              value={draft.name}
+              onChange={(e) => patch({ name: e.target.value })}
+              placeholder={t('pages.admin.classes.create.fields.namePh')}
+              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
+            />
+          </FormField>
 
-        {step === 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
-            <FormField
-              label={t('pages.admin.classes.create.fields.name')}
-              required
-              error={errors.name}
-              className="md:col-span-2"
-            >
-              <input
-                type="text"
-                value={draft.name}
-                onChange={(e) => patch({ name: e.target.value })}
-                placeholder={t('pages.admin.classes.create.fields.namePh')}
-                className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-              />
-            </FormField>
+          <FormField
+            label={t('pages.admin.classes.create.fields.code')}
+            required
+            error={errors.code}
+          >
+            <input
+              type="text"
+              value={draft.code}
+              onChange={(e) => patch({ code: e.target.value })}
+              placeholder={t('pages.admin.classes.create.fields.codePh')}
+              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
+            />
+          </FormField>
 
-            <FormField
-              label={t('pages.admin.classes.create.fields.code')}
-              required
-              error={errors.code}
-            >
-              <input
-                type="text"
-                value={draft.code}
-                onChange={(e) => patch({ code: e.target.value })}
-                placeholder={t('pages.admin.classes.create.fields.codePh')}
-                className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-              />
-            </FormField>
-
-
-
-            <FormField
-              label={t('pages.admin.classes.create.fields.description')}
-              className="md:col-span-2"
-            >
-              <textarea
-                rows={4}
-                value={draft.description}
-                onChange={(e) => patch({ description: e.target.value })}
-                placeholder={t('pages.admin.classes.create.fields.descriptionPh')}
-                className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none resize-none"
-              />
-            </FormField>
-          </div>
-        )}
-
-        {step === 1 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
-            <FormField
-              label={t('pages.admin.classes.create.fields.capacity')}
-              required
-              error={errors.capacity}
-            >
-              <input
-                type="number"
-                min={1}
-                value={draft.capacity}
-                onChange={(e) => patch({ capacity: Number(e.target.value) || 0 })}
-                className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-              />
-            </FormField>
-
-            <FormField label={t('pages.admin.classes.create.fields.term')} required>
-              <input
-                type="text"
-                value={draft.term}
-                onChange={(e) => patch({ term: e.target.value })}
-                placeholder={t('pages.admin.classes.create.fields.termPh')}
-                className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-              />
-            </FormField>
-
-
-          </div>
-        )}
+          <FormField
+            label={t('pages.admin.classes.create.fields.description')}
+            className="md:col-span-2"
+          >
+            <textarea
+              rows={4}
+              value={draft.description}
+              onChange={(e) => patch({ description: e.target.value })}
+              placeholder={t('pages.admin.classes.create.fields.descriptionPh')}
+              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none resize-none"
+            />
+          </FormField>
+        </div>
       </div>
 
       {/* Submit error from the API */}
@@ -247,25 +182,21 @@ export default function ClassEditPage() {
           onClick={previous}
           disabled={submitting}
         >
-          {step === 0 ? t('pages.admin.classes.edit.actions.cancel') : t('pages.admin.classes.create.actions.previous')}
+          {t('pages.admin.classes.edit.actions.cancel')}
         </Button>
         <Button
           variant="admin"
           trailingIcon={
             submitting ? (
               <Icon name="progress_activity" size={18} className="animate-spin" />
-            ) : step === steps.length - 1 ? (
-              <Icon name="check" size={18} />
             ) : (
-              <Icon name="arrow_forward" size={18} />
+              <Icon name="check" size={18} />
             )
           }
-          onClick={next}
+          onClick={() => void submit()}
           disabled={submitting}
         >
-          {step === steps.length - 1
-            ? t('pages.admin.classes.edit.actions.saveChanges')
-            : t('pages.admin.classes.create.actions.next')}
+          {t('pages.admin.classes.edit.actions.saveChanges')}
         </Button>
       </div>
     </div>

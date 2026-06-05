@@ -60,12 +60,9 @@ export interface IClass {
   /** Course code, e.g. "MATH-301" */
   code: string;
   description?: string | null;
-  capacity: number;
   /** Enrollment count, denormalized for the list page */
   enrolledCount: number;
   status: ClassStatus;
-  /** Term label, e.g. "Fall 2024" */
-  term: string;
   instructor?: IClassInstructor | null;
   /** 0..100 — denormalized for the detail-page KPI */
   attendanceRate?: number;
@@ -94,8 +91,6 @@ export interface ICreateClassPayload {
   name: string;
   code: string;
   description?: string;
-  capacity: number;
-  term: string;
 }
 
 // ── Student schedule (admin-managed) ────────────────────────────────────

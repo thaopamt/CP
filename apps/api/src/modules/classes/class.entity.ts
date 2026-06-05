@@ -16,17 +16,11 @@ export class ClassEntity extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   description!: string | null;
 
-  @Column({ type: 'int', default: 30 })
-  capacity!: number;
-
   @Column({ type: 'int', default: 0, name: 'enrolled_count' })
   enrolledCount!: number;
 
   @Column({ type: 'enum', enum: ClassStatus, default: ClassStatus.UPCOMING })
   status!: ClassStatus;
-
-  @Column({ type: 'varchar', length: 100 })
-  term!: string;
 
   /** 0..100 — denormalized snapshot, refreshed by a job/trigger */
   @Column({ type: 'float', default: 0, name: 'attendance_rate' })

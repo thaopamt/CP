@@ -27,10 +27,8 @@ export class ClassesService extends TypeOrmCrudService<ClassEntity> {
       name: dto.name,
       code: dto.code,
       description: dto.description ?? null,
-      capacity: dto.capacity,
       enrolledCount: 0,
       status: dto.status ?? ClassStatus.UPCOMING,
-      term: dto.term,
     });
     return this.repo.save(cls);
   }
@@ -46,25 +44,21 @@ export class ClassesService extends TypeOrmCrudService<ClassEntity> {
     if (dto.name !== undefined) cls.name = dto.name;
     if (dto.code !== undefined) cls.code = dto.code;
     if (dto.description !== undefined) cls.description = dto.description ?? null;
-    if (dto.capacity !== undefined) cls.capacity = dto.capacity;
     if (dto.status !== undefined) cls.status = dto.status;
-    if (dto.term !== undefined) cls.term = dto.term;
 
     return this.repo.save(cls);
   }
 
   /**
-   * Recalculate the denormalized `enrolledCount` and bump status to FULL
-   * when the class hits capacity. Called whenever an enrollment row is
-   * inserted or removed.
+   * Recalculate the denormalized `enrolledCount`. Called whenever an
+   * enrollment row is inserted or removed.
    */
   async recountEnrollment(classId: string): Promise<void> {
     const total = await this.enrollments.count({ where: { classId } });
     const cls = await this.repo.findOne({ where: { id: classId } });
     if (!cls) return;
     const next: Partial<ClassEntity> = { enrolledCount: total };
-    if (total >= cls.capacity) next.status = ClassStatus.FULL;
-    else if (cls.status === ClassStatus.FULL) next.status = ClassStatus.ACTIVE;
+    if (cls.status === ClassStatus.FULL) next.status = ClassStatus.ACTIVE;
     await this.repo.update({ id: classId }, next);
   }
 }

@@ -1,10 +1,8 @@
 import {
   IsEnum,
-  IsInt,
   IsOptional,
   IsString,
   Length,
-  Min,
 } from 'class-validator';
 import {
   ClassStatus,
@@ -24,16 +22,6 @@ export class UpdateClassDto {
   @IsOptional()
   @IsString()
   description?: string;
-
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  capacity?: number;
-
-  @IsOptional()
-  @IsString()
-  @Length(1, 100)
-  term?: string;
 
   @IsOptional()
   @IsEnum(ClassStatus)

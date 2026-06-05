@@ -441,7 +441,7 @@ const en = {
           enroll: { title: 'New student enrolled', meta: 'Sarah Jenkins joined CS-101' },
           payment: { title: 'Payment received', meta: '$1,250 from Aiko Tanaka' },
           conflict: { title: 'Conflict on schedule', meta: 'Geometry · Wed 09:30' },
-          published: { title: 'Class published', meta: 'Biology 101 — Spring term' },
+          published: { title: 'Class published', meta: 'Biology 101' },
         },
         days: { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri' },
       },
@@ -750,10 +750,10 @@ const en = {
           },
           columns: {
             class: 'Class',
-            enrollment: 'Enrollment',
+            enrollment: 'Students',
             status: 'Status',
           },
-          enrollmentLabel: '{{enrolled}} / {{capacity}}',
+          enrollmentLabel: '{{count}} students',
           bulk: {
             edit: 'Bulk edit',
             archive: 'Archive',
@@ -793,10 +793,6 @@ const en = {
         create: {
           title: 'Create Class',
           subtitle: 'Create a named student group for enrollment and curriculum.',
-          steps: {
-            basics: 'Basic information',
-            capacity: 'Capacity & instructor',
-          },
           fields: {
             name: 'Class name',
             namePh: 'e.g. Introduction to Calculus',
@@ -804,9 +800,6 @@ const en = {
             codePh: 'e.g. MATH101',
             description: 'Description',
             descriptionPh: 'Brief overview of the course curriculum…',
-            term: 'Term',
-            termPh: 'e.g. Fall 2024',
-            capacity: 'Max students',
           },
           actions: {
             cancel: 'Cancel',
@@ -818,12 +811,11 @@ const en = {
           validation: {
             nameRequired: 'Class name is required',
             codeRequired: 'Course code is required',
-            capacityRange: 'Capacity must be at least 1',
           },
         },
         edit: {
           title: 'Edit Class',
-          subtitle: 'Update class information and capacity.',
+          subtitle: 'Update class information.',
           actions: {
             cancel: 'Cancel',
             saveChanges: 'Save changes',
@@ -836,13 +828,12 @@ const en = {
           manageCurriculum: 'Curriculum',
           pauseClass: 'Pause',
           archiveClass: 'Archive',
-          term: 'Term',
           department: 'Department',
           kpi: {
             attendanceRate: 'Attendance rate',
             attendanceTrend: '+{{value}}% from last week',
-            activeStudents: 'Active students',
-            seatsAvailable: '{{count}} seats available',
+            activeStudents: 'Students',
+            rosterCount: 'Current roster',
             instructor: 'Primary instructor',
             contactInstructor: 'Contact',
           },

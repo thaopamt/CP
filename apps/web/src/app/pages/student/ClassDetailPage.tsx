@@ -124,12 +124,11 @@ export default function StudentClassDetailPage() {
       </div>
 
       {/* ── Quick stat cards ────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-md">
-        <StatCard icon="calendar_month" label="Term" value={cls.term} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
         <StatCard
           icon="groups"
           label="Students"
-          value={`${cls.enrolledCount} / ${cls.capacity}`}
+          value={`${cls.enrolledCount}`}
         />
         <StatCard
           icon="menu_book"
@@ -176,11 +175,6 @@ export default function StudentClassDetailPage() {
               <p className="text-body-md text-on-surface-variant leading-relaxed">
                 {cls.description || 'No description available for this class.'}
               </p>
-            </section>
-
-            {/* Term info */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 gap-md">
-              <InfoRow icon="date_range" label="Term" value={cls.term} />
             </section>
 
             {/* Instructor card */}
@@ -363,20 +357,6 @@ function StatCard({ icon, label, value }: { icon: string; label: string; value: 
       </div>
       <div className="font-manrope text-headline-md text-on-surface font-bold leading-tight truncate">
         {value}
-      </div>
-    </div>
-  );
-}
-
-function InfoRow({ icon, label, value }: { icon: string; label: string; value: string }) {
-  return (
-    <div className="flex items-center gap-md bg-surface-container-low rounded-lg px-md py-sm">
-      <div className="w-9 h-9 rounded-lg bg-primary-container/30 text-primary grid place-items-center shrink-0">
-        <Icon name={icon} size={18} />
-      </div>
-      <div className="min-w-0">
-        <div className="text-[11px] text-on-surface-variant uppercase tracking-wider">{label}</div>
-        <div className="text-on-surface font-medium truncate">{value}</div>
       </div>
     </div>
   );

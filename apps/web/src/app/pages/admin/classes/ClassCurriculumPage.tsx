@@ -90,8 +90,6 @@ export default function ClassCurriculumPage() {
         eyebrow={
           <div className="flex items-center gap-sm text-label-sm text-on-surface-variant">
             <span>{cls.name}</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-outline-variant" />
-            <span>{cls.term}</span>
           </div>
         }
         title={t('pages.admin.classCurriculum.title')}

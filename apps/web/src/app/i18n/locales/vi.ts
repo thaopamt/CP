@@ -439,7 +439,7 @@ const vi: AppResources = {
           enroll: { title: 'Học sinh mới đăng ký', meta: 'Nguyễn Thu Hà tham gia CS-101' },
           payment: { title: 'Đã nhận thanh toán', meta: '$1.250 từ Lê Bảo Anh' },
           conflict: { title: 'Trùng lịch', meta: 'Hình học · Thứ 4 09:30' },
-          published: { title: 'Lớp đã đăng', meta: 'Sinh học 101 — Học kỳ Xuân' },
+          published: { title: 'Lớp đã đăng', meta: 'Sinh học 101' },
         },
         days: { mon: 'T2', tue: 'T3', wed: 'T4', thu: 'T5', fri: 'T6' },
       },
@@ -745,10 +745,10 @@ const vi: AppResources = {
           },
           columns: {
             class: 'Lớp',
-            enrollment: 'Sĩ số',
+            enrollment: 'Học sinh',
             status: 'Trạng thái',
           },
-          enrollmentLabel: '{{enrolled}} / {{capacity}}',
+          enrollmentLabel: '{{count}} học sinh',
           bulk: {
             edit: 'Sửa hàng loạt',
             archive: 'Lưu trữ',
@@ -788,10 +788,6 @@ const vi: AppResources = {
         create: {
           title: 'Tạo lớp mới',
           subtitle: 'Tạo nhóm học để quản lý ghi danh và chương trình.',
-          steps: {
-            basics: 'Thông tin cơ bản',
-            capacity: 'Sĩ số & Giáo viên',
-          },
           fields: {
             name: 'Tên lớp',
             namePh: 'VD: Nhập môn Giải tích',
@@ -799,9 +795,6 @@ const vi: AppResources = {
             codePh: 'VD: MATH101',
             description: 'Mô tả',
             descriptionPh: 'Mô tả ngắn về chương trình của lớp…',
-            term: 'Học kỳ',
-            termPh: 'VD: Học kỳ Thu 2024',
-            capacity: 'Sĩ số tối đa',
           },
           actions: {
             cancel: 'Huỷ',
@@ -813,7 +806,6 @@ const vi: AppResources = {
           validation: {
             nameRequired: 'Tên lớp là bắt buộc',
             codeRequired: 'Mã môn là bắt buộc',
-            capacityRange: 'Sĩ số phải từ 1 trở lên',
           },
         },
         edit: {
@@ -831,13 +823,12 @@ const vi: AppResources = {
           manageCurriculum: 'Chương trình học',
           pauseClass: 'Tạm dừng',
           archiveClass: 'Lưu trữ',
-          term: 'Học kỳ',
           department: 'Khoa',
           kpi: {
             attendanceRate: 'Tỉ lệ điểm danh',
             attendanceTrend: '+{{value}}% so với tuần trước',
-            activeStudents: 'Học sinh đang học',
-            seatsAvailable: 'Còn {{count}} chỗ',
+            activeStudents: 'Học sinh',
+            rosterCount: 'Danh sách hiện tại',
             instructor: 'Giáo viên chính',
             contactInstructor: 'Liên hệ',
           },

@@ -45,10 +45,8 @@ async function run() {
     basicAClass.name = 'BASIC A';
     basicAClass.code = classCode;
     basicAClass.description = 'Lớp học lập trình thi đấu cơ bản dành cho người mới bắt đầu. Tập trung vào cấu trúc dữ liệu và thuật toán cơ sở.';
-    basicAClass.capacity = 30;
     basicAClass.enrolledCount = 0;
     basicAClass.status = ClassStatus.ACTIVE;
-    basicAClass.term = 'Học kỳ Hè 2026';
     basicAClass = await classRepo.save(basicAClass);
     console.log('✅ Class "BASIC A" created.');
   } else {

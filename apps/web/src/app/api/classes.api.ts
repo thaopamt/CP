@@ -48,10 +48,8 @@ interface ApiClassEntity {
   code: string;
   description: string | null;
 
-  capacity: number;
   enrolledCount: number;
   status: ClassStatus;
-  term: string;
   attendanceRate: number;
   instructorId: string | null;
   instructor: ApiUser | null;
@@ -91,10 +89,8 @@ function toClass(c: ApiClassEntity): IClass {
     code: c.code,
     description: c.description,
 
-    capacity: c.capacity,
     enrolledCount: c.enrolledCount,
-    status: c.status,
-    term: c.term,
+    status: c.status === ClassStatus.FULL ? ClassStatus.ACTIVE : c.status,
     attendanceRate: c.attendanceRate ?? 0,
     instructor: toInstructor(c.instructor),
     createdAt: c.createdAt,

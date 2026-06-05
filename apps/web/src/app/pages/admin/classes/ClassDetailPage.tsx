@@ -100,7 +100,7 @@ export default function ClassDetailPage() {
         icon: 'person_add',
         tone: 'primary',
         title: t('pages.admin.dashboard.activities.enroll.title'),
-        meta: `${cls.enrolledCount} / ${cls.capacity} · ${cls.name}`,
+        meta: t('pages.admin.classes.list.enrollmentLabel', { count: cls.enrolledCount }) + ` · ${cls.name}`,
         time: t('ui.helpQueue.hoursAgo', { count: 3 }),
       },
       {
@@ -108,7 +108,7 @@ export default function ClassDetailPage() {
         icon: 'event_available',
         tone: 'tertiary',
         title: t('pages.teacher.dashboard.todaysAttendance'),
-        meta: `${cls.attendanceRate ?? 0}% · ${cls.term}`,
+        meta: `${cls.attendanceRate ?? 0}%`,
         time: t('ui.helpQueue.daysAgo', { count: 1 }),
       },
     ];
@@ -210,7 +210,6 @@ export default function ClassDetailPage() {
 
   const roster = rosterQuery.data ?? [];
   const classCourses = (coursesQuery.data ?? []).slice().sort((a, b) => a.order - b.order);
-  const seatsAvailable = Math.max(0, cls.capacity - cls.enrolledCount);
 
   function moveCourseUp(idx: number) {
     if (idx <= 0) return;
@@ -236,11 +235,6 @@ export default function ClassDetailPage() {
               { label: `${cls.name} (${cls.code})` },
             ]}
           />
-        }
-        eyebrow={
-          <div className="flex items-center gap-sm text-label-sm text-on-surface-variant">
-            <span>{cls.term}</span>
-          </div>
         }
         title={`${cls.name} (${cls.code})`}
         actions={
@@ -281,8 +275,8 @@ export default function ClassDetailPage() {
           icon="groups"
           iconColor="text-primary"
           label={t('pages.admin.classes.detail.kpi.activeStudents')}
-          value={`${cls.enrolledCount} / ${cls.capacity}`}
-          caption={t('pages.admin.classes.detail.kpi.seatsAvailable', { count: seatsAvailable })}
+          value={`${cls.enrolledCount}`}
+          caption={t('pages.admin.classes.detail.kpi.rosterCount')}
         />
 
       </section>

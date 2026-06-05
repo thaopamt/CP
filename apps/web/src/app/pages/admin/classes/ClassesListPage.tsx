@@ -83,7 +83,7 @@ export default function ClassesListPage() {
             className="text-left min-w-0 hover:text-primary"
           >
             <div className="text-on-surface font-medium truncate">{row.name}</div>
-            <div className="text-[12px] text-on-surface-variant">{row.code} · {row.term}</div>
+            <div className="text-[12px] text-on-surface-variant">{row.code}</div>
           </button>
         ),
       },
@@ -91,23 +91,11 @@ export default function ClassesListPage() {
       {
         key: 'enrollment',
         header: t('pages.admin.classes.list.columns.enrollment'),
-        cell: (row) => {
-          const pct = row.capacity === 0 ? 0 : Math.round((row.enrolledCount / row.capacity) * 100);
-          return (
-            <div className="min-w-[120px]">
-              <div className="flex justify-between text-[11px] text-on-surface-variant mb-xs">
-                <span>{t('pages.admin.classes.list.enrollmentLabel', { enrolled: row.enrolledCount, capacity: row.capacity })}</span>
-                <span>{pct}%</span>
-              </div>
-              <div className="h-1.5 rounded-full bg-surface-container-highest overflow-hidden">
-                <div
-                  className={pct >= 100 ? 'h-full bg-error rounded-full' : 'h-full bg-primary rounded-full'}
-                  style={{ width: `${Math.min(100, pct)}%` }}
-                />
-              </div>
-            </div>
-          );
-        },
+        cell: (row) => (
+          <span className="text-on-surface-variant whitespace-nowrap">
+            {t('pages.admin.classes.list.enrollmentLabel', { count: row.enrolledCount })}
+          </span>
+        ),
       },
       {
         key: 'status',
@@ -190,10 +178,12 @@ export default function ClassesListPage() {
           onChange={(e) => resetPage(setStatus)(e.target.value as typeof status)}
           options={[
             { value: 'all', label: t('pages.admin.classes.list.filters.statusAll') },
-            ...Object.values(ClassStatus).map((s) => ({
-              value: s,
-              label: t(`enums.classStatus.${s}`),
-            })),
+            ...Object.values(ClassStatus)
+              .filter((s) => s !== ClassStatus.FULL)
+              .map((s) => ({
+                value: s,
+                label: t(`enums.classStatus.${s}`),
+              })),
           ]}
         />
         <Button variant="ghost" leadingIcon={<Icon name="tune" size={18} />} className="md:ml-auto">

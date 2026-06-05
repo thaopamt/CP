@@ -45,10 +45,8 @@ async function run() {
     basicBClass.name = 'BASIC B';
     basicBClass.code = classCode;
     basicBClass.description = 'Lớp học lập trình thi đấu trung cấp B. Tập trung vào mảng cộng dồn, tiền tố, hậu tố nâng cao, cặp và các kỹ năng sắp xếp.';
-    basicBClass.capacity = 30;
     basicBClass.enrolledCount = 0;
     basicBClass.status = ClassStatus.ACTIVE;
-    basicBClass.term = 'Học kỳ Hè 2026';
     basicBClass = await classRepo.save(basicBClass);
     console.log('✅ Class "BASIC B" created.');
   } else {
