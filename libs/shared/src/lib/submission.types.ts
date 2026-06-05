@@ -1,3 +1,5 @@
+import { UserRole } from './user-role.enum';
+
 export enum SubmissionStatus {
   PENDING = 'PENDING',
   ACCEPTED = 'ACCEPTED',
@@ -71,6 +73,62 @@ export interface ISubmission {
   testResults?: ISubmissionTestResult[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ISubmissionRealtimeTestResult extends Partial<Pick<ISubmissionTestResult, 'id' | 'submissionId'>> {
+  testCaseIndex: number;
+  status: SubmissionStatus;
+  expectedOutput: string;
+  actualOutput: string;
+  executionTimeMs?: number | null;
+  memoryBytes?: number | null;
+  errorMessage?: string | null;
+}
+
+export type SubmissionJudgePhase = 'queued' | 'running' | 'completed' | 'failed';
+
+export interface ISubmissionJudgeProgress {
+  phase: SubmissionJudgePhase;
+  currentTestCaseIndex: number | null;
+  completedCount: number;
+  passedCount: number;
+  totalCount: number;
+  status: SubmissionStatus;
+  message?: string;
+  updatedAt: string;
+}
+
+export interface IRealtimeSubmission extends Omit<ISubmission, 'testResults'> {
+  assignment?: {
+    id: string;
+    title: string;
+    codingConfig?: unknown;
+  };
+  user?: {
+    id: string;
+    username?: string | null;
+    firstName?: string;
+    lastName?: string;
+    role?: UserRole;
+    avatarUrl?: string | null;
+  };
+  testResults?: ISubmissionRealtimeTestResult[];
+  judgeProgress?: ISubmissionJudgeProgress;
+}
+
+export type SubmissionRealtimeEventType =
+  | 'created'
+  | 'testcase_started'
+  | 'testcase_finished'
+  | 'completed'
+  | 'failed';
+
+export interface ISubmissionRealtimeEvent {
+  event: SubmissionRealtimeEventType;
+  submission: IRealtimeSubmission;
+  testResult?: ISubmissionRealtimeTestResult;
+  currentTestCaseIndex?: number | null;
+  timestamp: string;
 }
 
 export interface ISubmitCodePayload {

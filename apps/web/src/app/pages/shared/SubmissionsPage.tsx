@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon, Pagination } from '@cp/ui';
 import { SubmissionStatus, UserRole } from '@cp/shared';
 import { useAllMySubmissions, useAllSubmissions } from '../../api/submissions.queries';
 import { useAuthStore } from '../../stores/auth.store';
+import { useSubmissionRealtimeFeed } from '../../hooks/useSubmissionRealtimeFeed';
 
 const PAGE_SIZE = 20;
 
@@ -77,13 +78,62 @@ function previewText(value: string | null | undefined): { text: string; truncate
   return { text: out, truncated };
 }
 
+function getJudgeProgressText(sub: any) {
+  const progress = sub.judgeProgress;
+  if (!progress) return null;
+
+  if (progress.phase === 'queued') return 'Queued';
+  if (progress.phase === 'running' && progress.currentTestCaseIndex != null) {
+    return `Test #${progress.currentTestCaseIndex + 1} / ${progress.totalCount}`;
+  }
+  if (progress.phase === 'failed') return 'Failed';
+  if (sub.status === SubmissionStatus.PENDING && progress.completedCount > 0) {
+    return `${progress.completedCount} / ${progress.totalCount}`;
+  }
+  return null;
+}
+
+function isJudging(sub: any) {
+  return sub.status === SubmissionStatus.PENDING || sub.judgeProgress?.phase === 'queued' || sub.judgeProgress?.phase === 'running';
+}
+
+function getDisplayTestResults(sub: any) {
+  const results = [...(sub.testResults || [])].sort((a: any, b: any) => a.testCaseIndex - b.testCaseIndex);
+  const totalCount = Math.max(sub.totalCount || 0, sub.judgeProgress?.totalCount || 0, results.length);
+
+  if (totalCount <= results.length && !isJudging(sub)) {
+    return results;
+  }
+
+  const byIndex = new Map<number, any>();
+  for (const result of results) {
+    byIndex.set(result.testCaseIndex, result);
+  }
+
+  return Array.from({ length: totalCount }, (_, idx) => {
+    return byIndex.get(idx) ?? {
+      testCaseIndex: idx,
+      status: SubmissionStatus.PENDING,
+      expectedOutput: '',
+      actualOutput: '',
+      errorMessage: null,
+      executionTimeMs: null,
+      memoryBytes: null,
+      isPlaceholder: true,
+    };
+  });
+}
+
+function isRunningTestCase(sub: any, testCaseIndex: number) {
+  return sub.judgeProgress?.phase === 'running' && sub.judgeProgress.currentTestCaseIndex === testCaseIndex;
+}
+
 /* ── Main Component ──────────────────────────────────────────────── */
 export default function SubmissionsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
-  
   const isAdminOrTeacher = user?.role === UserRole.ADMIN || user?.role === UserRole.TEACHER;
 
   const [search, setSearch] = useState('');
@@ -91,7 +141,7 @@ export default function SubmissionsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [langFilter, setLangFilter] = useState<string>('ALL');
   const [page, setPage] = useState(1);
-  const [selectedSub, setSelectedSub] = useState<any>(null);
+  const [selectedSubId, setSelectedSubId] = useState<string | null>(null);
 
   // Debounce the search box so we don't refetch on every keystroke.
   useEffect(() => {
@@ -116,15 +166,22 @@ export default function SubmissionsPage() {
   const allQuery = useAllSubmissions(params, isAdminOrTeacher);
   const result = isAdminOrTeacher ? allQuery.data : myQuery.data;
   const isLoading = isAdminOrTeacher ? allQuery.isLoading : myQuery.isLoading;
+  const { isConnected: realtimeConnected } = useSubmissionRealtimeFeed();
 
   const submissions = result?.data ?? [];
   const total = result?.total ?? 0;
   const pageCount = result?.pageCount ?? 1;
   const stats = result?.stats ?? { total: 0, accepted: 0, wrong: 0, other: 0 };
 
+  // Derive the open submission from the live list so realtime updates flow in.
+  const selectedSub = useMemo(
+    () => submissions.find((sub: any) => sub.id === selectedSubId) ?? null,
+    [selectedSubId, submissions],
+  );
+
   // Close modal on Escape
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape') setSelectedSub(null);
+    if (e.key === 'Escape') setSelectedSubId(null);
   }, []);
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
@@ -141,7 +198,7 @@ export default function SubmissionsPage() {
           {t('pages.submissions.title', 'Submissions')}
         </h1>
         <p className="text-body-md text-on-surface-variant mt-xs">
-          {t('pages.submissions.subtitle', isAdminOrTeacher ? 'All student submissions across assignments.' : 'Your submission history across all assignments.')}
+          {t('pages.submissions.subtitle', 'All student submissions across assignments.')}
         </p>
       </div>
 
@@ -164,7 +221,7 @@ export default function SubmissionsPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('pages.submissions.searchPlaceholder', isAdminOrTeacher ? 'Search by problem or student...' : 'Search by problem name...')}
+            placeholder={t('pages.submissions.searchPlaceholder', 'Search by problem or student...')}
             className="w-full pl-10 pr-4 py-2.5 bg-surface-container-highest rounded-xl text-label-sm text-on-surface border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
           />
         </div>
@@ -194,7 +251,12 @@ export default function SubmissionsPage() {
           <option value="javascript">JavaScript</option>
         </select>
 
-        <span className="text-label-sm text-on-surface-variant ml-auto">
+        <span className={`inline-flex items-center gap-1 text-label-sm ${realtimeConnected ? 'text-emerald-600 dark:text-emerald-400' : 'text-on-surface-variant'} ml-auto`}>
+          <span className="material-symbols-outlined text-[15px]">{realtimeConnected ? 'sensors' : 'sensors_off'}</span>
+          {realtimeConnected ? 'Realtime' : 'Offline'}
+        </span>
+
+        <span className="text-label-sm text-on-surface-variant">
           {total} {t('pages.submissions.results', 'results')}
         </span>
       </div>
@@ -230,11 +292,12 @@ export default function SubmissionsPage() {
           <div className="divide-y divide-outline-variant">
             {submissions.map((sub: any) => {
               const sc = STATUS_CONFIG[sub.status] || STATUS_CONFIG[SubmissionStatus.INTERNAL_ERROR];
+              const progressText = getJudgeProgressText(sub);
 
               return (
                 <div
                   key={sub.id}
-                  onClick={() => setSelectedSub(sub)}
+                  onClick={() => setSelectedSubId(sub.id)}
                   className="grid grid-cols-[200px_1fr_100px_110px_100px_90px_110px] gap-0 px-md py-sm items-center cursor-pointer hover:bg-surface-container-highest/50 transition-colors group text-center"
                 >
                   {/* Student */}
@@ -262,11 +325,16 @@ export default function SubmissionsPage() {
                   </span>
 
                   {/* Status badge */}
-                  <div className="flex justify-center">
+                  <div className="flex flex-col items-center gap-0.5">
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold ${sc.bg} ${sc.color}`}>
-                      <span className="material-symbols-outlined text-[13px]">{sc.icon}</span>
+                      <span className={`material-symbols-outlined text-[13px] ${isJudging(sub) ? 'animate-spin' : ''}`}>
+                        {isJudging(sub) ? 'progress_activity' : sc.icon}
+                      </span>
                       {sc.label}
                     </span>
+                    {progressText && (
+                      <span className="text-[10px] text-on-surface-variant tabular-nums">{progressText}</span>
+                    )}
                   </div>
 
                   {/* Passed */}
@@ -302,9 +370,8 @@ export default function SubmissionsPage() {
       {selectedSub && (
         <SubmissionModal
           sub={selectedSub}
-          isAdminOrTeacher={isAdminOrTeacher}
           portalPrefix={portalPrefix}
-          onClose={() => setSelectedSub(null)}
+          onClose={() => setSelectedSubId(null)}
           onNavigate={(assignmentId: string, submissionCode?: string, submissionLang?: string) => navigate(`${portalPrefix}/assignments/${assignmentId}`, { state: { submissionCode, submissionLang } })}
         />
       )}
@@ -314,19 +381,19 @@ export default function SubmissionsPage() {
 
 function SubmissionModal({
   sub,
-  isAdminOrTeacher,
   portalPrefix,
   onClose,
   onNavigate,
 }: {
   sub: any;
-  isAdminOrTeacher: boolean;
   portalPrefix: string;
   onClose: () => void;
   onNavigate: (assignmentId: string, code?: string, lang?: string) => void;
 }) {
   const sc = STATUS_CONFIG[sub.status] || STATUS_CONFIG[SubmissionStatus.INTERNAL_ERROR];
-  const testResults: any[] = sub.testResults || [];
+  const testResults: any[] = getDisplayTestResults(sub);
+  const progressText = getJudgeProgressText(sub);
+  const judging = isJudging(sub);
   const [expandedTests, setExpandedTests] = useState<Set<number>>(new Set());
 
   const toggleTest = (idx: number) => {
@@ -403,8 +470,30 @@ function SubmissionModal({
           )}
         </div>
 
+        {judging && (
+          <div className="flex items-center gap-sm px-lg py-sm border-b border-outline-variant/50 bg-primary/5 text-primary shrink-0">
+            <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+            <span className="text-label-sm font-semibold">{progressText || 'Judging submission'}</span>
+            {sub.judgeProgress?.completedCount != null && (
+              <span className="text-label-sm text-on-surface-variant ml-auto tabular-nums">
+                {sub.judgeProgress.completedCount} / {sub.judgeProgress.totalCount} done
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Test Cases List */}
         <div className="flex-1 overflow-y-auto px-lg py-md">
+          <div className="mb-md">
+            <h4 className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider mb-sm flex items-center gap-xs">
+              <span className="material-symbols-outlined text-[15px] text-primary">code</span>
+              Source Code
+            </h4>
+            <pre className="text-[11px] font-mono text-on-surface bg-surface-container-lowest rounded-xl border border-outline-variant px-sm py-sm max-h-[220px] overflow-auto whitespace-pre-wrap break-all">
+              {sub.code || '(empty)'}
+            </pre>
+          </div>
+
           <h4 className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider mb-sm flex items-center gap-xs">
             <span className="material-symbols-outlined text-[15px] text-primary">science</span>
             Test Cases
@@ -413,12 +502,17 @@ function SubmissionModal({
           {testResults.length > 0 ? (
             <div className="space-y-xs">
               {testResults.map((tr: any, idx: number) => {
-                const trSc = STATUS_CONFIG[tr.status] || STATUS_CONFIG[SubmissionStatus.INTERNAL_ERROR];
+                const runningTest = isRunningTestCase(sub, tr.testCaseIndex);
+                const trSc = runningTest
+                  ? { label: 'RUN', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10', icon: 'progress_activity', border: 'border-blue-500/30' }
+                  : STATUS_CONFIG[tr.status] || STATUS_CONFIG[SubmissionStatus.INTERNAL_ERROR];
                 const isExpanded = expandedTests.has(idx);
                 
                 // Extract input and expected output (fallback to assignment config if missing)
                 const tcInput = sub.assignment?.codingConfig?.testCases?.[tr.testCaseIndex]?.input;
-                const tcExpected = tr.expectedOutput || sub.assignment?.codingConfig?.testCases?.[tr.testCaseIndex]?.expectedOutput;
+                const tcExpected = tr.expectedOutput
+                  || sub.assignment?.codingConfig?.testCases?.[tr.testCaseIndex]?.expectedOutput
+                  || sub.assignment?.codingConfig?.testCases?.[tr.testCaseIndex]?.output;
 
                 // Only render a short preview of potentially huge payloads.
                 const inputPv = previewText(tcInput);
@@ -433,7 +527,7 @@ function SubmissionModal({
                       className={`flex items-center gap-sm px-sm py-xs ${trSc.bg} cursor-pointer hover:brightness-110 transition-all select-none`}
                     >
                       {/* Status icon */}
-                      <span className={`material-symbols-outlined text-[18px] ${trSc.color} shrink-0`}>
+                      <span className={`material-symbols-outlined text-[18px] ${trSc.color} ${runningTest ? 'animate-spin' : ''} shrink-0`}>
                         {trSc.icon}
                       </span>
 
@@ -448,7 +542,7 @@ function SubmissionModal({
                       </span>
 
                       {/* Time */}
-                      {tr.executionTimeMs != null && (
+                      {tr.executionTimeMs != null && !runningTest && (
                         <span className="text-[11px] text-on-surface-variant shrink-0 tabular-nums">
                           {tr.executionTimeMs}ms
                         </span>
@@ -483,11 +577,22 @@ function SubmissionModal({
                         <div>
                           <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Your Output</span>
                           <pre className={`mt-0.5 text-[11px] font-mono rounded-lg px-sm py-xs max-h-[100px] overflow-auto whitespace-pre-wrap break-all ${
-                            tr.status === SubmissionStatus.ACCEPTED
+                            runningTest || tr.isPlaceholder
+                              ? 'text-on-surface-variant bg-surface-container-highest'
+                              : tr.status === SubmissionStatus.ACCEPTED
                               ? 'text-emerald-600 bg-emerald-500/5'
                               : 'text-red-500 bg-red-500/5'
                           }`}>
-                            {actualPv.text || '(empty)'}{actualPv.truncated && <span className="text-on-surface-variant"> … (đã rút gọn)</span>}
+                            {runningTest
+                              ? '(running...)'
+                              : tr.isPlaceholder
+                              ? '(pending)'
+                              : (
+                                  <>
+                                    {actualPv.text || '(empty)'}
+                                    {actualPv.truncated && <span className="text-on-surface-variant"> … (đã rút gọn)</span>}
+                                  </>
+                                )}
                           </pre>
                         </div>
 

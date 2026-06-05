@@ -17,6 +17,7 @@ import 'katex/dist/katex.min.css';
 
 import { resolveSocketNamespace } from '../../../lib/socket-url';
 import RemoteCursors, { type RemoteCursor } from '../../../components/RemoteCursors';
+import { MazeWorkspaceViewer } from '../../../features/maze/MazeWorkspaceViewer';
 import { useAuthStore } from '../../../stores/auth.store';
 import { fullName } from '@cp/shared';
 
@@ -299,31 +300,37 @@ function DetailModal({
             </div>
           </aside>
 
-          {/* Code editor with remote cursors */}
-          <div ref={scrollContainerRef} className="min-h-0 overflow-auto relative">
-            <div ref={editorContainerRef} style={{ position: 'relative' }}>
-              <Editor
-                value={code || '// Waiting for code...'}
-                onValueChange={handleCodeChange}
-                highlight={(c) => highlightCode(c, language)}
-                padding={16}
-                className="w-full min-h-full font-mono text-[13px] bg-transparent text-gray-300 outline-none"
-                textareaClassName="focus:outline-none"
-                style={{
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                  lineHeight: '20px',
-                }}
-              />
-              <RemoteCursors
-                cursors={remoteCursors}
-                code={code || ''}
-                scrollContainerRef={scrollContainerRef}
-                lineHeight={20}
-                paddingTop={16}
-                paddingLeft={16}
-              />
+          {/* Maze: read-only block view. Other languages: editable code editor. */}
+          {language === 'maze' ? (
+            <div className="min-h-0 overflow-hidden bg-white">
+              <MazeWorkspaceViewer xml={code} />
             </div>
-          </div>
+          ) : (
+            <div ref={scrollContainerRef} className="min-h-0 overflow-auto relative">
+              <div ref={editorContainerRef} style={{ position: 'relative' }}>
+                <Editor
+                  value={code || '// Waiting for code...'}
+                  onValueChange={handleCodeChange}
+                  highlight={(c) => highlightCode(c, language)}
+                  padding={16}
+                  className="w-full min-h-full font-mono text-[13px] bg-transparent text-gray-300 outline-none"
+                  textareaClassName="focus:outline-none"
+                  style={{
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                    lineHeight: '20px',
+                  }}
+                />
+                <RemoteCursors
+                  cursors={remoteCursors}
+                  code={code || ''}
+                  scrollContainerRef={scrollContainerRef}
+                  lineHeight={20}
+                  paddingTop={16}
+                  paddingLeft={16}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer stats */}
@@ -555,7 +562,13 @@ export default function LiveMonitorPage() {
                         </div>
                       )}
                       <div className={hasProblemDetails ? 'h-28 overflow-hidden' : 'h-full overflow-hidden'}>
-                        <CodePreview code={displayCode} language={displayLang} />
+                        {displayLang === 'maze' ? (
+                          <div className="h-full bg-white">
+                            <MazeWorkspaceViewer xml={displayCode} />
+                          </div>
+                        ) : (
+                          <CodePreview code={displayCode} language={displayLang} />
+                        )}
                       </div>
                       <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[#0d0d1a] to-transparent pointer-events-none" />
                       <div className="absolute inset-0 bg-violet-600/0 group-hover:bg-violet-600/10 transition-colors flex items-center justify-center">

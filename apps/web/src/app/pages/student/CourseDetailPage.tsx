@@ -35,11 +35,12 @@ export default function StudentCourseDetailPage() {
 
   const courseQuery = useCourse(courseId);
   const assignmentsQuery = useCourseAssignments(courseId);
-  const submissionsQuery = useAllMySubmissions();
+  // Fetch a large page so the assignment→status map covers recent attempts.
+  const submissionsQuery = useAllMySubmissions({ limit: 100 });
 
   const course = courseQuery.data;
   const assignments = assignmentsQuery.data ?? [];
-  const submissions = submissionsQuery.data ?? [];
+  const submissions = submissionsQuery.data?.data ?? [];
 
   const submissionStatusMap = useMemo(() => {
     const map: Record<string, string> = {};

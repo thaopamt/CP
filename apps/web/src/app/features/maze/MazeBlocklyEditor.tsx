@@ -26,11 +26,13 @@ interface Props {
   allowedBlocks: BlockType[];
   /** Notified with the current block count whenever the workspace changes. */
   onBlockCountChange?: (count: number) => void;
+  /** Notified with the parsed program + workspace XML on change. */
+  onProgramChange?: (ast: Command[], xml: string) => void;
   initialXml?: string;
 }
 
 export const MazeBlocklyEditor = forwardRef<MazeBlocklyEditorHandle, Props>(
-  ({ allowedBlocks, onBlockCountChange, initialXml }, ref) => {
+  ({ allowedBlocks, onBlockCountChange, onProgramChange, initialXml }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const workspaceRef = useRef<Blockly.WorkspaceSvg | null>(null);
 
@@ -52,7 +54,7 @@ export const MazeBlocklyEditor = forwardRef<MazeBlocklyEditorHandle, Props>(
         scrollbars: true,
         horizontalLayout: false,
         renderer: 'zelos', // chunky, kid-friendly blocks
-        zoom: { controls: true, wheel: false, startScale: 1.0 },
+        zoom: { controls: true, wheel: true, startScale: 0.7, minScale: 0.4, maxScale: 1.5, scaleSpeed: 1.1 },
         move: { scrollbars: true, drag: true, wheel: false },
       });
       workspaceRef.current = workspace;
@@ -85,7 +87,9 @@ export const MazeBlocklyEditor = forwardRef<MazeBlocklyEditorHandle, Props>(
       start.setMovable(true);
 
       const onChange = () => {
-        onBlockCountChange?.(countBlocks(workspaceToAst(workspace)));
+        const ast = workspaceToAst(workspace);
+        onBlockCountChange?.(countBlocks(ast));
+        onProgramChange?.(ast, getWorkspaceXml(workspace));
       };
       workspace.addChangeListener(onChange);
       onChange();
