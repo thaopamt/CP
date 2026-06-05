@@ -136,7 +136,7 @@ function StatusPill({ row }: { row: IStudentAttendanceHistoryItem }) {
   }
   return (
     <span className={`w-fit rounded-full border px-sm py-1 text-label-sm ${STATUS_CLASS[row.status]}`}>
-      {t(`attendanceStatus.${row.status}`)}
+      {t(`enums.attendanceStatus.${row.status}`)}
     </span>
   );
 }
