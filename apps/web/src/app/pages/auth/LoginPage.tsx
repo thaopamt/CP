@@ -32,7 +32,7 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       const { data } = await apiClient.post<LoginResponse>('/auth/login', { email, password });
-      setSession(data.accessToken, data.user);
+      setSession(data.accessToken, data.refreshToken, data.user);
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??

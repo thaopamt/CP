@@ -33,6 +33,14 @@ export class UsersService extends TypeOrmCrudService<User> {
       .getOne();
   }
 
+  async findByIdWithRefreshToken(id: string): Promise<User | null> {
+    return this.repo
+      .createQueryBuilder('u')
+      .addSelect('u.refreshTokenHash')
+      .where('u.id = :id', { id })
+      .getOne();
+  }
+
   async findActiveById(id: string): Promise<User | null> {
     return this.repo.findOne({
       where: { id, isActive: true },
@@ -86,5 +94,9 @@ export class UsersService extends TypeOrmCrudService<User> {
 
   async updatePasswordHash(id: string, passwordHash: string): Promise<void> {
     await this.repo.update({ id }, { passwordHash });
+  }
+
+  async updateRefreshTokenHash(id: string, refreshTokenHash: string | null): Promise<void> {
+    await this.repo.update({ id }, { refreshTokenHash });
   }
 }

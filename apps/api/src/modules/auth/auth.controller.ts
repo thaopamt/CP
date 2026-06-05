@@ -1,5 +1,5 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post, UseGuards } from '@nestjs/common';
-import { IUser, JwtPayload, LoginResponse } from '@cp/shared';
+import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post, UseGuards, UnauthorizedException } from '@nestjs/common';
+import { IUser, JwtPayload, LoginResponse, RefreshRequest } from '@cp/shared';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -16,6 +16,29 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto): Promise<LoginResponse> {
     return this.auth.login(dto.email, dto.password);
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(@Body() dto: RefreshRequest): Promise<LoginResponse> {
+    // Note: The userId should typically come from the refresh token payload itself,
+    // but the JWT library can decode it without verification if needed.
+    // Alternatively, we verify it first.
+    // Wait, the `refreshTokens` method requires `userId`. I need to decode the token.
+    // Let me revise how I decode the token. I'll just decode it.
+    const decoded = this.auth['jwt'].decode(dto.refreshToken) as JwtPayload;
+    if (!decoded || !decoded.sub) {
+      throw new UnauthorizedException('Invalid refresh token payload');
+    }
+    return this.auth.refreshTokens(decoded.sub, dto.refreshToken);
+  }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async logout(@CurrentUser() user: JwtPayload): Promise<{ success: boolean }> {
+    await this.auth.logout(user.sub);
+    return { success: true };
   }
 
   @Get('me')

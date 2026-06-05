@@ -8,7 +8,12 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   accessToken: string;
+  refreshToken: string;
   user: IUser;
+}
+
+export interface RefreshRequest {
+  refreshToken: string;
 }
 
 export type CurrentUserResponse = IUser;

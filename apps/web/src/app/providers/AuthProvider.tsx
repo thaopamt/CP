@@ -1,19 +1,27 @@
+import axios from 'axios';
 import { ReactNode, useEffect } from 'react';
+import { LoginResponse } from '@cp/shared';
 
 import { apiClient } from '../lib/api-client';
 import { useAuthStore } from '../stores/auth.store';
 
-/**
- * Mounts axios interceptors that:
- *  1. Attach `Authorization: Bearer <token>` to every outgoing request,
- *     reading the token freshly from the store at request time.
- *  2. Auto-clear the session on a 401 response (e.g. expired JWT).
- *
- * Interceptors are registered once (mount) and torn down on unmount,
- * so they don't stack across hot-reloads.
- */
+let isRefreshing = false;
+let failedQueue: { resolve: (token: string) => void; reject: (err: any) => void }[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token!);
+    }
+  });
+  failedQueue = [];
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const clear = useAuthStore((s) => s.clear);
+  const setTokens = useAuthStore((s) => s.setTokens);
 
   useEffect(() => {
     const reqId = apiClient.interceptors.request.use((cfg) => {
@@ -27,8 +35,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const resId = apiClient.interceptors.response.use(
       (r) => r,
-      (err) => {
-        if (err?.response?.status === 401) clear();
+      async (err) => {
+        const originalRequest = err.config;
+
+        if (err?.response?.status === 401 && originalRequest && !originalRequest._retry) {
+          if (originalRequest.url === '/auth/refresh' || originalRequest.url === '/auth/login') {
+            clear();
+            return Promise.reject(err);
+          }
+
+          if (isRefreshing) {
+            return new Promise(function (resolve, reject) {
+              failedQueue.push({ resolve, reject });
+            })
+              .then((token) => {
+                originalRequest.headers.Authorization = 'Bearer ' + token;
+                return apiClient(originalRequest);
+              })
+              .catch((err) => {
+                return Promise.reject(err);
+              });
+          }
+
+          originalRequest._retry = true;
+          isRefreshing = true;
+
+          const refreshToken = useAuthStore.getState().refreshToken;
+          if (!refreshToken) {
+            isRefreshing = false;
+            clear();
+            return Promise.reject(err);
+          }
+
+          try {
+            // Use plain axios to avoid triggering the interceptor loop
+            const { data } = await axios.post<LoginResponse>(
+              (apiClient.defaults.baseURL || '') + '/auth/refresh',
+              { refreshToken }
+            );
+
+            setTokens(data.accessToken, data.refreshToken);
+            originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+            
+            processQueue(null, data.accessToken);
+            return apiClient(originalRequest);
+          } catch (refreshErr) {
+            processQueue(refreshErr, null);
+            clear();
+            return Promise.reject(refreshErr);
+          } finally {
+            isRefreshing = false;
+          }
+        }
+
         return Promise.reject(err);
       },
     );
@@ -37,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       apiClient.interceptors.request.eject(reqId);
       apiClient.interceptors.response.eject(resId);
     };
-  }, [clear]);
+  }, [clear, setTokens]);
 
   return <>{children}</>;
 }
