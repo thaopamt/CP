@@ -7,6 +7,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { ExecutionService } from './execution.service';
 import { Submission, SubmissionTestResult } from './submission.entity';
 import { SubmissionEventsGateway } from './submission-events.gateway';
+import { StudentAssignmentProgressService } from './student-assignment-progress.service';
 import { Assignment } from '../assignments/assignment.entity';
 import { QuestsService } from '../quests/quests.service';
 import { TestcaseStorageService } from '../testcases/testcase-storage.service';
@@ -35,6 +36,7 @@ export class SubmissionsController {
     private readonly questsService: QuestsService,
     private readonly submissionEvents: SubmissionEventsGateway,
     private readonly testcaseStorage: TestcaseStorageService,
+    private readonly assignmentProgress: StudentAssignmentProgressService,
   ) {}
 
   @Post('run')
@@ -303,6 +305,7 @@ export class SubmissionsController {
       });
 
       await this.submissionRepo.save(submission);
+      await this.assignmentProgress.recordSubmissionResult(submission);
       const completedSubmission = await this.findSubmissionForRealtime(submission.id);
 
       this.emitRealtimeEvent('completed', completedSubmission, {

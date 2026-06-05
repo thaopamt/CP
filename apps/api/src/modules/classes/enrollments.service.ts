@@ -2,7 +2,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TypeOrmCrudService } from '@dataui/crud-typeorm';
 import { Repository } from 'typeorm';
-import { IClassLearningProgress, SubmissionStatus } from '@cp/shared';
+import { IClassLearningProgress } from '@cp/shared';
 
 import { Enrollment } from './enrollment.entity';
 import { ClassesService } from './classes.service';
@@ -90,14 +90,14 @@ export class EnrollmentsService extends TypeOrmCrudService<Enrollment> {
       .createQueryBuilder('cc')
       .innerJoin('course_assignments', 'ca', 'ca.course_id = cc.course_id')
       .leftJoin(
-        'submissions',
-        's',
-        's."assignmentId" = ca.assignment_id AND s."userId" = :studentId AND s.status = :acceptedStatus',
-        { studentId, acceptedStatus: SubmissionStatus.ACCEPTED },
+        'student_assignment_progress',
+        'sap',
+        'sap.assignment_id = ca.assignment_id AND sap.student_id = :studentId AND sap.completed = true',
+        { studentId },
       )
       .select('cc.class_id', 'classId')
       .addSelect('COUNT(ca.id)', 'totalAssignments')
-      .addSelect('COUNT(DISTINCT CASE WHEN s.id IS NOT NULL THEN ca.id END)', 'completedAssignments')
+      .addSelect('COUNT(DISTINCT CASE WHEN sap.id IS NOT NULL THEN ca.id END)', 'completedAssignments')
       .where('cc.class_id IN (:...classIds)', { classIds })
       .groupBy('cc.class_id')
       .getRawMany<{

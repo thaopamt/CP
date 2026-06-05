@@ -36,6 +36,15 @@ export class ClassCoursesController {
     return this.service.listForClass(classId);
   }
 
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @Get(':courseId/progress')
+  progress(
+    @Param('classId', new ParseUUIDPipe()) classId: string,
+    @Param('courseId', new ParseUUIDPipe()) courseId: string,
+  ) {
+    return this.service.getCourseProgress(classId, courseId);
+  }
+
   @Roles(UserRole.ADMIN)
   @Post()
   attach(

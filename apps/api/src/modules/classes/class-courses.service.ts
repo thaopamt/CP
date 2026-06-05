@@ -6,6 +6,44 @@ import { Course } from '../courses/course.entity';
 import { ClassEntity } from './class.entity';
 import { ClassCourse } from './class-course.entity';
 
+export interface ClassCourseProgressAssignment {
+  courseAssignmentId: string;
+  assignmentId: string;
+  title: string;
+  orderIndex: number;
+  points: number;
+}
+
+export interface ClassCourseProgressStudentAssignment {
+  assignmentId: string;
+  completed: boolean;
+  completedAt: string | null;
+  lastStatus: string | null;
+  lastSubmittedAt: string | null;
+  attemptCount: number;
+  passedCount: number;
+  totalCount: number;
+  bestSubmissionId: string | null;
+  lastSubmissionId: string | null;
+}
+
+export interface ClassCourseProgressStudent {
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  completedAssignments: number;
+  totalAssignments: number;
+  percentage: number;
+  assignments: ClassCourseProgressStudentAssignment[];
+}
+
+export interface ClassCourseProgress {
+  classId: string;
+  courseId: string;
+  assignments: ClassCourseProgressAssignment[];
+  students: ClassCourseProgressStudent[];
+}
+
 /**
  * Manages the m:n relationship between Class and Course with sequencing.
  * Kept separate from `ClassesService` so the two are easy to reason about.
@@ -95,5 +133,142 @@ export class ClassCoursesService {
       await junctionRepo.save(all);
       return junctionRepo.find({ where: { classId }, order: { orderIndex: 'ASC' } });
     });
+  }
+
+  async getCourseProgress(classId: string, courseId: string): Promise<ClassCourseProgress> {
+    const link = await this.junction.findOne({ where: { classId, courseId } });
+    if (!link) throw new NotFoundException(`Course ${courseId} is not attached to class ${classId}`);
+
+    const assignments = await this.ds.query<ClassCourseProgressAssignment[]>(
+      `
+      SELECT
+        ca.id AS "courseAssignmentId",
+        ca.assignment_id AS "assignmentId",
+        a.title AS "title",
+        ca.order_index AS "orderIndex",
+        a.points AS "points"
+      FROM course_assignments ca
+      JOIN assignments a ON a.id = ca.assignment_id
+      WHERE ca.course_id = $1
+        AND ca.deleted_at IS NULL
+        AND a.deleted_at IS NULL
+      ORDER BY ca.order_index ASC, a.title ASC
+      `,
+      [courseId],
+    );
+
+    const students = await this.ds.query<Array<{
+      studentId: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+    }>>(
+      `
+      SELECT
+        e.student_id AS "studentId",
+        u.first_name AS "firstName",
+        u.last_name AS "lastName",
+        u.email AS "email"
+      FROM enrollments e
+      JOIN users u ON u.id = e.student_id
+      WHERE e.class_id = $1
+        AND e.deleted_at IS NULL
+        AND u.deleted_at IS NULL
+      ORDER BY u.last_name ASC, u.first_name ASC, u.email ASC
+      `,
+      [classId],
+    );
+
+    if (assignments.length === 0 || students.length === 0) {
+      return {
+        classId,
+        courseId,
+        assignments,
+        students: students.map((student) => ({
+          studentId: student.studentId,
+          studentName: `${student.firstName} ${student.lastName}`.trim(),
+          studentEmail: student.email,
+          completedAssignments: 0,
+          totalAssignments: assignments.length,
+          percentage: 0,
+          assignments: [],
+        })),
+      };
+    }
+
+    const progressRows = await this.ds.query<Array<{
+      studentId: string;
+      assignmentId: string;
+      completed: boolean;
+      completedAt: Date | null;
+      lastStatus: string | null;
+      lastSubmittedAt: Date | null;
+      attemptCount: number;
+      passedCount: number;
+      totalCount: number;
+      bestSubmissionId: string | null;
+      lastSubmissionId: string | null;
+    }>>(
+      `
+      SELECT
+        student_id AS "studentId",
+        assignment_id AS "assignmentId",
+        completed,
+        completed_at AS "completedAt",
+        last_status AS "lastStatus",
+        last_submitted_at AS "lastSubmittedAt",
+        attempt_count AS "attemptCount",
+        passed_count AS "passedCount",
+        total_count AS "totalCount",
+        best_submission_id AS "bestSubmissionId",
+        last_submission_id AS "lastSubmissionId"
+      FROM student_assignment_progress
+      WHERE student_id = ANY($1::uuid[])
+        AND assignment_id = ANY($2::uuid[])
+        AND deleted_at IS NULL
+      `,
+      [
+        students.map((student) => student.studentId),
+        assignments.map((assignment) => assignment.assignmentId),
+      ],
+    );
+
+    const progressByStudentAssignment = new Map(
+      progressRows.map((row) => [`${row.studentId}:${row.assignmentId}`, row]),
+    );
+
+    return {
+      classId,
+      courseId,
+      assignments,
+      students: students.map((student) => {
+        const assignmentProgress = assignments.map<ClassCourseProgressStudentAssignment>((assignment) => {
+          const row = progressByStudentAssignment.get(`${student.studentId}:${assignment.assignmentId}`);
+          return {
+            assignmentId: assignment.assignmentId,
+            completed: row?.completed ?? false,
+            completedAt: row?.completedAt?.toISOString?.() ?? null,
+            lastStatus: row?.lastStatus ?? null,
+            lastSubmittedAt: row?.lastSubmittedAt?.toISOString?.() ?? null,
+            attemptCount: Number(row?.attemptCount ?? 0),
+            passedCount: Number(row?.passedCount ?? 0),
+            totalCount: Number(row?.totalCount ?? 0),
+            bestSubmissionId: row?.bestSubmissionId ?? null,
+            lastSubmissionId: row?.lastSubmissionId ?? null,
+          };
+        });
+        const completedAssignments = assignmentProgress.filter((item) => item.completed).length;
+        const totalAssignments = assignments.length;
+        return {
+          studentId: student.studentId,
+          studentName: `${student.firstName} ${student.lastName}`.trim(),
+          studentEmail: student.email,
+          completedAssignments,
+          totalAssignments,
+          percentage: totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0,
+          assignments: assignmentProgress,
+        };
+      }),
+    };
   }
 }

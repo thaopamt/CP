@@ -17,6 +17,7 @@ import { Course } from '../modules/courses/course.entity';
 import { CourseAssignment } from '../modules/courses/course-assignment.entity';
 import { ClassCourse } from '../modules/classes/class-course.entity';
 import { Submission, SubmissionTestResult } from '../modules/submissions/submission.entity';
+import { StudentAssignmentProgress } from '../modules/submissions/student-assignment-progress.entity';
 import { AuditLogEntity } from '../modules/global-chat/entities/audit-log.entity';
 import { GlobalChatMessageEntity } from '../modules/global-chat/entities/global-chat-message.entity';
 import { GlobalChatMessageReadEntity } from '../modules/global-chat/entities/global-chat-message-read.entity';
@@ -58,6 +59,7 @@ export const AppDataSource = new DataSource({
     ClassCourse,
     Submission,
     SubmissionTestResult,
+    StudentAssignmentProgress,
     GlobalChatMessageEntity,
     GlobalChatMessageReadEntity,
     NotificationEntity,

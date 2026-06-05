@@ -6,6 +6,7 @@ import { Course } from '../courses/course.entity';
 import { ClassEntity } from './class.entity';
 import { Enrollment } from './enrollment.entity';
 import { ClassCourse } from './class-course.entity';
+import { StudentAssignmentProgress } from '../submissions/student-assignment-progress.entity';
 import { ClassesController } from './classes.controller';
 import { ClassesService } from './classes.service';
 import { EnrollmentsController } from './enrollments.controller';
@@ -14,7 +15,7 @@ import { ClassCoursesController } from './class-courses.controller';
 import { ClassCoursesService } from './class-courses.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ClassEntity, Enrollment, ClassCourse, Course, User])],
+  imports: [TypeOrmModule.forFeature([ClassEntity, Enrollment, ClassCourse, Course, User, StudentAssignmentProgress])],
   controllers: [ClassesController, EnrollmentsController, ClassCoursesController],
   providers: [ClassesService, EnrollmentsService, ClassCoursesService],
   exports: [ClassesService, EnrollmentsService, ClassCoursesService],

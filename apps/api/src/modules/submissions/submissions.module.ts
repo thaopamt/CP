@@ -7,6 +7,8 @@ import { ExecutionService } from './execution.service';
 import { InteractiveExecGateway } from './interactive-exec.gateway';
 import { SubmissionEventsGateway } from './submission-events.gateway';
 import { Submission, SubmissionTestResult } from './submission.entity';
+import { StudentAssignmentProgress } from './student-assignment-progress.entity';
+import { StudentAssignmentProgressService } from './student-assignment-progress.service';
 import { Assignment } from '../assignments/assignment.entity';
 import { QuestsModule } from '../quests/quests.module';
 import { TestcasesModule } from '../testcases/testcases.module';
@@ -14,7 +16,7 @@ import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Submission, SubmissionTestResult, Assignment]),
+    TypeOrmModule.forFeature([Submission, SubmissionTestResult, StudentAssignmentProgress, Assignment]),
     UsersModule,
     QuestsModule,
     TestcasesModule,
@@ -28,7 +30,7 @@ import { UsersModule } from '../users/users.module';
     }),
   ],
   controllers: [SubmissionsController],
-  providers: [ExecutionService, InteractiveExecGateway, SubmissionEventsGateway],
-  exports: [ExecutionService],
+  providers: [ExecutionService, InteractiveExecGateway, SubmissionEventsGateway, StudentAssignmentProgressService],
+  exports: [ExecutionService, StudentAssignmentProgressService],
 })
 export class SubmissionsModule {}
