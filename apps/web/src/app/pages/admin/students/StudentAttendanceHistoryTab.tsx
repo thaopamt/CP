@@ -89,27 +89,50 @@ export default function StudentAttendanceHistoryTab({ studentId }: { studentId: 
         </div>
       ) : (
         <div className="overflow-hidden rounded-lg border border-outline-variant/60">
-          <div className="grid grid-cols-[1fr_1fr_1fr] md:grid-cols-[1fr_1fr_1fr_1.2fr] bg-surface-container-low px-md py-sm text-label-sm text-on-surface-variant">
-            <span>{t('pages.admin.studentProfile.attendance.date')}</span>
-            <span>{t('pages.admin.studentProfile.attendance.time')}</span>
-            <span>{t('pages.admin.studentProfile.attendance.status')}</span>
-            <span className="hidden md:block">{t('pages.admin.studentProfile.attendance.note')}</span>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] table-fixed">
+              <colgroup>
+                <col style={{ width: '22%' }} />
+                <col style={{ width: '24%' }} />
+                <col style={{ width: '22%' }} />
+                <col style={{ width: '32%' }} />
+              </colgroup>
+              <thead className="bg-surface-container-low text-label-sm text-on-surface-variant">
+                <tr>
+                  <th scope="col" className="px-md py-sm text-center font-semibold">
+                    {t('pages.admin.studentProfile.attendance.date')}
+                  </th>
+                  <th scope="col" className="px-md py-sm text-center font-semibold">
+                    {t('pages.admin.studentProfile.attendance.time')}
+                  </th>
+                  <th scope="col" className="px-md py-sm text-center font-semibold">
+                    {t('pages.admin.studentProfile.attendance.status')}
+                  </th>
+                  <th scope="col" className="px-md py-sm text-center font-semibold">
+                    {t('pages.admin.studentProfile.attendance.note')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/40">
+                {records.map((row, index) => (
+                  <tr key={`${row.source}-${row.id ?? index}-${row.date}-${row.startTime ?? ''}`}>
+                    <td className="whitespace-nowrap px-md py-sm text-center align-middle text-body-sm text-on-surface">
+                      {formatDate(row.date, locale)}
+                    </td>
+                    <td className="whitespace-nowrap px-md py-sm text-center align-middle text-body-sm tabular-nums text-on-surface-variant">
+                      {formatTime(row)}
+                    </td>
+                    <td className="px-md py-sm text-center align-middle">
+                      <StatusPill row={row} />
+                    </td>
+                    <td className="px-md py-sm text-center align-middle text-body-sm text-on-surface-variant">
+                      <span className="block truncate">{row.note || row.className || '—'}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <ul className="divide-y divide-outline-variant/40">
-            {records.map((row, index) => (
-              <li
-                key={`${row.source}-${row.id ?? index}-${row.date}-${row.startTime ?? ''}`}
-                className="grid grid-cols-[1fr_1fr_1fr] md:grid-cols-[1fr_1fr_1fr_1.2fr] items-center gap-sm px-md py-sm"
-              >
-                <span className="text-body-sm text-on-surface">{formatDate(row.date, locale)}</span>
-                <span className="text-body-sm text-on-surface-variant tabular-nums">{formatTime(row)}</span>
-                <StatusPill row={row} />
-                <span className="hidden md:block text-body-sm text-on-surface-variant truncate">
-                  {row.note || row.className || '—'}
-                </span>
-              </li>
-            ))}
-          </ul>
         </div>
       )}
     </div>
@@ -129,13 +152,13 @@ function StatusPill({ row }: { row: IStudentAttendanceHistoryItem }) {
   const { t } = useTranslation();
   if (row.cancelled) {
     return (
-      <span className="w-fit rounded-full border border-outline-variant bg-surface-container px-sm py-1 text-label-sm text-on-surface-variant">
+      <span className="inline-flex min-w-[112px] justify-center rounded-full border border-outline-variant bg-surface-container px-sm py-1 text-label-sm text-on-surface-variant">
         {t('pages.admin.studentProfile.attendance.cancelledStatus')}
       </span>
     );
   }
   return (
-    <span className={`w-fit rounded-full border px-sm py-1 text-label-sm ${STATUS_CLASS[row.status]}`}>
+    <span className={`inline-flex min-w-[112px] justify-center rounded-full border px-sm py-1 text-label-sm ${STATUS_CLASS[row.status]}`}>
       {t(`enums.attendanceStatus.${row.status}`)}
     </span>
   );
