@@ -614,12 +614,8 @@ const vi: AppResources = {
         description:
           'Khoá học nhập môn Sinh học, bao gồm tế bào, di truyền, tiến hoá và sinh thái.',
         meta: {
-          duration: 'Thời lượng',
-          credits: 'Tín chỉ',
           instructor: 'Giảng viên',
           enrolled: 'Đã ghi danh',
-          durationValue: '12 tuần',
-          creditsValue: '3.0',
           instructorValue: 'Tiến sĩ Lan',
           enrolledValue: '24 / 30',
         },
@@ -881,19 +877,14 @@ const vi: AppResources = {
         title: 'Danh mục khoá học',
         subtitle: 'Định nghĩa khoá học và các bài tập cấu thành.',
         create: 'Khoá học mới',
-        searchPlaceholder: 'Tìm theo tiêu đề, mã hoặc môn học…',
+        searchPlaceholder: 'Tìm theo tiêu đề hoặc mã…',
         statusFilter: 'Trạng thái',
         empty: 'Không có khoá học nào khớp bộ lọc.',
-        weeks_one: '{{count}} tuần',
-        weeks_other: '{{count}} tuần',
         assignmentCount_one: '{{count}} bài · {{points}} điểm',
         assignmentCount_other: '{{count}} bài · {{points}} điểm',
         columns: {
           title: 'Khoá học',
-          credits: 'Tín chỉ',
-          duration: 'Thời lượng',
           assignments: 'Bài tập',
-          subject: 'Môn học',
           status: 'Trạng thái',
         },
         createDialog: {
@@ -931,8 +922,6 @@ const vi: AppResources = {
         required: 'Bắt buộc',
         summary: {
           courses: 'Khoá học',
-          credits: 'Tín chỉ',
-          weeks: 'Tổng tuần',
           assignments: 'Bài tập',
         },
         picker: {

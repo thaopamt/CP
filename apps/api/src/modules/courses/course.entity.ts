@@ -22,16 +22,6 @@ export class Course extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   description!: string | null;
 
-  @Column({ type: 'float', default: 1.0 })
-  credits!: number;
-
-  @Column({ type: 'int', default: 12, name: 'duration_weeks' })
-  durationWeeks!: number;
-
-  @Index()
-  @Column({ type: 'varchar', length: 100 })
-  subject!: string;
-
   @Column({ type: 'text', nullable: true, name: 'cover_url' })
   coverUrl!: string | null;
 

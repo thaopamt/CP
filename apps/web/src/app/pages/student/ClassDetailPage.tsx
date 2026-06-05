@@ -286,24 +286,12 @@ export default function StudentClassDetailPage() {
                         {/* Course meta chips */}
                         <div className="flex flex-wrap gap-sm">
                           <span className="inline-flex items-center gap-xs text-[11px] text-on-surface-variant bg-surface-container-high px-2 py-1 rounded-md">
-                            <Icon name="timer" size={14} />
-                            {course.durationWeeks} weeks
-                          </span>
-                          <span className="inline-flex items-center gap-xs text-[11px] text-on-surface-variant bg-surface-container-high px-2 py-1 rounded-md">
-                            <Icon name="school" size={14} />
-                            {course.credits} credits
-                          </span>
-                          <span className="inline-flex items-center gap-xs text-[11px] text-on-surface-variant bg-surface-container-high px-2 py-1 rounded-md">
                             <Icon name="assignment" size={14} />
                             {course.assignmentCount} assignment{course.assignmentCount !== 1 ? 's' : ''}
                           </span>
                           <span className="inline-flex items-center gap-xs text-[11px] text-on-surface-variant bg-surface-container-high px-2 py-1 rounded-md">
                             <Icon name="stars" size={14} />
                             {course.totalPoints} pts
-                          </span>
-                          <span className="inline-flex items-center gap-xs text-[11px] text-on-surface-variant bg-surface-container-high px-2 py-1 rounded-md">
-                            <Icon name="category" size={14} />
-                            {course.subject}
                           </span>
                         </div>
                       </div>

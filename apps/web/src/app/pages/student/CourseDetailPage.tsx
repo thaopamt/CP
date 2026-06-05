@@ -145,9 +145,7 @@ export default function StudentCourseDetailPage() {
       </div>
 
       {/* ── Stats strip ──────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-md">
-        <MiniStat icon="timer" label="Duration" value={`${course.durationWeeks} weeks`} />
-        <MiniStat icon="school" label="Credits" value={`${course.credits}`} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
         <MiniStat
           icon="assignment"
           label="Assignments"

@@ -54,9 +54,6 @@ interface ApiCourse {
   code: string;
   title: string;
   description: string | null;
-  credits: number;
-  durationWeeks: number;
-  subject: string;
   coverUrl: string | null;
   status: PublishStatus;
   assignmentCount: number;
@@ -123,9 +120,6 @@ function toCourse(c: ApiCourse): ICourse {
     code: c.code,
     title: c.title,
     description: c.description,
-    credits: c.credits,
-    durationWeeks: c.durationWeeks,
-    subject: c.subject,
     coverUrl: c.coverUrl,
     status: c.status,
     assignmentCount: c.assignmentCount,
@@ -187,13 +181,11 @@ export interface CoursesListParams {
   page?: number;
   limit?: number;
   search?: string;
-  subject?: string | 'all';
   status?: PublishStatus | 'all';
 }
 
 function buildCoursesQuery(p: CoursesListParams): Record<string, unknown> {
   const conditions: Array<Record<string, unknown>> = [];
-  if (p.subject && p.subject !== 'all') conditions.push({ subject: p.subject });
   if (p.status && p.status !== 'all') conditions.push({ status: p.status });
   if (p.search?.trim()) {
     const q = p.search.trim();

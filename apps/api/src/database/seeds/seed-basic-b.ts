@@ -115,9 +115,6 @@ async function run() {
     course.code = courseCode;
     course.title = courseTitle;
     course.description = `Chuyên đề số ${topicIndex} thuộc lộ trình đào tạo lập trình BASIC B.`;
-    course.credits = 1.0;
-    course.durationWeeks = 2;
-    course.subject = 'Computer Science';
     course.status = PublishStatus.PUBLISHED;
     course.assignmentCount = 0;
     course.totalPoints = 0;

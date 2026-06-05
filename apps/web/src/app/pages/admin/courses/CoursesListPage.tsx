@@ -66,23 +66,8 @@ export default function CoursesListPage() {
             className="text-left min-w-0 hover:text-primary"
           >
             <div className="text-on-surface font-medium truncate">{c.title}</div>
-            <div className="text-[12px] text-on-surface-variant font-mono">{c.code} · {c.subject}</div>
+            <div className="text-[12px] text-on-surface-variant font-mono">{c.code}</div>
           </button>
-        ),
-      },
-      {
-        key: 'credits',
-        header: t('pages.admin.coursesList.columns.credits'),
-        align: 'right',
-        cell: (c) => <span className="text-on-surface font-semibold">{c.credits.toFixed(1)}</span>,
-      },
-      {
-        key: 'duration',
-        header: t('pages.admin.coursesList.columns.duration'),
-        cell: (c) => (
-          <span className="text-on-surface-variant whitespace-nowrap">
-            {t('pages.admin.coursesList.weeks', { count: c.durationWeeks })}
-          </span>
         ),
       },
       {
@@ -224,9 +209,6 @@ function CreateCourseDialog({ onClose }: { onClose: () => void }) {
     code: '',
     title: '',
     description: '',
-    credits: 3,
-    durationWeeks: 12,
-    subject: '',
     status: PublishStatus.PUBLISHED,
   });
   const [error, setError] = useState<string | null>(null);
@@ -284,33 +266,6 @@ function CreateCourseDialog({ onClose }: { onClose: () => void }) {
               className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none font-mono"
             />
           </FormField>
-          <FormField label={t('pages.admin.coursesList.columns.subject')} required>
-            <input
-              type="text"
-              value={draft.subject}
-              onChange={(e) => patch('subject', e.target.value)}
-              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-            />
-          </FormField>
-          <FormField label={t('pages.admin.coursesList.columns.credits')} required>
-            <input
-              type="number"
-              step={0.5}
-              min={0}
-              value={draft.credits}
-              onChange={(e) => patch('credits', Number(e.target.value) || 0)}
-              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-            />
-          </FormField>
-          <FormField label={t('pages.admin.coursesList.columns.duration')} required>
-            <input
-              type="number"
-              min={1}
-              value={draft.durationWeeks}
-              onChange={(e) => patch('durationWeeks', Number(e.target.value) || 1)}
-              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-            />
-          </FormField>
           <FormField label={t('pages.admin.coursesList.createDialog.description')} className="col-span-2">
             <textarea
               rows={3}
@@ -334,7 +289,7 @@ function CreateCourseDialog({ onClose }: { onClose: () => void }) {
           <Button
             variant="admin"
             onClick={submit}
-            disabled={create.isPending || !draft.title.trim() || !draft.code.trim() || !draft.subject.trim()}
+            disabled={create.isPending || !draft.title.trim() || !draft.code.trim()}
             trailingIcon={
               create.isPending ? <Icon name="progress_activity" size={18} className="animate-spin" /> : undefined
             }

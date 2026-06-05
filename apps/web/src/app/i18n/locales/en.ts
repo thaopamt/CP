@@ -619,12 +619,8 @@ const en = {
         description:
           'An introductory survey of biology covering cells, genetics, evolution, and ecology.',
         meta: {
-          duration: 'Duration',
-          credits: 'Credits',
           instructor: 'Instructor',
           enrolled: 'Enrolled',
-          durationValue: '12 weeks',
-          creditsValue: '3.0',
           instructorValue: 'Dr. Reed',
           enrolledValue: '24 / 30',
         },
@@ -886,19 +882,14 @@ const en = {
         title: 'Course Catalog',
         subtitle: 'Define courses and the assignments that compose them.',
         create: 'New Course',
-        searchPlaceholder: 'Search by title, code, or subject…',
+        searchPlaceholder: 'Search by title or code…',
         statusFilter: 'Status',
         empty: 'No courses match the current filters.',
-        weeks_one: '{{count}} week',
-        weeks_other: '{{count}} weeks',
         assignmentCount_one: '{{count}} assignment · {{points}} pts',
         assignmentCount_other: '{{count}} assignments · {{points}} pts',
         columns: {
           title: 'Course',
-          credits: 'Credits',
-          duration: 'Duration',
           assignments: 'Assignments',
-          subject: 'Subject',
           status: 'Status',
         },
         createDialog: {
@@ -936,8 +927,6 @@ const en = {
         required: 'Required',
         summary: {
           courses: 'Courses',
-          credits: 'Credits',
-          weeks: 'Total weeks',
           assignments: 'Assignments',
         },
         picker: {

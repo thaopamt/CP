@@ -475,10 +475,6 @@ function ClassCourseRow({
         <div className="text-[12px] text-on-surface-variant flex items-center gap-sm flex-wrap">
           <span className="font-mono">{course.code}</span>
           <span className="w-1 h-1 rounded-full bg-outline-variant" />
-          <span>{course.subject}</span>
-          <span className="w-1 h-1 rounded-full bg-outline-variant" />
-          <span>{t('pages.admin.coursesList.weeks', { count: course.durationWeeks })}</span>
-          <span className="w-1 h-1 rounded-full bg-outline-variant" />
           <span>{t('pages.admin.coursesList.assignmentCount', { count: course.assignmentCount, points: course.totalPoints })}</span>
         </div>
       </button>

@@ -104,8 +104,6 @@ export default function AdminCoursesPage() {
               {t('pages.admin.courses.description')}
             </p>
             <dl className="grid grid-cols-2 gap-sm text-label-sm">
-              <Meta icon="schedule" label={t('pages.admin.courses.meta.duration')} value={t('pages.admin.courses.meta.durationValue')} />
-              <Meta icon="workspace_premium" label={t('pages.admin.courses.meta.credits')} value={t('pages.admin.courses.meta.creditsValue')} />
               <Meta icon="person" label={t('pages.admin.courses.meta.instructor')} value={t('pages.admin.courses.meta.instructorValue')} />
               <Meta icon="groups" label={t('pages.admin.courses.meta.enrolled')} value={t('pages.admin.courses.meta.enrolledValue')} />
             </dl>

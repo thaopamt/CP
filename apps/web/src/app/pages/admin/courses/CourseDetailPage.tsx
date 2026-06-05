@@ -103,10 +103,6 @@ export default function CourseDetailPage() {
         eyebrow={
           <div className="flex items-center gap-sm text-label-sm text-on-surface-variant">
             <span className="font-mono">{course.code}</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-outline-variant" />
-            <span>{course.subject}</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-outline-variant" />
-            <span>{t('pages.admin.coursesList.weeks', { count: course.durationWeeks })}</span>
           </div>
         }
         title={course.title}

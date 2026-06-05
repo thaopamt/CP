@@ -71,8 +71,6 @@ export default function ClassCurriculumPage() {
     reorder.mutate(ids);
   }
 
-  const totalCredits = links.reduce((acc, l) => acc + l.course.credits, 0);
-  const totalWeeks = links.reduce((acc, l) => acc + l.course.durationWeeks, 0);
   const totalAssignments = links.reduce((acc, l) => acc + l.course.assignmentCount, 0);
 
   return (
@@ -106,21 +104,11 @@ export default function ClassCurriculumPage() {
       />
 
       {/* Summary stats */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-md">
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-md">
         <SummaryStat
           icon="menu_book"
           label={t('pages.admin.classCurriculum.summary.courses')}
           value={links.length.toString()}
-        />
-        <SummaryStat
-          icon="workspace_premium"
-          label={t('pages.admin.classCurriculum.summary.credits')}
-          value={totalCredits.toFixed(1)}
-        />
-        <SummaryStat
-          icon="schedule"
-          label={t('pages.admin.classCurriculum.summary.weeks')}
-          value={t('pages.admin.coursesList.weeks', { count: totalWeeks })}
         />
         <SummaryStat
           icon="assignment"
@@ -257,13 +245,7 @@ function CourseRow({
         <div className="text-[12px] text-on-surface-variant flex items-center gap-sm flex-wrap">
           <span className="font-mono">{c.code}</span>
           <span className="w-1 h-1 rounded-full bg-outline-variant" />
-          <span>{c.subject}</span>
-          <span className="w-1 h-1 rounded-full bg-outline-variant" />
-          <span>{t('pages.admin.coursesList.weeks', { count: c.durationWeeks })}</span>
-          <span className="w-1 h-1 rounded-full bg-outline-variant" />
-          <span>{c.credits.toFixed(1)} cr</span>
-          <span className="w-1 h-1 rounded-full bg-outline-variant" />
-          <span>{c.assignmentCount} bài tập · {c.totalPoints} pts</span>
+          <span>{t('pages.admin.coursesList.assignmentCount', { count: c.assignmentCount, points: c.totalPoints })}</span>
         </div>
       </button>
       {link.isRequired && (
@@ -386,11 +368,7 @@ export function CoursePickerDialog({
                         <div className="text-[12px] text-on-surface-variant flex items-center gap-xs flex-wrap">
                           <span className="font-mono">{c.code}</span>
                           <span className="w-1 h-1 rounded-full bg-outline-variant" />
-                          <span>{c.subject}</span>
-                          <span className="w-1 h-1 rounded-full bg-outline-variant" />
-                          <span>{c.credits.toFixed(1)} cr</span>
-                          <span className="w-1 h-1 rounded-full bg-outline-variant" />
-                          <span>{c.assignmentCount} bài tập</span>
+                          <span>{t('pages.admin.coursesList.assignmentCount', { count: c.assignmentCount, points: c.totalPoints })}</span>
                         </div>
                       </div>
                     </label>

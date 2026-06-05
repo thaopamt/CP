@@ -759,9 +759,6 @@ async function run() {
     course.code = 'MAZE-101';
     course.title = 'Lập trình kéo-thả: Mê cung';
     course.description = 'Khóa học làm quen với lập trình bằng cách kéo-thả khối lệnh điều khiển nhân vật đi trong mê cung.';
-    course.credits = 1.0;
-    course.durationWeeks = 4;
-    course.subject = 'Computer Science';
     course.status = PublishStatus.PUBLISHED;
     course.totalPoints = 0;
     course = await courseRepo.save(course);

@@ -98,10 +98,6 @@ export interface ICourse {
   code: string;            // e.g. "MATH-301A"
   title: string;
   description?: string | null;
-  credits: number;         // 3.0
-  /** Total duration in weeks */
-  durationWeeks: number;
-  subject: string;
   coverUrl?: string | null;
   status: PublishStatus;
   /** Number of assignments attached, denormalized */
@@ -116,9 +112,6 @@ export interface ICreateCoursePayload {
   code: string;
   title: string;
   description?: string;
-  credits: number;
-  durationWeeks: number;
-  subject: string;
   status?: PublishStatus;
 }
 
