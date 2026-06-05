@@ -49,9 +49,7 @@ export default function TeacherLayout() {
         </button>
 
         <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-md px-sm'} py-lg relative`}>
-          <div className="w-10 h-10 rounded-lg bg-primary text-on-primary grid place-items-center font-manrope font-extrabold shrink-0">
-            EN
-          </div>
+          <img src="/logo.png" alt="Zenith" className="w-10 h-10 rounded-lg object-contain shrink-0" />
           {!isSidebarCollapsed && (
             <div className="overflow-hidden">
               <h1 className="text-label-sm font-extrabold text-primary leading-tight truncate">

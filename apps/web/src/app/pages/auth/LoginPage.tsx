@@ -53,9 +53,10 @@ export default function LoginPage() {
           onSubmit={onSubmit}
           className="bg-surface-container-lowest border border-outline-variant/50 rounded-2xl p-xl shadow-elev-3 flex flex-col gap-md"
         >
-          <div>
+          <div className="flex flex-col items-center gap-sm">
+            <img src="/logo.png" alt="Zenith" className="w-16 h-16 object-contain" />
             <h1 className="font-manrope text-headline-lg text-primary">{t('auth.welcomeTitle')}</h1>
-            <p className="text-body-md text-on-surface-variant mt-xs">
+            <p className="text-body-md text-on-surface-variant">
               {t('auth.welcomeSubtitle')}
             </p>
           </div>
