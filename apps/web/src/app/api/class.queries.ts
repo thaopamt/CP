@@ -95,6 +95,7 @@ export function useDropEnrollment(classId: string) {
     mutationFn: (id: string) => enrollmentsApi.drop(id),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: classQueryKeys.enrollmentsByClass(classId) });
+      void qc.invalidateQueries({ queryKey: ['enrollments'] });
       void qc.invalidateQueries({ queryKey: classQueryKeys.detail(classId) });
       void qc.invalidateQueries({ queryKey: ['classes', 'list'] });
     },

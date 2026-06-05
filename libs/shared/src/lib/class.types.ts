@@ -70,6 +70,16 @@ export interface IClass {
   updatedAt: string;
 }
 
+export interface IClassLearningProgress {
+  classId: string;
+  /** Assignment rows in the class curriculum. */
+  totalAssignments: number;
+  /** Assignment rows with at least one accepted submission by this student. */
+  completedAssignments: number;
+  /** 0..100, rounded to the nearest whole percent. */
+  percentage: number;
+}
+
 export interface IClassEnrollment {
   id: string;
   classId: string;
@@ -82,6 +92,8 @@ export interface IClassEnrollment {
   status: EnrollmentLifecycle;
   /** 0..100 — student's attendance % for this class */
   attendancePercentage: number;
+  /** 0..100 — student's learning progress through this class curriculum */
+  learningProgress?: IClassLearningProgress;
   paymentStatus: PaymentStatus;
   enrolledAt: string;
 }

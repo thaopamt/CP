@@ -17,6 +17,7 @@ import {
   IClass,
   IClassEnrollment,
   IClassInstructor,
+  IClassLearningProgress,
   ICreateClassPayload,
   PaymentStatus,
 } from '@cp/shared';
@@ -65,6 +66,7 @@ interface ApiEnrollment {
   student: ApiUser;
   status: EnrollmentLifecycle;
   attendancePercentage: number;
+  learningProgress?: IClassLearningProgress;
   paymentStatus: PaymentStatus;
   createdAt: string;
 }
@@ -111,6 +113,7 @@ function toEnrollment(e: ApiEnrollment): IClassEnrollment {
     studentExternalId: u.id.slice(0, 8).toUpperCase(),
     status: e.status,
     attendancePercentage: e.attendancePercentage,
+    learningProgress: e.learningProgress,
     paymentStatus: e.paymentStatus,
     enrolledAt: e.createdAt,
   };
@@ -135,7 +138,8 @@ function buildClassesQuery(p: ClassesListParams): Record<string, unknown> {
     });
   }
 
-  const search = conditions.length === 0 ? undefined : conditions.length === 1 ? conditions[0] : { $and: conditions };
+  const search =
+    conditions.length === 0 ? undefined : conditions.length === 1 ? conditions[0] : { $and: conditions };
   return {
     ...(search ? { s: JSON.stringify(search) } : {}),
     page: p.page ?? 1,
@@ -197,15 +201,8 @@ export const enrollmentsApi = {
   },
 
   async listByStudent(studentId: string): Promise<IClassEnrollment[]> {
-    const { data } = await apiClient.get<CrudListResponse<ApiEnrollment>>('/enrollments', {
-      params: {
-        s: JSON.stringify({ studentId }),
-        join: 'class',
-        limit: 100,
-        sort: 'createdAt,DESC',
-      },
-    });
-    return data.data.map(toEnrollment);
+    const { data } = await apiClient.get<ApiEnrollment[]>(`/enrollments/student/${studentId}/progress`);
+    return data.map(toEnrollment);
   },
 
   async enroll(classId: string, studentId: string): Promise<IClassEnrollment> {

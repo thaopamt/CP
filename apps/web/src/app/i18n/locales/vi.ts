@@ -611,8 +611,7 @@ const vi: AppResources = {
         breadcrumb: { curriculum: 'Chương trình', dept: 'Khoa Khoa học', course: 'Sinh học 101' },
         coverChange: 'Đổi ảnh bìa',
         details: 'Thông tin khoá học',
-        description:
-          'Khoá học nhập môn Sinh học, bao gồm tế bào, di truyền, tiến hoá và sinh thái.',
+        description: 'Khoá học nhập môn Sinh học, bao gồm tế bào, di truyền, tiến hoá và sinh thái.',
         meta: {
           instructor: 'Giảng viên',
           enrolled: 'Đã ghi danh',
@@ -670,7 +669,6 @@ const vi: AppResources = {
           art: 'Mỹ thuật',
           biology: 'Sinh học 101',
         },
-
       },
       attendance: {
         title: 'Điểm danh',
@@ -1121,6 +1119,11 @@ const vi: AppResources = {
     },
 
     student: {
+      classes: {
+        progressLabel: 'Tiến độ học',
+        progressSummary: 'Đã hoàn thành {{completed}} / {{total}} bài',
+        noAssignments: 'Chưa có bài học nào',
+      },
       quests: {
         pageTitle: 'Bảng nhiệm vụ',
         pageSubtitle: 'Hoàn thành thử thách, nhận phần thưởng và nâng cao kỹ năng!',
@@ -1185,8 +1188,7 @@ const vi: AppResources = {
         seed: {
           portfolio: {
             title: 'Xây Portfolio cá nhân',
-            description:
-              'Tạo một trang portfolio đơn trang với HTML, CSS và một ít JavaScript.',
+            description: 'Tạo một trang portfolio đơn trang với HTML, CSS và một ít JavaScript.',
           },
           robot: {
             title: 'Tìm đường cho Robot',
@@ -1236,8 +1238,7 @@ const vi: AppResources = {
             'Hãy thu thập đủ tất cả viên ngọc trước khi bước vào ô đích.',
           ],
           hint: 'Có chính xác 5 viên ngọc trên lưới. Hãy lập kế hoạch đi qua từng viên.',
-          expected:
-            'Console in ra "Mission complete" khi robot đến được ô đích.',
+          expected: 'Console in ra "Mission complete" khi robot đến được ô đích.',
         },
         starter: 'Workspace sẵn sàng. Nhấn "Chạy" để thực thi code.',
         runOutput: {
@@ -1250,9 +1251,20 @@ const vi: AppResources = {
           runCmd: '$ python main.py',
         },
         tests: {
-          firstGem: { name: 'Đến được viên ngọc đầu tiên', success: 'Robot đã thu thập viên ngọc #1 trong 4 bước.' },
-          walls: { name: 'Tránh va chạm tường', success: 'Không phát hiện va chạm.', failure: 'Phát hiện va chạm tại bước 3.' },
-          allGems: { name: 'Thu thập đủ ngọc', success: 'Đã thu thập đủ 5 viên ngọc.', failure: 'Mới chỉ thu thập 1/5 viên ngọc.' },
+          firstGem: {
+            name: 'Đến được viên ngọc đầu tiên',
+            success: 'Robot đã thu thập viên ngọc #1 trong 4 bước.',
+          },
+          walls: {
+            name: 'Tránh va chạm tường',
+            success: 'Không phát hiện va chạm.',
+            failure: 'Phát hiện va chạm tại bước 3.',
+          },
+          allGems: {
+            name: 'Thu thập đủ ngọc',
+            success: 'Đã thu thập đủ 5 viên ngọc.',
+            failure: 'Mới chỉ thu thập 1/5 viên ngọc.',
+          },
           unrun: 'Chạy code để xem kết quả.',
         },
       },

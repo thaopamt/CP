@@ -14,15 +14,7 @@ import { ClassCoursesController } from './class-courses.controller';
 import { ClassCoursesService } from './class-courses.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      ClassEntity,
-      Enrollment,
-      ClassCourse,
-      Course,
-      User,
-    ]),
-  ],
+  imports: [TypeOrmModule.forFeature([ClassEntity, Enrollment, ClassCourse, Course, User])],
   controllers: [ClassesController, EnrollmentsController, ClassCoursesController],
   providers: [ClassesService, EnrollmentsService, ClassCoursesService],
   exports: [ClassesService, EnrollmentsService, ClassCoursesService],

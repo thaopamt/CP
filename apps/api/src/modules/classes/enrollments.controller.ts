@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { Crud, CrudController } from '@dataui/crud';
 import { UserRole } from '@cp/shared';
 
@@ -38,6 +38,14 @@ interface EnrollDto {
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class EnrollmentsController implements CrudController<Enrollment> {
   constructor(public service: EnrollmentsService) {}
+
+  /** GET /api/enrollments/student/:studentId/progress — enrolled classes with learning progress */
+  @Get('student/:studentId/progress')
+  listByStudentWithLearningProgress(
+    @Param('studentId', new ParseUUIDPipe()) studentId: string,
+  ): Promise<Enrollment[]> {
+    return this.service.listByStudentWithLearningProgress(studentId);
+  }
 
   /** Convenience action: POST /api/enrollments/enroll { classId, studentId } */
   @Post('enroll')

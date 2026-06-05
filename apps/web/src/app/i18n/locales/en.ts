@@ -542,7 +542,6 @@ const en = {
         honorRoll: 'Honor roll',
         demographics: {
           title: 'Demographics',
-
         },
         guardians: {
           title: 'Guardians',
@@ -616,8 +615,7 @@ const en = {
         breadcrumb: { curriculum: 'Curriculum', dept: 'Science Dept', course: 'Biology 101' },
         coverChange: 'Change cover',
         details: 'Course Details',
-        description:
-          'An introductory survey of biology covering cells, genetics, evolution, and ecology.',
+        description: 'An introductory survey of biology covering cells, genetics, evolution, and ecology.',
         meta: {
           instructor: 'Instructor',
           enrolled: 'Enrolled',
@@ -675,7 +673,6 @@ const en = {
           art: 'Studio Art',
           biology: 'Biology 101',
         },
-
       },
       attendance: {
         title: 'Attendance',
@@ -1126,6 +1123,11 @@ const en = {
     },
 
     student: {
+      classes: {
+        progressLabel: 'Learning Progress',
+        progressSummary: '{{completed}} / {{total}} assignments completed',
+        noAssignments: 'No assignments yet',
+      },
       quests: {
         pageTitle: 'Quest Board',
         pageSubtitle: 'Complete challenges, earn rewards, and level up your skills!',
@@ -1190,8 +1192,7 @@ const en = {
         seed: {
           portfolio: {
             title: 'Build a Personal Portfolio',
-            description:
-              'Create a single-page portfolio site using HTML, CSS, and a small sprinkle of JS.',
+            description: 'Create a single-page portfolio site using HTML, CSS, and a small sprinkle of JS.',
           },
           robot: {
             title: 'Robot Pathfinder',
@@ -1241,8 +1242,7 @@ const en = {
             'You should collect every gem on the board before stepping onto the goal tile.',
           ],
           hint: 'There are exactly 5 gems on the board. Plan a route that touches each one.',
-          expected:
-            'The console prints "Mission complete" once the robot lands on the goal tile.',
+          expected: 'The console prints "Mission complete" once the robot lands on the goal tile.',
         },
         starter: 'Workspace ready. Press "Run" to execute your code.',
         runOutput: {
@@ -1256,8 +1256,16 @@ const en = {
         },
         tests: {
           firstGem: { name: 'Reaches the first gem', success: 'Robot collected gem #1 in 4 steps.' },
-          walls: { name: 'Avoids walls', success: 'No collisions detected.', failure: 'Collision detected at step 3.' },
-          allGems: { name: 'Collects all gems', success: 'All 5 gems collected.', failure: 'Only 1 of 5 gems collected.' },
+          walls: {
+            name: 'Avoids walls',
+            success: 'No collisions detected.',
+            failure: 'Collision detected at step 3.',
+          },
+          allGems: {
+            name: 'Collects all gems',
+            success: 'All 5 gems collected.',
+            failure: 'Only 1 of 5 gems collected.',
+          },
           unrun: 'Run your code to see the result.',
         },
       },
