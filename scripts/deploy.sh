@@ -1,61 +1,37 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────────────────
-# deploy.sh — Manual deployment script for CP System
-# SSH into server → cd /opt/cp-system → bash scripts/deploy.sh
+# deploy-remote.sh — Deploy từ máy LOCAL lên server qua SSH
+#
+# Cách dùng:
+#   ./scripts/deploy-remote.sh                # dùng host mặc định (ubuntu)
+#   ./scripts/deploy-remote.sh ubuntu-cp      # chỉ định SSH host khác
+#
+# Script sẽ SSH vào server → cd /opt/cp-system → chạy scripts/deploy.sh
 # ─────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
+# SSH host: lấy từ tham số đầu tiên, mặc định "ubuntu"
+SSH_HOST="${1:-ubuntu}"
+APP_DIR="/opt/cp-system"
+
 echo "══════════════════════════════════════════════════"
-echo "  CP System — Deploying to cp.thaopamt.site"
-echo "  $(date '+%Y-%m-%d %H:%M:%S')"
+echo "  CP System — Remote deploy"
+echo "  Host : $SSH_HOST"
+echo "  Dir  : $APP_DIR"
+echo "  Time : $(date '+%Y-%m-%d %H:%M:%S')"
 echo "══════════════════════════════════════════════════"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-
-cd "$PROJECT_ROOT"
-
-# ── Pull latest code ──────────────────────────────────────────────────
-if [ -d ".git" ]; then
-  if ! git diff --quiet 2>/dev/null; then
-    echo "⚠️  Phát hiện thay đổi chưa commit. Bỏ qua git pull để bảo vệ code của bạn."
-  else
-    echo "→ Pulling latest code from main..."
-    git fetch origin main 2>/dev/null || true
-    git reset --hard origin/main 2>/dev/null || true
-  fi
+# Kiểm tra kết nối SSH trước
+echo "→ Kiểm tra kết nối SSH tới '$SSH_HOST'..."
+if ! ssh -o ConnectTimeout=10 "$SSH_HOST" "true" 2>/dev/null; then
+  echo "✗ Không SSH được vào '$SSH_HOST'. Kiểm tra ~/.ssh/config hoặc thử: ssh $SSH_HOST"
+  exit 1
 fi
+echo "  ✓ Kết nối OK"
 
-# ── Build & deploy ────────────────────────────────────────────────────
-echo "→ Building Docker images..."
-docker compose build
-
-echo "→ Restarting services..."
-# docker compose down --remove-orphans
-docker compose up -d
-
-# ── Wait for API readiness ───────────────────────────────────────────
-echo "→ Waiting for API to be ready..."
-for i in {1..30}; do
-  if docker exec cp_api wget -q --spider http://localhost:3000/api 2>/dev/null; then
-    echo "  ✓ API ready"
-    break
-  fi
-  if [ $i -eq 30 ]; then
-    echo "  ⚠ API is not ready yet. Please check logs."
-  fi
-  sleep 2
-done
-
-# ── Cleanup ───────────────────────────────────────────────────────────
-echo "→ Cleaning up old Docker images..."
-docker image prune -f
+# Chạy deploy trên server. -t để hiển thị output realtime.
+echo "→ Đang chạy deploy trên server..."
+ssh -t "$SSH_HOST" "cd '$APP_DIR' && bash scripts/build.sh"
 
 echo ""
-echo "══════════════════════════════════════════════════"
-echo "  ✅ Deploy completed!"
-echo "  🌐 https://cp.thaopamt.site"
-echo "══════════════════════════════════════════════════"
-echo ""
-
-docker compose ps
+echo "✅ Hoàn tất! 🌐 https://cp.thaopamt.site"
