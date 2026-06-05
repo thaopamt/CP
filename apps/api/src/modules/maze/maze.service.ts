@@ -59,7 +59,11 @@ export class MazeService {
    * visible to everyone, otherwise it must be assigned to a class the student
    * is enrolled in.
    */
-  async getLevelsForStudent(studentId: string): Promise<MazeLevel[]> {
+  async getLevelsForStudent(studentId: string): Promise<Array<MazeLevel & {
+    solved: boolean;
+    attempts: number;
+    bestBlocks: number | null;
+  }>> {
     const query = this.levels.createQueryBuilder('l');
 
     query
@@ -81,7 +85,35 @@ export class MazeService {
       .orderBy('l.order', 'ASC')
       .addOrderBy('l.created_at', 'ASC');
 
-    return query.getMany();
+    const levels = await query.getMany();
+    if (levels.length === 0) return [];
+
+    const progressRows = await this.submissions
+      .createQueryBuilder('s')
+      .select('s.levelId', 'levelId')
+      .addSelect('BOOL_OR(s.reached_goal)', 'solved')
+      .addSelect('COUNT(s.id)', 'attempts')
+      .addSelect('MIN(s.blocks_used) FILTER (WHERE s.reached_goal)', 'bestBlocks')
+      .where('s.userId = :studentId', { studentId })
+      .andWhere('s.levelId IN (:...levelIds)', { levelIds: levels.map((level) => level.id) })
+      .groupBy('s.levelId')
+      .getRawMany();
+
+    const progressByLevel = new Map(progressRows.map((row) => [
+      row.levelId,
+      {
+        solved: row.solved === true || row.solved === 'true',
+        attempts: Number(row.attempts),
+        bestBlocks: row.bestBlocks != null ? Number(row.bestBlocks) : null,
+      },
+    ]));
+
+    return levels.map((level) => ({
+      ...level,
+      solved: progressByLevel.get(level.id)?.solved ?? false,
+      attempts: progressByLevel.get(level.id)?.attempts ?? 0,
+      bestBlocks: progressByLevel.get(level.id)?.bestBlocks ?? null,
+    }));
   }
 
   async getLevelForStudent(studentId: string, levelId: string): Promise<MazeLevel> {

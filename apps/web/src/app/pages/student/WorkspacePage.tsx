@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { DifficultyBadge, Icon } from '@cp/ui';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { DifficultyBadge, Icon, useConfirm } from '@cp/ui';
 import {
   DifficultyLevel,
   ICodeExecutionResponse,
@@ -21,9 +21,9 @@ import 'prismjs/components/prism-java';
 import 'prismjs/components/prism-python';
 import 'prismjs/components/prism-javascript';
 
-import { useAssignment } from '../../api/curriculum.queries';
+import { useAssignment, useCourseAssignments } from '../../api/curriculum.queries';
 import { useRunCode, useSubmitCode, useSubmissions } from '../../api/submissions.queries';
-import { useStudentDashboard, useUpdateDefaultLanguage } from '../../api/student.queries';
+import { useMyTasks, useStudentDashboard, useUpdateDefaultLanguage } from '../../api/student.queries';
 import { useLiveCodingSync } from '../../hooks/useLiveCodingSync';
 import { useInteractiveExec } from '../../hooks/useInteractiveExec';
 import RemoteCursors from '../../components/RemoteCursors';
@@ -39,11 +39,21 @@ const LANG_OPTIONS: { value: string; label: string; template: string }[] = [
 /* ── Tabs for left panel ──────────────────────────────────────────── */
 type LeftTab = 'description' | 'submissions';
 type BottomTab = 'testcase' | 'terminal' | 'result';
+type WorkspaceRouteState = { classId?: string; courseId?: string } | null;
+type NextAssignmentTarget = { title: string; path: string; state?: WorkspaceRouteState };
 
 export default function StudentWorkspacePage() {
   const { problemId } = useParams<{ problemId: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
+  const confirm = useConfirm();
+  const routeState = location.state as WorkspaceRouteState;
+  const courseIdFromState = routeState?.courseId;
+
   const { data: assignment, isLoading, isError } = useAssignment(problemId);
+  const { data: courseAssignments = [] } = useCourseAssignments(courseIdFromState);
+  const myTasksParams = useMemo(() => ({ page: 1, limit: 200 }), []);
+  const { data: myTasksData } = useMyTasks(myTasksParams);
   const { data: submissions = [] } = useSubmissions(assignment?.id || '');
   const runMutation = useRunCode();
   const submitMutation = useSubmitCode();
@@ -133,6 +143,36 @@ export default function StudentWorkspacePage() {
         })),
     [assignment?.codingConfig?.testCases],
   );
+
+  const nextAssignmentTarget = useMemo<NextAssignmentTarget | null>(() => {
+    if (!problemId) return null;
+
+    const orderedCourseAssignments = [...courseAssignments].sort((a, b) => a.order - b.order);
+    const courseAssignmentIndex = orderedCourseAssignments.findIndex(
+      (courseAssignment) => courseAssignment.assignment.id === problemId,
+    );
+
+    if (courseAssignmentIndex >= 0) {
+      const next = orderedCourseAssignments[courseAssignmentIndex + 1]?.assignment;
+      if (!next) return null;
+
+      return {
+        title: next.title,
+        path: next.codingConfig ? `/student/workspace/${next.id}` : `/student/assignments/${next.id}`,
+        state: next.codingConfig ? routeState : undefined,
+      };
+    }
+
+    const tasks = myTasksData?.items ?? [];
+    const taskIndex = tasks.findIndex((task) => task.id === problemId);
+    const nextTask = taskIndex >= 0 ? tasks[taskIndex + 1] : null;
+    if (!nextTask) return null;
+
+    return {
+      title: nextTask.title,
+      path: `/student/assignments/${nextTask.id}`,
+    };
+  }, [courseAssignments, myTasksData?.items, problemId, routeState]);
 
   // Cursor tracking
   const [cursorOffset, setCursorOffset] = useState(0);
@@ -435,6 +475,35 @@ export default function StudentWorkspacePage() {
         cases,
       });
       setActiveResultIdx(0);
+
+      if (overallStatus === 'accepted') {
+        const shouldMoveNext = await confirm({
+          title: 'Hoàn thành bài!',
+          message: nextAssignmentTarget ? (
+            <span>
+              Em đã làm đúng tất cả test. Bài tiếp theo là{' '}
+              <span className="font-semibold text-on-surface">{nextAssignmentTarget.title}</span>.
+            </span>
+          ) : (
+            'Em đã làm đúng tất cả test. Hiện chưa có bài tiếp theo trong danh sách đang giao.'
+          ),
+          confirmLabel: nextAssignmentTarget ? 'Làm bài tiếp theo' : 'Về danh sách bài',
+          cancelLabel: 'Ở lại',
+          intent: 'primary',
+        });
+
+        if (shouldMoveNext) {
+          if (nextAssignmentTarget) {
+            if (nextAssignmentTarget.state) {
+              navigate(nextAssignmentTarget.path, { state: nextAssignmentTarget.state });
+            } else {
+              navigate(nextAssignmentTarget.path);
+            }
+          } else {
+            navigate('/student/assignments');
+          }
+        }
+      }
     } catch (err: any) {
       setRunResults({
         overall: 'error',

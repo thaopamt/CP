@@ -1,10 +1,10 @@
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Button, Card, Icon, useToast } from '@cp/ui';
+import { Button, Card, Icon, useConfirm, useToast } from '@cp/ui';
 import { SimFailReason, simulate, validateCommands, BlockType } from '@cp/shared';
 
-import { useStudentMazeLevel, useSubmitMaze } from '../../../api/maze.queries';
+import { useStudentMazeLevel, useStudentMazeLevels, useSubmitMaze } from '../../../api/maze.queries';
 import { useLiveCodingSync } from '../../../hooks/useLiveCodingSync';
 import { MazeBlocklyEditor, MazeBlocklyEditorHandle } from '../../../features/maze/MazeBlocklyEditor';
 import { MazeGrid } from '../../../features/maze/MazeGrid';
@@ -19,9 +19,11 @@ export default function MazeSolvePage() {
   const { levelId } = useParams<{ levelId: string }>();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const toast = useToast();
 
   const { data: level, isLoading, isError } = useStudentMazeLevel(levelId);
+  const { data: assignedLevels = [] } = useStudentMazeLevels();
   const submitMutation = useSubmitMaze();
 
   const editorRef = useRef<MazeBlocklyEditorHandle>(null);
@@ -37,10 +39,50 @@ export default function MazeSolvePage() {
   });
 
   const grid = level?.gridConfig;
-  const animation = useMazeAnimation(grid);
+  const animation = useMazeAnimation(grid, level?.id);
   const varEntries = Object.entries(animation.vars);
+  const nextLevel = useMemo(() => {
+    const currentIndex = assignedLevels.findIndex((candidate) => candidate.id === levelId);
+    return currentIndex >= 0 ? assignedLevels[currentIndex + 1] ?? null : null;
+  }, [assignedLevels, levelId]);
 
   const overLimit = level?.maxBlocks != null && blockCount > level.maxBlocks;
+  const [pendingNextPrompt, setPendingNextPrompt] = useState(false);
+
+  const promptNextLevel = useCallback(async () => {
+    const shouldMoveNext = await confirm({
+      title: 'Hoàn thành mê cung!',
+      message: nextLevel ? (
+        <span>
+          Em đã giải đúng bàn này. Bàn tiếp theo là{' '}
+          <span className="font-semibold text-on-surface">{nextLevel.title}</span>.
+        </span>
+      ) : (
+        'Em đã giải đúng bàn này. Hiện chưa có bàn tiếp theo trong danh sách đang giao.'
+      ),
+      confirmLabel: nextLevel ? 'Làm bàn tiếp theo' : 'Về danh sách mê cung',
+      cancelLabel: 'Ở lại',
+      intent: 'primary',
+    });
+
+    if (shouldMoveNext) {
+      navigate(nextLevel ? `/student/maze/${nextLevel.id}` : '/student/maze');
+    }
+  }, [confirm, navigate, nextLevel]);
+
+  useEffect(() => {
+    if (!pendingNextPrompt || !animation.done) return;
+    setPendingNextPrompt(false);
+    void promptNextLevel();
+  }, [animation.done, pendingNextPrompt, promptNextLevel]);
+
+  useEffect(() => {
+    editorRef.current?.clear();
+    setBlockCount(0);
+    setWorkspaceXml('');
+    setOutcome(null);
+    setPendingNextPrompt(false);
+  }, [levelId]);
 
   const failMessage = (reason: SimFailReason): string => {
     switch (reason) {
@@ -58,6 +100,7 @@ export default function MazeSolvePage() {
   const handleRun = () => {
     if (!level || !grid || !editorRef.current) return;
     setOutcome(null);
+    setPendingNextPrompt(false);
 
     const ast = editorRef.current.getAst();
     const validation = validateCommands(
@@ -81,6 +124,7 @@ export default function MazeSolvePage() {
         onSuccess: (res) => {
           if (res.reachedGoal) {
             setOutcome({ kind: 'success' });
+            setPendingNextPrompt(true);
             toast.success(t('maze.result.success'));
           } else {
             setOutcome({ kind: 'fail', reason: res.failReason ?? null });
@@ -94,6 +138,7 @@ export default function MazeSolvePage() {
   const handleReset = () => {
     animation.reset();
     setOutcome(null);
+    setPendingNextPrompt(false);
   };
 
   if (isLoading) {
@@ -124,10 +169,7 @@ export default function MazeSolvePage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-md flex-1 min-h-0">
         {/* Left: Blockly workspace (3/4, stretches to fill) */}
         <Card className="flex flex-col p-0 overflow-hidden min-h-[420px] lg:col-span-3">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-outline-variant bg-surface-container-low">
-            <span className="text-label-sm font-semibold text-on-surface-variant">
-              {t('maze.workspace')}
-            </span>
+          <div className="flex items-center justify-end px-4 py-2 border-b border-outline-variant bg-surface-container-low">
             <span
               className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-label-sm font-bold ${
                 overLimit
@@ -144,6 +186,7 @@ export default function MazeSolvePage() {
           </div>
           <div className="flex-1 min-h-0">
             <MazeBlocklyEditor
+              key={level.id}
               ref={editorRef}
               allowedBlocks={(level.allowedBlocks ?? []) as BlockType[]}
               onBlockCountChange={setBlockCount}
@@ -200,12 +243,12 @@ export default function MazeSolvePage() {
           )}
 
           <div className="flex gap-3">
-            <Button variant="outline" size="lg" onClick={handleReset} leadingIcon={<Icon name="restart_alt" />}>
+            <Button variant="outline" size="sm" onClick={handleReset} leadingIcon={<Icon name="restart_alt" />}>
               {t('maze.reset')}
             </Button>
             <Button
               variant="student"
-              size="lg"
+              size="sm"
               onClick={handleRun}
               disabled={animation.isPlaying || submitMutation.isPending || overLimit}
               leadingIcon={<Icon name="play_arrow" />}

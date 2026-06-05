@@ -1316,6 +1316,11 @@ const vi: AppResources = {
       subtitle: 'Kéo-thả các khối lệnh để đưa chú robot tới ngôi sao.',
       empty: 'Chưa có bàn chơi nào được giao.',
       play: 'Chơi ngay',
+      playAgain: 'Chơi lại',
+      tryAgain: 'Thử lại',
+      completed: 'Đã hoàn thành',
+      attempted: 'Đã thử',
+      completedSummary: 'Đã hoàn thành {{completed}} / {{total}} bàn',
     },
     admin: {
       title: 'Bàn chơi Mê cung',

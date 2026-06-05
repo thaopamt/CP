@@ -1317,6 +1317,11 @@ const en = {
       subtitle: 'Drag and drop blocks to guide the robot to the star.',
       empty: 'No maze levels assigned yet.',
       play: 'Play',
+      playAgain: 'Play again',
+      tryAgain: 'Try again',
+      completed: 'Completed',
+      attempted: 'Attempted',
+      completedSummary: '{{completed}} / {{total}} levels completed',
     },
     admin: {
       title: 'Maze Levels',

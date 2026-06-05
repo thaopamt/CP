@@ -22,7 +22,7 @@ interface AnimationState {
  * produced by the shared engine; this hook only advances a timer and exposes the
  * character's current pose (plus live variables / items) for rendering.
  */
-export function useMazeAnimation(grid: GridConfig | undefined) {
+export function useMazeAnimation(grid: GridConfig | undefined, resetKey?: string) {
   const start = grid?.start ?? { x: 0, y: 0 };
   const startDir = grid?.startDir ?? Direction.EAST;
   const startItems = grid?.items ?? [];
@@ -88,11 +88,11 @@ export function useMazeAnimation(grid: GridConfig | undefined) {
     [start.x, start.y, startDir, JSON.stringify(startItems)],
   );
 
-  // Re-sync the idle pose whenever the level's start pose changes (e.g. the
-  // level finishes loading after the first render).
+  // Re-sync the idle pose whenever the level changes. Some levels intentionally
+  // share the same start pose, so the route-level key matters too.
   useEffect(() => {
     reset();
-  }, [reset]);
+  }, [reset, resetKey]);
 
   useEffect(() => clearTimer, []);
 

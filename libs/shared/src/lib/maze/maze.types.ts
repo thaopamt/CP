@@ -211,6 +211,10 @@ export interface IMazeLevel {
   classIds: string[] | null;
   createdAt: string;
   updatedAt: string;
+  /** Student-facing progress fields, present on `/maze-levels/me/assigned`. */
+  solved?: boolean;
+  attempts?: number;
+  bestBlocks?: number | null;
 }
 
 /** Body for creating/updating a level from the admin builder. */

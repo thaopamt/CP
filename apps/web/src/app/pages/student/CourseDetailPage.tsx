@@ -226,7 +226,7 @@ export default function StudentCourseDetailPage() {
                   key={ca.id}
                   onClick={() =>
                     a.codingConfig
-                      ? navigate(`/student/workspace/${a.id}`)
+                      ? navigate(`/student/workspace/${a.id}`, { state: { classId, courseId } })
                       : navigate(`/student/assignments/${a.id}`)
                   }
                   className={`rounded-xl p-md transition-all cursor-pointer group flex gap-md items-center border ${cardClass}`}

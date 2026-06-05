@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ICreateMazeLevelPayload, ISubmitMazePayload } from '@cp/shared';
+import { ICreateMazeLevelPayload, IMazeLevel, ISubmitMazePayload } from '@cp/shared';
 import { mazeApi } from './maze.api';
 
 export const mazeQueryKeys = {
@@ -91,7 +91,25 @@ export function useSubmitMaze() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: ISubmitMazePayload) => mazeApi.submit(payload).then((res) => res.data),
-    onSuccess: (_data, vars) => {
+    onSuccess: (data, vars) => {
+      if (data.reachedGoal) {
+        qc.setQueryData(mazeQueryKeys.assigned(), (old: IMazeLevel[] | undefined) => {
+          if (!Array.isArray(old)) return old;
+          return old.map((level) =>
+            level.id === vars.levelId
+              ? {
+                  ...level,
+                  solved: true,
+                  attempts: (level.attempts ?? 0) + 1,
+                  bestBlocks:
+                    level.bestBlocks == null
+                      ? data.submission.blocksUsed
+                      : Math.min(level.bestBlocks, data.submission.blocksUsed),
+                }
+              : level,
+          );
+        });
+      }
       void qc.invalidateQueries({ queryKey: mazeQueryKeys.assigned() });
       void qc.invalidateQueries({ queryKey: mazeQueryKeys.myResults(vars.levelId) });
       void qc.invalidateQueries({ queryKey: ['students', 'dashboard'] });
