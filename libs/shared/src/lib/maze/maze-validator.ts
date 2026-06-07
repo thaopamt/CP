@@ -80,6 +80,12 @@ export function validateCommands(
         case BlockType.TURN_RIGHT:
           requireCap(BlockType.TURN_RIGHT);
           break;
+        case BlockType.PICK:
+          requireCap(BlockType.PICK);
+          break;
+        case BlockType.WAIT:
+          requireCap(BlockType.WAIT);
+          break;
         case BlockType.REPEAT: {
           requireCap(BlockType.REPEAT);
           if (typeof cmd.times === 'number') {

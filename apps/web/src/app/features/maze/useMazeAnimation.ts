@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Cell, Direction, GridConfig, SimulationResult } from '@cp/shared';
+import { Cell, Direction, GridConfig, MonsterView, monsterViewsAt, SimulationResult } from '@cp/shared';
 import { ANIMATION_INTERVAL_MS } from './maze.constants';
 
 interface AnimationState {
@@ -17,6 +17,10 @@ interface AnimationState {
   vars: Record<string, number>;
   /** Items still on the board at the current step. */
   items: Cell[];
+  /** Monster snapshots at the current step. */
+  monsters: MonsterView[];
+  /** Unopened mystery-box positions at the current step. */
+  boxes: Cell[];
 }
 
 /**
@@ -28,6 +32,8 @@ export function useMazeAnimation(grid: GridConfig | undefined, resetKey?: string
   const start = grid?.start ?? { x: 0, y: 0 };
   const startDir = grid?.startDir ?? Direction.EAST;
   const startItems = grid?.items ?? [];
+  const startMonsters = grid ? monsterViewsAt(grid, 0) : [];
+  const startBoxes = (grid?.boxes ?? []).map((b) => ({ x: b.x, y: b.y }));
 
   const idle = (): AnimationState => ({
     charPos: start,
@@ -39,6 +45,8 @@ export function useMazeAnimation(grid: GridConfig | undefined, resetKey?: string
     done: false,
     vars: {},
     items: startItems,
+    monsters: startMonsters,
+    boxes: startBoxes,
   });
 
   const [state, setState] = useState<AnimationState>(idle);
@@ -57,7 +65,7 @@ export function useMazeAnimation(grid: GridConfig | undefined, resetKey?: string
     resultRef.current = null;
     setState(idle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [start.x, start.y, startDir, JSON.stringify(startItems)]);
+  }, [start.x, start.y, startDir, JSON.stringify(startItems), JSON.stringify(startMonsters), JSON.stringify(startBoxes)]);
 
   const play = useCallback(
     (result: SimulationResult) => {
@@ -91,6 +99,8 @@ export function useMazeAnimation(grid: GridConfig | undefined, resetKey?: string
           activeBlockId: frame.blockId ?? null,
           vars: frame.vars ?? s.vars,
           items: frame.itemsLeft ?? s.items,
+          monsters: frame.monsters ?? s.monsters,
+          boxes: frame.boxes ?? s.boxes,
         }));
         i += 1;
         timerRef.current = setTimeout(tick, ANIMATION_INTERVAL_MS);
@@ -98,7 +108,7 @@ export function useMazeAnimation(grid: GridConfig | undefined, resetKey?: string
       timerRef.current = setTimeout(tick, ANIMATION_INTERVAL_MS);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     },
-    [start.x, start.y, startDir, JSON.stringify(startItems)],
+    [start.x, start.y, startDir, JSON.stringify(startItems), JSON.stringify(startMonsters), JSON.stringify(startBoxes)],
   );
 
   // Re-sync the idle pose whenever the level changes. Some levels intentionally

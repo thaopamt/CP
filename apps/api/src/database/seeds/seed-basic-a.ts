@@ -53,35 +53,24 @@ async function run() {
     console.log('ℹ️ Class "BASIC A" already exists.');
   }
 
-  // 3. Clean up any previous automatic courses and assignments to avoid duplicates
-  console.log('🧹 Cleaning up old BASIC-A courses and assignments...');
-  const oldCourses = await courseRepo.createQueryBuilder('course')
+  // 3. Preload existing BASIC-A courses & assignments so we can UPSERT in place.
+  // Updating rows by their stable natural key (course.code / assignment.slug)
+  // preserves their primary keys — and therefore every student submission, which
+  // references assignments via an ON DELETE CASCADE FK. Only content that has
+  // disappeared from disk is deleted at the end (see the cleanup after the loop).
+  console.log('🔎 Loading existing BASIC-A courses & assignments for upsert...');
+  const existingCourses = await courseRepo.createQueryBuilder('course')
     .where("course.code LIKE 'BASIC-A-%'")
     .getMany();
-  
-  const oldCourseIds = oldCourses.map(c => c.id);
-  if (oldCourseIds.length > 0) {
-    await courseAssignmentRepo.createQueryBuilder()
-      .delete()
-      .where("course_id IN (:...ids)", { ids: oldCourseIds })
-      .execute();
-      
-    await classCourseRepo.createQueryBuilder()
-      .delete()
-      .where("course_id IN (:...ids)", { ids: oldCourseIds })
-      .execute();
-      
-    await assignmentRepo.createQueryBuilder()
-      .delete()
-      .where("slug LIKE 'basica-%'")
-      .execute();
-      
-    await courseRepo.createQueryBuilder()
-      .delete()
-      .where("id IN (:...ids)", { ids: oldCourseIds })
-      .execute();
-    console.log(`🧹 Cleaned up ${oldCourses.length} old courses.`);
-  }
+  const courseByCode = new Map(existingCourses.map((c) => [c.code, c]));
+
+  const existingAssignments = await assignmentRepo.createQueryBuilder('a')
+    .where("a.slug LIKE 'basica-%'")
+    .getMany();
+  const assignmentBySlug = new Map(existingAssignments.map((a) => [a.slug as string, a]));
+
+  const seededCourseCodes = new Set<string>();
+  const seededSlugs = new Set<string>();
 
   // 4. Read the Topic folders dynamically
   const baseDir = path.join(process.cwd(), 'database/BASIC_A');
@@ -112,18 +101,24 @@ async function run() {
     
     console.log(`📖 Processing Topic ${topicIndex}: ${courseTitle}`);
     
-    const course = new Course();
+    // Upsert the course by its stable `code` so its id (and the submissions that
+    // hang off its assignments) survive reseeds.
+    const course = courseByCode.get(courseCode) ?? new Course();
     course.code = courseCode;
     course.title = courseTitle;
     course.description = `Chuyên đề số ${topicIndex} thuộc lộ trình đào tạo lập trình BASIC A.`;
     course.status = PublishStatus.PUBLISHED;
     course.assignmentCount = 0;
     course.totalPoints = 0;
-    
+
     const savedCourse = await courseRepo.save(course);
-    
-    // Link Course to Class
-    const classCourseLink = new ClassCourse();
+    seededCourseCodes.add(courseCode);
+
+    // Link Course to Class (upsert on the unique (classId, courseId) pair).
+    let classCourseLink = await classCourseRepo.findOne({
+      where: { classId: basicAClass.id, courseId: savedCourse.id },
+    });
+    if (!classCourseLink) classCourseLink = new ClassCourse();
     classCourseLink.classId = basicAClass.id;
     classCourseLink.courseId = savedCourse.id;
     classCourseLink.orderIndex = topicIndex;
@@ -258,8 +253,9 @@ async function run() {
 
       console.log(`    📊 Loaded ${testCases.length} testcases from zip.`);
 
-      // Save Assignment
-      const assignment = new Assignment();
+      // Upsert the assignment by its stable `slug`. Reusing the existing row keeps
+      // its id, so every student submission against it is preserved on reseed.
+      const assignment = assignmentBySlug.get(slug) ?? new Assignment();
       assignment.title = title;
       assignment.description = description;
       assignment.difficulty = difficulty;
@@ -275,11 +271,15 @@ async function run() {
         testCases
       };
       assignment.status = PublishStatus.PUBLISHED;
-      
-      const savedAssignment = await assignmentRepo.save(assignment);
 
-      // Link Assignment to Course
-      const courseAssignmentLink = new CourseAssignment();
+      const savedAssignment = await assignmentRepo.save(assignment);
+      seededSlugs.add(slug);
+
+      // Link Assignment to Course (upsert on the unique (courseId, assignmentId) pair).
+      let courseAssignmentLink = await courseAssignmentRepo.findOne({
+        where: { courseId: savedCourse.id, assignmentId: savedAssignment.id },
+      });
+      if (!courseAssignmentLink) courseAssignmentLink = new CourseAssignment();
       courseAssignmentLink.courseId = savedCourse.id;
       courseAssignmentLink.assignmentId = savedAssignment.id;
       courseAssignmentLink.orderIndex = a + 1;
@@ -298,7 +298,21 @@ async function run() {
     console.log(`✅ Topic ${topicIndex} seeding completed with ${courseAssignmentCount} assignments, total ${coursePointsSum} points.`);
   }
 
-  console.log('🎉 System Seed Completed Successfully! All 5 topics are fully populated with genuine testcases.');
+  // Remove ONLY content that disappeared from disk. Removing an assignment cascades
+  // just THAT assignment's submissions (intentional — the problem no longer exists);
+  // everything still on disk kept its id above, so its submissions are untouched.
+  const obsoleteAssignments = existingAssignments.filter((a) => !seededSlugs.has(a.slug as string));
+  if (obsoleteAssignments.length) {
+    await assignmentRepo.remove(obsoleteAssignments);
+    console.log(`🗑️ Removed ${obsoleteAssignments.length} obsolete assignments (no longer on disk).`);
+  }
+  const obsoleteCourses = existingCourses.filter((c) => !seededCourseCodes.has(c.code));
+  if (obsoleteCourses.length) {
+    await courseRepo.remove(obsoleteCourses);
+    console.log(`🗑️ Removed ${obsoleteCourses.length} obsolete courses (no longer on disk).`);
+  }
+
+  console.log('🎉 System Seed Completed Successfully! Content synced; student submissions preserved.');
   await AppDataSource.destroy();
 }
 

@@ -22,6 +22,70 @@ export interface Cell {
   y: number;
 }
 
+/**
+ * How a monster traverses its `path`:
+ * - `loop`:     …→ last → first → last … (teleports back to the start cell).
+ * - `pingpong`: …→ last → … → first → … (walks back and forth). Default.
+ * Ignored when a monster's `path` has a single cell (a static monster).
+ */
+export type MonsterMode = 'loop' | 'pingpong';
+
+/**
+ * Monster behaviour ("kĩ năng"):
+ * - `static`:  never leaves `path[0]`.
+ * - `patrol`:  cycles through `path` purely by tick (mode loop/pingpong).
+ * - `chaser`:  steps toward the character (greedy, reducing Manhattan distance),
+ *              moving once every `speed` ticks (default 2 = half speed) so it can
+ *              be outrun/shaken with `wait` and detours. Starts at `path[0]`.
+ * - `guard`:   sits at `path[0]` until the character enters its row/column with a
+ *              clear line of sight, then dashes one cell toward them each tick.
+ * - `sleeper`: alternates `sleep` harmless+frozen ticks and `awake` lethal ticks
+ *              (defaults 2/2); while awake it patrols `path`. Harmless & passable
+ *              while asleep — sensors and collisions ignore it then.
+ * Defaults to `patrol` when `path.length > 1`, else `static`.
+ */
+export type MonsterKind = 'static' | 'patrol' | 'chaser' | 'guard' | 'sleeper';
+
+/**
+ * A roaming hazard. Touching a LETHAL monster (sharing its cell, or swapping
+ * cells head-on with it) ends the run with `failReason === 'CAUGHT'`.
+ *
+ * `path` is: the single home cell (static/chaser/guard spawn) or the patrol route
+ * (patrol/sleeper). One tick passes per visible character action.
+ */
+export interface Monster {
+  path: Cell[];
+  kind?: MonsterKind;
+  /** Patrol traversal (patrol & awake sleeper). Defaults to `pingpong`. */
+  mode?: MonsterMode;
+  /** chaser/guard: move once every N ticks (default 2). Higher = slower. */
+  speed?: number;
+  /** sleeper: harmless+frozen ticks per cycle (default 2). */
+  sleep?: number;
+  /** sleeper: lethal+patrolling ticks per cycle (default 2). */
+  awake?: number;
+}
+
+/** A per-frame snapshot of a monster, for rendering (carries skin + asleep state). */
+export interface MonsterView {
+  x: number;
+  y: number;
+  kind: MonsterKind;
+  /** True when a sleeper is currently asleep (harmless — render differently). */
+  asleep?: boolean;
+}
+
+/** A hidden "?" cell holding a fixed but concealed reward or hazard. */
+export interface MysteryBox {
+  x: number;
+  y: number;
+  /** `treasure` opens safely (counts toward collect-all); `monster` ends the run. */
+  content: 'treasure' | 'monster';
+}
+
+/** Visual skin for collectible `items`. Defaults: `crop` in harvest mode, else `gem`. */
+export type ItemTheme = 'star' | 'gem' | 'crop' | 'coin' | 'fruit' | 'key';
+
 /** Static definition of a maze level's playfield. Stored as JSONB on MazeLevel. */
 export interface GridConfig {
   width: number;
@@ -34,8 +98,36 @@ export interface GridConfig {
   startDir: Direction;
   /** Cell the character must reach to solve the level. */
   goal: Cell;
-  /** Optional collectible / sensable item cells ("vật phẩm"). */
+  /**
+   * Optional collectible / sensable item cells ("vật phẩm" / ngôi sao / cây).
+   * A cell listed N times holds N items and must be picked N times — this is how
+   * "một ô chứa nhiều ngôi sao" is encoded (duplicate coordinates = quantity).
+   */
   items?: Cell[];
+  /**
+   * Collect-all mode: the level is solved when EVERY item has been picked (via
+   * the `pick` block), regardless of the character's final cell. When
+   * omitted/false the level is solved by reaching `goal` (classic maze). The
+   * `goal` field is still required for typing but is ignored for the win check
+   * in this mode.
+   */
+  collectAll?: boolean;
+  /** Default visual skin for items (does not affect grading). */
+  itemTheme?: ItemTheme;
+  /**
+   * Per-cell visual override, keyed by "x,y" → theme. Lets ONE level mix item
+   * types (sao ⭐ / ngọc 💎 / vàng 🪙 …). Purely cosmetic — every item still
+   * counts the same toward collect-all. Cells not listed fall back to itemTheme.
+   */
+  itemKindAt?: Record<string, ItemTheme>;
+  /** Roaming hazards. Touching a lethal one ends the run (`failReason === 'CAUGHT'`). */
+  monsters?: Monster[];
+  /**
+   * Hidden "?" cells. Stepping onto one opens it: a `treasure` box is collected
+   * (counts toward collect-all), a `monster` box ends the run. The `box_ahead`
+   * and `box_ahead_safe` sensors let the character decide before opening.
+   */
+  boxes?: MysteryBox[];
 }
 
 /**
@@ -47,6 +139,8 @@ export enum BlockType {
   MOVE_FORWARD = 'move_forward',
   TURN_LEFT = 'turn_left',
   TURN_RIGHT = 'turn_right',
+  PICK = 'pick', // thu hoạch: nhặt cây/vật phẩm/ngôi sao ở ô hiện tại
+  WAIT = 'wait', // đứng yên một nhịp (để quái vật đi qua)
   REPEAT = 'repeat', // lặp lại N lần
   FOREVER = 'forever', // lặp mãi mãi
   WHILE = 'while', // trong khi / lặp cho đến khi
@@ -68,7 +162,14 @@ export enum SensorType {
   WALL_RIGHT = 'wall_right',
   AT_GOAL = 'at_goal',
   NOT_AT_GOAL = 'not_at_goal',
-  ON_ITEM = 'on_item',
+  ON_ITEM = 'on_item', // ô hiện tại còn cây/vật phẩm/ngôi sao để thu hoạch
+  ITEMS_LEFT = 'items_left', // vẫn còn vật phẩm ở đâu đó trên bản đồ
+  NO_ITEMS_LEFT = 'no_items_left', // đã thu thập sạch mọi vật phẩm
+  MONSTER_AHEAD = 'monster_ahead', // ô ngay phía trước đang có quái vật nguy hiểm
+  MONSTER_LEFT = 'monster_left', // ô bên trái đang có quái vật nguy hiểm
+  MONSTER_RIGHT = 'monster_right', // ô bên phải đang có quái vật nguy hiểm
+  BOX_AHEAD = 'box_ahead', // ô ngay phía trước có hộp bí ẩn chưa mở
+  BOX_AHEAD_SAFE = 'box_ahead_safe', // hộp bí ẩn phía trước là báu vật (an toàn để mở)
 }
 
 // ── Expression AST (evaluates to a number or boolean) ──────────────────────
@@ -107,6 +208,12 @@ export interface TurnLeftCmd extends CommandMeta {
 }
 export interface TurnRightCmd extends CommandMeta {
   type: BlockType.TURN_RIGHT;
+}
+export interface PickCmd extends CommandMeta {
+  type: BlockType.PICK;
+}
+export interface WaitCmd extends CommandMeta {
+  type: BlockType.WAIT;
 }
 export interface RepeatCmd extends CommandMeta {
   type: BlockType.REPEAT;
@@ -149,6 +256,8 @@ export type Command =
   | MoveForwardCmd
   | TurnLeftCmd
   | TurnRightCmd
+  | PickCmd
+  | WaitCmd
   | RepeatCmd
   | ForeverCmd
   | WhileCmd
@@ -160,7 +269,13 @@ export type Command =
 // ── Simulation output ───────────────────────────────────────────────────────
 
 /** Why a simulation stopped before reaching the goal. `null` = ran to completion. */
-export type SimFailReason = 'OUT_OF_BOUNDS' | 'HIT_WALL' | 'STEP_LIMIT' | 'RUNTIME_ERROR' | null;
+export type SimFailReason =
+  | 'OUT_OF_BOUNDS'
+  | 'HIT_WALL'
+  | 'CAUGHT' // ran into a monster
+  | 'STEP_LIMIT'
+  | 'RUNTIME_ERROR'
+  | null;
 
 /** One primitive action of a simulation, used to drive the step-by-step animation. */
 export interface SimStep {
@@ -169,15 +284,22 @@ export interface SimStep {
   pos: Cell;
   /** Character facing direction AFTER applying this step. */
   dir: Direction;
-  action: 'move' | 'turnLeft' | 'turnRight';
+  action: 'move' | 'turnLeft' | 'turnRight' | 'pick' | 'wait';
   /** Blockly block id that produced this visible step, when available. */
   blockId?: string;
-  /** True when a `move` was blocked (wall / out of bounds); pos stays put. */
+  /** True when a `move` was blocked (wall / out of bounds) or a monster caught the character. */
   crashed?: boolean;
   /** Snapshot of variable values after this step, for the watcher panel. */
   vars?: Record<string, number>;
-  /** Items still on the board after this step. */
+  /**
+   * Items still on the board after this step. A cell is listed once per remaining
+   * item, so duplicate coordinates encode the remaining quantity in that cell.
+   */
   itemsLeft?: Cell[];
+  /** Monster snapshots after this step, for the animation (skin + asleep state). */
+  monsters?: MonsterView[];
+  /** Unopened mystery-box positions after this step (content stays hidden). */
+  boxes?: Cell[];
 }
 
 /** One UI execution frame, used to highlight executed Blockly blocks. */
@@ -193,8 +315,12 @@ export interface SimTraceEvent {
   crashed?: boolean;
   /** Snapshot of variable values at this point. */
   vars?: Record<string, number>;
-  /** Items still on the board at this point. */
+  /** Items still on the board at this point (one entry per remaining item). */
   itemsLeft?: Cell[];
+  /** Monster snapshots at this point (skin + asleep state). */
+  monsters?: MonsterView[];
+  /** Unopened mystery-box positions at this point. */
+  boxes?: Cell[];
 }
 
 export interface SimulationResult {

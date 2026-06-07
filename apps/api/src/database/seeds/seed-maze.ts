@@ -4,7 +4,8 @@ import { ClassEntity } from '../../modules/classes/class.entity';
 import { Course } from '../../modules/courses/course.entity';
 import { ClassCourse } from '../../modules/classes/class-course.entity';
 import { MazeLevel } from '../../modules/maze/maze-level.entity';
-import { BlockType, Cell, countBlocks, Direction, GridConfig, PublishStatus, SensorType, simulate, Command } from '@cp/shared';
+import { BlockType, Cell, countBlocks, Direction, GridConfig, PublishStatus, SensorType, simulate, Command, Expr } from '@cp/shared';
+import { ADVANCED_GEN_LEVELS } from './maze-advanced-levels';
 
 /**
  * Seeds maze levels (basic → advanced) under a "Lập trình kéo-thả" course
@@ -27,12 +28,27 @@ interface LevelSeed {
   /** Assign directly to BASIC-A (true) or leave visible to everyone (false). */
   assignToBasicA: boolean;
   intendedSolution: Command[];
+  /** Override the difficulty-tier block slack (used by twisty mazes to stay fair). */
+  blockSlack?: number;
 }
 
 const move: Command = { type: BlockType.MOVE_FORWARD };
 const left: Command = { type: BlockType.TURN_LEFT };
 const right: Command = { type: BlockType.TURN_RIGHT };
 const repeat = (times: number, body: Command[]): Command => ({ type: BlockType.REPEAT, times, body });
+
+// Harvest helpers (used by the "Vườn" / collect-all levels).
+const pick: Command = { type: BlockType.PICK };
+const wait: Command = { type: BlockType.WAIT };
+const brk: Command = { type: BlockType.BREAK };
+const sense = (s: SensorType): Expr => ({ kind: 'sensor', sensor: s });
+const forever = (body: Command[]): Command => ({ type: BlockType.FOREVER, body });
+const whileDo = (cond: Expr, body: Command[]): Command => ({ type: BlockType.WHILE, mode: 'while', cond, body });
+const ifDo = (cond: Expr, body: Command[], elseBody?: Command[]): Command => ({
+  type: BlockType.IF,
+  branches: [{ cond, body }],
+  ...(elseBody ? { elseBody } : {}),
+});
 
 // ── Allowed-block presets (cumulative difficulty tiers) ─────────────────────
 const A1: BlockType[] = [BlockType.MOVE_FORWARD, BlockType.TURN_LEFT, BlockType.TURN_RIGHT];
@@ -150,6 +166,7 @@ interface MapSpec {
   startDir: Direction;
   map: string[];
   allowedBlocks: BlockType[];
+  blockSlack?: number;
 }
 
 /** Turn an ASCII map spec into a verified LevelSeed (BFS provides the solution). */
@@ -180,6 +197,7 @@ function mapLevel(spec: MapSpec): LevelSeed {
     maxBlocks: null,
     assignToBasicA: false,
     intendedSolution: solution,
+    blockSlack: spec.blockSlack,
   };
 }
 
@@ -674,7 +692,661 @@ const MAP_LEVELS: LevelSeed[] = [
   }),
 ];
 
-const ALL_LEVELS: LevelSeed[] = [...LEVELS, ...MAP_LEVELS];
+// ── Levels 37–136: procedurally generated, auto-solved & verified ────────────
+// Every generator returns a rectangular, fully-connected ASCII map, so the BFS
+// solver in mapLevel() always finds a path and the seed-time simulate() guard
+// confirms it. Difficulty AND the allowed-block tier scale with map size, so the
+// harder a maze is the more block types it unlocks ("nhiều khối hơn cho bài khó").
+
+type Diff = 'EASY' | 'MEDIUM' | 'HARD';
+interface Gen {
+  name: string;
+  desc: string;
+  difficulty: Diff;
+  startDir: Direction;
+  map: string[];
+  blocks: BlockType[];
+  blockSlack?: number;
+}
+
+const setCh = (row: string, x: number, ch: string): string => row.slice(0, x) + ch + row.slice(x + 1);
+
+// Horizontal boustrophedon ("rắn bò"): even rows are open corridors, odd rows are
+// walls with a single gap that flips side each time — forcing a snake path.
+// `height` must be odd so the bottom row is a corridor.
+function snakeH(width: number, height: number): string[] {
+  const rows: string[] = [];
+  let connector = 0;
+  let lastGapRight = true;
+  for (let y = 0; y < height; y++) {
+    if (y % 2 === 0) {
+      rows.push('.'.repeat(width));
+    } else {
+      const gapRight = connector % 2 === 0;
+      lastGapRight = gapRight;
+      rows.push(setCh('#'.repeat(width), gapRight ? width - 1 : 0, '.'));
+      connector++;
+    }
+  }
+  rows[0] = setCh(rows[0], 0, 'S');
+  rows[height - 1] = setCh(rows[height - 1], lastGapRight ? 0 : width - 1, 'G');
+  return rows;
+}
+
+// Descending staircase: each row opens two overlapping cells, so consecutive
+// rows always connect. n rows × (n+1) columns.
+function staircase(n: number): string[] {
+  const rows: string[] = [];
+  for (let y = 0; y < n; y++) {
+    let r = '#'.repeat(n + 1);
+    r = setCh(r, y, '.');
+    r = setCh(r, y + 1, '.');
+    rows.push(r);
+  }
+  rows[0] = setCh(rows[0], 0, 'S');
+  rows[n - 1] = setCh(rows[n - 1], n, 'G');
+  return rows;
+}
+
+// Chữ L: open top row + open right column, everything else wall.
+function lShape(width: number, height: number): string[] {
+  const rows: string[] = [];
+  for (let y = 0; y < height; y++) {
+    let r = y === 0 ? '.'.repeat(width) : '#'.repeat(width);
+    r = setCh(r, width - 1, '.');
+    rows.push(r);
+  }
+  rows[0] = setCh(rows[0], 0, 'S');
+  rows[height - 1] = setCh(rows[height - 1], width - 1, 'G');
+  return rows;
+}
+
+// Chữ U: open left column + bottom row + right column; S and G sit on top.
+function uShape(width: number, height: number): string[] {
+  const rows: string[] = [];
+  for (let y = 0; y < height; y++) {
+    if (y === height - 1) {
+      rows.push('.'.repeat(width));
+    } else {
+      let r = '#'.repeat(width);
+      r = setCh(r, 0, '.');
+      r = setCh(r, width - 1, '.');
+      rows.push(r);
+    }
+  }
+  rows[0] = setCh(rows[0], 0, 'S');
+  rows[0] = setCh(rows[0], width - 1, 'G');
+  return rows;
+}
+
+// Lược răng: open top & bottom rows joined by the open side columns, with comb
+// "teeth" (walls) hanging into the interior on odd columns.
+function comb(width: number, height: number): string[] {
+  const rows: string[] = [];
+  for (let y = 0; y < height; y++) {
+    if (y === 0 || y === height - 1) {
+      rows.push('.'.repeat(width));
+      continue;
+    }
+    let r = '.'.repeat(width);
+    for (let x = 1; x < width - 1; x++) if (x % 2 === 1) r = setCh(r, x, '#');
+    rows.push(r);
+  }
+  rows[0] = setCh(rows[0], 0, 'S');
+  rows[height - 1] = setCh(rows[height - 1], width - 1, 'G');
+  return rows;
+}
+
+// Concentric wall rings inset from an always-open border (a labyrinth you solve
+// by hugging the outer wall). n must be odd.
+function ringBox(n: number): string[] {
+  const g: string[][] = Array.from({ length: n }, () => Array(n).fill('.'));
+  for (let inset = 2; inset <= (n - 1) / 2; inset += 2) {
+    const lo = inset;
+    const hi = n - 1 - inset;
+    if (lo > hi) break;
+    for (let x = lo; x <= hi; x++) {
+      g[lo][x] = '#';
+      g[hi][x] = '#';
+    }
+    for (let y = lo; y <= hi; y++) {
+      g[y][lo] = '#';
+      g[y][hi] = '#';
+    }
+  }
+  g[0][0] = 'S';
+  g[n - 1][n - 1] = 'G';
+  return g.map((r) => r.join(''));
+}
+
+// Bàn cờ: pillars on every (even,even) cell. Use an EVEN width so the goal cell
+// (width-1,height-1) lands on an odd column and stays open & reachable.
+function pillars(width: number, height: number): string[] {
+  const g: string[][] = Array.from({ length: height }, () => Array(width).fill('.'));
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++)
+      if (x % 2 === 0 && y % 2 === 0 && !(x === 0 && y === 0)) g[y][x] = '#';
+  g[0][0] = 'S';
+  g[height - 1][width - 1] = 'G';
+  return g.map((r) => r.join(''));
+}
+
+// Sprinkle collectible gems ('*') onto open corridor cells of an existing map.
+function withGems(map: string[], cells: Array<[number, number]>): string[] {
+  const g = map.map((r) => r.split(''));
+  for (const [x, y] of cells) if (g[y]?.[x] === '.') g[y][x] = '*';
+  return g.map((r) => r.join(''));
+}
+
+// Deterministic PRNG (mulberry32) — fixed seed ⇒ identical maze on every reseed.
+function rng(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// "Perfect maze" over cols×rows cells, rendered to a (2·cols+1)×(2·rows+1) ASCII
+// grid. A perfect maze is a spanning tree: exactly ONE path from S to G, with
+// every other corridor a dead-end decoy (nhiễu). We grow it with the Growing-Tree
+// algorithm picking a RANDOM frontier cell (Prim-like) — that yields short, bushy
+// corridors and LOTS of dead-ends, i.e. maximum distraction. `braid` (0..1)
+// optionally knocks out dead-ends to add decoy LOOPS — extra distraction without
+// ever making the maze unsolvable.
+function perfectMaze(cols: number, rows: number, seed: number, braid = 0): string[] {
+  const rand = rng(seed);
+  const W = 2 * cols + 1;
+  const H = 2 * rows + 1;
+  const g: string[][] = Array.from({ length: H }, () => Array(W).fill('#'));
+  const visited: boolean[][] = Array.from({ length: rows }, () => Array(cols).fill(false));
+  const dirs: Array<[number, number]> = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+
+  const active: Array<[number, number]> = [[0, 0]];
+  visited[0][0] = true;
+  g[1][1] = '.';
+  while (active.length) {
+    const idx = Math.floor(rand() * active.length); // random frontier cell ⇒ bushy maze
+    const [cx, cy] = active[idx];
+    const nbrs: Array<[number, number, number, number]> = [];
+    for (const [dx, dy] of dirs) {
+      const nx = cx + dx;
+      const ny = cy + dy;
+      if (nx >= 0 && nx < cols && ny >= 0 && ny < rows && !visited[ny][nx]) nbrs.push([nx, ny, dx, dy]);
+    }
+    if (!nbrs.length) {
+      active.splice(idx, 1);
+      continue;
+    }
+    const [nx, ny, dx, dy] = nbrs[Math.floor(rand() * nbrs.length)];
+    visited[ny][nx] = true;
+    g[2 * cy + 1 + dy][2 * cx + 1 + dx] = '.'; // carve the wall between the two cells
+    g[2 * ny + 1][2 * nx + 1] = '.';
+    active.push([nx, ny]);
+  }
+
+  // Braid: with probability `braid`, open one extra wall out of each dead-end cell.
+  if (braid > 0) {
+    for (let cy = 0; cy < rows; cy++) {
+      for (let cx = 0; cx < cols; cx++) {
+        const cellX = 2 * cx + 1;
+        const cellY = 2 * cy + 1;
+        let openSides = 0;
+        const closed: Array<[number, number]> = [];
+        for (const [dx, dy] of dirs) {
+          const nx = cx + dx;
+          const ny = cy + dy;
+          if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) continue;
+          if (g[cellY + dy][cellX + dx] === '.') openSides++;
+          else closed.push([dx, dy]);
+        }
+        if (openSides === 1 && closed.length && rand() < braid) {
+          const [dx, dy] = closed[Math.floor(rand() * closed.length)];
+          g[cellY + dy][cellX + dx] = '.';
+        }
+      }
+    }
+  }
+
+  g[1][1] = 'S';
+  g[2 * rows - 1][2 * cols - 1] = 'G';
+  return g.map((r) => r.join(''));
+}
+
+const gens: Gen[] = [];
+
+// ── Phần 1: bài nền tảng (hình khối đơn giản, làm quen thao tác) ────────────
+
+// Đường thẳng — luyện "đi tới" và "lặp lại".
+for (const w of [5, 8, 11, 14]) {
+  gens.push({
+    name: `Đường thẳng ${w} ô`,
+    desc: w <= 7 ? 'Đi thẳng một mạch tới ngôi sao.' : 'Quãng đường dài — dùng "lặp lại" cho gọn nhé.',
+    difficulty: 'EASY',
+    startDir: E,
+    map: ['S' + '.'.repeat(w - 2) + 'G'],
+    blocks: w <= 7 ? A1 : A2,
+  });
+}
+
+// Chữ L — một khúc quanh.
+for (const [w, h] of [[4, 4], [5, 5], [6, 5], [7, 6]] as Array<[number, number]>) {
+  gens.push({
+    name: `Chữ L ${w}×${h}`,
+    desc: 'Đi hết hàng trên rồi rẽ xuống tới đích.',
+    difficulty: 'EASY',
+    startDir: E,
+    map: lShape(w, h),
+    blocks: A1,
+  });
+}
+
+// Chữ U — đi vòng.
+for (const [w, h] of [[4, 4], [5, 5], [6, 6], [7, 6]] as Array<[number, number]>) {
+  const hard = h >= 5;
+  gens.push({
+    name: `Chữ U ${w}×${h}`,
+    desc: 'Đi vòng chữ U: xuống, sang ngang rồi lên tới đích.',
+    difficulty: hard ? 'MEDIUM' : 'EASY',
+    startDir: S,
+    map: uShape(w, h),
+    blocks: hard ? A3 : A1,
+  });
+}
+
+// Bậc thang — leo từng bậc.
+for (const n of [3, 4, 5, 6]) {
+  gens.push({
+    name: `Bậc thang ${n}`,
+    desc: 'Leo xuống từng bậc một, nhớ quay đúng hướng.',
+    difficulty: n >= 6 ? 'MEDIUM' : 'EASY',
+    startDir: E,
+    map: staircase(n),
+    blocks: A2,
+  });
+}
+
+// ── Phần 2: vài biến thể khái niệm (rắn, lược, bàn cờ, viền) ─────────────────
+
+// Rắn bò — giới thiệu khái niệm đường ngoằn ngoèo.
+for (const [w, h] of [[5, 3], [6, 5], [8, 5], [6, 7]] as Array<[number, number]>) {
+  const d: Diff = h <= 5 ? 'MEDIUM' : 'HARD';
+  gens.push({
+    name: `Rắn bò ${w}×${h}`,
+    desc: 'Bò theo hình rắn — "lặp lại" giúp viết gọn hơn rất nhiều.',
+    difficulty: d,
+    startDir: E,
+    map: snakeH(w, h),
+    blocks: d === 'MEDIUM' ? A3 : A4,
+  });
+}
+
+// Lược răng — lách qua các răng.
+for (const [w, h] of [[6, 4], [8, 5], [7, 5]] as Array<[number, number]>) {
+  gens.push({
+    name: `Lược răng ${w}×${h}`,
+    desc: 'Lách qua các răng lược để tới đích.',
+    difficulty: 'MEDIUM',
+    startDir: E,
+    map: comb(w, h),
+    blocks: A3,
+  });
+}
+
+// Bàn cờ — rừng cột xen kẽ.
+for (const [w, h] of [[6, 5], [8, 6], [8, 7]] as Array<[number, number]>) {
+  const hard = w >= 8;
+  gens.push({
+    name: `Bàn cờ ${w}×${h}`,
+    desc: 'Lách qua rừng cột xen kẽ như bàn cờ — nhiều ngả khiến em dễ lạc.',
+    difficulty: hard ? 'HARD' : 'MEDIUM',
+    startDir: E,
+    map: pillars(w, h),
+    blocks: hard ? A5 : A3,
+  });
+}
+
+// Mê cung hộp — viền tường đồng tâm.
+for (const n of [7, 9, 11, 13]) {
+  const hard = n >= 9;
+  gens.push({
+    name: `Mê cung hộp ${n}×${n}`,
+    desc: 'Men theo viền ngoài để vượt qua các lớp tường đồng tâm.',
+    difficulty: hard ? 'HARD' : 'MEDIUM',
+    startDir: E,
+    map: ringBox(n),
+    blocks: hard ? A4 : A3,
+  });
+}
+
+// ── Phần 3: mê cung thật — nhiều ngõ cụt đánh lừa, mỗi bài một bố cục riêng ──
+// Mỗi mê cung dùng một hạt giống khác nhau nên KHÔNG bài nào trùng nhau. Đây là
+// phần chính tạo độ khó: "perfect maze" chỉ có ĐÚNG MỘT lối tới đích, phần còn
+// lại toàn ngõ cụt để đánh lừa. Cỡ lớn về sau còn thêm vòng lặp ("braid") nhiễu.
+const mazeSizes: Array<[number, number]> = [
+  [3, 3], [4, 3], [4, 4], [5, 4], [5, 5], [6, 5], [6, 6],
+  [7, 6], [7, 7], [8, 7], [8, 8], [9, 8], [9, 9], [10, 9],
+];
+const MAZE_TARGET = 100 - gens.length; // lấp phần còn lại cho đủ 100 bài
+let mseed = 1;
+let made = 0;
+let variant = 0;
+while (made < MAZE_TARGET) {
+  for (const [c, r] of mazeSizes) {
+    if (made >= MAZE_TARGET) break;
+    const W = 2 * c + 1;
+    const H = 2 * r + 1;
+    const cells = c * r;
+    const diff: Diff = cells <= 12 ? 'MEDIUM' : 'HARD';
+    const braid = variant >= 3 && cells >= 36 ? 0.18 : 0; // chỉ vài bản lớn: thêm vòng lặp nhiễu
+    let map = perfectMaze(c, r, mseed, braid);
+    let name = `Mê lộ ${W}×${H}`;
+    let desc = braid > 0
+      ? 'Mê cung dày đặc ngõ cụt VÀ có cả vòng lặp đánh lừa — bám đúng một lối tới ngôi sao!'
+      : 'Cẩn thận! Rất nhiều ngõ cụt đánh lừa, chỉ một lối đi đúng dẫn tới ngôi sao.';
+    let blocks = diff === 'MEDIUM' ? A3 : A5;
+    // Một số bài rải ngọc để đa dạng mục tiêu.
+    if (variant === 1 && cells >= 16) {
+      map = withGems(map, [[3, 1], [1, 3], [W - 2, H - 4], [W - 4, 1]]);
+      name = `Kho báu mê lộ ${W}×${H}`;
+      desc = 'Len qua mê cung nhiều ngõ cụt và nhặt những viên ngọc 💎 trên đường đúng.';
+      blocks = A5;
+    }
+    gens.push({ name, desc, difficulty: diff, startDir: E, map, blocks, blockSlack: 3 });
+    mseed++;
+    made++;
+  }
+  variant++;
+}
+
+const GENERATED_LEVELS: LevelSeed[] = gens.slice(0, 100).map((g, i) =>
+  mapLevel({
+    title: `Mê cung ${37 + i} — ${g.name}`,
+    description: g.desc,
+    difficulty: g.difficulty,
+    startDir: g.startDir,
+    map: g.map,
+    allowedBlocks: g.blocks,
+    blockSlack: g.blockSlack,
+  }),
+);
+if (GENERATED_LEVELS.length !== 100) {
+  throw new Error(`Cần đúng 100 bài sinh thêm, nhưng chỉ tạo được ${GENERATED_LEVELS.length}.`);
+}
+
+// ── Levels 137–142: harvest gardens (collect-all, code.org "Harvesting") ─────
+// These solve by THU HOẠCH (picking) every crop, not by reaching a goal cell.
+// They introduce the `pick` block plus the crop sensors (ô này có cây / vườn
+// còn cây / vườn đã sạch cây) and build up from manual picking → repeat →
+// while → forever+if+break, mirroring the reference screenshots.
+const ON = sense(SensorType.ON_ITEM);
+const DONE = sense(SensorType.NO_ITEMS_LEFT);
+const AHEAD = sense(SensorType.PATH_AHEAD);
+
+const HARVEST_LEVELS: LevelSeed[] = [
+  {
+    title: 'Mê cung 137 — Vườn thẳng',
+    description: 'Đi dọc luống và thu hoạch từng cây. Dùng khối "thu hoạch 🌾" ở mỗi ô có cây!',
+    difficulty: 'EASY',
+    grid: {
+      width: 4, height: 1,
+      walls: [],
+      start: { x: 0, y: 0 }, startDir: E, goal: { x: 3, y: 0 },
+      items: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }],
+      collectAll: true,
+    },
+    allowedBlocks: [BlockType.MOVE_FORWARD, BlockType.PICK],
+    maxBlocks: null, assignToBasicA: false, blockSlack: 2,
+    intendedSolution: [pick, move, pick, move, pick, move, pick],
+  },
+  {
+    title: 'Mê cung 138 — Vườn dùng vòng lặp',
+    description: 'Luống dài hơn — dùng "lặp lại" để thu hoạch cho gọn thay vì lặp tay.',
+    difficulty: 'EASY',
+    grid: {
+      width: 5, height: 1,
+      walls: [],
+      start: { x: 0, y: 0 }, startDir: E, goal: { x: 4, y: 0 },
+      items: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }, { x: 4, y: 0 }],
+      collectAll: true,
+    },
+    allowedBlocks: [BlockType.MOVE_FORWARD, BlockType.PICK, BlockType.REPEAT],
+    maxBlocks: null, assignToBasicA: false, blockSlack: 2,
+    intendedSolution: [pick, repeat(4, [move, pick])],
+  },
+  {
+    title: 'Mê cung 139 — Thu hoạch khi còn đường',
+    description: 'Dùng "trong khi có đường phía trước": cứ đi tới rồi thu hoạch đến hết luống.',
+    difficulty: 'MEDIUM',
+    grid: {
+      width: 6, height: 1,
+      walls: [],
+      start: { x: 0, y: 0 }, startDir: E, goal: { x: 5, y: 0 },
+      items: [0, 1, 2, 3, 4, 5].map((x) => ({ x, y: 0 })),
+      collectAll: true,
+    },
+    allowedBlocks: [BlockType.MOVE_FORWARD, BlockType.PICK, BlockType.WHILE, BlockType.CONDITION],
+    maxBlocks: null, assignToBasicA: false, blockSlack: 2,
+    intendedSolution: [pick, whileDo(AHEAD, [move, pick])],
+  },
+  {
+    title: 'Mê cung 140 — Vườn thông minh',
+    description:
+      'Lặp mãi mãi: nếu ô này có cây thì thu hoạch, nếu vườn đã sạch cây thì dừng, ngược lại đi tới.',
+    difficulty: 'MEDIUM',
+    grid: {
+      width: 6, height: 1,
+      walls: [],
+      start: { x: 0, y: 0 }, startDir: E, goal: { x: 5, y: 0 },
+      items: [0, 1, 2, 3, 4, 5].map((x) => ({ x, y: 0 })),
+      collectAll: true,
+    },
+    allowedBlocks: [
+      BlockType.MOVE_FORWARD, BlockType.PICK, BlockType.FOREVER,
+      BlockType.IF, BlockType.BREAK, BlockType.CONDITION,
+    ],
+    maxBlocks: null, assignToBasicA: false, blockSlack: 2,
+    intendedSolution: [forever([ifDo(ON, [pick]), ifDo(DONE, [brk]), move])],
+  },
+  {
+    title: 'Mê cung 141 — Vườn chữ L',
+    description:
+      'Vườn gấp khúc! Lặp mãi mãi: thu hoạch nếu có cây, dừng khi sạch vườn, nếu có đường thì đi tới, không thì quay phải.',
+    difficulty: 'HARD',
+    grid: {
+      width: 4, height: 3,
+      walls: [
+        { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 },
+        { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 },
+      ],
+      start: { x: 0, y: 0 }, startDir: E, goal: { x: 3, y: 2 },
+      items: [
+        { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 },
+        { x: 3, y: 1 }, { x: 3, y: 2 },
+      ],
+      collectAll: true,
+    },
+    allowedBlocks: [
+      BlockType.MOVE_FORWARD, BlockType.TURN_RIGHT, BlockType.PICK,
+      BlockType.FOREVER, BlockType.IF, BlockType.BREAK, BlockType.CONDITION,
+    ],
+    maxBlocks: null, assignToBasicA: false, blockSlack: 3,
+    intendedSolution: [
+      forever([
+        ifDo(ON, [pick]),
+        ifDo(DONE, [brk]),
+        ifDo(AHEAD, [move], [right]),
+      ]),
+    ],
+  },
+  {
+    title: 'Mê cung 142 — Vườn rắn',
+    description:
+      'Vườn uốn lượn hai khúc cua. Vẫn một thuật toán: thu hoạch, dừng khi sạch, đi tới khi có đường, quay phải khi gặp tường.',
+    difficulty: 'HARD',
+    grid: {
+      width: 4, height: 3,
+      walls: [{ x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }],
+      start: { x: 0, y: 0 }, startDir: E, goal: { x: 0, y: 2 },
+      items: [
+        { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 },
+        { x: 3, y: 1 },
+        { x: 3, y: 2 }, { x: 2, y: 2 }, { x: 1, y: 2 }, { x: 0, y: 2 },
+      ],
+      collectAll: true,
+    },
+    allowedBlocks: [
+      BlockType.MOVE_FORWARD, BlockType.TURN_RIGHT, BlockType.PICK,
+      BlockType.FOREVER, BlockType.IF, BlockType.BREAK, BlockType.CONDITION,
+    ],
+    maxBlocks: null, assignToBasicA: false, blockSlack: 3,
+    intendedSolution: [
+      forever([
+        ifDo(ON, [pick]),
+        ifDo(DONE, [brk]),
+        ifDo(AHEAD, [move], [right]),
+      ]),
+    ],
+  },
+];
+
+// ── Levels 143–148: advanced — multi-star collect-all + monsters ─────────────
+// New "khó nâng cao" mechanics:
+//   • collectAll + itemTheme 'star': WIN by collecting every ⭐ (no goal cell).
+//   • a cell listed N times holds N stars (must be picked N times) — see "×N".
+//   • monsters: static traps and patrolling hazards; touching one fails the run
+//     (failReason 'CAUGHT'). The `wait` block lets the character bide a tick so a
+//     patrol passes. Every solution below is BFS-found and engine-verified.
+const at = (x: number, y: number): Cell => ({ x, y });
+const ADVANCED_LEVELS: LevelSeed[] = [
+  {
+    title: 'Mê cung 143 — Chùm sao',
+    description:
+      'Thu thập HẾT các ngôi sao ⭐ thì mới thắng. Một ô có thể chứa nhiều sao (xem ×N) — nhớ "thu thập" đủ số lần ở ô đó!',
+    difficulty: 'MEDIUM',
+    grid: {
+      width: 6, height: 1, walls: [],
+      start: at(0, 0), startDir: E, goal: at(5, 0),
+      items: [at(0, 0), at(2, 0), at(2, 0), at(2, 0), at(4, 0)],
+      collectAll: true, itemTheme: 'star',
+    },
+    allowedBlocks: [BlockType.MOVE_FORWARD, BlockType.PICK, BlockType.REPEAT],
+    maxBlocks: null, assignToBasicA: false, blockSlack: 2,
+    intendedSolution: [pick, move, move, repeat(3, [pick]), move, move, pick],
+  },
+  {
+    title: 'Mê cung 144 — Hút sạch chùm sao',
+    description:
+      'Có những ô chứa cả chùm sao. Dùng "trong khi ô này còn sao thì thu thập" để hút sạch một ô trước khi đi tiếp, dừng khi đã thu hết.',
+    difficulty: 'MEDIUM',
+    grid: {
+      width: 5, height: 1, walls: [],
+      start: at(0, 0), startDir: E, goal: at(4, 0),
+      items: [at(0, 0), at(0, 0), at(2, 0), at(2, 0), at(2, 0), at(4, 0)],
+      collectAll: true, itemTheme: 'star',
+    },
+    allowedBlocks: [
+      BlockType.MOVE_FORWARD, BlockType.PICK, BlockType.FOREVER,
+      BlockType.WHILE, BlockType.IF, BlockType.BREAK, BlockType.CONDITION,
+    ],
+    maxBlocks: null, assignToBasicA: false, blockSlack: 2,
+    intendedSolution: [forever([whileDo(ON, [pick]), ifDo(DONE, [brk]), move])],
+  },
+  {
+    title: 'Mê cung 145 — Né quái đứng yên',
+    description:
+      'Có một con quái vật 👹 chặn giữa đường. Chạm vào nó là thua! Hãy đi vòng để tránh nó rồi tới ngôi sao ⭐.',
+    difficulty: 'MEDIUM',
+    grid: {
+      width: 3, height: 3, walls: [],
+      start: at(0, 0), startDir: E, goal: at(2, 2),
+      monsters: [{ path: [at(1, 1)] }],
+    },
+    allowedBlocks: [BlockType.MOVE_FORWARD, BlockType.TURN_RIGHT],
+    maxBlocks: null, assignToBasicA: false, blockSlack: 2,
+    intendedSolution: [move, move, right, move, move],
+  },
+  {
+    title: 'Mê cung 146 — Canh nhịp tuần tra',
+    description:
+      'Quái vật 👹 tuần tra lên-xuống chắn lối. Dùng khối "đứng yên ⏳" để chờ đúng nhịp cho nó đi qua, rồi mới băng tới đích.',
+    difficulty: 'HARD',
+    grid: {
+      width: 3, height: 2, walls: [],
+      start: at(0, 0), startDir: E, goal: at(2, 0),
+      monsters: [{ path: [at(1, 1), at(1, 0)], mode: 'loop' }],
+    },
+    allowedBlocks: [BlockType.MOVE_FORWARD, BlockType.WAIT],
+    maxBlocks: null, assignToBasicA: false, blockSlack: 2,
+    intendedSolution: [wait, move, move],
+  },
+  {
+    title: 'Mê cung 147 — Hai quái canh cửa',
+    description:
+      'Hai con quái 👹 tuần tra so le nhau. Canh đúng nhịp: đứng yên chờ một con đi qua rồi băng một mạch qua khe trống tới đích.',
+    difficulty: 'HARD',
+    grid: {
+      width: 4, height: 2, walls: [],
+      start: at(0, 0), startDir: E, goal: at(3, 0),
+      monsters: [
+        { path: [at(1, 1), at(1, 0)], mode: 'loop' },
+        { path: [at(2, 0), at(2, 1)], mode: 'loop' },
+      ],
+    },
+    allowedBlocks: [BlockType.MOVE_FORWARD, BlockType.WAIT],
+    maxBlocks: null, assignToBasicA: false, blockSlack: 2,
+    intendedSolution: [wait, move, move, move],
+  },
+  {
+    title: 'Mê cung 148 — Kho sao có quái',
+    description:
+      'Thử thách tổng hợp: thu thập HẾT ngôi sao ⭐ (có ô chứa 2 sao) trong khi né hai con quái vật 👹 đứng canh. Lập kế hoạch đường đi thật cẩn thận!',
+    difficulty: 'HARD',
+    grid: {
+      width: 5, height: 3, walls: [],
+      start: at(0, 0), startDir: E, goal: at(4, 2),
+      items: [at(4, 0), at(4, 0), at(0, 2), at(2, 2)],
+      collectAll: true, itemTheme: 'star',
+      monsters: [{ path: [at(2, 1)] }, { path: [at(1, 1)] }],
+    },
+    allowedBlocks: [
+      BlockType.MOVE_FORWARD, BlockType.TURN_LEFT, BlockType.TURN_RIGHT,
+      BlockType.PICK, BlockType.REPEAT,
+    ],
+    maxBlocks: null, assignToBasicA: false, blockSlack: 3,
+    intendedSolution: [
+      right, move, move, left, pick, move, move, pick,
+      move, move, left, move, move, pick, pick,
+    ],
+  },
+];
+
+// ── Levels 149–248: procedurally generated advanced levels ───────────────────
+// Built offline by tmp-gen-maze.ts: mixed item types, every monster skill
+// (patrol/static/chaser/guard/sleeper) and mystery boxes. Each intendedSolution
+// was BFS-found and engine-verified at generation time, then re-checked here.
+const ADVANCED_GENERATED_LEVELS: LevelSeed[] = ADVANCED_GEN_LEVELS.map((g) => ({
+  title: g.title,
+  description: g.description,
+  difficulty: g.difficulty,
+  grid: g.grid,
+  allowedBlocks: g.allowedBlocks,
+  maxBlocks: null,
+  assignToBasicA: false,
+  intendedSolution: g.intendedSolution,
+  blockSlack: g.blockSlack,
+}));
+
+export const ALL_LEVELS: LevelSeed[] = [
+  ...LEVELS,
+  ...MAP_LEVELS,
+  ...GENERATED_LEVELS,
+  ...HARVEST_LEVELS,
+  ...ADVANCED_LEVELS,
+  ...ADVANCED_GENERATED_LEVELS,
+];
 
 // ── Difficulty: tighten the block budget on every level ─────────────────────
 // A maxBlocks limit forces students toward loops instead of repeating moves by
@@ -712,7 +1384,7 @@ function applyBlockLimits(levels: LevelSeed[]): void {
     const allowRepeat = lvl.allowedBlocks.includes(BlockType.REPEAT);
     const compact = compress(lvl.intendedSolution, allowRepeat);
     const base = countBlocks(compact);
-    const limit = base + SLACK[lvl.difficulty];
+    const limit = base + (lvl.blockSlack ?? SLACK[lvl.difficulty]);
     // Never loosen an existing tighter limit.
     lvl.maxBlocks = lvl.maxBlocks != null ? Math.min(lvl.maxBlocks, limit) : limit;
     lvl.intendedSolution = compact;
@@ -781,14 +1453,28 @@ async function run() {
     }
   }
 
-  // Clean up previously-seeded maze levels (cascades to submissions). Match by
-  // the shared "Mê cung " title prefix so renamed levels never leave orphans.
-  await levelRepo.createQueryBuilder().delete().where("title LIKE 'Mê cung %'").execute();
+  // Idempotent upsert keyed by title. We UPDATE existing rows in place so their
+  // primary key (and therefore every student submission, which references it via
+  // an ON DELETE CASCADE FK) is preserved across reseeds. Only levels that have
+  // disappeared from the seed set are deleted. Titles are unique by construction
+  // ("Mê cung N — …"), so they act as a stable natural key.
+  //
+  // ⚠️ Renaming a level's title still drops that one level's submissions (the old
+  // title is treated as "removed"). Keep titles stable to keep progress.
+  const existingLevels = await levelRepo
+    .createQueryBuilder('l')
+    .where("l.title LIKE 'Mê cung %'")
+    .getMany();
+  const existingByTitle = new Map(existingLevels.map((l) => [l.title, l]));
 
-  // Insert levels.
   let order = 1;
+  const seededTitles = new Set<string>();
+  let created = 0;
+  let updated = 0;
   for (const lvl of ALL_LEVELS) {
-    const entity = new MazeLevel();
+    seededTitles.add(lvl.title);
+    const existing = existingByTitle.get(lvl.title);
+    const entity = existing ?? new MazeLevel();
     entity.title = lvl.title;
     entity.description = lvl.description;
     entity.gridConfig = lvl.grid;
@@ -799,14 +1485,28 @@ async function run() {
     entity.courseId = course.id;
     entity.order = order++;
     entity.classIds = lvl.assignToBasicA && basicA ? [basicA.id] : null;
-    await levelRepo.save(entity);
+    await levelRepo.save(entity); // existing → UPDATE (same id), new → INSERT
+    if (existing) updated++;
+    else created++;
   }
 
-  console.log(`🎉 Seeded ${ALL_LEVELS.length} maze levels successfully!`);
+  // Remove only levels that no longer exist in the seed (cascades just THEIR
+  // submissions, not everyone's).
+  const obsolete = existingLevels.filter((l) => !seededTitles.has(l.title));
+  if (obsolete.length) {
+    await levelRepo.remove(obsolete);
+  }
+
+  console.log(
+    `🎉 Maze levels synced: ${created} created, ${updated} updated, ${obsolete.length} removed ` +
+      `(student progress preserved).`,
+  );
   await AppDataSource.destroy();
 }
 
-run().catch((err) => {
-  console.error('❌ Error during maze seed:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  run().catch((err) => {
+    console.error('❌ Error during maze seed:', err);
+    process.exit(1);
+  });
+}

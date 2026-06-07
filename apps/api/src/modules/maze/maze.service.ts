@@ -243,5 +243,16 @@ export class MazeService {
     if ((grid.walls ?? []).some((w) => !inBounds(w))) {
       throw new BadRequestException('Có tường nằm ngoài lưới.');
     }
+    if ((grid.items ?? []).some((it) => !inBounds(it))) {
+      throw new BadRequestException('Có vật phẩm nằm ngoài lưới.');
+    }
+    for (const monster of grid.monsters ?? []) {
+      if (!monster.path?.length) {
+        throw new BadRequestException('Quái vật phải có ít nhất một ô lộ trình.');
+      }
+      if (monster.path.some((c) => !inBounds(c))) {
+        throw new BadRequestException('Có quái vật di chuyển ra ngoài lưới.');
+      }
+    }
   }
 }

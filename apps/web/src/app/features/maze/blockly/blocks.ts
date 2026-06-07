@@ -16,6 +16,8 @@ import { SensorType } from '@cp/shared';
 
 const MOVE_COLOUR = '#4C97FF';
 const TURN_COLOUR = '#FFAB19';
+const PICK_COLOUR = '#40BF6A';
+const WAIT_COLOUR = '#9E5BBA';
 const LOOP_COLOUR = '#59C059';
 const SENSOR_COLOUR = '#5CB1D6';
 
@@ -27,9 +29,16 @@ export const SENSOR_OPTIONS: [string, SensorType][] = [
   ['có tường phía trước', SensorType.WALL_AHEAD],
   ['có tường bên trái', SensorType.WALL_LEFT],
   ['có tường bên phải', SensorType.WALL_RIGHT],
+  ['có quái vật phía trước', SensorType.MONSTER_AHEAD],
+  ['có quái vật bên trái', SensorType.MONSTER_LEFT],
+  ['có quái vật bên phải', SensorType.MONSTER_RIGHT],
+  ['có hộp bí ẩn phía trước', SensorType.BOX_AHEAD],
+  ['hộp phía trước an toàn', SensorType.BOX_AHEAD_SAFE],
   ['đã tới đích', SensorType.AT_GOAL],
   ['chưa tới đích', SensorType.NOT_AT_GOAL],
-  ['đang đứng trên vật phẩm', SensorType.ON_ITEM],
+  ['ô này có vật phẩm', SensorType.ON_ITEM],
+  ['còn vật phẩm', SensorType.ITEMS_LEFT],
+  ['đã thu thập hết', SensorType.NO_ITEMS_LEFT],
 ];
 
 let registered = false;
@@ -71,6 +80,22 @@ export function registerMazeBlocks(): void {
       nextStatement: null,
       colour: TURN_COLOUR,
       tooltip: 'Quay phải 90 độ',
+    },
+    {
+      type: 'maze_pick',
+      message0: 'thu thập',
+      previousStatement: null,
+      nextStatement: null,
+      colour: PICK_COLOUR,
+      tooltip: 'Thu thập vật phẩm/ngôi sao ở ô em đang đứng',
+    },
+    {
+      type: 'maze_wait',
+      message0: 'đứng yên ⏳',
+      previousStatement: null,
+      nextStatement: null,
+      colour: WAIT_COLOUR,
+      tooltip: 'Đứng yên một nhịp để quái vật đi qua',
     },
     {
       // "Lặp mãi mãi" — Blockly has no standard forever block.

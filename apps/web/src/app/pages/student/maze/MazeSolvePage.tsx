@@ -90,6 +90,8 @@ export default function MazeSolvePage() {
         return t('maze.result.hitWall');
       case 'OUT_OF_BOUNDS':
         return t('maze.result.outOfBounds');
+      case 'CAUGHT':
+        return t('maze.result.caught');
       case 'STEP_LIMIT':
         return t('maze.result.stepLimit');
       default:
@@ -208,6 +210,8 @@ export default function MazeSolvePage() {
               charDir={animation.charDir}
               crashed={animation.crashed}
               items={animation.items}
+              monsters={animation.monsters}
+              boxes={animation.boxes}
             />
           </div>
 
