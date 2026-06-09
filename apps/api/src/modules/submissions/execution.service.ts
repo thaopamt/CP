@@ -14,6 +14,15 @@ const LEGACY_TIME_LIMIT_MS_THRESHOLD = 1_000;
 const DEFAULT_PISTON_RUN_TIMEOUT_MS = 30_000;
 const DEFAULT_PISTON_MEMORY_LIMIT_BYTES = 512_000_000;
 
+/** Marker used to separate program stdout from file-output content. */
+const FILE_OUTPUT_MARKER = '___FILE_OUTPUT_MARKER_a7f3b9e2___';
+
+/** Configuration for file-based I/O (freopen style). */
+export interface FileIoConfig {
+  inputFileName: string;   // e.g. 'SUMAB.INP'
+  outputFileName: string;  // e.g. 'SUMAB.OUT'
+}
+
 export interface GradeSubmissionHooks {
   onTestCaseStart?: (progress: { testCaseIndex: number; totalCount: number }) => void | Promise<void>;
   onTestCaseComplete?: (progress: {
@@ -73,6 +82,10 @@ export class ExecutionService {
    * @param timeLimitMs  - Maximum wall-clock time for the **run** phase (ms).
    *                       Piston will SIGKILL the process if exceeded.
    * @param memoryLimitBytes - Maximum memory in bytes (Piston `memory_limit`).
+   * @param fileIoConfig - When provided, the program uses file I/O instead of
+   *                       stdin/stdout.  A wrapper bash script is generated to
+   *                       create the input file, run the compiled program, and
+   *                       print the output file content to stdout.
    */
   async runCode(
     language: string,
@@ -80,7 +93,19 @@ export class ExecutionService {
     stdin?: string,
     timeLimitMs?: number,
     memoryLimitBytes?: number,
+    fileIoConfig?: FileIoConfig,
   ): Promise<ICodeExecutionResponse> {
+    // ── File I/O mode ──────────────────────────────────────────────────
+    // When a problem uses freopen-style file I/O we wrap the student code
+    // inside a bash script that:
+    //   1. writes the test-case input to the expected input file,
+    //   2. compiles (if needed) and runs the student program,
+    //   3. reads the output file and echoes it to stdout behind a unique
+    //      marker so we can split it from any normal stdout output.
+    if (fileIoConfig) {
+      return this.runCodeWithFileIo(language, code, stdin || '', timeLimitMs, memoryLimitBytes, fileIoConfig);
+    }
+
     const { lang, version } = this.mapLanguage(language);
 
     // Build Piston request payload
@@ -167,6 +192,12 @@ export class ExecutionService {
     const timeLimitMs = this.resolveTimeLimitMs(config?.timeLimit, assignment.id);
     const memoryLimitBytes = this.resolveMemoryLimitBytes(config?.memoryLimit, assignment.id);
 
+    // Resolve file I/O config if the assignment uses file-based I/O
+    const fileIoConfig: FileIoConfig | undefined =
+      config?.ioMode === 'file' && config.inputFileName && config.outputFileName
+        ? { inputFileName: config.inputFileName, outputFileName: config.outputFileName }
+        : undefined;
+
     // Inline test cases live in the DB (small, visible samples); heavy hidden
     // grading test cases live on disk. The judge grades the inline ones first,
     // then the disk-backed ones, so indices stay contiguous.
@@ -178,7 +209,7 @@ export class ExecutionService {
       this.logger.warn(`Assignment ${assignment.id} has no test cases. Running code once as acceptance.`);
       await hooks.onTestCaseStart?.({ testCaseIndex: 0, totalCount: 1 });
       // Run code once without stdin — if it compiles and runs, mark accepted
-      const res = await this.runCode(language, code, '', timeLimitMs, memoryLimitBytes);
+      const res = await this.runCode(language, code, '', timeLimitMs, memoryLimitBytes, fileIoConfig);
       const hasError = (res.compile && res.compile.code !== 0) || res.run.code !== 0;
 
       // Check for TLE via Piston signal or status
@@ -246,7 +277,7 @@ export class ExecutionService {
       }
 
       await hooks.onTestCaseStart?.({ testCaseIndex: i, totalCount: totalCases });
-      const res = await this.runCode(language, code, tcInput, timeLimitMs, memoryLimitBytes);
+      const res = await this.runCode(language, code, tcInput, timeLimitMs, memoryLimitBytes, fileIoConfig);
 
       let status = SubmissionStatus.ACCEPTED;
       let actualOutput = res.run.stdout;
@@ -425,5 +456,209 @@ export class ExecutionService {
   private readPositiveIntEnv(value: string | undefined, fallback: number): number {
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : fallback;
+  }
+
+  // ── File I/O execution ──────────────────────────────────────────────
+
+  /**
+   * Run student code in file-I/O mode by wrapping it in a bash script.
+   * The wrapper writes the input content to the expected input file,
+   * compiles + runs the student program, and then echoes the output
+   * file content (if any) to stdout behind a marker.
+   */
+  private async runCodeWithFileIo(
+    language: string,
+    code: string,
+    inputContent: string,
+    timeLimitMs: number | undefined,
+    memoryLimitBytes: number | undefined,
+    fileIo: FileIoConfig,
+  ): Promise<ICodeExecutionResponse> {
+    const sourceFileName = this.getSourceFileName(language);
+    const wrapper = this.buildFileIoWrapper(language, sourceFileName, fileIo.inputFileName, fileIo.outputFileName);
+
+    // Piston files: [0] = runner.sh (entrypoint), [1] = student source code
+    // The input file is created dynamically by the wrapper via heredoc so
+    // that special characters / binary data in test input don't break the
+    // Piston file-name handling.
+    const pistonPayload: Record<string, any> = {
+      language: 'bash',
+      version: '*',
+      files: [
+        { name: 'runner.sh', content: wrapper },
+        { name: sourceFileName, content: code },
+      ],
+      stdin: inputContent,
+    };
+
+    // Timeouts & memory limits — add generous overhead for compile step
+    const effectiveRunTimeoutMs = this.clampPistonRunTimeout(
+      timeLimitMs ? timeLimitMs + DEFAULT_COMPILE_TIMEOUT_MS : undefined,
+    );
+    if (effectiveRunTimeoutMs) {
+      pistonPayload.run_timeout = effectiveRunTimeoutMs;
+    }
+    pistonPayload.compile_timeout = DEFAULT_COMPILE_TIMEOUT_MS;
+
+    const effectiveMemoryLimitBytes = this.clampPistonMemoryLimit(memoryLimitBytes);
+    if (effectiveMemoryLimitBytes) {
+      pistonPayload.run_memory_limit = effectiveMemoryLimitBytes;
+      pistonPayload.compile_memory_limit = effectiveMemoryLimitBytes;
+    }
+
+    try {
+      const response = await axios.post(this.pistonApiUrl, pistonPayload);
+      const data = response.data;
+
+      const rawStdout: string = data.run?.stdout || '';
+      const rawStderr: string = data.run?.stderr || '';
+
+      // Extract the file output from behind the marker
+      const { programStdout, fileOutput } = this.extractFileOutput(rawStdout);
+
+      // Build a response that mirrors the normal runCode() response,
+      // but uses the file output as the effective stdout.
+      return {
+        language: data.language,
+        version: data.version,
+        compile: data.compile ? {
+          stdout: data.compile.stdout || '',
+          stderr: data.compile.stderr || '',
+          code: data.compile.code ?? 0,
+          signal: data.compile.signal,
+          output: data.compile.output || '',
+        } : undefined,
+        run: {
+          // For judging we use the file output; if there was no output file
+          // we fall back to normal stdout (handles compile/runtime errors).
+          stdout: fileOutput !== null ? fileOutput : programStdout,
+          stderr: rawStderr,
+          code: data.run.code ?? 0,
+          signal: data.run.signal,
+          output: data.run.output || '',
+          cpu_time: data.run.cpu_time ?? null,
+          wall_time: data.run.wall_time ?? null,
+          memory: data.run.memory ?? null,
+          message: data.run.message ?? null,
+          status: data.run.status ?? null,
+        },
+      } as ICodeExecutionResponse;
+    } catch (error: any) {
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        this.logger.warn(`Piston API not reachable at ${this.pistonApiUrl}. Using mock.`);
+        return {
+          language,
+          version: 'mock',
+          run: {
+            stdout: '⚠️ Piston API is not running.\nStart it with: docker compose -f docker/piston/docker-compose.yml up -d',
+            stderr: '',
+            code: 0,
+            signal: null,
+            output: '',
+          },
+        };
+      }
+      this.logger.error(`File I/O execution failed (${language}): ${error.message}`);
+      throw new Error('Code execution failed: ' + (error.response?.data?.message || error.message));
+    }
+  }
+
+  /**
+   * Build a bash wrapper script for file-I/O execution.
+   *
+   * The script:
+   *  1. Reads stdin and writes it to the input file.
+   *  2. Compiles (C++/Java) the student source.
+   *  3. Runs the compiled program.
+   *  4. If the output file exists, prints a unique marker line followed by
+   *     the file content so the caller can extract it.
+   */
+  private buildFileIoWrapper(
+    language: string,
+    sourceFileName: string,
+    inputFileName: string,
+    outputFileName: string,
+  ): string {
+    const l = language.toLowerCase();
+    const marker = FILE_OUTPUT_MARKER;
+
+    let compileAndRun: string;
+
+    if (l === 'c++' || l === 'cpp' || l.startsWith('c++ ')) {
+      compileAndRun = [
+        `g++ -O2 -std=c++17 -o solution ${sourceFileName} 2>&1`,
+        'COMPILE_EXIT=$?',
+        'if [ $COMPILE_EXIT -ne 0 ]; then exit $COMPILE_EXIT; fi',
+        './solution',
+        'RUN_EXIT=$?',
+      ].join('\n');
+    } else if (l === 'python' || l === 'py' || l.startsWith('python ')) {
+      compileAndRun = [
+        `python3 ${sourceFileName}`,
+        'RUN_EXIT=$?',
+      ].join('\n');
+    } else if (l === 'java' || l.startsWith('java ')) {
+      // Java source must be named after the public class. We assume Main.java.
+      compileAndRun = [
+        `javac ${sourceFileName} 2>&1`,
+        'COMPILE_EXIT=$?',
+        'if [ $COMPILE_EXIT -ne 0 ]; then exit $COMPILE_EXIT; fi',
+        `java -cp . $(basename ${sourceFileName} .java)`,
+        'RUN_EXIT=$?',
+      ].join('\n');
+    } else {
+      // Fallback — try running as a script
+      compileAndRun = [
+        `chmod +x ${sourceFileName} && ./${sourceFileName}`,
+        'RUN_EXIT=$?',
+      ].join('\n');
+    }
+
+    return [
+      '#!/bin/bash',
+      '',
+      '# Write stdin to the input file',
+      `cat > '${inputFileName}'`,
+      '',
+      '# Compile and run',
+      compileAndRun,
+      '',
+      '# Output the result file if it exists',
+      `if [ -f '${outputFileName}' ]; then`,
+      `  echo '${marker}'`,
+      `  cat '${outputFileName}'`,
+      'fi',
+      '',
+      'exit ${RUN_EXIT:-0}',
+    ].join('\n');
+  }
+
+  /**
+   * Split raw stdout into the program's own stdout and the file-output content.
+   * Returns `fileOutput: null` when the marker was not found (e.g. the program
+   * crashed before producing an output file).
+   */
+  private extractFileOutput(rawStdout: string): { programStdout: string; fileOutput: string | null } {
+    const idx = rawStdout.indexOf(FILE_OUTPUT_MARKER);
+    if (idx === -1) {
+      return { programStdout: rawStdout, fileOutput: null };
+    }
+    const programStdout = rawStdout.substring(0, idx);
+    // Skip the marker line (marker + newline)
+    const afterMarker = rawStdout.substring(idx + FILE_OUTPUT_MARKER.length);
+    const fileOutput = afterMarker.startsWith('\n') ? afterMarker.substring(1) : afterMarker;
+    return { programStdout, fileOutput };
+  }
+
+  /**
+   * Map a language name to a conventional source file name.
+   */
+  private getSourceFileName(language: string): string {
+    const l = language.toLowerCase();
+    if (l === 'c++' || l === 'cpp' || l.startsWith('c++ ')) return 'main.cpp';
+    if (l === 'python' || l === 'py' || l.startsWith('python ')) return 'main.py';
+    if (l === 'java' || l.startsWith('java ')) return 'Main.java';
+    if (l === 'javascript' || l === 'js') return 'main.js';
+    return 'main.txt';
   }
 }

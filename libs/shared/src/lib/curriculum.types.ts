@@ -42,6 +42,16 @@ export interface ICodingConfig {
   checkerType?: 'standard' | 'exact' | 'custom';
   allowedLanguages?: string[];
   /**
+   * I/O mode for the problem.
+   * - `'stdio'` (default): reads from stdin, writes to stdout.
+   * - `'file'`: reads/writes from/to named files (freopen style).
+   */
+  ioMode?: 'stdio' | 'file';
+  /** Input filename for file I/O mode (e.g. `'SUMAB.INP'`). */
+  inputFileName?: string;
+  /** Output filename for file I/O mode (e.g. `'SUMAB.OUT'`). */
+  outputFileName?: string;
+  /**
    * Inline test cases stored in the DB. Small, typically the visible samples
    * shown to students. Heavy grading test cases live on disk instead — see
    * {@link hiddenTestCount}.
