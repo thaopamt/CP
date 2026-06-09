@@ -17,6 +17,15 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/student/me', icon: 'person', key: 'nav.student.me' },
 ];
 
+/** Only show 5 most important items in the mobile floating nav to prevent overflow */
+const MOBILE_NAV = [
+  NAV[0], // home
+  NAV[1], // classes
+  NAV[2], // assignments
+  NAV[5], // quests
+  NAV[7], // me
+];
+
 /**
  * Student Portal — vibrant/playful, relaxed density.
  * 240px sidebar on desktop; mobile uses bottom-anchored island nav with
@@ -140,8 +149,8 @@ export default function StudentLayout() {
         <Outlet />
       </main>
 
-      <nav className="md:hidden fixed bottom-md left-1/2 -translate-x-1/2 z-50 flex items-center gap-xs bg-surface-container-low/90 backdrop-blur-md rounded-full border border-outline-variant px-sm py-sm shadow-elev-3">
-        {NAV.map((item) => (
+      <nav className="md:hidden fixed bottom-md left-1/2 -translate-x-1/2 z-50 flex items-center gap-xs bg-surface-container-low/90 backdrop-blur-md rounded-full border border-outline-variant px-sm py-sm shadow-elev-3 max-w-[calc(100vw-2rem)] overflow-x-auto">
+        {MOBILE_NAV.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

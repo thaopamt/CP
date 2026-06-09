@@ -39,7 +39,7 @@ export function StatCard({ label, value, icon, iconColor = 'text-primary', trend
         <h3 className="text-label-sm font-semibold uppercase tracking-wider">{label}</h3>
       </div>
       <div className="flex items-end gap-md">
-        <span className="text-display-xl font-manrope font-extrabold text-on-surface">{value}</span>
+        <span className="text-display-lg md:text-display-xl font-manrope font-extrabold text-on-surface truncate">{value}</span>
         {trend && delta && (
           <div className={`flex items-center text-label-sm mb-2 ${TREND_COLOR[trend]}`}>
             <Icon name={TREND_ICON[trend]} className="text-[16px]" />

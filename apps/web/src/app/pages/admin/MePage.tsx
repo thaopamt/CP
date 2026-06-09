@@ -127,7 +127,7 @@ export default function AdminMePage() {
         subtitle={me?.email}
       />
 
-      <section className="grid grid-cols-1 gap-md lg:grid-cols-[320px_1fr]">
+      <section className="grid grid-cols-1 gap-md lg:grid-cols-[280px_1fr]">
         <aside className="rounded-xl border border-outline-variant/60 bg-surface-container-lowest p-lg">
           <div className="flex items-center gap-md">
             <Avatar

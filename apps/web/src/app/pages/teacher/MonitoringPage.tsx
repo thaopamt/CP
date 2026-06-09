@@ -128,8 +128,8 @@ def _search(self, node, value):
   }, [filter, students]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-lg">
-      <section className="flex flex-col gap-md">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+      <section className="flex flex-col gap-md lg:col-span-8">
         <PageHeader
           title={t('pages.teacher.monitoring.title')}
           subtitle={t('pages.teacher.monitoring.subtitle')}
@@ -164,7 +164,7 @@ def _search(self, node, value):
         </div>
       </section>
 
-      <aside className="flex flex-col gap-md lg:sticky lg:top-md lg:self-start">
+      <aside className="flex flex-col gap-md lg:col-span-4 lg:sticky lg:top-md lg:self-start">
         <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-md">
           <h3 className="font-manrope text-headline-md text-on-surface mb-sm">
             {t('pages.teacher.monitoring.overview')}

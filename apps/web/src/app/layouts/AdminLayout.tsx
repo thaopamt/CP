@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useState, useEffect } from 'react';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
 import { useUIStore } from '../stores/ui.store';
@@ -25,12 +26,14 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
 /**
  * Admin Portal layout — minimalist/corporate.
  * 280px fixed sidebar + thin top app bar, compact density.
+ * Mobile: hamburger menu opens a drawer overlay.
  */
 export default function AdminLayout() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const { isSidebarCollapsed, toggleSidebar } = useUIStore();
   const { pathname } = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const current =
     NAV.find((item) => (item.end ? pathname === item.to : pathname.startsWith(item.to))) ??
     (pathname.startsWith('/admin/settings')
@@ -38,9 +41,89 @@ export default function AdminLayout() {
       : undefined);
   const currentLabel = current ? t(current.key) : t('nav.admin.dashboard');
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileMenuOpen]);
+
   return (
     <div className="flex h-screen overflow-hidden bg-surface text-on-surface font-inter">
       <GlobalChatRealtimeBridge />
+
+      {/* ── Mobile Drawer Overlay ── */}
+      {mobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm transition-opacity"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* ── Mobile Drawer ── */}
+      <nav
+        className={`lg:hidden fixed top-0 left-0 bottom-0 w-[280px] max-w-[80vw] flex flex-col p-md gap-sm bg-surface-container-low border-r border-outline-variant z-[70] transition-transform duration-300 ${
+          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between py-lg px-sm">
+          <div className="flex items-center gap-md">
+            <img src="/logo.png" alt="Zenith" className="w-10 h-10 rounded-lg object-contain shrink-0" />
+            <div className="overflow-hidden">
+              <h1 className="text-label-sm font-extrabold text-primary leading-tight truncate">
+                {t('brand.adminPortal')}
+              </h1>
+              <p className="text-[12px] text-on-surface-variant opacity-80 truncate">
+                {t('brand.portalSubtitleAdmin')}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors"
+            aria-label={t('common.close')}
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-xs mt-sm flex-1 overflow-y-auto">
+          {NAV.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) =>
+                [
+                  'flex items-center gap-md px-md py-sm rounded-lg transition-all text-label-sm overflow-hidden min-h-[44px]',
+                  isActive
+                    ? 'bg-primary-container text-on-primary-container font-bold'
+                    : 'text-on-surface-variant hover:bg-surface-container-highest',
+                ].join(' ')
+              }
+            >
+              <span className="relative flex items-center justify-center">
+                <span className="material-symbols-outlined shrink-0">{item.icon}</span>
+                {item.to.endsWith('/chat') && <GlobalChatUnreadBadge compact />}
+              </span>
+              <span className="truncate">{t(item.key)}</span>
+              {item.to.endsWith('/chat') && <GlobalChatUnreadBadge />}
+            </NavLink>
+          ))}
+        </div>
+
+        <LogoutButton />
+      </nav>
+
+      {/* ── Desktop Sidebar ── */}
       <nav className={`hidden lg:flex flex-col ${isSidebarCollapsed ? 'w-[80px]' : 'w-[280px]'} h-screen p-md gap-sm bg-surface-container-low border-r border-outline-variant shrink-0 z-50 transition-all duration-300 relative`}>
         {/* Collapse toggle button */}
         <button 
@@ -101,8 +184,9 @@ export default function AdminLayout() {
         <header className="flex justify-between items-center px-md md:px-lg h-16 bg-surface border-b border-outline-variant shrink-0 z-30">
           <div className="flex items-center gap-md">
             <button
-              className="lg:hidden p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors"
+              className="lg:hidden p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors min-w-[44px] min-h-[44px] grid place-items-center"
               aria-label={t('common.more')}
+              onClick={() => setMobileMenuOpen(true)}
             >
               <span className="material-symbols-outlined">menu</span>
             </button>
@@ -120,11 +204,11 @@ export default function AdminLayout() {
               <input
                 type="text"
                 placeholder={t('topBar.searchPortal')}
-                className="pl-10 pr-4 py-2 bg-surface-container-highest border-none rounded-full text-label-sm focus:ring-2 focus:ring-primary w-[240px] lg:w-[320px] outline-none"
+                className="pl-10 pr-4 py-2 bg-surface-container-highest border-none rounded-full text-label-sm focus:ring-2 focus:ring-primary w-[200px] lg:w-[320px] outline-none"
               />
             </div>
             <button
-              className="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high relative"
+              className="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high relative min-w-[40px] min-h-[40px] grid place-items-center"
               aria-label={t('topBar.notifications')}
             >
               <span className="material-symbols-outlined">notifications</span>

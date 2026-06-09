@@ -209,9 +209,9 @@ export default function SubmissionsPage() {
       </div>
 
       {/* ── Filters ──────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-sm">
+      <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-sm">
         {/* Search */}
-        <div className="relative flex-1 min-w-[200px] max-w-[400px]">
+        <div className="relative flex-1 min-w-0 sm:min-w-[200px] sm:max-w-[400px]">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">
             search
           </span>
@@ -220,43 +220,47 @@ export default function SubmissionsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('pages.submissions.searchPlaceholder', 'Search by problem or student...')}
-            className="w-full pl-10 pr-4 py-2.5 bg-surface-container-highest rounded-xl text-label-sm text-on-surface border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+            className="w-full pl-10 pr-4 py-2.5 bg-surface-container-highest rounded-xl text-label-sm text-on-surface border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all min-h-[44px]"
           />
         </div>
 
-        {/* Status filter */}
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2.5 bg-surface-container-highest rounded-xl text-label-sm text-on-surface border border-outline-variant focus:border-primary outline-none cursor-pointer min-w-[140px]"
-        >
-          <option value="ALL">{t('pages.submissions.allStatuses', 'All statuses')}</option>
-          {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-            <option key={key} value={key}>{cfg.label}</option>
-          ))}
-        </select>
+        <div className="flex flex-wrap items-center gap-sm">
+          {/* Status filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="flex-1 sm:flex-none px-3 py-2.5 bg-surface-container-highest rounded-xl text-label-sm text-on-surface border border-outline-variant focus:border-primary outline-none cursor-pointer min-w-[120px] min-h-[44px]"
+          >
+            <option value="ALL">{t('pages.submissions.allStatuses', 'All statuses')}</option>
+            {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+              <option key={key} value={key}>{cfg.label}</option>
+            ))}
+          </select>
 
-        {/* Language filter */}
-        <select
-          value={langFilter}
-          onChange={(e) => setLangFilter(e.target.value)}
-          className="px-3 py-2.5 bg-surface-container-highest rounded-xl text-label-sm text-on-surface border border-outline-variant focus:border-primary outline-none cursor-pointer min-w-[120px]"
-        >
-          <option value="ALL">{t('pages.submissions.allLanguages', 'All languages')}</option>
-          <option value="cpp">C++</option>
-          <option value="java">Java</option>
-          <option value="python">Python</option>
-          <option value="javascript">JavaScript</option>
-        </select>
+          {/* Language filter */}
+          <select
+            value={langFilter}
+            onChange={(e) => setLangFilter(e.target.value)}
+            className="flex-1 sm:flex-none px-3 py-2.5 bg-surface-container-highest rounded-xl text-label-sm text-on-surface border border-outline-variant focus:border-primary outline-none cursor-pointer min-w-[100px] min-h-[44px]"
+          >
+            <option value="ALL">{t('pages.submissions.allLanguages', 'All languages')}</option>
+            <option value="cpp">C++</option>
+            <option value="java">Java</option>
+            <option value="python">Python</option>
+            <option value="javascript">JavaScript</option>
+          </select>
+        </div>
 
-        <span className={`inline-flex items-center gap-1 text-label-sm ${realtimeConnected ? 'text-emerald-600 dark:text-emerald-400' : 'text-on-surface-variant'} ml-auto`}>
-          <span className="material-symbols-outlined text-[15px]">{realtimeConnected ? 'sensors' : 'sensors_off'}</span>
-          {realtimeConnected ? 'Realtime' : 'Offline'}
-        </span>
+        <div className="flex items-center gap-sm justify-between sm:justify-end sm:ml-auto">
+          <span className={`inline-flex items-center gap-1 text-label-sm ${realtimeConnected ? 'text-emerald-600 dark:text-emerald-400' : 'text-on-surface-variant'}`}>
+            <span className="material-symbols-outlined text-[15px]">{realtimeConnected ? 'sensors' : 'sensors_off'}</span>
+            {realtimeConnected ? 'Realtime' : 'Offline'}
+          </span>
 
-        <span className="text-label-sm text-on-surface-variant">
-          {total} {t('pages.submissions.results', 'results')}
-        </span>
+          <span className="text-label-sm text-on-surface-variant">
+            {total} {t('pages.submissions.results', 'results')}
+          </span>
+        </div>
       </div>
 
       {/* ── Table ────────────────────────────────────────────────── */}
@@ -275,19 +279,93 @@ export default function SubmissionsPage() {
         </div>
       ) : (
         <div className="bg-surface-container-low rounded-2xl border border-outline-variant overflow-hidden">
-          {/* Table header */}
-          <div className="grid grid-cols-[200px_1fr_100px_110px_100px_90px_110px] gap-0 px-md py-sm border-b border-outline-variant bg-surface-container-lowest text-center">
-            <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider text-left">Student</span>
-            <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider text-left">Problem</span>
-            <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Language</span>
-            <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Status</span>
-            <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Passed</span>
-            <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Time</span>
-            <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Submitted</span>
+          {/* Desktop/tablet table with horizontal scroll */}
+          <div className="hidden md:block overflow-x-auto">
+            <div className="min-w-[800px]">
+              {/* Table header */}
+              <div className="grid grid-cols-[180px_1fr_80px_100px_80px_70px_100px] gap-0 px-md py-sm border-b border-outline-variant bg-surface-container-lowest text-center">
+                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider text-left">Student</span>
+                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider text-left">Problem</span>
+                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Language</span>
+                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Status</span>
+                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Passed</span>
+                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Time</span>
+                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Submitted</span>
+              </div>
+
+              {/* Table rows */}
+              <div className="divide-y divide-outline-variant">
+                {submissions.map((sub: any) => {
+                  const sc = STATUS_CONFIG[sub.status] || STATUS_CONFIG[SubmissionStatus.INTERNAL_ERROR];
+                  const progressText = getJudgeProgressText(sub);
+
+                  return (
+                    <div
+                      key={sub.id}
+                      onClick={() => setSelectedSubId(sub.id)}
+                      className="grid grid-cols-[180px_1fr_80px_100px_80px_70px_100px] gap-0 px-md py-sm items-center cursor-pointer hover:bg-surface-container-highest/50 transition-colors group text-center"
+                    >
+                      {/* Student */}
+                      <div className="flex items-center gap-sm min-w-0 pr-sm text-left">
+                        <div className="w-7 h-7 rounded-full bg-primary-container text-on-primary-container grid place-items-center text-[11px] font-bold shrink-0">
+                          {((sub.user?.username || sub.user?.firstName)?.[0] || '?').toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-label-sm text-on-surface font-medium truncate">
+                            {sub.user?.username ? `@${sub.user.username}` : `${sub.user?.firstName || ''} ${sub.user?.lastName || ''}`.trim() || 'Unknown'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Problem */}
+                      <div className="min-w-0 pr-sm text-left">
+                        <p className="text-label-sm text-on-surface font-medium truncate group-hover:text-primary transition-colors">
+                          {sub.assignment?.title || 'Unknown'}
+                        </p>
+                      </div>
+
+                      {/* Language */}
+                      <span className="text-label-sm text-on-surface-variant font-mono">
+                        {LANG_ICON[sub.language] || sub.language}
+                      </span>
+
+                      {/* Status badge */}
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold ${sc.bg} ${sc.color}`}>
+                          <span className={`material-symbols-outlined text-[13px] ${isJudging(sub) ? 'animate-spin' : ''}`}>
+                            {isJudging(sub) ? 'progress_activity' : sc.icon}
+                          </span>
+                          {sc.label}
+                        </span>
+                        {progressText && (
+                          <span className="text-[10px] text-on-surface-variant tabular-nums">{progressText}</span>
+                        )}
+                      </div>
+
+                      {/* Passed */}
+                      <span className="text-label-sm text-on-surface-variant">
+                        <span className="text-on-surface font-semibold">{sub.passedCount}</span>
+                        <span className="text-on-surface-variant"> / {sub.totalCount}</span>
+                      </span>
+
+                      {/* Time */}
+                      <span className="text-label-sm text-on-surface-variant">
+                        {sub.totalExecutionTimeMs != null ? `${sub.totalExecutionTimeMs}ms` : '—'}
+                      </span>
+
+                      {/* Submitted */}
+                      <span className="text-label-sm text-on-surface-variant" title={formatDateFull(sub.createdAt)}>
+                        {formatDate(sub.createdAt)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
-          {/* Table rows */}
-          <div className="divide-y divide-outline-variant">
+          {/* Mobile card layout */}
+          <div className="md:hidden divide-y divide-outline-variant">
             {submissions.map((sub: any) => {
               const sc = STATUS_CONFIG[sub.status] || STATUS_CONFIG[SubmissionStatus.INTERNAL_ERROR];
               const progressText = getJudgeProgressText(sub);
@@ -296,60 +374,36 @@ export default function SubmissionsPage() {
                 <div
                   key={sub.id}
                   onClick={() => setSelectedSubId(sub.id)}
-                  className="grid grid-cols-[200px_1fr_100px_110px_100px_90px_110px] gap-0 px-md py-sm items-center cursor-pointer hover:bg-surface-container-highest/50 transition-colors group text-center"
+                  className="p-md cursor-pointer hover:bg-surface-container-highest/50 transition-colors active:bg-surface-container-highest"
                 >
-                  {/* Student */}
-                  <div className="flex items-center gap-sm min-w-0 pr-sm text-left">
-                    <div className="w-7 h-7 rounded-full bg-primary-container text-on-primary-container grid place-items-center text-[11px] font-bold shrink-0">
-                      {((sub.user?.username || sub.user?.firstName)?.[0] || '?').toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
+                  <div className="flex items-start justify-between gap-sm mb-sm">
+                    <div className="flex items-center gap-sm min-w-0 flex-1">
+                      <div className="w-7 h-7 rounded-full bg-primary-container text-on-primary-container grid place-items-center text-[11px] font-bold shrink-0">
+                        {((sub.user?.username || sub.user?.firstName)?.[0] || '?').toUpperCase()}
+                      </div>
                       <p className="text-label-sm text-on-surface font-medium truncate">
                         {sub.user?.username ? `@${sub.user.username}` : `${sub.user?.firstName || ''} ${sub.user?.lastName || ''}`.trim() || 'Unknown'}
                       </p>
                     </div>
-                  </div>
-
-                  {/* Problem */}
-                  <div className="min-w-0 pr-sm text-left">
-                    <p className="text-label-sm text-on-surface font-medium truncate group-hover:text-primary transition-colors">
-                      {sub.assignment?.title || 'Unknown'}
-                    </p>
-                  </div>
-
-                  {/* Language */}
-                  <span className="text-label-sm text-on-surface-variant font-mono">
-                    {LANG_ICON[sub.language] || sub.language}
-                  </span>
-
-                  {/* Status badge */}
-                  <div className="flex flex-col items-center gap-0.5">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold ${sc.bg} ${sc.color}`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold shrink-0 ${sc.bg} ${sc.color}`}>
                       <span className={`material-symbols-outlined text-[13px] ${isJudging(sub) ? 'animate-spin' : ''}`}>
                         {isJudging(sub) ? 'progress_activity' : sc.icon}
                       </span>
                       {sc.label}
                     </span>
-                    {progressText && (
-                      <span className="text-[10px] text-on-surface-variant tabular-nums">{progressText}</span>
-                    )}
                   </div>
-
-                  {/* Passed */}
-                  <span className="text-label-sm text-on-surface-variant">
-                    <span className="text-on-surface font-semibold">{sub.passedCount}</span>
-                    <span className="text-on-surface-variant"> / {sub.totalCount}</span>
-                  </span>
-
-                  {/* Time */}
-                  <span className="text-label-sm text-on-surface-variant">
-                    {sub.totalExecutionTimeMs != null ? `${sub.totalExecutionTimeMs}ms` : '—'}
-                  </span>
-
-                  {/* Submitted */}
-                  <span className="text-label-sm text-on-surface-variant" title={formatDateFull(sub.createdAt)}>
-                    {formatDate(sub.createdAt)}
-                  </span>
+                  <p className="text-body-md text-on-surface font-medium truncate mb-sm">
+                    {sub.assignment?.title || 'Unknown'}
+                  </p>
+                  <div className="flex items-center gap-md text-[12px] text-on-surface-variant">
+                    <span className="font-mono">{LANG_ICON[sub.language] || sub.language}</span>
+                    <span><span className="text-on-surface font-semibold">{sub.passedCount}</span>/{sub.totalCount}</span>
+                    {sub.totalExecutionTimeMs != null && <span>{sub.totalExecutionTimeMs}ms</span>}
+                    <span className="ml-auto" title={formatDateFull(sub.createdAt)}>{formatDate(sub.createdAt)}</span>
+                  </div>
+                  {progressText && (
+                    <span className="text-[10px] text-on-surface-variant tabular-nums mt-xs block">{progressText}</span>
+                  )}
                 </div>
               );
             })}
@@ -416,7 +470,7 @@ function SubmissionModal({
 
       {/* Modal */}
       <div
-        className="relative bg-surface-container rounded-3xl border border-outline-variant shadow-2xl w-full max-w-[560px] max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        className="relative bg-surface-container rounded-2xl sm:rounded-3xl border border-outline-variant shadow-2xl w-full max-w-full sm:max-w-[560px] max-h-[95vh] sm:max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -445,7 +499,7 @@ function SubmissionModal({
         </div>
 
         {/* Stats row */}
-        <div className="flex items-center gap-lg px-lg py-sm border-b border-outline-variant/50 bg-surface-container-lowest shrink-0">
+        <div className="flex flex-wrap items-center gap-sm sm:gap-lg px-md sm:px-lg py-sm border-b border-outline-variant/50 bg-surface-container-lowest shrink-0">
           <div className="flex items-center gap-xs text-label-sm">
             <span className="material-symbols-outlined text-[15px] text-emerald-400">check_circle</span>
             <span className="text-on-surface font-semibold">{sub.passedCount}</span>

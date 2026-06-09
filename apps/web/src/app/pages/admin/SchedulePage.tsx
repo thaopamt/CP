@@ -503,7 +503,7 @@ function ScheduleSlotAttendancePanel({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm">
-      <div className="flex h-full w-full max-w-xl flex-col bg-surface shadow-elev-3 animate-in slide-in-from-right overflow-hidden">
+      <div className="flex h-full w-full max-w-full sm:max-w-xl flex-col bg-surface shadow-elev-3 animate-in slide-in-from-right overflow-hidden">
         <div className="flex items-center justify-between border-b border-outline-variant px-lg py-md bg-surface-container-low">
           <div>
             <h2 className="text-title-lg font-bold text-on-surface">
@@ -544,7 +544,7 @@ function ScheduleSlotAttendancePanel({
                 </div>
               )}
 
-              <div className="grid grid-cols-4 gap-sm">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-sm">
                 <SummaryCard label={t('pages.admin.attendance.summary.total')} value={stats.total} />
                 <SummaryCard label={t('pages.admin.attendance.summary.present')} value={stats.present} />
                 <SummaryCard label={t('pages.admin.attendance.summary.absent')} value={stats.absent} />
@@ -609,7 +609,7 @@ function ScheduleSlotAttendancePanel({
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-md border-t border-outline-variant px-lg py-md bg-surface-container-lowest">
+        <div className="flex flex-wrap items-center justify-end gap-sm sm:gap-md border-t border-outline-variant px-md sm:px-lg py-md bg-surface-container-lowest">
           <Button
             variant="ghost"
             leadingIcon={<Icon name={isCancelled ? 'undo' : 'event_busy'} size={18} />}

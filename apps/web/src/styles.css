@@ -117,11 +117,15 @@
   html,
   body {
     height: 100%;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
   }
   body {
     font-family: 'Inter', system-ui, sans-serif;
     background-color: var(--color-background);
     color: var(--color-on-background);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   /* Material Symbols defaults */
   .material-symbols-outlined {
@@ -131,6 +135,25 @@
   /* Ensure all primary buttons and elements with bg-primary have beautiful white text/icons for excellent legibility */
   .bg-primary {
     color: #ffffff !important;
+  }
+
+  /* Global responsive touch targets for interactive elements on mobile */
+  @media (max-width: 767px) {
+    button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] {
+      min-height: 40px;
+    }
+    select {
+      min-height: 44px;
+    }
+  }
+
+  /* Prevent horizontal overflow on all containers */
+  *, *::before, *::after {
+    max-width: 100vw;
+  }
+  body, #root {
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 }
 

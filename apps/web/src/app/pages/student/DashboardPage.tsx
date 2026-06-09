@@ -160,10 +160,10 @@ export default function StudentDashboardPage() {
 
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         
         {/* ── Main Content Area ── */}
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-8 xl:col-span-2">
           
           {/* Active Quests Section */}
           <section>
@@ -228,7 +228,7 @@ export default function StudentDashboardPage() {
         </div>
 
         {/* ── Sidebar Area ── */}
-        <aside className="flex flex-col gap-6">
+        <aside className="flex flex-col gap-6 xl:col-span-1">
           
           {/* Recent Achievements */}
           <div className="rounded-2xl p-6 bg-[#16161e] border border-white/5 shadow-xl">

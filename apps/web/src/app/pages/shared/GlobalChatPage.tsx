@@ -331,8 +331,8 @@ export default function GlobalChatPage() {
   }, [input]);
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-8rem)] min-h-[620px] max-w-6xl gap-0 overflow-hidden">
-    <section className="flex flex-1 min-w-0 flex-col overflow-hidden rounded-l-lg border border-outline-variant bg-surface shadow-elev-1">
+    <div className="mx-auto flex h-[calc(100vh-8rem)] min-h-0 sm:min-h-[620px] max-w-6xl gap-0 overflow-hidden relative">
+    <section className="flex flex-1 min-w-0 flex-col overflow-hidden rounded-lg md:rounded-l-lg md:rounded-r-none border border-outline-variant bg-surface shadow-elev-1">
       <header className="flex items-center justify-between gap-md border-b border-outline-variant px-md py-sm md:px-lg">
         <div className="min-w-0">
           <h1 className="font-manrope text-headline-md font-extrabold text-on-surface">
@@ -499,9 +499,18 @@ export default function GlobalChatPage() {
       </div>
     </section>
 
-    {/* Online Users Panel */}
+    {/* Online Users Panel — overlay on mobile, inline on md+ */}
     {showOnlinePanel && (
-      <OnlineUsersPanel users={onlineUsers} currentUserId={user?.id} />
+      <>
+        {/* Mobile backdrop */}
+        <div
+          className="md:hidden fixed inset-0 z-[60] bg-black/30"
+          onClick={() => setShowOnlinePanel(false)}
+        />
+        <div className="absolute md:relative right-0 top-0 bottom-0 z-[70] md:z-auto">
+          <OnlineUsersPanel users={onlineUsers} currentUserId={user?.id} />
+        </div>
+      </>
     )}
     </div>
   );
