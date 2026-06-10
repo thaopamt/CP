@@ -74,6 +74,20 @@ export class StudentProfile extends BaseEntity {
   @Column({ type: 'int', default: 0 })
   streak!: number;
 
+  /** Last day (UTC) the student had an accepted submission — drives streak. */
+  @Column({ type: 'date', nullable: true, name: 'streak_last_date' })
+  streakLastDate!: string | null;
+
+  /** Denormalized lifetime counters used by quests & badges. */
+  @Column({ type: 'int', default: 0, name: 'problems_solved' })
+  problemsSolved!: number;
+
+  @Column({ type: 'int', default: 0, name: 'mazes_solved' })
+  mazesSolved!: number;
+
+  @Column({ type: 'int', default: 0, name: 'badges_earned' })
+  badgesEarned!: number;
+
   @Column({ type: 'varchar', length: 20, default: 'cpp', name: 'default_language' })
   defaultLanguage!: string;
 

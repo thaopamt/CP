@@ -50,6 +50,10 @@ const AdminClassEdit = lazy(() => import('./pages/admin/classes/ClassEditPage'))
 const AdminQuestsList = lazy(() => import('./pages/admin/quests/QuestsListPage'));
 const AdminQuestCreate = lazy(() => import('./pages/admin/quests/QuestCreatePage'));
 const AdminQuestEdit = lazy(() => import('./pages/admin/quests/QuestEditPage'));
+const AdminQuestAnalytics = lazy(() => import('./pages/admin/quests/QuestAnalyticsPage'));
+const AdminBadgesList = lazy(() => import('./pages/admin/badges/BadgesListPage'));
+const AdminBadgeCreate = lazy(() => import('./pages/admin/badges/BadgeCreatePage'));
+const AdminBadgeEdit = lazy(() => import('./pages/admin/badges/BadgeEditPage'));
 const LiveMonitorPage = lazy(() => import('./pages/admin/monitor/LiveMonitorPage'));
 const AdminMazeList = lazy(() => import('./pages/admin/maze/MazeLevelsListPage'));
 const AdminMazeCreate = lazy(() => import('./pages/admin/maze/MazeLevelCreatePage'));
@@ -64,6 +68,8 @@ const StudentDashboard = lazy(() => import('./pages/student/DashboardPage'));
 const StudentMazeLevels = lazy(() => import('./pages/student/maze/MazeLevelsPage'));
 const StudentMazeSolve = lazy(() => import('./pages/student/maze/MazeSolvePage'));
 const StudentQuests = lazy(() => import('./pages/student/QuestsPage'));
+const StudentBadges = lazy(() => import('./pages/student/BadgesPage'));
+const StudentLeaderboard = lazy(() => import('./pages/student/LeaderboardPage'));
 const StudentAssignments = lazy(() => import('./pages/student/AssignmentsPage'));
 const StudentWorkspace = lazy(() => import('./pages/student/WorkspacePage'));
 const StudentAssignmentDetail = lazy(() => import('./pages/student/AssignmentDetailPage'));
@@ -131,6 +137,10 @@ export default function App() {
                 <Route path="quests" element={<AdminQuestsList />} />
                 <Route path="quests/new" element={<AdminQuestCreate />} />
                 <Route path="quests/:id/edit" element={<AdminQuestEdit />} />
+                <Route path="quests/analytics" element={<AdminQuestAnalytics />} />
+                <Route path="badges" element={<AdminBadgesList />} />
+                <Route path="badges/new" element={<AdminBadgeCreate />} />
+                <Route path="badges/:id/edit" element={<AdminBadgeEdit />} />
                 <Route path="monitor" element={<LiveMonitorPage />} />
                 <Route path="maze" element={<AdminMazeList />} />
                 <Route path="maze/new" element={<AdminMazeCreate />} />
@@ -180,6 +190,8 @@ export default function App() {
                 <Route path="workspace" element={<StudentWorkspace />} />
                 <Route path="workspace/:problemId" element={<StudentWorkspace />} />
                 <Route path="quests" element={<StudentQuests />} />
+                <Route path="badges" element={<StudentBadges />} />
+                <Route path="leaderboard" element={<StudentLeaderboard />} />
                 <Route path="chat" element={<GlobalChatPage />} />
                 <Route path="submissions" element={<SubmissionsPage />} />
                 <Route path="me" element={<StudentMe />} />

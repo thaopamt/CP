@@ -11,6 +11,7 @@
     "lint": "nx run-many --target=lint --all",
     "test": "nx run-many --target=test --all",
     "seed": "nx run api:seed",
+    "seed:quests": "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-quests.ts",
     "typeorm:generate": "nx run api:typeorm-generate",
     "typeorm:run": "nx run api:typeorm-run"
   },

@@ -320,10 +320,17 @@ export class SubmissionsController {
       });
 
       if (submission.status === SubmissionStatus.ACCEPTED) {
-        // Trigger quest progress
-        await this.questsService.handleSubmissionAccepted(userId).catch(e => {
-          console.error('Failed to update quest progress:', e);
-        });
+        // Trigger quest + badge progress with full objective context.
+        await this.questsService
+          .handleCodingAccepted(userId, {
+            assignmentId: submission.assignmentId,
+            difficulty: assignment.difficulty,
+            tags: assignment.tags ?? [],
+            points: assignment.points,
+          })
+          .catch((e) => {
+            console.error('Failed to update quest progress:', e);
+          });
       }
 
       this.redactHiddenTestResultsForViewer(submission, req.user.role, assignment);

@@ -4,6 +4,7 @@ import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
 import { useUIStore } from '../stores/ui.store';
 import { useStudentLivePresence } from '../hooks/useStudentLivePresence';
+import { useGamificationSocket } from '../hooks/useGamificationSocket';
 import { GlobalChatRealtimeBridge, GlobalChatUnreadBadge, LogoutButton, UserAvatar, ThemeToggle } from './_shared';
 
 const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
@@ -13,6 +14,8 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/student/maze', icon: 'extension', key: 'nav.student.maze' },
   { to: '/student/submissions', icon: 'history', key: 'nav.student.submissions' },
   { to: '/student/quests', icon: 'rocket_launch', key: 'nav.student.quests' },
+  { to: '/student/badges', icon: 'workspace_premium', key: 'nav.student.badges' },
+  { to: '/student/leaderboard', icon: 'leaderboard', key: 'nav.student.leaderboard' },
   { to: '/student/chat', icon: 'forum', key: 'nav.student.globalChat' },
   { to: '/student/me', icon: 'person', key: 'nav.student.me' },
 ];
@@ -20,10 +23,10 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
 /** Only show 5 most important items in the mobile floating nav to prevent overflow */
 const MOBILE_NAV = [
   NAV[0], // home
-  NAV[1], // classes
   NAV[2], // assignments
   NAV[5], // quests
-  NAV[7], // me
+  NAV[6], // badges
+  NAV[9], // me
 ];
 
 /**
@@ -46,6 +49,7 @@ export default function StudentLayout() {
   const marginLeft = isSidebarCollapsed ? 'md:ml-[80px]' : 'md:ml-[240px] lg:ml-[280px]';
 
   useStudentLivePresence(location.pathname);
+  useGamificationSocket();
 
   return (
     <div className="min-h-screen bg-surface text-on-surface font-inter">

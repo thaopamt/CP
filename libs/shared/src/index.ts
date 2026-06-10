@@ -12,3 +12,4 @@ export * from './lib/maze';
 export * from './lib/global-chat.types';
 export * from './lib/types/dashboard.types';
 export * from './lib/types/quests.types';
+export * from './lib/types/gamification.types';

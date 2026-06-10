@@ -169,7 +169,7 @@ export class MazeService {
     const saved = await this.submissions.save(submission);
 
     if (saved.status === SubmissionStatus.ACCEPTED) {
-      await this.questsService.handleSubmissionAccepted(userId).catch((e) => {
+      await this.questsService.handleMazeAccepted(userId, { mazeLevelId: level.id }).catch((e) => {
         console.error('Failed to update quest progress:', e);
       });
     }

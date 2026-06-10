@@ -3,11 +3,16 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/api/src",
   "projectType": "application",
-  "tags": ["scope:api", "type:app"],
+  "tags": [
+    "scope:api",
+    "type:app"
+  ],
   "targets": {
     "build": {
       "executor": "@nx/webpack:webpack",
-      "outputs": ["{options.outputPath}"],
+      "outputs": [
+        "{options.outputPath}"
+      ],
       "defaultConfiguration": "production",
       "options": {
         "target": "node",
@@ -15,7 +20,9 @@
         "outputPath": "dist/apps/api",
         "main": "apps/api/src/main.ts",
         "tsConfig": "apps/api/tsconfig.app.json",
-        "assets": ["apps/api/src/assets"],
+        "assets": [
+          "apps/api/src/assets"
+        ],
         "webpackConfig": "apps/api/webpack.config.js"
       },
       "configurations": {
@@ -26,24 +33,28 @@
     "serve": {
       "executor": "@nx/js:node",
       "defaultConfiguration": "development",
-      "dependsOn": ["build"],
+      "dependsOn": [
+        "build"
+      ],
       "options": {
         "buildTarget": "api:build",
         "runBuildTargetDependencies": false
       },
       "configurations": {
-        "development": { "buildTarget": "api:build:development" },
-        "production": { "buildTarget": "api:build:production" }
+        "development": {
+          "buildTarget": "api:build:development"
+        },
+        "production": {
+          "buildTarget": "api:build:production"
+        }
       }
     },
     "seed": {
       "executor": "nx:run-commands",
       "options": {
         "commands": [
-          "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-admin.ts",
-          "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-basic-a.ts",
-          "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-basic-b.ts",
-          "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-maze.ts"
+          "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-python-basic.ts",
+          "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-python-advanced.ts"
         ],
         "parallel": false,
         "cwd": "."
