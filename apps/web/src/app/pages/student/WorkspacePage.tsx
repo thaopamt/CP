@@ -110,6 +110,13 @@ export default function StudentWorkspacePage() {
     cases: { status: 'accepted' | 'wrong' | 'error'; input: string; stdout: string; expected: string }[];
   }>(null);
   const [activeResultIdx, setActiveResultIdx] = useState(0);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const handleCopy = (text: string, fieldId: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldId);
+    setTimeout(() => setCopiedField(null), 1500);
+  };
 
   // Interactive execution (WebSocket)
   const interactiveExec = useInteractiveExec();
@@ -675,6 +682,11 @@ export default function StudentWorkspacePage() {
                       <Icon name="memory" size={13} />{assignment.codingConfig.memoryLimit} MB
                     </span>
                   )}
+                  {assignment.codingConfig?.ioMode === 'file' && (
+                    <span className="inline-flex items-center gap-1 text-xs text-cyan-400 font-medium bg-cyan-500/10 px-1.5 py-0.5 rounded">
+                      <Icon name="draft" size={13} />File I/O
+                    </span>
+                  )}
                 </div>
 
                 {/* Tags */}
@@ -683,6 +695,15 @@ export default function StudentWorkspacePage() {
                     {assignment.tags.map((tag, i) => (
                       <span key={i} className="px-2 py-0.5 rounded-full bg-white/5 text-[11px] text-gray-400 border border-white/5">{tag}</span>
                     ))}
+                  </div>
+                )}
+
+                {/* File I/O info banner */}
+                {assignment.codingConfig?.ioMode === 'file' && (
+                  <div className="mb-5 px-3 py-2 bg-cyan-500/5 border border-cyan-500/20 rounded-lg text-xs flex items-center gap-4">
+                    <span className="text-cyan-300 font-medium">File I/O</span>
+                    <span className="text-gray-400">Input: <code className="text-cyan-300 bg-white/5 px-1.5 py-0.5 rounded">{assignment.codingConfig.inputFileName}</code></span>
+                    <span className="text-gray-400">Output: <code className="text-cyan-300 bg-white/5 px-1.5 py-0.5 rounded">{assignment.codingConfig.outputFileName}</code></span>
                   </div>
                 )}
 
@@ -715,11 +736,27 @@ export default function StudentWorkspacePage() {
                         <div className="bg-[#0d0d1a] rounded-lg border border-white/5 p-3 space-y-2">
                           <div>
                             <span className="text-[11px] text-gray-500 font-semibold uppercase">Input:</span>
-                            <pre className="text-sm font-mono text-gray-300 mt-1 whitespace-pre-wrap">{tc.input || '(empty)'}</pre>
+                            <div className="relative mt-1">
+                              <pre className="text-sm font-mono text-gray-300 whitespace-pre-wrap pr-12">{tc.input || '(empty)'}</pre>
+                              <button
+                                onClick={() => handleCopy(tc.input || '', `ex-input-${idx}`)}
+                                className={`absolute top-0 right-0 text-[10px] px-1.5 py-0.5 rounded transition-colors ${copiedField === `ex-input-${idx}` ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
+                              >
+                                {copiedField === `ex-input-${idx}` ? 'Copied!' : 'Copy'}
+                              </button>
+                            </div>
                           </div>
                           <div>
                             <span className="text-[11px] text-gray-500 font-semibold uppercase">Output:</span>
-                            <pre className="text-sm font-mono text-gray-300 mt-1 whitespace-pre-wrap">{tc.output || '(empty)'}</pre>
+                            <div className="relative mt-1">
+                              <pre className="text-sm font-mono text-gray-300 whitespace-pre-wrap pr-12">{tc.output || '(empty)'}</pre>
+                              <button
+                                onClick={() => handleCopy(tc.output || '', `ex-output-${idx}`)}
+                                className={`absolute top-0 right-0 text-[10px] px-1.5 py-0.5 rounded transition-colors ${copiedField === `ex-output-${idx}` ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
+                              >
+                                {copiedField === `ex-output-${idx}` ? 'Copied!' : 'Copy'}
+                              </button>
+                            </div>
                           </div>
                           {tc.explanation && (
                             <div>
@@ -744,6 +781,12 @@ export default function StudentWorkspacePage() {
                     <ul className="list-disc list-inside text-sm text-gray-400 space-y-1">
                       <li>Time limit: {assignment.codingConfig.timeLimit ?? 1}s per test</li>
                       <li>Memory limit: {assignment.codingConfig.memoryLimit ?? 256} MB</li>
+                      {assignment.codingConfig.ioMode === 'file' && (
+                        <li>
+                          File I/O: input from <code className="text-cyan-300 bg-white/5 px-1.5 py-0.5 rounded text-[13px]">{assignment.codingConfig.inputFileName}</code>,
+                          output to <code className="text-cyan-300 bg-white/5 px-1.5 py-0.5 rounded text-[13px]">{assignment.codingConfig.outputFileName}</code>
+                        </li>
+                      )}
                       {assignment.codingConfig.allowedLanguages && (
                         <li>Languages: {assignment.codingConfig.allowedLanguages.join(', ')}</li>
                       )}
@@ -967,19 +1010,28 @@ export default function StudentWorkspacePage() {
                   {/* Input / Expected / Explanation */}
                   <div className="space-y-3">
                     <div>
-                      <div className="mb-1.5 flex items-center justify-between gap-2">
-                        <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider block">Input</label>
+                      <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">Input</label>
+                      <div className="relative">
+                        <pre className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 pr-14 text-sm font-mono text-gray-300 whitespace-pre-wrap min-h-[40px]">{customInput.trim()}</pre>
                         <button
-                          onClick={handleUseCaseInTerminal}
-                          className="inline-flex items-center gap-1 rounded bg-cyan-500/10 px-2 py-1 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/20"
+                          onClick={() => handleCopy(customInput.trim(), 'tc-input')}
+                          className={`absolute top-2 right-2 text-[10px] px-1.5 py-0.5 rounded transition-colors ${copiedField === 'tc-input' ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
                         >
+                          {copiedField === 'tc-input' ? 'Copied!' : 'Copy'}
                         </button>
                       </div>
-                      <pre className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm font-mono text-gray-300 whitespace-pre-wrap min-h-[40px]">{customInput.trim()}</pre>
                     </div>
                     <div>
                       <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">Expected Output</label>
-                      <pre className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm font-mono text-gray-400 whitespace-pre-wrap min-h-[40px]">{customOutput.trim() || '(empty)'}</pre>
+                      <div className="relative">
+                        <pre className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 pr-14 text-sm font-mono text-gray-400 whitespace-pre-wrap min-h-[40px]">{customOutput.trim() || '(empty)'}</pre>
+                        <button
+                          onClick={() => handleCopy(customOutput.trim(), 'tc-output')}
+                          className={`absolute top-2 right-2 text-[10px] px-1.5 py-0.5 rounded transition-colors ${copiedField === 'tc-output' ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
+                        >
+                          {copiedField === 'tc-output' ? 'Copied!' : 'Copy'}
+                        </button>
+                      </div>
                     </div>
                     {visibleTestCases[activeTestIdx]?.explanation && (
                       <div>

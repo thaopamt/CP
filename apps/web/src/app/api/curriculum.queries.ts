@@ -88,6 +88,8 @@ export function useUpdateAssignment(id: string) {
       void qc.invalidateQueries({ queryKey: curriculumKeys.assignments.detail(id) });
       void qc.invalidateQueries({ queryKey: curriculumKeys.assignments.testcaseManifest(id) });
       void qc.invalidateQueries({ queryKey: ['assignments', 'list'] });
+      void qc.invalidateQueries({ queryKey: ['courses'] });
+      void qc.invalidateQueries({ queryKey: ['classes', 'courses'] });
     },
   });
 }

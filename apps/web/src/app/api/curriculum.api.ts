@@ -45,6 +45,7 @@ interface ApiAssignment {
   status: PublishStatus;
   slug?: string | null;
   tags?: string[];
+  classIds?: string[] | null;
   codingConfig?: ICodingConfig | null;
   createdAt: string;
   updatedAt: string;
@@ -94,6 +95,7 @@ function toAssignment(a: ApiAssignment): IAssignmentDef {
     status: a.status,
     slug: a.slug ?? undefined,
     tags: a.tags ?? [],
+    classIds: a.classIds ?? null,
     codingConfig: a.codingConfig ?? undefined,
     createdAt: a.createdAt,
     updatedAt: a.updatedAt,

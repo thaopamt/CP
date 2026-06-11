@@ -25,7 +25,37 @@ export class AssignmentsService extends TypeOrmCrudService<Assignment> {
     await this.assignments.update({ id }, dto);
     const out = await this.assignments.findOne({ where: { id } });
     if (!out) throw new NotFoundException(`Assignment ${id} not found`);
+    if (dto.points !== undefined) {
+      await this.refreshCourseTotalsForAssignment(id);
+    }
     return out;
+  }
+
+  private async refreshCourseTotalsForAssignment(assignmentId: string): Promise<void> {
+    await this.assignments.query(
+      `
+      UPDATE courses c
+      SET
+        assignment_count = totals.assignment_count,
+        total_points = totals.total_points
+      FROM (
+        SELECT
+          ca.course_id,
+          COUNT(*)::int AS assignment_count,
+          COALESCE(SUM(a.points), 0)::int AS total_points
+        FROM course_assignments ca
+        JOIN assignments a ON a.id = ca.assignment_id
+        WHERE ca.course_id IN (
+          SELECT course_id
+          FROM course_assignments
+          WHERE assignment_id = $1
+        )
+        GROUP BY ca.course_id
+      ) totals
+      WHERE c.id = totals.course_id
+      `,
+      [assignmentId],
+    );
   }
 
   async getById(id: string): Promise<Assignment> {

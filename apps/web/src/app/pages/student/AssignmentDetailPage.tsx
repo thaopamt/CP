@@ -115,6 +115,13 @@ export default function StudentAssignmentDetailPage() {
   }>(null);
   const [activeResultIdx, setActiveResultIdx] = useState(0);
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const handleCopy = (text: string, fieldId: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldId);
+    setTimeout(() => setCopiedField(null), 1500);
+  };
 
   // Interactive execution (WebSocket)
   const interactiveExec = useInteractiveExec();
@@ -596,11 +603,27 @@ export default function StudentAssignmentDetailPage() {
                         <div className="bg-[#0d0d1a] rounded-lg border border-white/5 p-3 space-y-2">
                           <div>
                             <span className="text-[11px] text-gray-500 font-semibold uppercase">Input:</span>
-                            <pre className="text-sm font-mono text-gray-300 mt-1 whitespace-pre-wrap">{tc.input || '(empty)'}</pre>
+                            <div className="relative mt-1">
+                              <pre className="text-sm font-mono text-gray-300 whitespace-pre-wrap pr-12">{tc.input || '(empty)'}</pre>
+                              <button
+                                onClick={() => handleCopy(tc.input || '', `ex-input-${idx}`)}
+                                className={`absolute top-0 right-0 text-[10px] px-1.5 py-0.5 rounded transition-colors ${copiedField === `ex-input-${idx}` ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
+                              >
+                                {copiedField === `ex-input-${idx}` ? 'Copied!' : 'Copy'}
+                              </button>
+                            </div>
                           </div>
                           <div>
                             <span className="text-[11px] text-gray-500 font-semibold uppercase">Output:</span>
-                            <pre className="text-sm font-mono text-gray-300 mt-1 whitespace-pre-wrap">{tc.output || '(empty)'}</pre>
+                            <div className="relative mt-1">
+                              <pre className="text-sm font-mono text-gray-300 whitespace-pre-wrap pr-12">{tc.output || '(empty)'}</pre>
+                              <button
+                                onClick={() => handleCopy(tc.output || '', `ex-output-${idx}`)}
+                                className={`absolute top-0 right-0 text-[10px] px-1.5 py-0.5 rounded transition-colors ${copiedField === `ex-output-${idx}` ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
+                              >
+                                {copiedField === `ex-output-${idx}` ? 'Copied!' : 'Copy'}
+                              </button>
+                            </div>
                           </div>
                           {tc.explanation && (
                             <div>
@@ -635,16 +658,6 @@ export default function StudentAssignmentDetailPage() {
                         <li>Languages: {assignment.codingConfig.allowedLanguages.join(', ')}</li>
                       )}
                     </ul>
-                    {assignment.codingConfig.ioMode === 'file' && (
-                      <div className="mt-3 p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-lg">
-                        <p className="text-xs text-cyan-300 font-medium mb-1.5 flex items-center gap-1">
-                          <Icon name="info" size={13} />
-                          Sử dụng File I/O
-                        </p>
-                        <pre className="text-[11px] font-mono text-gray-400 bg-[#0d0d1a] rounded px-2 py-1.5 overflow-auto">{`freopen("${assignment.codingConfig.inputFileName}", "r", stdin);
-freopen("${assignment.codingConfig.outputFileName}", "w", stdout);`}</pre>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
@@ -1031,19 +1044,28 @@ freopen("${assignment.codingConfig.outputFileName}", "w", stdout);`}</pre>
                   {/* Input / Expected / Explanation */}
                   <div className="space-y-3">
                     <div>
-                      <div className="mb-1.5 flex items-center justify-between gap-2">
-                        <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider block">Input</label>
+                      <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">Input</label>
+                      <div className="relative">
+                        <pre className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 pr-14 text-sm font-mono text-gray-300 whitespace-pre-wrap min-h-[40px]">{customInput.trim()}</pre>
                         <button
-                          onClick={handleUseCaseInTerminal}
-                          className="inline-flex items-center gap-1 rounded bg-cyan-500/10 px-2 py-1 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/20"
+                          onClick={() => handleCopy(customInput.trim(), 'tc-input')}
+                          className={`absolute top-2 right-2 text-[10px] px-1.5 py-0.5 rounded transition-colors ${copiedField === 'tc-input' ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
                         >
+                          {copiedField === 'tc-input' ? 'Copied!' : 'Copy'}
                         </button>
                       </div>
-                      <pre className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm font-mono text-gray-300 whitespace-pre-wrap min-h-[40px]">{customInput.trim()}</pre>
                     </div>
                     <div>
                       <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">Expected Output</label>
-                      <pre className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm font-mono text-gray-400 whitespace-pre-wrap min-h-[40px]">{customOutput.trim() || '(empty)'}</pre>
+                      <div className="relative">
+                        <pre className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 pr-14 text-sm font-mono text-gray-400 whitespace-pre-wrap min-h-[40px]">{customOutput.trim() || '(empty)'}</pre>
+                        <button
+                          onClick={() => handleCopy(customOutput.trim(), 'tc-output')}
+                          className={`absolute top-2 right-2 text-[10px] px-1.5 py-0.5 rounded transition-colors ${copiedField === 'tc-output' ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
+                        >
+                          {copiedField === 'tc-output' ? 'Copied!' : 'Copy'}
+                        </button>
+                      </div>
                     </div>
                     {visibleTestCases[activeTestIdx]?.explanation && (
                       <div>

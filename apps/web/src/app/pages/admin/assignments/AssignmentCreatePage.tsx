@@ -131,6 +131,7 @@ export default function AssignmentCreatePage() {
   };
   const [description, setDescription] = useState('');
   const [difficulty, setDifficulty] = useState<'EASY' | 'MEDIUM' | 'HARD'>('MEDIUM');
+  const [points, setPoints] = useState(100);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [timeLimit, setTimeLimit] = useState(1.0);
@@ -151,7 +152,7 @@ export default function AssignmentCreatePage() {
         slug: slug || undefined,
         description,
         difficulty,
-        points: 100,
+        points,
         status: PublishStatus.PUBLISHED,
         classIds: classIds.length > 0 ? classIds : null,
         tags,
@@ -623,6 +624,18 @@ export default function AssignmentCreatePage() {
                     </div>
                   </div>
                 )}
+              </div>
+
+              <div className="mb-md">
+                <label className="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Points</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={points}
+                  onChange={e => setPoints(parseInt(e.target.value, 10) || 0)}
+                  className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm text-body-md focus:outline-none focus:border-primary"
+                />
               </div>
 
               <div className="mb-md">
