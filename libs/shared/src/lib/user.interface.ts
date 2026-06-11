@@ -22,3 +22,22 @@ export interface IUser {
 export function fullName(user: Pick<IUser, 'firstName' | 'lastName'>): string {
   return `${user.firstName} ${user.lastName}`.trim();
 }
+
+/** Payload for admin-created accounts (e.g. teachers). */
+export interface ICreateUserPayload {
+  email: string;
+  firstName: string;
+  lastName: string;
+  password: string;
+  username?: string | null;
+  role?: UserRole;
+}
+
+/** Patch shape for admin edits to a user account. */
+export interface IUpdateUserPayload {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  username?: string | null;
+  isActive?: boolean;
+}

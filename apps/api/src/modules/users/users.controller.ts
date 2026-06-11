@@ -1,4 +1,13 @@
-import { Controller, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { Crud, CrudController } from '@dataui/crud';
 import { UserRole } from '@cp/shared';
 
@@ -7,6 +16,9 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { User } from './user.entity';
 import { UsersService } from './users.service';
+import { CreateTeacherDto } from './dto/create-teacher.dto';
+import { UpdateTeacherDto } from './dto/update-teacher.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 /**
  * ────────────────────────────────────────────────────────────────────────
@@ -51,4 +63,46 @@ import { UsersService } from './users.service';
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController implements CrudController<User> {
   constructor(public service: UsersService) {}
+
+  /**
+   * Teacher (and other admin-managed account) operations. These live on
+   * `/users/teachers*` so they sit alongside — and never collide with — the
+   * auto-generated @dataui/crud routes (`GET /users`, `GET /users/:id`).
+   * Listing reuses the CRUD `getManyBase` with an `?s={"role":"TEACHER"}`
+   * filter from the client. Creating/resetting hash the password server-side,
+   * which the raw CRUD create cannot do.
+   */
+  @Roles(UserRole.ADMIN)
+  @Post('teachers')
+  createTeacher(@Body() dto: CreateTeacherDto): Promise<User> {
+    return this.service.createUser({ ...dto, role: UserRole.TEACHER });
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Patch('teachers/:id')
+  updateTeacher(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateTeacherDto,
+  ): Promise<User> {
+    return this.service.adminUpdate(id, dto);
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Post('teachers/:id/reset-password')
+  async resetPassword(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: ResetPasswordDto,
+  ): Promise<{ success: boolean }> {
+    await this.service.resetPassword(id, dto.newPassword);
+    return { success: true };
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Delete('teachers/:id')
+  async deleteTeacher(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<{ success: boolean }> {
+    await this.service.deleteUser(id);
+    return { success: true };
+  }
 }
