@@ -138,6 +138,9 @@ export default function AssignmentCreatePage() {
   const [outputLimit, setOutputLimit] = useState(10);
   const [checkerType, setCheckerType] = useState<'standard' | 'exact' | 'custom'>('standard');
   const [allowViewHiddenTestCases, setAllowViewHiddenTestCases] = useState(false);
+  const [ioMode, setIoMode] = useState<'stdio' | 'file'>('stdio');
+  const [inputFileName, setInputFileName] = useState('');
+  const [outputFileName, setOutputFileName] = useState('');
   const [testCases, setTestCases] = useState<ICodingTestCase[]>([{ input: '', output: '', isHidden: false }]);
 
   const handlePublish = async () => {
@@ -159,7 +162,9 @@ export default function AssignmentCreatePage() {
           checkerType,
           allowViewHiddenTestCases,
           allowedLanguages: ['C++ 20', 'Java 17', 'Python 3', 'JavaScript'],
-          testCases
+          testCases,
+          ioMode,
+          ...(ioMode === 'file' ? { inputFileName, outputFileName } : {}),
         }
       });
 
@@ -703,6 +708,51 @@ export default function AssignmentCreatePage() {
                   <option value="custom">Custom Checker (C++)</option>
                 </select>
                 <p className="text-xs text-on-surface-variant mt-1">Use standard token match for most problems.</p>
+              </div>
+
+              {/* I/O Mode */}
+              <div className="mb-md pt-md border-t border-outline-variant">
+                <label className="block font-label-sm text-label-sm text-on-surface-variant mb-xs">I/O Mode</label>
+                <div className="flex gap-md mt-sm">
+                  <label className="flex items-center gap-xs cursor-pointer">
+                    <input type="radio" name="ioMode" checked={ioMode === 'stdio'} onChange={() => setIoMode('stdio')} className="text-primary focus:ring-primary border-outline-variant" />
+                    <span className="text-sm text-on-surface">stdin / stdout</span>
+                  </label>
+                  <label className="flex items-center gap-xs cursor-pointer">
+                    <input type="radio" name="ioMode" checked={ioMode === 'file'} onChange={() => setIoMode('file')} className="text-primary focus:ring-primary border-outline-variant" />
+                    <span className="text-sm text-on-surface">File I/O (freopen)</span>
+                  </label>
+                </div>
+                <p className="text-xs text-on-surface-variant mt-1">
+                  {ioMode === 'stdio'
+                    ? 'Programs read from stdin and write to stdout.'
+                    : 'Programs read/write from named files (e.g. freopen).'}
+                </p>
+
+                {ioMode === 'file' && (
+                  <div className="mt-sm grid grid-cols-2 gap-sm">
+                    <div>
+                      <label className="block text-xs text-on-surface-variant mb-1">Input File Name</label>
+                      <input
+                        type="text"
+                        value={inputFileName}
+                        onChange={e => setInputFileName(e.target.value.toUpperCase())}
+                        className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-xs text-sm font-mono focus:outline-none focus:border-primary"
+                        placeholder="e.g. SUMAB.INP"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-on-surface-variant mb-1">Output File Name</label>
+                      <input
+                        type="text"
+                        value={outputFileName}
+                        onChange={e => setOutputFileName(e.target.value.toUpperCase())}
+                        className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-xs text-sm font-mono focus:outline-none focus:border-primary"
+                        placeholder="e.g. SUMAB.OUT"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>

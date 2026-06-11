@@ -551,6 +551,11 @@ export default function StudentAssignmentDetailPage() {
                       <Icon name="memory" size={13} />{assignment.codingConfig.memoryLimit} MB
                     </span>
                   )}
+                  {assignment.codingConfig?.ioMode === 'file' && (
+                    <span className="inline-flex items-center gap-1 text-xs text-cyan-400 font-medium bg-cyan-500/10 px-1.5 py-0.5 rounded">
+                      <Icon name="draft" size={13} />File I/O
+                    </span>
+                  )}
                 </div>
 
                 {/* Tags */}
@@ -620,10 +625,26 @@ export default function StudentAssignmentDetailPage() {
                     <ul className="list-disc list-inside text-sm text-gray-400 space-y-1">
                       <li>Time limit: {assignment.codingConfig.timeLimit ?? 1}s per test</li>
                       <li>Memory limit: {assignment.codingConfig.memoryLimit ?? 256} MB</li>
+                      {assignment.codingConfig.ioMode === 'file' && (
+                        <li>
+                          File I/O: input from <code className="text-cyan-300 bg-white/5 px-1.5 py-0.5 rounded text-[13px]">{assignment.codingConfig.inputFileName}</code>,
+                          output to <code className="text-cyan-300 bg-white/5 px-1.5 py-0.5 rounded text-[13px]">{assignment.codingConfig.outputFileName}</code>
+                        </li>
+                      )}
                       {assignment.codingConfig.allowedLanguages && (
                         <li>Languages: {assignment.codingConfig.allowedLanguages.join(', ')}</li>
                       )}
                     </ul>
+                    {assignment.codingConfig.ioMode === 'file' && (
+                      <div className="mt-3 p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-lg">
+                        <p className="text-xs text-cyan-300 font-medium mb-1.5 flex items-center gap-1">
+                          <Icon name="info" size={13} />
+                          Sử dụng File I/O
+                        </p>
+                        <pre className="text-[11px] font-mono text-gray-400 bg-[#0d0d1a] rounded px-2 py-1.5 overflow-auto">{`freopen("${assignment.codingConfig.inputFileName}", "r", stdin);
+freopen("${assignment.codingConfig.outputFileName}", "w", stdout);`}</pre>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

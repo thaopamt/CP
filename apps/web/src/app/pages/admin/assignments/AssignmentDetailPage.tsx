@@ -272,6 +272,26 @@ export default function AssignmentDetailPage() {
                     <p className="text-sm font-medium text-on-surface capitalize">{assignment.codingConfig.checkerType || 'standard'}</p>
                   </div>
                   <div className="pt-sm border-t border-outline-variant/30">
+                    <span className="block text-xs text-on-surface-variant mb-xs">I/O Mode</span>
+                    {assignment.codingConfig.ioMode === 'file' ? (
+                      <div>
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-tertiary-container text-on-tertiary-container rounded font-medium">
+                          <span className="material-symbols-outlined text-[14px]">draft</span>
+                          File I/O
+                        </span>
+                        <div className="mt-xs flex items-center gap-sm text-xs font-mono text-on-surface-variant">
+                          <span>Input: <strong className="text-on-surface">{assignment.codingConfig.inputFileName}</strong></span>
+                          <span>Output: <strong className="text-on-surface">{assignment.codingConfig.outputFileName}</strong></span>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-surface-container-high text-on-surface-variant rounded font-medium">
+                        <span className="material-symbols-outlined text-[14px]">terminal</span>
+                        stdin / stdout
+                      </span>
+                    )}
+                  </div>
+                  <div className="pt-sm border-t border-outline-variant/30">
                     <span className="block text-xs text-on-surface-variant mb-xs">Allowed Languages</span>
                     <div className="flex flex-wrap gap-xs">
                       {assignment.codingConfig.allowedLanguages?.map(lang => (

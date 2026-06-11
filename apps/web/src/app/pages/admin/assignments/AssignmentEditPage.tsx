@@ -153,6 +153,9 @@ export default function AssignmentEditPage() {
   const [outputLimit, setOutputLimit] = useState(10);
   const [checkerType, setCheckerType] = useState<'standard' | 'exact' | 'custom'>('standard');
   const [allowViewHiddenTestCases, setAllowViewHiddenTestCases] = useState(false);
+  const [ioMode, setIoMode] = useState<'stdio' | 'file'>('stdio');
+  const [inputFileName, setInputFileName] = useState('');
+  const [outputFileName, setOutputFileName] = useState('');
   const [testCases, setTestCases] = useState<ICodingTestCase[]>([]);
 
   useEffect(() => {
@@ -169,6 +172,9 @@ export default function AssignmentEditPage() {
         setOutputLimit(assignment.codingConfig.outputLimit || 10);
         setCheckerType(assignment.codingConfig.checkerType || 'standard');
         setAllowViewHiddenTestCases(assignment.codingConfig.allowViewHiddenTestCases || false);
+        setIoMode(assignment.codingConfig.ioMode || 'stdio');
+        setInputFileName(assignment.codingConfig.inputFileName || '');
+        setOutputFileName(assignment.codingConfig.outputFileName || '');
         setTestCases(assignment.codingConfig.testCases || []);
         setHiddenTestCount(assignment.codingConfig.hiddenTestCount || 0);
       }
@@ -235,6 +241,8 @@ export default function AssignmentEditPage() {
           allowedLanguages: ['C++ 20', 'Java 17', 'Python 3', 'JavaScript'],
           testCases,
           hiddenTestCount: nextHiddenCount,
+          ioMode,
+          ...(ioMode === 'file' ? { inputFileName, outputFileName } : {}),
         }
       });
       toast.success('Assignment updated successfully!');
@@ -797,6 +805,51 @@ export default function AssignmentEditPage() {
                     <span className="text-sm text-on-surface-variant">Custom Checker (Coming soon)</span>
                   </label>
                 </div>
+              </div>
+
+              {/* I/O Mode */}
+              <div className="mb-sm pt-md border-t border-outline-variant">
+                <label className="block font-label-sm text-label-sm text-on-surface-variant mb-xs">I/O Mode</label>
+                <div className="flex gap-md mt-sm">
+                  <label className="flex items-center gap-xs cursor-pointer">
+                    <input type="radio" name="ioModeEdit" checked={ioMode === 'stdio'} onChange={() => setIoMode('stdio')} className="text-primary focus:ring-primary border-outline-variant" />
+                    <span className="text-sm text-on-surface">stdin / stdout</span>
+                  </label>
+                  <label className="flex items-center gap-xs cursor-pointer">
+                    <input type="radio" name="ioModeEdit" checked={ioMode === 'file'} onChange={() => setIoMode('file')} className="text-primary focus:ring-primary border-outline-variant" />
+                    <span className="text-sm text-on-surface">File I/O (freopen)</span>
+                  </label>
+                </div>
+                <p className="text-xs text-on-surface-variant mt-1">
+                  {ioMode === 'stdio'
+                    ? 'Programs read from stdin and write to stdout.'
+                    : 'Programs read/write from named files (e.g. freopen).'}
+                </p>
+
+                {ioMode === 'file' && (
+                  <div className="mt-sm grid grid-cols-2 gap-sm">
+                    <div>
+                      <label className="block text-xs text-on-surface-variant mb-1">Input File Name</label>
+                      <input
+                        type="text"
+                        value={inputFileName}
+                        onChange={e => setInputFileName(e.target.value.toUpperCase())}
+                        className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-xs text-sm font-mono focus:outline-none focus:border-primary"
+                        placeholder="e.g. SUMAB.INP"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-on-surface-variant mb-1">Output File Name</label>
+                      <input
+                        type="text"
+                        value={outputFileName}
+                        onChange={e => setOutputFileName(e.target.value.toUpperCase())}
+                        className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-sm py-xs text-sm font-mono focus:outline-none focus:border-primary"
+                        placeholder="e.g. SUMAB.OUT"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* View hidden testcases option */}
