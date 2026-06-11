@@ -7,6 +7,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { useAssignment, useAssignmentTestcaseManifest, useDeleteAssignment } from '../../../api/curriculum.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 import { useToast, useConfirm } from '@cp/ui';
 
 const DIFFICULTY_TONE: Record<'EASY' | 'MEDIUM' | 'HARD', 'success' | 'warning' | 'error'> = {
@@ -18,6 +19,7 @@ const DIFFICULTY_TONE: Record<'EASY' | 'MEDIUM' | 'HARD', 'success' | 'warning' 
 export default function AssignmentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const toast = useToast();
   const { t } = useTranslation();
 
@@ -38,7 +40,7 @@ export default function AssignmentDetailPage() {
         if (id) {
           await deleteAssignment.mutateAsync(id);
           toast.success('Assignment deleted successfully');
-          navigate('/admin/assignments');
+          navigate(`${base}/assignments`);
         }
       } catch (e: any) {
         toast.error(e.message || 'Error deleting assignment');
@@ -59,7 +61,7 @@ export default function AssignmentDetailPage() {
       <div className="p-xl text-center text-on-surface">
         <Icon name="error" size={36} className="mx-auto mb-sm text-error" />
         <p>{(error as Error)?.message || 'Assignment not found'}</p>
-        <Button variant="ghost" onClick={() => navigate('/admin/assignments')} className="mt-md">
+        <Button variant="ghost" onClick={() => navigate(`${base}/assignments`)} className="mt-md">
           Back to List
         </Button>
       </div>
@@ -73,7 +75,7 @@ export default function AssignmentDetailPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-md mb-xl">
           <div>
             <div className="flex items-center gap-sm mb-xs">
-              <Link to="/admin/assignments" className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
+              <Link to={`${base}/assignments`} className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
                 Assignments
               </Link>
               <span className="material-symbols-outlined text-outline-variant text-sm">chevron_right</span>
@@ -94,7 +96,7 @@ export default function AssignmentDetailPage() {
               <Icon name="delete" size={18} />
               Delete
             </button>
-            <Link to={`/admin/assignments/${id}/edit`}>
+            <Link to={`${base}/assignments/${id}/edit`}>
               <button className="px-md py-sm rounded-lg bg-primary text-on-primary hover:brightness-95 transition-all font-label-sm text-label-sm shadow-sm flex items-center gap-xs">
                 <Icon name="edit" size={18} />
                 Edit Assignment

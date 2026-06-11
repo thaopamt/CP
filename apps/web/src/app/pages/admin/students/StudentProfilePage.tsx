@@ -18,6 +18,7 @@ import {
 import { IGuardian, ISubjectGrade } from '@cp/shared';
 
 import { useStudent, useResetPasswordStudent } from '../../../api/student.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 import { ResetPasswordModal } from './ResetPasswordModal';
 import StudentScheduleTab from './StudentScheduleTab';
 import StudentAttendanceHistoryTab from './StudentAttendanceHistoryTab';
@@ -27,6 +28,7 @@ type Tab = 'academics' | 'courses' | 'attendance' | 'activity' | 'schedule';
 export default function StudentProfilePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const { studentId: idParam } = useParams<{ studentId: string }>();
   const toast = useToast();
 
@@ -61,7 +63,7 @@ export default function StudentProfilePage() {
         <p className="text-body-md text-on-surface">
           {(studentQuery.error as Error | undefined)?.message ?? t('common.notFound')}
         </p>
-        <Button variant="ghost" className="mt-md" onClick={() => navigate('/admin/students')}>
+        <Button variant="ghost" className="mt-md" onClick={() => navigate(`${base}/students`)}>
           {t('pages.admin.studentProfile.backToDirectory')}
         </Button>
       </div>
@@ -80,7 +82,7 @@ export default function StudentProfilePage() {
         breadcrumb={
           <Breadcrumb
             items={[
-              { label: t('nav.admin.students'), onClick: () => navigate('/admin/students') },
+              { label: t('nav.admin.students'), onClick: () => navigate(`${base}/students`) },
               { label: fullName },
             ]}
           />
@@ -117,7 +119,7 @@ export default function StudentProfilePage() {
             <Button
               variant="ghost"
               leadingIcon={<Icon name="edit" size={18} />}
-              onClick={() => navigate(`/admin/students/${idParam}/edit`)}
+              onClick={() => navigate(`${base}/students/${idParam}/edit`)}
             >
               {t('pages.admin.studentProfile.edit')}
             </Button>

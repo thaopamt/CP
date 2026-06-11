@@ -29,6 +29,7 @@ import {
   useDetachClassCourse,
   useReorderClassCourses,
 } from '../../../api/curriculum.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 import { AssignStudentsModal } from './AssignStudentsModal';
 import { RemoveStudentModal } from './RemoveStudentModal';
 import { CoursePickerDialog } from './ClassCurriculumPage';
@@ -39,6 +40,7 @@ type Tab = 'courses' | 'roster' | 'activity';
 export default function ClassDetailPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const { classId } = useParams<{ classId: string }>();
 
   const classQuery = useClass(classId);
@@ -201,7 +203,7 @@ export default function ClassDetailPage() {
         <p className="text-body-md text-on-surface">
           {(classQuery.error as Error | undefined)?.message ?? t('common.notFound')}
         </p>
-        <Button variant="ghost" className="mt-md" onClick={() => navigate('/admin/classes')}>
+        <Button variant="ghost" className="mt-md" onClick={() => navigate(`${base}/classes`)}>
           {t('pages.admin.classes.detail.backToClasses')}
         </Button>
       </div>
@@ -231,7 +233,7 @@ export default function ClassDetailPage() {
         breadcrumb={
           <Breadcrumb
             items={[
-              { label: t('nav.admin.classes'), onClick: () => navigate('/admin/classes') },
+              { label: t('nav.admin.classes'), onClick: () => navigate(`${base}/classes`) },
               { label: `${cls.name} (${cls.code})` },
             ]}
           />
@@ -242,11 +244,11 @@ export default function ClassDetailPage() {
             <Button
               variant="admin"
               leadingIcon={<Icon name="library_books" size={18} />}
-              onClick={() => navigate(`/admin/classes/${classId}/curriculum`)}
+              onClick={() => navigate(`${base}/classes/${classId}/curriculum`)}
             >
               {t('pages.admin.classes.detail.manageCurriculum')}
             </Button>
-            <Button variant="ghost" leadingIcon={<Icon name="edit" size={18} />} onClick={() => navigate(`/admin/classes/${classId}/edit`)}>
+            <Button variant="ghost" leadingIcon={<Icon name="edit" size={18} />} onClick={() => navigate(`${base}/classes/${classId}/edit`)}>
               {t('pages.admin.classes.detail.editClass')}
             </Button>
             <Button
@@ -352,7 +354,7 @@ export default function ClassDetailPage() {
                       });
                       if (ok) detachCourse.mutate(link.id);
                     }}
-                    onOpen={() => navigate(`/admin/courses/${link.course.id}`)}
+                    onOpen={() => navigate(`${base}/courses/${link.course.id}`)}
                     detaching={detachCourse.isPending}
                     reordering={reorderCourses.isPending}
                   />

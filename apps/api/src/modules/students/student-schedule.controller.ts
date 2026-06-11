@@ -29,7 +29,7 @@ import { CreateStudentScheduleDto, UpdateStudentScheduleDto } from './dto/studen
  */
 @Controller('students/:id/schedule')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN)
+@Roles(UserRole.ADMIN, UserRole.TEACHER)
 export class StudentScheduleController {
   constructor(private readonly service: StudentScheduleService) {}
 

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '@cp/ui';
 import { useCreateAssignment } from '../../../api/curriculum.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 import { assignmentsApi } from '../../../api/curriculum.api';
 import { useClassesList } from '../../../api/class.queries';
 import { PublishStatus, ICodingTestCase, IHiddenTestcaseFilePair } from '@cp/shared';
@@ -45,6 +46,7 @@ async function readTestcaseManifestFromZip(file: File): Promise<IHiddenTestcaseF
 
 export default function AssignmentCreatePage() {
   const navigate = useNavigate();
+  const base = usePortalBase();
   const toast = useToast();
   const create = useCreateAssignment();
   const { data: classesData } = useClassesList({ page: 1, limit: 100 });
@@ -177,7 +179,7 @@ export default function AssignmentCreatePage() {
       }
 
       toast.success('Assignment published successfully!');
-      navigate('/admin/assignments');
+      navigate(`${base}/assignments`);
     } catch (e: any) {
       toast.error(e?.response?.data?.message || e.message || 'Error creating assignment');
     } finally {
@@ -192,7 +194,7 @@ export default function AssignmentCreatePage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-md mb-xl">
           <div>
             <div className="flex items-center gap-sm mb-xs">
-              <Link to="/admin/assignments" className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
+              <Link to={`${base}/assignments`} className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
                 Assignments
               </Link>
               <span className="material-symbols-outlined text-outline-variant text-sm">chevron_right</span>

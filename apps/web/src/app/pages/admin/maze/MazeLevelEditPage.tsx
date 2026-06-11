@@ -5,12 +5,14 @@ import { PageHeader, useToast } from '@cp/ui';
 import { BlockType, PublishStatus } from '@cp/shared';
 
 import { useMazeLevel, useUpdateMazeLevel } from '../../../api/maze.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 import { MazeLevelBuilder, MazeLevelDraft } from './MazeLevelBuilder';
 
 export default function MazeLevelEditPage() {
   const { id = '' } = useParams<{ id: string }>();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const toast = useToast();
 
   const { data: level, isLoading } = useMazeLevel(id);
@@ -47,7 +49,7 @@ export default function MazeLevelEditPage() {
       <PageHeader
         title={t('maze.admin.editTitle')}
         breadcrumb={
-          <Link to="/admin/maze" className="text-label-sm text-on-surface-variant hover:text-primary">
+          <Link to={`${base}/maze`} className="text-label-sm text-on-surface-variant hover:text-primary">
             {t('maze.admin.title')}
           </Link>
         }
@@ -60,7 +62,7 @@ export default function MazeLevelEditPage() {
           updateMutation.mutate(payload, {
             onSuccess: () => {
               toast.success(t('maze.admin.updated'));
-              navigate('/admin/maze');
+              navigate(`${base}/maze`);
             },
             onError: () => toast.error(t('maze.admin.saveError')),
           })

@@ -22,12 +22,14 @@ import {
 } from '@cp/shared';
 
 import { useClassesList, useDeleteClass } from '../../../api/class.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 
 const PAGE_SIZE = 10;
 
 export default function ClassesListPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
 
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<ClassStatus | 'all'>('all');
@@ -79,7 +81,7 @@ export default function ClassesListPage() {
         cell: (row) => (
           <button
             type="button"
-            onClick={() => navigate(`/admin/classes/${row.id}`)}
+            onClick={() => navigate(`${base}/classes/${row.id}`)}
             className="text-left min-w-0 hover:text-primary"
           >
             <div className="text-on-surface font-medium truncate">{row.name}</div>
@@ -110,7 +112,7 @@ export default function ClassesListPage() {
           <div className="opacity-0 group-hover:opacity-100 inline-flex gap-xs transition-opacity">
             <button
               type="button"
-              onClick={() => navigate(`/admin/classes/${row.id}/curriculum`)}
+              onClick={() => navigate(`${base}/classes/${row.id}/curriculum`)}
               className="p-1 rounded text-on-surface-variant hover:text-primary"
               aria-label={t('pages.admin.classes.detail.manageCurriculum')}
               title={t('pages.admin.classes.detail.manageCurriculum')}
@@ -119,7 +121,7 @@ export default function ClassesListPage() {
             </button>
             <button
               type="button"
-              onClick={() => navigate(`/admin/classes/${row.id}`)}
+              onClick={() => navigate(`${base}/classes/${row.id}`)}
               className="p-1 rounded text-on-surface-variant hover:text-primary"
               aria-label={t('common.viewAll')}
             >
@@ -158,7 +160,7 @@ export default function ClassesListPage() {
           <Button
             variant="admin"
             leadingIcon={<Icon name="add" size={18} />}
-            onClick={() => navigate('/admin/classes/new')}
+            onClick={() => navigate(`${base}/classes/new`)}
           >
             {t('pages.admin.classes.list.createClass')}
           </Button>

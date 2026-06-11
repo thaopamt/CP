@@ -22,12 +22,14 @@ import {
   useCreateCourse,
   useDeleteCourse,
 } from '../../../api/curriculum.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 
 const PAGE_SIZE = 10;
 
 export default function CoursesListPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const confirm = useConfirm();
 
   const [search, setSearch] = useState('');
@@ -62,7 +64,7 @@ export default function CoursesListPage() {
         cell: (c) => (
           <button
             type="button"
-            onClick={() => navigate(`/admin/courses/${c.id}`)}
+            onClick={() => navigate(`${base}/courses/${c.id}`)}
             className="text-left min-w-0 hover:text-primary"
           >
             <div className="text-on-surface font-medium truncate">{c.title}</div>
@@ -111,7 +113,7 @@ export default function CoursesListPage() {
           <div className="opacity-0 group-hover:opacity-100 inline-flex gap-xs transition-opacity">
             <button
               type="button"
-              onClick={() => navigate(`/admin/courses/${c.id}`)}
+              onClick={() => navigate(`${base}/courses/${c.id}`)}
               className="p-1 rounded text-on-surface-variant hover:text-primary"
               aria-label={t('common.viewAll')}
             >
@@ -215,6 +217,7 @@ export default function CoursesListPage() {
 function CreateCourseDialog({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const create = useCreateCourse();
   const [draft, setDraft] = useState<ICreateCoursePayload>({
     code: '',
@@ -234,7 +237,7 @@ function CreateCourseDialog({ onClose }: { onClose: () => void }) {
     try {
       const created = await create.mutateAsync(draft);
       onClose();
-      navigate(`/admin/courses/${created.id}`);
+      navigate(`${base}/courses/${created.id}`);
     } catch (err) {
       const msg =
         (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;

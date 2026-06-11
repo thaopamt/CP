@@ -2,12 +2,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PageHeader, Icon, Button } from '@cp/ui';
 import { useBadge, useUpdateBadge } from '../../../api/badges.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 import { BadgeForm } from './BadgeForm';
 
 export default function BadgeEditPage() {
   const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const { data: badge, isLoading } = useBadge(id!);
   const updateMutation = useUpdateBadge(id!);
 
@@ -25,7 +27,7 @@ export default function BadgeEditPage() {
         title={t('gamif.admin.badges.form.editTitle')}
         subtitle={badge?.title}
         breadcrumb={
-          <Button variant="ghost" leadingIcon={<Icon name="arrow_back" />} onClick={() => navigate('/admin/badges')}>
+          <Button variant="ghost" leadingIcon={<Icon name="arrow_back" />} onClick={() => navigate(`${base}/badges`)}>
             {t('gamif.admin.badges.title')}
           </Button>
         }
@@ -36,7 +38,7 @@ export default function BadgeEditPage() {
             defaultValues={badge}
             onSubmit={(data) => {
               updateMutation.mutate(data, {
-                onSuccess: () => navigate('/admin/badges'),
+                onSuccess: () => navigate(`${base}/badges`),
               });
             }}
             isLoading={updateMutation.isPending}

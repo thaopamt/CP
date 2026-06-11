@@ -59,11 +59,6 @@ const AdminMazeList = lazy(() => import('./pages/admin/maze/MazeLevelsListPage')
 const AdminMazeCreate = lazy(() => import('./pages/admin/maze/MazeLevelCreatePage'));
 const AdminMazeEdit = lazy(() => import('./pages/admin/maze/MazeLevelEditPage'));
 const AdminMazeProgress = lazy(() => import('./pages/admin/maze/MazeProgressPage'));
-const TeacherDashboard = lazy(() => import('./pages/teacher/DashboardPage'));
-const TeacherClasses = lazy(() => import('./pages/teacher/ClassesPage'));
-const TeacherAttendance = lazy(() => import('./pages/teacher/AttendancePage'));
-const TeacherChallenges = lazy(() => import('./pages/teacher/CodingChallengePage'));
-const TeacherMonitoring = lazy(() => import('./pages/teacher/MonitoringPage'));
 const StudentDashboard = lazy(() => import('./pages/student/DashboardPage'));
 const StudentMazeLevels = lazy(() => import('./pages/student/maze/MazeLevelsPage'));
 const StudentMazeSolve = lazy(() => import('./pages/student/maze/MazeSolvePage'));
@@ -153,6 +148,9 @@ export default function App() {
               </Route>
 
               {/* ── Teacher portal ───────────────────────────────────── */}
+              {/* Mirrors the Admin portal (shared page components) minus the
+                  Dashboard, Finance, Users and Quest-analytics tabs. Pages build
+                  links via usePortalBase() so they stay within /teacher/*. */}
               <Route
                 path="/teacher"
                 element={
@@ -161,13 +159,38 @@ export default function App() {
                   </RoleGuard>
                 }
               >
-                <Route index element={<TeacherDashboard />} />
-                <Route path="attendance" element={<TeacherAttendance />} />
-                <Route path="monitoring" element={<TeacherMonitoring />} />
+                <Route index element={<Navigate to="students" replace />} />
+                <Route path="students" element={<AdminStudents />} />
+                <Route path="students/new" element={<AdminStudentCreate />} />
+                <Route path="students/:studentId" element={<AdminStudentProfile />} />
+                <Route path="students/:studentId/edit" element={<AdminStudentEdit />} />
+                <Route path="classes" element={<AdminClassesList />} />
+                <Route path="classes/new" element={<AdminClassCreate />} />
+                <Route path="classes/:classId" element={<AdminClassDetail />} />
+                <Route path="classes/:classId/edit" element={<AdminClassEdit />} />
+                <Route path="classes/:classId/curriculum" element={<AdminClassCurriculum />} />
+                <Route path="courses" element={<AdminCoursesList />} />
+                <Route path="courses/:courseId" element={<AdminCourseDetail />} />
+                <Route path="assignments" element={<AdminAssignmentsList />} />
+                <Route path="assignments/new" element={<AdminAssignmentCreate />} />
+                <Route path="assignments/:id" element={<AdminAssignmentDetail />} />
+                <Route path="assignments/:id/edit" element={<AdminAssignmentEdit />} />
+                <Route path="quests" element={<AdminQuestsList />} />
+                <Route path="quests/new" element={<AdminQuestCreate />} />
+                <Route path="quests/:id/edit" element={<AdminQuestEdit />} />
+                <Route path="badges" element={<AdminBadgesList />} />
+                <Route path="badges/new" element={<AdminBadgeCreate />} />
+                <Route path="badges/:id/edit" element={<AdminBadgeEdit />} />
+                <Route path="maze" element={<AdminMazeList />} />
+                <Route path="maze/new" element={<AdminMazeCreate />} />
+                <Route path="maze/progress" element={<AdminMazeProgress />} />
+                <Route path="maze/:id/edit" element={<AdminMazeEdit />} />
+                <Route path="schedule" element={<AdminSchedule />} />
+                <Route path="monitor" element={<LiveMonitorPage />} />
                 <Route path="chat" element={<GlobalChatPage />} />
-                <Route path="challenges" element={<TeacherChallenges />} />
-                <Route path="classes" element={<TeacherClasses />} />
                 <Route path="submissions" element={<SubmissionsPage />} />
+                <Route path="me" element={<AdminMe />} />
+                <Route path="settings" element={<AdminMe />} />
               </Route>
 
               {/* ── Student portal ───────────────────────────────────── */}

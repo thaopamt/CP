@@ -6,9 +6,11 @@ import { DifficultyBadge } from '@cp/ui';
 import { DifficultyLevel } from '@cp/shared';
 
 import { useMazeProgress, useMazeProgressSummary } from '../../../api/maze.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 
 export default function MazeProgressPage() {
   const { t } = useTranslation();
+  const base = usePortalBase();
   const { data: summary = [], isLoading } = useMazeProgressSummary();
   const [selected, setSelected] = useState<string | null>(null);
   const { data: detail = [] } = useMazeProgress(selected ?? undefined);
@@ -19,7 +21,7 @@ export default function MazeProgressPage() {
         title={t('maze.progress.title')}
         subtitle={t('maze.progress.subtitle')}
         breadcrumb={
-          <Link to="/admin/maze" className="text-label-sm text-on-surface-variant hover:text-primary">
+          <Link to={`${base}/maze`} className="text-label-sm text-on-surface-variant hover:text-primary">
             {t('maze.admin.title')}
           </Link>
         }

@@ -5,10 +5,12 @@ import { DifficultyBadge } from '@cp/ui';
 import { DifficultyLevel, PublishStatus } from '@cp/shared';
 
 import { useDeleteMazeLevel, useMazeLevels } from '../../../api/maze.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 
 export default function MazeLevelsListPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const toast = useToast();
   const confirm = useConfirm();
   const { data: levels = [], isLoading } = useMazeLevels();
@@ -35,10 +37,10 @@ export default function MazeLevelsListPage() {
           <p className="text-body-md text-on-surface-variant">{t('maze.admin.subtitle')}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" leadingIcon={<Icon name="leaderboard" />} onClick={() => navigate('/admin/maze/progress')}>
+          <Button variant="outline" leadingIcon={<Icon name="leaderboard" />} onClick={() => navigate(`${base}/maze/progress`)}>
             {t('maze.admin.progress')}
           </Button>
-          <Button variant="admin" leadingIcon={<Icon name="add" />} onClick={() => navigate('/admin/maze/new')}>
+          <Button variant="admin" leadingIcon={<Icon name="add" />} onClick={() => navigate(`${base}/maze/new`)}>
             {t('maze.admin.create')}
           </Button>
         </div>
@@ -73,7 +75,7 @@ export default function MazeLevelsListPage() {
               <div className="flex gap-1">
                 <button
                   className="p-2 rounded-lg hover:bg-surface-container-highest text-on-surface-variant"
-                  onClick={() => navigate(`/admin/maze/${lvl.id}/edit`)}
+                  onClick={() => navigate(`${base}/maze/${lvl.id}/edit`)}
                   aria-label={t('common.edit')}
                 >
                   <Icon name="edit" />

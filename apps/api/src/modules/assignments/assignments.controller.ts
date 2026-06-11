@@ -91,13 +91,13 @@ export class AssignmentsController implements CrudController<Assignment> {
   }
 
   @Override('createOneBase')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Post()
   async createOne(@Body() dto: CreateAssignmentDto): Promise<Assignment> {
     return this.service.createAssignment(dto);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Patch(':id')
   async updateOne(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -106,7 +106,7 @@ export class AssignmentsController implements CrudController<Assignment> {
     return this.service.updateAssignment(id, dto);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Delete(':id')
   async deleteOne(@Param('id', new ParseUUIDPipe()) id: string): Promise<Assignment> {
     return this.service.deleteAssignment(id);
@@ -117,7 +117,7 @@ export class AssignmentsController implements CrudController<Assignment> {
    * cases. Content is parsed server-side and written to disk; only the count is
    * persisted in the DB. Replaces any previously uploaded set.
    */
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Post(':id/testcases')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_TESTCASE_ZIP_BYTES } }))
   async uploadTestcases(
@@ -131,7 +131,7 @@ export class AssignmentsController implements CrudController<Assignment> {
     return { hiddenTestCount: assignment.codingConfig?.hiddenTestCount ?? 0, testcases };
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Delete(':id/testcases')
   async clearTestcases(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -140,7 +140,7 @@ export class AssignmentsController implements CrudController<Assignment> {
     return { hiddenTestCount: 0 };
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Get(':id/testcases/manifest')
   async getTestcaseManifest(
     @Param('id', new ParseUUIDPipe()) id: string,

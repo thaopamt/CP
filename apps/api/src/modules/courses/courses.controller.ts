@@ -44,13 +44,13 @@ export class CoursesController implements CrudController<Course> {
   constructor(public service: CoursesService) {}
 
   @Override('createOneBase')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Post()
   async createOne(@Body() dto: CreateCourseDto): Promise<Course> {
     return this.service.createCourse(dto);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Patch(':id')
   async updateOne(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -66,7 +66,7 @@ export class CoursesController implements CrudController<Course> {
     return this.service.listAssignments(id);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Post(':id/assignments')
   async attachAssignments(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -75,7 +75,7 @@ export class CoursesController implements CrudController<Course> {
     return this.service.attachAssignments(id, dto.assignmentIds);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Delete(':id/assignments/:junctionId')
   async detachAssignment(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -85,7 +85,7 @@ export class CoursesController implements CrudController<Course> {
     return { ok: true };
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Patch(':id/assignments/reorder')
   async reorderAssignments(
     @Param('id', new ParseUUIDPipe()) id: string,

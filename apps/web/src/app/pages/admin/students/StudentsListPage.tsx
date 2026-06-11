@@ -19,6 +19,7 @@ import {
 import { ENROLLMENT_STATUS_LABEL, EnrollmentStatus, IStudentProfile } from '@cp/shared';
 
 import { useDeleteStudent, useStudentsList } from '../../../api/student.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 
 const PAGE_SIZE = 10;
 
@@ -30,6 +31,7 @@ const initials = (s: Pick<IStudentProfile, 'firstName' | 'lastName'>) =>
 export default function StudentsListPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
 
   const [search, setSearch] = useState('');
   const [grade, setGrade] = useState<number | 'all'>('all');
@@ -80,7 +82,7 @@ export default function StudentsListPage() {
         cell: (s) => (
           <button
             type="button"
-            onClick={() => navigate(`/admin/students/${s.id}`)}
+            onClick={() => navigate(`${base}/students/${s.id}`)}
             className="text-left flex items-center gap-sm hover:text-primary"
           >
             <Avatar size="sm" initials={initials(s)} src={s.avatarUrl ?? undefined} />
@@ -127,7 +129,7 @@ export default function StudentsListPage() {
           <div className="opacity-0 group-hover:opacity-100 inline-flex gap-xs transition-opacity">
             <button
               type="button"
-              onClick={() => navigate(`/admin/students/${s.id}`)}
+              onClick={() => navigate(`${base}/students/${s.id}`)}
               className="p-1 rounded text-on-surface-variant hover:text-primary"
               aria-label={t('common.viewAll')}
             >
@@ -170,7 +172,7 @@ export default function StudentsListPage() {
             <Button
               variant="admin"
               leadingIcon={<Icon name="add" size={18} />}
-              onClick={() => navigate('/admin/students/new')}
+              onClick={() => navigate(`${base}/students/new`)}
             >
               {t('pages.admin.students.addStudent')}
             </Button>

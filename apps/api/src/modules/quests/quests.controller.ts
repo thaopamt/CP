@@ -23,7 +23,7 @@ import { CreateQuestDto, UpdateQuestDto } from './dto/create-quest.dto';
 })
 @Controller('quests')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN)
+@Roles(UserRole.ADMIN, UserRole.TEACHER)
 export class QuestsController implements CrudController<Quest> {
   constructor(public service: QuestsService) {}
 

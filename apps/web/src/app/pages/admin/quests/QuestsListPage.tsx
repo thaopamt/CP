@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Icon, PageHeader, DataTable, StatusBadge, TabPills, useConfirm } from '@cp/ui';
 import { QuestType, QuestStatus, QuestRecurrence, IQuest, QUEST_OBJECTIVE_META } from '@cp/shared';
 import { useQuests, useDeleteQuest } from '../../../api/quests.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 
 type QuestTab = 'all' | QuestType;
 
@@ -31,6 +32,7 @@ function formatDate(iso: string | null): string | null {
 export default function QuestsListPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const { data: quests, isLoading } = useQuests();
   const deleteMutation = useDeleteQuest();
   const [tab, setTab] = useState<QuestTab>('all');
@@ -159,7 +161,7 @@ export default function QuestsListPage() {
             variant="ghost"
             size="sm"
             leadingIcon={<Icon name="edit" size={16} />}
-            onClick={() => navigate(`/admin/quests/${q.id}/edit`)}
+            onClick={() => navigate(`${base}/quests/${q.id}/edit`)}
           />
           <Button
             variant="ghost"
@@ -187,14 +189,16 @@ export default function QuestsListPage() {
         subtitle={t('gamif.admin.quests.subtitle')}
         actions={
           <div className="flex items-center gap-sm">
-            <Button
-              variant="outline"
-              leadingIcon={<Icon name="insights" size={18} />}
-              onClick={() => navigate('/admin/quests/analytics')}
-            >
-              {t('gamif.admin.quests.analytics')}
-            </Button>
-            <Button leadingIcon={<Icon name="add" />} onClick={() => navigate('/admin/quests/new')}>
+            {base !== '/teacher' && (
+              <Button
+                variant="outline"
+                leadingIcon={<Icon name="insights" size={18} />}
+                onClick={() => navigate(`${base}/quests/analytics`)}
+              >
+                {t('gamif.admin.quests.analytics')}
+              </Button>
+            )}
+            <Button leadingIcon={<Icon name="add" />} onClick={() => navigate(`${base}/quests/new`)}>
               {t('gamif.admin.quests.create')}
             </Button>
           </div>

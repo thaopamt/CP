@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Icon, PageHeader, DataTable, StatusBadge, TabPills, useConfirm } from '@cp/ui';
 import { IBadge, BadgeRarity } from '@cp/shared';
 import { useBadges, useDeleteBadge } from '../../../api/badges.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 
 type BadgeTab = 'all' | BadgeRarity;
 
@@ -37,6 +38,7 @@ const RARITY_CONFIG: Record<BadgeRarity, { color: string; medallion: string; rin
 export default function BadgesListPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const { data: badges, isLoading } = useBadges();
   const deleteMutation = useDeleteBadge();
   const [tab, setTab] = useState<BadgeTab>('all');
@@ -143,7 +145,7 @@ export default function BadgesListPage() {
             variant="ghost"
             size="sm"
             leadingIcon={<Icon name="edit" size={16} />}
-            onClick={() => navigate(`/admin/badges/${b.id}/edit`)}
+            onClick={() => navigate(`${base}/badges/${b.id}/edit`)}
           />
           <Button
             variant="ghost"
@@ -172,7 +174,7 @@ export default function BadgesListPage() {
         title={t('gamif.admin.badges.title')}
         subtitle={t('gamif.admin.badges.subtitle')}
         actions={
-          <Button leadingIcon={<Icon name="add" />} onClick={() => navigate('/admin/badges/new')}>
+          <Button leadingIcon={<Icon name="add" />} onClick={() => navigate(`${base}/badges/new`)}>
             {t('gamif.admin.badges.create')}
           </Button>
         }

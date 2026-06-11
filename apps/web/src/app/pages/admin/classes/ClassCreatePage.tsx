@@ -13,6 +13,7 @@ import {
 } from '@cp/shared';
 
 import { useCreateClass } from '../../../api/class.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 
 type Draft = {
   name: string;
@@ -32,6 +33,7 @@ const INITIAL_DRAFT: Draft = {
 export default function ClassCreatePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
 
   const [draft, setDraft] = useState<Draft>(INITIAL_DRAFT);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -51,7 +53,7 @@ export default function ClassCreatePage() {
   }
 
   function previous() {
-    navigate('/admin/classes');
+    navigate(`${base}/classes`);
   }
 
   async function submit() {
@@ -63,7 +65,7 @@ export default function ClassCreatePage() {
     };
     try {
       const created = await createClass.mutateAsync(payload);
-      navigate(`/admin/classes/${created.id}`);
+      navigate(`${base}/classes/${created.id}`);
     } catch (err) {
       const msg =
         (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
@@ -78,7 +80,7 @@ export default function ClassCreatePage() {
         breadcrumb={
           <Breadcrumb
             items={[
-              { label: t('nav.admin.classes'), onClick: () => navigate('/admin/classes') },
+              { label: t('nav.admin.classes'), onClick: () => navigate(`${base}/classes`) },
               { label: t('pages.admin.classes.create.title') },
             ]}
           />

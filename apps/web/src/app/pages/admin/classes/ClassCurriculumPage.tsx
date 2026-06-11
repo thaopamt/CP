@@ -14,6 +14,7 @@ import { useToast } from '@cp/ui';
 import { IClassCourseLink, PublishStatus } from '@cp/shared';
 
 import { useClass } from '../../../api/class.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 import {
   useAttachClassCourses,
   useClassCourses,
@@ -25,6 +26,7 @@ import {
 export default function ClassCurriculumPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const { classId } = useParams<{ classId: string }>();
   const toast = useToast();
 
@@ -48,7 +50,7 @@ export default function ClassCurriculumPage() {
     return (
       <div className="grid place-items-center min-h-[40vh] text-center">
         <Icon name="error" size={36} className="mb-sm text-error" />
-        <Button variant="ghost" className="mt-md" onClick={() => navigate('/admin/classes')}>
+        <Button variant="ghost" className="mt-md" onClick={() => navigate(`${base}/classes`)}>
           {t('pages.admin.classes.detail.backToClasses')}
         </Button>
       </div>
@@ -79,8 +81,8 @@ export default function ClassCurriculumPage() {
         breadcrumb={
           <Breadcrumb
             items={[
-              { label: t('nav.admin.classes'), onClick: () => navigate('/admin/classes') },
-              { label: cls.code, onClick: () => navigate(`/admin/classes/${cls.id}`) },
+              { label: t('nav.admin.classes'), onClick: () => navigate(`${base}/classes`) },
+              { label: cls.code, onClick: () => navigate(`${base}/classes/${cls.id}`) },
               { label: t('pages.admin.classCurriculum.title') },
             ]}
           />
@@ -166,7 +168,7 @@ export default function ClassCurriculumPage() {
                   });
                   if (ok) detach.mutate(link.id);
                 }}
-                onOpen={() => navigate(`/admin/courses/${link.course.id}`)}
+                onOpen={() => navigate(`${base}/courses/${link.course.id}`)}
                 detaching={detach.isPending}
                 reordering={reorder.isPending}
               />

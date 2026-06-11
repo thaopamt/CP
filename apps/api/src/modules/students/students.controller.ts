@@ -67,13 +67,13 @@ export class StudentsController implements CrudController<StudentProfile> {
   }
 
   @Override('createOneBase')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Post()
   async createOne(@Body() dto: CreateStudentDto): Promise<StudentProfile> {
     return this.service.createStudent(dto);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Patch(':id')
   async updateOne(
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -82,7 +82,7 @@ export class StudentsController implements CrudController<StudentProfile> {
     return this.service.updateStudent(id, dto);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Post(':id/reset-password')
   async resetPassword(
     @Param('id', new ParseUUIDPipe()) id: string,

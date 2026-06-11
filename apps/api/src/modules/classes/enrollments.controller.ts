@@ -49,14 +49,14 @@ export class EnrollmentsController implements CrudController<Enrollment> {
 
   /** Convenience action: POST /api/enrollments/enroll { classId, studentId } */
   @Post('enroll')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   async enroll(@Body() dto: EnrollDto): Promise<Enrollment> {
     return this.service.enroll(dto.classId, dto.studentId);
   }
 
   /** DELETE /api/enrollments/drop/:id — soft-deletes + recounts */
   @Delete('drop/:id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   async drop(@Param('id', new ParseUUIDPipe()) id: string): Promise<{ ok: true }> {
     await this.service.drop(id);
     return { ok: true };

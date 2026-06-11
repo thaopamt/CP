@@ -13,6 +13,7 @@ import {
 } from '@cp/shared';
 
 import { useClass, useUpdateClass } from '../../../api/class.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 
 type Draft = {
   name: string;
@@ -27,6 +28,7 @@ type Draft = {
 export default function ClassEditPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const { classId } = useParams<{ classId: string }>();
 
   const classQuery = useClass(classId);
@@ -64,7 +66,7 @@ export default function ClassEditPage() {
         <p className="text-body-md text-on-surface">
           {(classQuery.error as Error | undefined)?.message ?? t('common.notFound')}
         </p>
-        <Button variant="ghost" className="mt-md" onClick={() => navigate('/admin/classes')}>
+        <Button variant="ghost" className="mt-md" onClick={() => navigate(`${base}/classes`)}>
           {t('pages.admin.classes.detail.backToClasses')}
         </Button>
       </div>
@@ -84,7 +86,7 @@ export default function ClassEditPage() {
   }
 
   function previous() {
-    navigate(`/admin/classes/${classId}`);
+    navigate(`${base}/classes/${classId}`);
   }
 
   async function submit() {
@@ -96,7 +98,7 @@ export default function ClassEditPage() {
     };
     try {
       await updateClass.mutateAsync(payload);
-      navigate(`/admin/classes/${classId}`);
+      navigate(`${base}/classes/${classId}`);
     } catch (err) {
       const msg =
         (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
@@ -111,8 +113,8 @@ export default function ClassEditPage() {
         breadcrumb={
           <Breadcrumb
             items={[
-              { label: t('nav.admin.classes'), onClick: () => navigate('/admin/classes') },
-              { label: draft.name, onClick: () => navigate(`/admin/classes/${classId}`) },
+              { label: t('nav.admin.classes'), onClick: () => navigate(`${base}/classes`) },
+              { label: draft.name, onClick: () => navigate(`${base}/classes/${classId}`) },
               { label: t('pages.admin.classes.edit.title') },
             ]}
           />

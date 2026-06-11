@@ -16,6 +16,7 @@ import {
   useSetScheduleSlotCancellation,
 } from '../../api/attendance.queries';
 import type { ScheduleSlotAttendanceParams, ScheduleSlotSummary } from '../../api/attendance.api';
+import { usePortalBase } from '../../hooks/usePortalBase';
 
 type View = 'week' | 'month';
 type ScheduleSlotEvent = IScheduleEvent & {
@@ -123,6 +124,7 @@ function markConflicts<T extends IScheduleEvent>(events: T[]): T[] {
 export default function AdminSchedulePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const toast = useToast();
   const [view, setView] = useState<View>('week');
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeekMon(new Date()));
@@ -233,7 +235,7 @@ export default function AdminSchedulePage() {
             <Button
               variant="admin"
               leadingIcon={<Icon name="person_add" size={18} />}
-              onClick={() => navigate('/admin/students')}
+              onClick={() => navigate(`${base}/students`)}
             >
               {t('pages.admin.schedule.scheduleSession')}
             </Button>

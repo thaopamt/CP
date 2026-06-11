@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '@cp/ui';
 import { useAssignment, useUpdateAssignment, useImplicitClasses } from '../../../api/curriculum.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 import { assignmentsApi } from '../../../api/curriculum.api';
 import { useClassesList } from '../../../api/class.queries';
 import { PublishStatus, ICodingTestCase, IHiddenTestcaseFilePair } from '@cp/shared';
@@ -47,6 +48,7 @@ async function readTestcaseManifestFromZip(file: File): Promise<IHiddenTestcaseF
 export default function AssignmentEditPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const toast = useToast();
   const update = useUpdateAssignment(id!);
   const { data: assignment, isLoading } = useAssignment(id);
@@ -248,7 +250,7 @@ export default function AssignmentEditPage() {
         }
       });
       toast.success('Assignment updated successfully!');
-      navigate(`/admin/assignments/${id}`);
+      navigate(`${base}/assignments/${id}`);
     } catch (e: any) {
       toast.error(e?.response?.data?.message || e.message || 'Error creating assignment');
     } finally {
@@ -271,11 +273,11 @@ export default function AssignmentEditPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-md mb-xl">
           <div>
             <div className="flex items-center gap-sm mb-xs">
-              <Link to="/admin/assignments" className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
+              <Link to={`${base}/assignments`} className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
                 Assignments
               </Link>
               <span className="material-symbols-outlined text-outline-variant text-sm">chevron_right</span>
-              <Link to={`/admin/assignments/${id}`} className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
+              <Link to={`${base}/assignments/${id}`} className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
                 {assignment?.title || 'Detail'}
               </Link>
               <span className="material-symbols-outlined text-outline-variant text-sm">chevron_right</span>

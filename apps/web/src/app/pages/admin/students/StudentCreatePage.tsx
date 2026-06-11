@@ -21,6 +21,7 @@ import {
 
 import { useCreateStudent } from '../../../api/student.queries';
 import { studentScheduleApi } from '../../../api/studentSchedule.api';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 
 type ScheduleDraft = {
   dayOfWeek: DayOfWeek;
@@ -69,6 +70,7 @@ const INITIAL: Draft = {
 export default function StudentCreatePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const createStudent = useCreateStudent();
 
   const [draft, setDraft] = useState<Draft>(INITIAL);
@@ -179,7 +181,7 @@ export default function StudentCreatePage() {
         ...(s.note.trim() ? { note: s.note.trim() } : {}),
       }));
       await Promise.all(schedules.map((schedule) => studentScheduleApi.addCustomSession(created.userId, schedule)));
-      navigate(`/admin/students/${created.id}`);
+      navigate(`${base}/students/${created.id}`);
     } catch (err) {
       const msg =
         (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
@@ -194,7 +196,7 @@ export default function StudentCreatePage() {
         breadcrumb={
           <Breadcrumb
             items={[
-              { label: t('nav.admin.students'), onClick: () => navigate('/admin/students') },
+              { label: t('nav.admin.students'), onClick: () => navigate(`${base}/students`) },
               { label: t('pages.admin.studentCreate.title') },
             ]}
           />
@@ -471,7 +473,7 @@ export default function StudentCreatePage() {
         <Button
           variant="ghost"
           leadingIcon={<Icon name="arrow_back" size={18} />}
-          onClick={() => navigate('/admin/students')}
+          onClick={() => navigate(`${base}/students`)}
           disabled={createStudent.isPending}
         >
           {t('common.cancel')}

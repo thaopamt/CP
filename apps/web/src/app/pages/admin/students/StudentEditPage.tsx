@@ -17,6 +17,7 @@ import {
 } from '@cp/shared';
 
 import { useStudent, useUpdateStudent } from '../../../api/student.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 
 type Draft = {
   fullName: string;
@@ -52,6 +53,7 @@ const INITIAL: Draft = {
 export default function StudentEditPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const { studentId: idParam } = useParams<{ studentId: string }>();
 
   const studentQuery = useStudent(idParam);
@@ -141,7 +143,7 @@ export default function StudentEditPage() {
     };
     try {
       await updateStudent.mutateAsync(payload);
-      navigate(`/admin/students/${idParam}`);
+      navigate(`${base}/students/${idParam}`);
     } catch (err) {
       const msg =
         (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
@@ -165,7 +167,7 @@ export default function StudentEditPage() {
         <p className="text-body-md text-on-surface">
           {(studentQuery.error as Error | undefined)?.message ?? t('common.notFound')}
         </p>
-        <Button variant="ghost" className="mt-md" onClick={() => navigate('/admin/students')}>
+        <Button variant="ghost" className="mt-md" onClick={() => navigate(`${base}/students`)}>
           {t('pages.admin.studentProfile.backToDirectory')}
         </Button>
       </div>
@@ -178,8 +180,8 @@ export default function StudentEditPage() {
         breadcrumb={
           <Breadcrumb
             items={[
-              { label: t('nav.admin.students'), onClick: () => navigate('/admin/students') },
-              { label: `${studentQuery.data.firstName} ${studentQuery.data.lastName}`, onClick: () => navigate(`/admin/students/${idParam}`) },
+              { label: t('nav.admin.students'), onClick: () => navigate(`${base}/students`) },
+              { label: `${studentQuery.data.firstName} ${studentQuery.data.lastName}`, onClick: () => navigate(`${base}/students/${idParam}`) },
               { label: t('common.edit') },
             ]}
           />
@@ -362,7 +364,7 @@ export default function StudentEditPage() {
         <Button
           variant="ghost"
           leadingIcon={<Icon name="arrow_back" size={18} />}
-          onClick={() => navigate(`/admin/students/${idParam}`)}
+          onClick={() => navigate(`${base}/students/${idParam}`)}
           disabled={updateStudent.isPending}
         >
           {t('common.cancel')}

@@ -25,6 +25,7 @@ import {
   useDetachAssignment,
   useReorderCourseAssignments,
 } from '../../../api/curriculum.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 
 const DIFFICULTY_TONE = {
   EASY: 'success' as const,
@@ -41,6 +42,7 @@ const assignmentTypeLabel = (assignment: ICourseAssignment['assignment']) =>
 export default function CourseDetailPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const { courseId } = useParams<{ courseId: string }>();
   const toast = useToast();
 
@@ -67,7 +69,7 @@ export default function CourseDetailPage() {
         <p className="text-body-md text-on-surface">
           {(courseQuery.error as Error | undefined)?.message ?? t('common.notFound')}
         </p>
-        <Button variant="ghost" className="mt-md" onClick={() => navigate('/admin/courses')}>
+        <Button variant="ghost" className="mt-md" onClick={() => navigate(`${base}/courses`)}>
           {t('pages.admin.courseDetail.backToCourses')}
         </Button>
       </div>
@@ -97,7 +99,7 @@ export default function CourseDetailPage() {
         breadcrumb={
           <Breadcrumb
             items={[
-              { label: t('nav.admin.courses'), onClick: () => navigate('/admin/courses') },
+              { label: t('nav.admin.courses'), onClick: () => navigate(`${base}/courses`) },
               { label: course.title },
             ]}
           />
@@ -114,7 +116,7 @@ export default function CourseDetailPage() {
               {t(`enums.publishStatus.${course.status}`)}
             </StatusBadge>
             {isMazeCourse ? (
-              <Button variant="admin" leadingIcon={<Icon name="extension" size={18} />} onClick={() => navigate('/admin/maze')}>
+              <Button variant="admin" leadingIcon={<Icon name="extension" size={18} />} onClick={() => navigate(`${base}/maze`)}>
                 {t('maze.admin.title')}
               </Button>
             ) : (
@@ -148,7 +150,7 @@ export default function CourseDetailPage() {
                 size="sm"
                 className="mt-md"
                 leadingIcon={<Icon name="open_in_new" size={16} />}
-                onClick={() => navigate('/admin/maze')}
+                onClick={() => navigate(`${base}/maze`)}
               >
                 {t('maze.admin.title')}
               </Button>

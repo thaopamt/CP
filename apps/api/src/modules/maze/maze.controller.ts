@@ -78,19 +78,19 @@ export class MazeController {
   // ── Admin mutations ───────────────────────────────────────────────────────
 
   @Post()
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   create(@Body() dto: CreateMazeLevelDto) {
     return this.service.createLevel(dto);
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateMazeLevelDto) {
     return this.service.updateLevel(id, dto);
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.deleteLevel(id);
   }

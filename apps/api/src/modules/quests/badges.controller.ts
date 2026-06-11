@@ -23,7 +23,7 @@ import { CreateBadgeDto, UpdateBadgeDto } from './dto/create-badge.dto';
 })
 @Controller('badges')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN)
+@Roles(UserRole.ADMIN, UserRole.TEACHER)
 export class BadgesController implements CrudController<Badge> {
   constructor(public service: BadgesService) {}
 }

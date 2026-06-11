@@ -5,15 +5,21 @@ import { useAuthStore } from '../stores/auth.store';
 import { useUIStore } from '../stores/ui.store';
 import { GlobalChatRealtimeBridge, GlobalChatUnreadBadge, LogoutButton, UserAvatar, ThemeToggle } from './_shared';
 
+// Mirrors the Admin sidebar minus the Dashboard, Finance, Users and
+// Quest-analytics tabs. Routes resolve to shared admin page components.
 const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
-  { to: '/teacher', icon: 'dashboard', key: 'nav.teacher.dashboard', end: true },
-  { to: '/teacher/attendance', icon: 'how_to_reg', key: 'nav.teacher.attendance' },
-  { to: '/teacher/monitoring', icon: 'visibility', key: 'nav.teacher.liveClassroom' },
+  { to: '/teacher/students', icon: 'groups', key: 'nav.teacher.students' },
+  { to: '/teacher/classes', icon: 'class', key: 'nav.teacher.classes' },
+  { to: '/teacher/courses', icon: 'menu_book', key: 'nav.teacher.courses' },
+  { to: '/teacher/quests', icon: 'swords', key: 'nav.teacher.quests' },
+  { to: '/teacher/badges', icon: 'workspace_premium', key: 'nav.teacher.badges' },
+  { to: '/teacher/assignments', icon: 'assignment', key: 'nav.teacher.assignments' },
+  { to: '/teacher/maze', icon: 'extension', key: 'nav.teacher.maze' },
+  { to: '/teacher/schedule', icon: 'calendar_month', key: 'nav.teacher.schedule' },
+  { to: '/teacher/monitor', icon: 'screen_share', key: 'nav.teacher.monitor' },
   { to: '/teacher/chat', icon: 'forum', key: 'nav.teacher.globalChat' },
-  { to: '/teacher/challenges', icon: 'code', key: 'nav.teacher.challenges' },
-  { to: '/teacher/classes', icon: 'school', key: 'nav.teacher.myClasses' },
   { to: '/teacher/submissions', icon: 'history', key: 'nav.teacher.submissions' },
-  { to: '/teacher/gradebook', icon: 'grading', key: 'nav.teacher.gradebook' },
+  { to: '/teacher/me', icon: 'account_circle', key: 'nav.teacher.me' },
 ];
 
 const MOBILE_NAV = NAV.slice(0, 4);

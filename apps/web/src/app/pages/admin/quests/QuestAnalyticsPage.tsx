@@ -3,10 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { Button, Icon, PageHeader, DataTable } from '@cp/ui';
 import { IQuestAnalyticsRow } from '@cp/shared';
 import { useQuestAnalytics } from '../../../api/gamification.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 
 export default function QuestAnalyticsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const { data, isLoading } = useQuestAnalytics();
 
   if (isLoading) {
@@ -92,7 +94,7 @@ export default function QuestAnalyticsPage() {
         title={t('gamif.admin.analytics.title')}
         subtitle={t('gamif.admin.analytics.subtitle')}
         breadcrumb={
-          <Button variant="ghost" leadingIcon={<Icon name="arrow_back" />} onClick={() => navigate('/admin/quests')}>
+          <Button variant="ghost" leadingIcon={<Icon name="arrow_back" />} onClick={() => navigate(`${base}/quests`)}>
             {t('gamif.admin.quests.title')}
           </Button>
         }

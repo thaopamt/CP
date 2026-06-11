@@ -26,6 +26,7 @@ import {
   useCreateAssignment,
   useDeleteAssignment,
 } from '../../../api/curriculum.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 
 const PAGE_SIZE = 10;
 
@@ -37,6 +38,7 @@ const DIFFICULTY_TONE: Record<'EASY' | 'MEDIUM' | 'HARD', 'success' | 'warning' 
 
 export default function AssignmentsListPage() {
   const { t } = useTranslation();
+  const base = usePortalBase();
 
   const [search, setSearch] = useState('');
   const confirm = useConfirm();
@@ -116,14 +118,14 @@ export default function AssignmentsListPage() {
         cell: (a) => (
           <div className="opacity-0 group-hover:opacity-100 inline-flex gap-xs transition-opacity">
             <Link
-              to={`/admin/assignments/${a.id}`}
+              to={`${base}/assignments/${a.id}`}
               className="p-1 rounded text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center"
               title="View Detail"
             >
               <Icon name="visibility" size={18} />
             </Link>
             <Link
-              to={`/admin/assignments/${a.id}/edit`}
+              to={`${base}/assignments/${a.id}/edit`}
               className="p-1 rounded text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center"
               title="Edit Assignment"
             >
@@ -159,7 +161,7 @@ export default function AssignmentsListPage() {
         title={t('pages.admin.assignmentsList.title')}
         subtitle={t('pages.admin.assignmentsList.subtitle')}
         actions={
-          <Button variant="admin" leadingIcon={<Icon name="add" size={18} />} onClick={() => window.location.href = '/admin/assignments/new'}>
+          <Button variant="admin" leadingIcon={<Icon name="add" size={18} />} onClick={() => window.location.href = `${base}/assignments/new`}>
             {t('pages.admin.assignmentsList.create')}
           </Button>
         }

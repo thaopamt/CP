@@ -4,11 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { PageHeader, useToast } from '@cp/ui';
 
 import { useCreateMazeLevel } from '../../../api/maze.queries';
+import { usePortalBase } from '../../../hooks/usePortalBase';
 import { MazeLevelBuilder, MazeLevelDraft, emptyDraft } from './MazeLevelBuilder';
 
 export default function MazeLevelCreatePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const base = usePortalBase();
   const toast = useToast();
   const createMutation = useCreateMazeLevel();
   const [draft, setDraft] = useState<MazeLevelDraft>(emptyDraft());
@@ -18,7 +20,7 @@ export default function MazeLevelCreatePage() {
       <PageHeader
         title={t('maze.admin.createTitle')}
         breadcrumb={
-          <Link to="/admin/maze" className="text-label-sm text-on-surface-variant hover:text-primary">
+          <Link to={`${base}/maze`} className="text-label-sm text-on-surface-variant hover:text-primary">
             {t('maze.admin.title')}
           </Link>
         }
@@ -31,7 +33,7 @@ export default function MazeLevelCreatePage() {
           createMutation.mutate(payload, {
             onSuccess: () => {
               toast.success(t('maze.admin.created'));
-              navigate('/admin/maze');
+              navigate(`${base}/maze`);
             },
             onError: () => toast.error(t('maze.admin.saveError')),
           })

@@ -48,13 +48,13 @@ export class ClassesController implements CrudController<ClassEntity> {
   constructor(public service: ClassesService) { }
 
   @Override('createOneBase')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Post()
   async createOne(@Body() dto: CreateClassDto): Promise<ClassEntity> {
     return this.service.createClass(dto);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Patch(':id')
   async updateClass(
     @Param('id', ParseUUIDPipe) id: string,

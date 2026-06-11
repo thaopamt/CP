@@ -56,7 +56,7 @@ export class ClassCoursesController {
     return this.service.getStudentCourseProgress(classId, courseId, user.sub);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Post()
   attach(
     @Param('classId', new ParseUUIDPipe()) classId: string,
@@ -65,7 +65,7 @@ export class ClassCoursesController {
     return this.service.attach(classId, dto.courseIds, dto.isRequired);
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Delete(':junctionId')
   async detach(
     @Param('classId', new ParseUUIDPipe()) classId: string,
@@ -75,7 +75,7 @@ export class ClassCoursesController {
     return { ok: true };
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Patch('reorder')
   reorder(
     @Param('classId', new ParseUUIDPipe()) classId: string,

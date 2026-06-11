@@ -32,7 +32,7 @@ import {
  */
 @Controller('attendance')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN)
+@Roles(UserRole.ADMIN, UserRole.TEACHER)
 export class AttendanceController {
   constructor(private readonly service: AttendanceService) {}
 

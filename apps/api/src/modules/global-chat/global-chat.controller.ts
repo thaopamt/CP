@@ -53,7 +53,7 @@ export class GlobalChatController {
   }
 
   @Patch('messages/:id/hide')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   async hideMessage(
     @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
