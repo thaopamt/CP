@@ -483,7 +483,7 @@ export class ExecutionService {
     // Piston file-name handling.
     const pistonPayload: Record<string, any> = {
       language: 'bash',
-      version: '*',
+      version: '5.1.0',
       files: [
         { name: 'runner.sh', content: wrapper },
         { name: sourceFileName, content: code },

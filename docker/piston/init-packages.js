@@ -14,6 +14,7 @@ const PISTON_PORT = 2000;
 const REQUIRED_PACKAGES = [
   { language: 'gcc', version: '10.2.0' },     // provides c, c++, d, fortran
   { language: 'python', version: '3.10.0' },
+  { language: 'bash', version: '5.1.0' },     // needed for file I/O wrapper scripts
   // { language: 'java', version: '15.0.2' },
 ];
 
