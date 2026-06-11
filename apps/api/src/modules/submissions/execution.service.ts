@@ -541,8 +541,6 @@ export class ExecutionService {
           memory: data.run.memory ?? null,
           message: data.run.message ?? null,
           status: data.run.status ?? null,
-          // Flag missing output file so gradeSubmission can report it clearly
-          _missingOutputFile: fileOutput === null && (data.run.code ?? 0) === 0,
         },
       } as ICodeExecutionResponse;
     } catch (error: any) {
@@ -629,11 +627,6 @@ export class ExecutionService {
       `if [ -f '${outputFileName}' ]; then`,
       `  echo '${marker}'`,
       `  cat '${outputFileName}'`,
-      'else',
-      `  if [ \${RUN_EXIT:-0} -eq 0 ]; then`,
-      `    echo "Error: Output file '${outputFileName}' was not created." >&2`,
-      `    echo "This problem requires file I/O. Use freopen(\\"${inputFileName}\\", \\"r\\", stdin) and freopen(\\"${outputFileName}\\", \\"w\\", stdout) in your code." >&2`,
-      '  fi',
       'fi',
       '',
       'exit ${RUN_EXIT:-0}',
