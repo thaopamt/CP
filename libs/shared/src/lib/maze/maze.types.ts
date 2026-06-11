@@ -364,6 +364,9 @@ export interface IMazeLevel {
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   status: string;
   courseId: string | null;
+  courseCode?: string | null;
+  courseTitle?: string | null;
+  courseDescription?: string | null;
   order: number;
   classIds: string[] | null;
   createdAt: string;
@@ -372,6 +375,27 @@ export interface IMazeLevel {
   solved?: boolean;
   attempts?: number;
   bestBlocks?: number | null;
+}
+
+export interface IMazeCourseGroup {
+  courseId: string | null;
+  courseCode: string | null;
+  courseTitle: string;
+  courseDescription: string | null;
+  order: number;
+  totalCount: number;
+  solvedCount: number;
+  attemptedCount: number;
+  nextLevel: IMazeLevel | null;
+  levels: IMazeLevel[];
+}
+
+export interface IStudentMazePath {
+  totalCount: number;
+  solvedCount: number;
+  attemptedCount: number;
+  nextLevel: IMazeLevel | null;
+  courses: IMazeCourseGroup[];
 }
 
 /** Body for creating/updating a level from the admin builder. */

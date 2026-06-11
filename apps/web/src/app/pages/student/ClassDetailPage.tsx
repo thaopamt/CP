@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon, StatusBadge } from '@cp/ui';
-import { PublishStatus, type IClassCourseLink } from '@cp/shared';
+import { CourseContentKind, PublishStatus, type IClassCourseLink } from '@cp/shared';
 import { useClass } from '../../api/class.queries';
 import { useClassCourseProgress, useClassCourses } from '../../api/curriculum.queries';
 
@@ -310,7 +310,8 @@ function StudentCourseCard({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const course = link.course;
-  const progressQuery = useClassCourseProgress(classId, course.id, progressEnabled);
+  const isMazeCourse = course.contentKind === CourseContentKind.MAZE;
+  const progressQuery = useClassCourseProgress(classId, course.id, progressEnabled && !isMazeCourse);
   const progress = progressQuery.data;
   const percentage = progress?.percentage ?? 0;
   const completedAssignments = progress?.completedAssignments ?? 0;
@@ -324,7 +325,11 @@ function StudentCourseCard({
 
   return (
     <div
-      onClick={() => navigate(`/student/classes/${classId}/courses/${course.id}`)}
+      onClick={() =>
+        isMazeCourse
+          ? navigate(`/student/maze?courseId=${course.id}`)
+          : navigate(`/student/classes/${classId}/courses/${course.id}`)
+      }
       className="bg-surface-container-low border border-outline-variant/50 rounded-xl p-md hover:shadow-md hover:border-primary/30 transition-all cursor-pointer group flex gap-md items-start"
     >
       <div className="w-10 h-10 rounded-lg bg-primary-container text-on-primary-container grid place-items-center font-manrope font-bold text-body-lg shrink-0">
@@ -352,38 +357,49 @@ function StudentCourseCard({
 
         <div className="flex flex-wrap gap-sm">
           <span className="inline-flex items-center gap-xs text-[11px] text-on-surface-variant bg-surface-container-high px-2 py-1 rounded-md">
-            <Icon name="assignment" size={14} />
-            {course.assignmentCount} assignment{course.assignmentCount !== 1 ? 's' : ''}
+            <Icon name={isMazeCourse ? 'extension' : 'assignment'} size={14} />
+            {isMazeCourse
+              ? `${course.assignmentCount} màn`
+              : `${course.assignmentCount} assignment${course.assignmentCount !== 1 ? 's' : ''}`}
           </span>
-          <span className="inline-flex items-center gap-xs text-[11px] text-on-surface-variant bg-surface-container-high px-2 py-1 rounded-md">
-            <Icon name="stars" size={14} />
-            {course.totalPoints} pts
-          </span>
+          {!isMazeCourse && (
+            <span className="inline-flex items-center gap-xs text-[11px] text-on-surface-variant bg-surface-container-high px-2 py-1 rounded-md">
+              <Icon name="stars" size={14} />
+              {course.totalPoints} pts
+            </span>
+          )}
         </div>
 
-        <div className="mt-md flex flex-col gap-xs">
-          <div className="flex items-center justify-between gap-sm">
-            <span className="inline-flex items-center gap-xs text-[11px] font-semibold text-on-surface-variant">
-              <Icon name="query_stats" size={14} className="text-primary" />
-              Progress
-            </span>
-            {progressQuery.isLoading ? (
-              <span className="h-4 w-24 rounded-full bg-surface-container-high animate-pulse" />
-            ) : progressQuery.isError ? (
-              <span className="text-[11px] text-error">Progress unavailable</span>
-            ) : (
-              <span className="text-[11px] font-semibold text-on-surface">
-                {percentage}%
+        {isMazeCourse ? (
+          <div className="mt-md inline-flex items-center gap-xs rounded-lg bg-primary-container/30 px-2 py-1 text-[11px] font-semibold text-primary">
+            <Icon name="route" size={14} />
+            Mở lộ trình mê cung
+          </div>
+        ) : (
+          <div className="mt-md flex flex-col gap-xs">
+            <div className="flex items-center justify-between gap-sm">
+              <span className="inline-flex items-center gap-xs text-[11px] font-semibold text-on-surface-variant">
+                <Icon name="query_stats" size={14} className="text-primary" />
+                Progress
               </span>
-            )}
+              {progressQuery.isLoading ? (
+                <span className="h-4 w-24 rounded-full bg-surface-container-high animate-pulse" />
+              ) : progressQuery.isError ? (
+                <span className="text-[11px] text-error">Progress unavailable</span>
+              ) : (
+                <span className="text-[11px] font-semibold text-on-surface">
+                  {percentage}%
+                </span>
+              )}
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-surface-container-high">
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-500"
+                style={{ width: `${Math.max(0, Math.min(100, percentage))}%` }}
+              />
+            </div>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-surface-container-high">
-            <div
-              className="h-full rounded-full bg-primary transition-all duration-500"
-              style={{ width: `${Math.max(0, Math.min(100, percentage))}%` }}
-            />
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="shrink-0 self-center text-on-surface-variant/40">

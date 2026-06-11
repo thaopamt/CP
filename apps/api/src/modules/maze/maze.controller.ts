@@ -31,6 +31,11 @@ export class MazeController {
     return this.service.getLevelsForStudent(user.sub);
   }
 
+  @Get('me/path')
+  getPath(@CurrentUser() user: JwtPayload) {
+    return this.service.getLearningPathForStudent(user.sub);
+  }
+
   @Get('me/:id')
   getForStudent(@CurrentUser() user: JwtPayload, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.getLevelForStudent(user.sub, id);

@@ -12,6 +12,7 @@ import {
 } from '@cp/ui';
 import { useToast } from '@cp/ui';
 import {
+  CourseContentKind,
   ICourseAssignment,
   PublishStatus,
 } from '@cp/shared';
@@ -74,6 +75,7 @@ export default function CourseDetailPage() {
   }
 
   const course = courseQuery.data;
+  const isMazeCourse = course.contentKind === CourseContentKind.MAZE;
   const sequence = (assignmentsQuery.data ?? []).slice().sort((a, b) => a.order - b.order);
 
   function moveUp(idx: number) {
@@ -111,9 +113,15 @@ export default function CourseDetailPage() {
             <StatusBadge tone={course.status === PublishStatus.PUBLISHED ? 'success' : 'neutral'}>
               {t(`enums.publishStatus.${course.status}`)}
             </StatusBadge>
-            <Button variant="admin" leadingIcon={<Icon name="library_add" size={18} />} onClick={() => setPickerOpen(true)}>
-              {t('pages.admin.courseDetail.addAssignments')}
-            </Button>
+            {isMazeCourse ? (
+              <Button variant="admin" leadingIcon={<Icon name="extension" size={18} />} onClick={() => navigate('/admin/maze')}>
+                {t('maze.admin.title')}
+              </Button>
+            ) : (
+              <Button variant="admin" leadingIcon={<Icon name="library_add" size={18} />} onClick={() => setPickerOpen(true)}>
+                {t('pages.admin.courseDetail.addAssignments')}
+              </Button>
+            )}
           </>
         }
       />
@@ -122,67 +130,94 @@ export default function CourseDetailPage() {
         <p className="text-body-md text-on-surface-variant max-w-3xl">{course.description}</p>
       )}
 
-      <section className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl shadow-elev-1 overflow-hidden">
-        <header className="flex items-center justify-between p-md md:p-lg border-b border-outline-variant/30">
-          <div>
-            <h3 className="font-manrope text-headline-md text-on-surface">
-              {t('pages.admin.courseDetail.sequenceTitle')}
-            </h3>
-            <p className="text-label-sm text-on-surface-variant">
-              {t('pages.admin.courseDetail.sequenceSubtitle', {
-                count: sequence.length,
-                points: course.totalPoints,
-              })}
-            </p>
+      {isMazeCourse ? (
+        <section className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl shadow-elev-1 p-lg">
+          <div className="flex items-start gap-md">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-primary-container/40 text-primary">
+              <Icon name="extension" size={24} />
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-manrope text-headline-md text-on-surface">
+                {t('enums.courseContentKind.MAZE')}
+              </h3>
+              <p className="mt-xs text-body-md text-on-surface-variant">
+                {t('pages.admin.coursesList.mazeCount', '{{count}} màn', { count: course.assignmentCount })}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-md"
+                leadingIcon={<Icon name="open_in_new" size={16} />}
+                onClick={() => navigate('/admin/maze')}
+              >
+                {t('maze.admin.title')}
+              </Button>
+            </div>
           </div>
-        </header>
+        </section>
+      ) : (
+        <section className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl shadow-elev-1 overflow-hidden">
+          <header className="flex items-center justify-between p-md md:p-lg border-b border-outline-variant/30">
+            <div>
+              <h3 className="font-manrope text-headline-md text-on-surface">
+                {t('pages.admin.courseDetail.sequenceTitle')}
+              </h3>
+              <p className="text-label-sm text-on-surface-variant">
+                {t('pages.admin.courseDetail.sequenceSubtitle', {
+                  count: sequence.length,
+                  points: course.totalPoints,
+                })}
+              </p>
+            </div>
+          </header>
 
-        {assignmentsQuery.isLoading ? (
-          <div className="p-xl text-center text-on-surface-variant">{t('common.loading')}</div>
-        ) : sequence.length === 0 ? (
-          <div className="p-xl text-center">
-            <Icon name="assignment" size={36} className="mx-auto mb-sm text-on-surface-variant/50" />
-            <p className="text-body-md text-on-surface-variant">
-              {t('pages.admin.courseDetail.empty')}
-            </p>
-            <Button
-              variant="admin"
-              size="sm"
-              className="mt-md"
-              leadingIcon={<Icon name="library_add" size={16} />}
-              onClick={() => setPickerOpen(true)}
-            >
-              {t('pages.admin.courseDetail.addAssignments')}
-            </Button>
-          </div>
-        ) : (
-          <ul className="divide-y divide-outline-variant/30">
-            {sequence.map((row, idx) => (
-              <SequenceRow
-                key={row.id}
-                row={row}
-                index={idx}
-                isFirst={idx === 0}
-                isLast={idx === sequence.length - 1}
-                onMoveUp={() => moveUp(idx)}
-                onMoveDown={() => moveDown(idx)}
-                onDetach={async () => {
-                  const ok = await confirm({
-                    title: t('common.confirmDelete', 'Confirm'),
-                    message: t('pages.admin.courseDetail.detachConfirm', 'Are you sure you want to remove this assignment from the course?'),
-                    intent: 'danger'
-                  });
-                  if (ok) detach.mutate(row.id);
-                }}
-                detaching={detach.isPending}
-                reordering={reorder.isPending}
-              />
-            ))}
-          </ul>
-        )}
-      </section>
+          {assignmentsQuery.isLoading ? (
+            <div className="p-xl text-center text-on-surface-variant">{t('common.loading')}</div>
+          ) : sequence.length === 0 ? (
+            <div className="p-xl text-center">
+              <Icon name="assignment" size={36} className="mx-auto mb-sm text-on-surface-variant/50" />
+              <p className="text-body-md text-on-surface-variant">
+                {t('pages.admin.courseDetail.empty')}
+              </p>
+              <Button
+                variant="admin"
+                size="sm"
+                className="mt-md"
+                leadingIcon={<Icon name="library_add" size={16} />}
+                onClick={() => setPickerOpen(true)}
+              >
+                {t('pages.admin.courseDetail.addAssignments')}
+              </Button>
+            </div>
+          ) : (
+            <ul className="divide-y divide-outline-variant/30">
+              {sequence.map((row, idx) => (
+                <SequenceRow
+                  key={row.id}
+                  row={row}
+                  index={idx}
+                  isFirst={idx === 0}
+                  isLast={idx === sequence.length - 1}
+                  onMoveUp={() => moveUp(idx)}
+                  onMoveDown={() => moveDown(idx)}
+                  onDetach={async () => {
+                    const ok = await confirm({
+                      title: t('common.confirmDelete', 'Confirm'),
+                      message: t('pages.admin.courseDetail.detachConfirm', 'Are you sure you want to remove this assignment from the course?'),
+                      intent: 'danger'
+                    });
+                    if (ok) detach.mutate(row.id);
+                  }}
+                  detaching={detach.isPending}
+                  reordering={reorder.isPending}
+                />
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
-      {pickerOpen && courseId && (
+      {pickerOpen && courseId && !isMazeCourse && (
         <AssignmentPickerDialog
           courseId={courseId}
           alreadyAttachedIds={new Set(sequence.map((s) => s.assignment.id))}

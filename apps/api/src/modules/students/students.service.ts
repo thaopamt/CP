@@ -5,7 +5,7 @@ import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
 import { DataSource, Repository, In, MoreThanOrEqual, Not } from 'typeorm';
 import { DayOfWeek, EnrollmentStatus, PublishStatus, SubmissionStatus, UserRole } from '@cp/shared';
-import type { ICourseNextStep } from '@cp/shared';
+import { CourseContentKind, type ICourseNextStep } from '@cp/shared';
 
 import { User } from '../users/user.entity';
 import { StudentProfile } from './student-profile.entity';
@@ -345,6 +345,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       }, new Map<string, ClassCourse>()).values(),
     ).map((cc, idx) => {
       const rows = courseAssignmentsByCourse.get(cc.courseId) ?? [];
+      const isMazeCourse = cc.course.contentKind === CourseContentKind.MAZE;
       const completedAssignments = rows.filter((row) => getProgress(row.assignmentId) === 100).length;
       const progress = rows.length > 0 ? Math.round((completedAssignments / rows.length) * 100) : 0;
       return {
@@ -355,10 +356,10 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
         title: cc.course.title,
         progress,
         completedAssignments,
-        totalAssignments: rows.length,
-        route: `/student/classes/${cc.classId}/courses/${cc.course.id}`,
+        totalAssignments: isMazeCourse ? cc.course.assignmentCount : rows.length,
+        route: isMazeCourse ? `/student/maze?courseId=${cc.course.id}` : `/student/classes/${cc.classId}/courses/${cc.course.id}`,
         colorGradient: idx % 2 === 0 ? 'from-primary to-tertiary' : 'from-secondary to-primary',
-        icon: 'menu_book',
+        icon: isMazeCourse ? 'extension' : 'menu_book',
       };
     });
 

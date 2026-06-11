@@ -7,7 +7,7 @@ import {
   IsUUID,
   Length,
 } from 'class-validator';
-import { ICreateCoursePayload, IReorderPayload, PublishStatus } from '@cp/shared';
+import { CourseContentKind, ICreateCoursePayload, IReorderPayload, PublishStatus } from '@cp/shared';
 
 export class CreateCourseDto implements ICreateCoursePayload {
   @IsString() @Length(1, 50)
@@ -18,6 +18,9 @@ export class CreateCourseDto implements ICreateCoursePayload {
 
   @IsOptional() @IsString()
   description?: string;
+
+  @IsOptional() @IsEnum(CourseContentKind)
+  contentKind?: CourseContentKind;
 
   @IsOptional() @IsEnum(PublishStatus)
   status?: PublishStatus;
@@ -32,6 +35,9 @@ export class UpdateCourseDto implements Partial<ICreateCoursePayload> {
 
   @IsOptional() @IsString()
   description?: string;
+
+  @IsOptional() @IsEnum(CourseContentKind)
+  contentKind?: CourseContentKind;
 
   @IsOptional() @IsEnum(PublishStatus)
   status?: PublishStatus;

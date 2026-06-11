@@ -15,7 +15,7 @@ import {
   StatusBadge,
   useConfirm,
 } from '@cp/ui';
-import { ICourse, ICreateCoursePayload, PublishStatus } from '@cp/shared';
+import { CourseContentKind, ICourse, ICreateCoursePayload, PublishStatus } from '@cp/shared';
 
 import {
   useCoursesList,
@@ -76,11 +76,22 @@ export default function CoursesListPage() {
         align: 'right',
         cell: (c) => (
           <span className="text-on-surface-variant">
-            {t('pages.admin.coursesList.assignmentCount', {
-              count: c.assignmentCount,
-              points: c.totalPoints,
-            })}
+            {c.contentKind === CourseContentKind.MAZE
+              ? t('pages.admin.coursesList.mazeCount', '{{count}} màn', { count: c.assignmentCount })
+              : t('pages.admin.coursesList.assignmentCount', {
+                  count: c.assignmentCount,
+                  points: c.totalPoints,
+                })}
           </span>
+        ),
+      },
+      {
+        key: 'contentKind',
+        header: t('pages.admin.coursesList.columns.type', 'Loại'),
+        cell: (c) => (
+          <StatusBadge tone={c.contentKind === CourseContentKind.MAZE ? 'warning' : 'neutral'}>
+            {t(`enums.courseContentKind.${c.contentKind}`)}
+          </StatusBadge>
         ),
       },
       {
@@ -209,6 +220,7 @@ function CreateCourseDialog({ onClose }: { onClose: () => void }) {
     code: '',
     title: '',
     description: '',
+    contentKind: CourseContentKind.ASSIGNMENTS,
     status: PublishStatus.PUBLISHED,
   });
   const [error, setError] = useState<string | null>(null);
@@ -265,6 +277,20 @@ function CreateCourseDialog({ onClose }: { onClose: () => void }) {
               placeholder="MATH-301"
               className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none font-mono"
             />
+          </FormField>
+          <FormField label={t('pages.admin.coursesList.columns.type', 'Loại')}>
+            <select
+              value={draft.contentKind ?? CourseContentKind.ASSIGNMENTS}
+              onChange={(e) => patch('contentKind', e.target.value as CourseContentKind)}
+              className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
+            >
+              <option value={CourseContentKind.ASSIGNMENTS}>
+                {t(`enums.courseContentKind.${CourseContentKind.ASSIGNMENTS}`)}
+              </option>
+              <option value={CourseContentKind.MAZE}>
+                {t(`enums.courseContentKind.${CourseContentKind.MAZE}`)}
+              </option>
+            </select>
           </FormField>
           <FormField label={t('pages.admin.coursesList.createDialog.description')} className="col-span-2">
             <textarea

@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon, StatusBadge } from '@cp/ui';
 import {
+  CourseContentKind,
   PublishStatus,
 } from '@cp/shared';
 import { useCourse, useCourseAssignments } from '../../api/curriculum.queries';
@@ -83,6 +84,10 @@ export default function StudentCourseDetailPage() {
         </div>
       </div>
     );
+  }
+
+  if (course.contentKind === CourseContentKind.MAZE) {
+    return <Navigate to={`/student/maze?courseId=${course.id}`} replace />;
   }
 
   const statusTone =

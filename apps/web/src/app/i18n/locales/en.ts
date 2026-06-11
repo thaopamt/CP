@@ -404,6 +404,10 @@ const en = {
       PUBLISHED: 'Published',
       ARCHIVED: 'Archived',
     },
+    courseContentKind: {
+      ASSIGNMENTS: 'Assignments',
+      MAZE: 'Maze',
+    },
   },
 
   pages: {
@@ -888,9 +892,11 @@ const en = {
         empty: 'No courses match the current filters.',
         assignmentCount_one: '{{count}} assignment · {{points}} pts',
         assignmentCount_other: '{{count}} assignments · {{points}} pts',
+        mazeCount: '{{count}} levels',
         columns: {
           title: 'Course',
           assignments: 'Assignments',
+          type: 'Type',
           status: 'Status',
         },
         createDialog: {
@@ -1361,7 +1367,19 @@ const en = {
       tryAgain: 'Try again',
       completed: 'Completed',
       attempted: 'Attempted',
+      notStarted: 'Not started',
+      continue: 'Continue',
+      courseDone: 'Selected course completed',
+      allCourses: 'All courses',
+      noLevelsForFilter: 'No levels match the current filter.',
+      pathProgress: '{{completed}} / {{total}} levels completed',
       completedSummary: '{{completed}} / {{total}} levels completed',
+      filters: {
+        all: 'All',
+        todo: 'Not started',
+        attempted: 'In progress',
+        solved: 'Done',
+      },
     },
     admin: {
       title: 'Maze Levels',

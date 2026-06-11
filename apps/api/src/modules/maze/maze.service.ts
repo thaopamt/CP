@@ -1,15 +1,18 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, Repository } from 'typeorm';
+import { Brackets, In, Repository } from 'typeorm';
 import {
   BlockType,
   GridConfig,
+  IMazeLevel,
+  IStudentMazePath,
   PublishStatus,
   SubmissionStatus,
   simulate,
   validateCommands,
 } from '@cp/shared';
 
+import { Course } from '../courses/course.entity';
 import { QuestsService } from '../quests/quests.service';
 import { MazeLevel } from './maze-level.entity';
 import { MazeSubmission } from './maze-submission.entity';
@@ -19,6 +22,7 @@ import { SubmitMazeDto } from './dto/submit-maze.dto';
 @Injectable()
 export class MazeService {
   constructor(
+    @InjectRepository(Course) private readonly courses: Repository<Course>,
     @InjectRepository(MazeLevel) private readonly levels: Repository<MazeLevel>,
     @InjectRepository(MazeSubmission) private readonly submissions: Repository<MazeSubmission>,
     private readonly questsService: QuestsService,
@@ -59,11 +63,7 @@ export class MazeService {
    * visible to everyone, otherwise it must be assigned to a class the student
    * is enrolled in.
    */
-  async getLevelsForStudent(studentId: string): Promise<Array<MazeLevel & {
-    solved: boolean;
-    attempts: number;
-    bestBlocks: number | null;
-  }>> {
+  async getLevelsForStudent(studentId: string): Promise<IMazeLevel[]> {
     const query = this.levels.createQueryBuilder('l');
 
     query
@@ -108,15 +108,79 @@ export class MazeService {
       },
     ]));
 
-    return levels.map((level) => ({
-      ...level,
-      solved: progressByLevel.get(level.id)?.solved ?? false,
-      attempts: progressByLevel.get(level.id)?.attempts ?? 0,
-      bestBlocks: progressByLevel.get(level.id)?.bestBlocks ?? null,
-    }));
+    const courseIds = [...new Set(levels.map((level) => level.courseId).filter((id): id is string => !!id))];
+    const courses = courseIds.length > 0 ? await this.courses.findBy({ id: In(courseIds) }) : [];
+    const coursesById = new Map(courses.map((course) => [course.id, course]));
+
+    return levels.map((level): IMazeLevel => {
+      const course = level.courseId ? coursesById.get(level.courseId) : undefined;
+      return {
+        id: level.id,
+        title: level.title,
+        description: level.description,
+        gridConfig: level.gridConfig,
+        allowedBlocks: level.allowedBlocks,
+        maxBlocks: level.maxBlocks,
+        difficulty: level.difficulty,
+        status: level.status,
+        courseId: level.courseId,
+        order: level.order,
+        classIds: level.classIds,
+        createdAt: level.createdAt.toISOString(),
+        updatedAt: level.updatedAt.toISOString(),
+        solved: progressByLevel.get(level.id)?.solved ?? false,
+        attempts: progressByLevel.get(level.id)?.attempts ?? 0,
+        bestBlocks: progressByLevel.get(level.id)?.bestBlocks ?? null,
+        courseCode: course?.code ?? null,
+        courseTitle: course?.title ?? null,
+        courseDescription: course?.description ?? null,
+      };
+    });
   }
 
-  async getLevelForStudent(studentId: string, levelId: string): Promise<MazeLevel> {
+  async getLearningPathForStudent(studentId: string): Promise<IStudentMazePath> {
+    const levels = await this.getLevelsForStudent(studentId);
+    const groups = new Map<string, IStudentMazePath['courses'][number]>();
+
+    for (const level of levels) {
+      const key = level.courseId ?? 'uncategorized';
+      let group = groups.get(key);
+      if (!group) {
+        group = {
+          courseId: level.courseId,
+          courseCode: level.courseCode ?? null,
+          courseTitle: level.courseTitle ?? 'Mê cung khác',
+          courseDescription: level.courseDescription ?? null,
+          order: groups.size + 1,
+          totalCount: 0,
+          solvedCount: 0,
+          attemptedCount: 0,
+          nextLevel: null,
+          levels: [],
+        };
+        groups.set(key, group);
+      }
+
+      group.levels.push(level);
+      group.totalCount += 1;
+      if (level.solved) group.solvedCount += 1;
+      else if ((level.attempts ?? 0) > 0) group.attemptedCount += 1;
+      if (!group.nextLevel && !level.solved) group.nextLevel = level;
+    }
+
+    const solvedCount = levels.filter((level) => level.solved).length;
+    const attemptedCount = levels.filter((level) => !level.solved && (level.attempts ?? 0) > 0).length;
+
+    return {
+      totalCount: levels.length,
+      solvedCount,
+      attemptedCount,
+      nextLevel: levels.find((level) => !level.solved) ?? null,
+      courses: Array.from(groups.values()),
+    };
+  }
+
+  async getLevelForStudent(studentId: string, levelId: string): Promise<IMazeLevel> {
     const visible = await this.getLevelsForStudent(studentId);
     const level = visible.find((l) => l.id === levelId);
     if (!level) throw new NotFoundException('Không tìm thấy bàn chơi này hoặc em chưa được giao.');

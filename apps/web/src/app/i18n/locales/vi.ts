@@ -402,6 +402,10 @@ const vi: AppResources = {
       PUBLISHED: 'Đã đăng',
       ARCHIVED: 'Lưu trữ',
     },
+    courseContentKind: {
+      ASSIGNMENTS: 'Bài tập',
+      MAZE: 'Mê cung',
+    },
   },
 
   pages: {
@@ -884,9 +888,11 @@ const vi: AppResources = {
         empty: 'Không có khoá học nào khớp bộ lọc.',
         assignmentCount_one: '{{count}} bài · {{points}} điểm',
         assignmentCount_other: '{{count}} bài · {{points}} điểm',
+        mazeCount: '{{count}} màn',
         columns: {
           title: 'Khoá học',
           assignments: 'Bài tập',
+          type: 'Loại',
           status: 'Trạng thái',
         },
         createDialog: {
@@ -1360,7 +1366,19 @@ const vi: AppResources = {
       tryAgain: 'Thử lại',
       completed: 'Đã hoàn thành',
       attempted: 'Đã thử',
+      notStarted: 'Chưa làm',
+      continue: 'Tiếp tục học',
+      courseDone: 'Khóa đang chọn đã hoàn thành',
+      allCourses: 'Tất cả khóa',
+      noLevelsForFilter: 'Không có màn nào khớp bộ lọc hiện tại.',
+      pathProgress: '{{completed}} / {{total}} màn đã xong',
       completedSummary: 'Đã hoàn thành {{completed}} / {{total}} bàn',
+      filters: {
+        all: 'Tất cả',
+        todo: 'Chưa làm',
+        attempted: 'Đang làm',
+        solved: 'Đã xong',
+      },
     },
     admin: {
       title: 'Bàn chơi Mê cung',

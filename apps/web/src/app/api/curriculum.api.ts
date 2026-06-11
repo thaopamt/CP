@@ -8,6 +8,7 @@
  * into the cleaner UI shapes (`order`, etc.).
  */
 import {
+  CourseContentKind,
   IAssignmentDef,
   ICodingConfig,
   IClassCourseLink,
@@ -57,6 +58,7 @@ interface ApiCourse {
   title: string;
   description: string | null;
   coverUrl: string | null;
+  contentKind?: CourseContentKind;
   status: PublishStatus;
   assignmentCount: number;
   totalPoints: number;
@@ -147,6 +149,7 @@ function toCourse(c: ApiCourse): ICourse {
     title: c.title,
     description: c.description,
     coverUrl: c.coverUrl,
+    contentKind: c.contentKind ?? CourseContentKind.ASSIGNMENTS,
     status: c.status,
     assignmentCount: c.assignmentCount,
     totalPoints: c.totalPoints,

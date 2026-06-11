@@ -1,5 +1,5 @@
 import { Column, Entity, Index, OneToMany } from 'typeorm';
-import { PublishStatus } from '@cp/shared';
+import { CourseContentKind, PublishStatus } from '@cp/shared';
 
 import { BaseEntity } from '../../common/entities/base.entity';
 import { CourseAssignment } from './course-assignment.entity';
@@ -24,6 +24,15 @@ export class Course extends BaseEntity {
 
   @Column({ type: 'text', nullable: true, name: 'cover_url' })
   coverUrl!: string | null;
+
+  @Index('IDX_courses_content_kind')
+  @Column({
+    type: 'enum',
+    enum: CourseContentKind,
+    default: CourseContentKind.ASSIGNMENTS,
+    name: 'content_kind',
+  })
+  contentKind!: CourseContentKind;
 
   @Index()
   @Column({ type: 'enum', enum: PublishStatus, default: PublishStatus.DRAFT })

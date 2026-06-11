@@ -53,7 +53,7 @@
       "executor": "nx:run-commands",
       "options": {
         "commands": [
-          "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-dp-basic.ts"
+          "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-maze.ts"
         ],
         "parallel": false,
         "cwd": "."

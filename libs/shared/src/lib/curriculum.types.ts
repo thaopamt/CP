@@ -20,6 +20,11 @@ export enum PublishStatus {
   ARCHIVED = 'ARCHIVED',
 }
 
+export enum CourseContentKind {
+  ASSIGNMENTS = 'ASSIGNMENTS',
+  MAZE = 'MAZE',
+}
+
 export interface ICodingTestCase {
   input: string;
   output: string;
@@ -114,6 +119,7 @@ export interface ICourse {
   title: string;
   description?: string | null;
   coverUrl?: string | null;
+  contentKind: CourseContentKind;
   status: PublishStatus;
   /** Number of assignments attached, denormalized */
   assignmentCount: number;
@@ -127,6 +133,7 @@ export interface ICreateCoursePayload {
   code: string;
   title: string;
   description?: string;
+  contentKind?: CourseContentKind;
   status?: PublishStatus;
 }
 

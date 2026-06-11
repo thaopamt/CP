@@ -4,6 +4,7 @@ import {
   IMazeProgressRow,
   IMazeProgressSummaryRow,
   IMazeSubmitResult,
+  IStudentMazePath,
   ISubmitMazePayload,
 } from '@cp/shared';
 import { apiClient } from '../lib/api-client';
@@ -35,6 +36,9 @@ export const mazeApi = {
   // --- Student ---
   getAssigned() {
     return apiClient.get<IMazeLevel[]>('/maze-levels/me/assigned');
+  },
+  getPath() {
+    return apiClient.get<IStudentMazePath>('/maze-levels/me/path');
   },
   getForStudent(id: string) {
     return apiClient.get<IMazeLevel>(`/maze-levels/me/${id}`);

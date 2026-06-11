@@ -4,13 +4,13 @@ import { ClassEntity } from '../../modules/classes/class.entity';
 import { Course } from '../../modules/courses/course.entity';
 import { ClassCourse } from '../../modules/classes/class-course.entity';
 import { MazeLevel } from '../../modules/maze/maze-level.entity';
-import { BlockType, Cell, countBlocks, Direction, GridConfig, PublishStatus, SensorType, simulate, Command, Expr } from '@cp/shared';
+import { BlockType, Cell, countBlocks, CourseContentKind, Direction, GridConfig, PublishStatus, SensorType, simulate, Command, Expr } from '@cp/shared';
 import { ADVANCED_GEN_LEVELS } from './maze-advanced-levels';
 
 /**
- * Seeds maze levels (basic → advanced) under a "Lập trình kéo-thả" course
- * attached to the BASIC-A class. Idempotent: levels are matched by title and
- * re-created on each run (FK cascade removes old submissions).
+ * Seeds maze levels (basic → advanced) under multiple MAZE courses attached to
+ * BASIC-A. Idempotent: levels are matched by title and updated in place so
+ * student submissions survive reseeds.
  *
  * The first six levels carry hand-written `intendedSolution`s. The remaining
  * levels are authored as ASCII maps and solved automatically by BFS — the
@@ -30,6 +30,91 @@ interface LevelSeed {
   intendedSolution: Command[];
   /** Override the difficulty-tier block slack (used by twisty mazes to stay fair). */
   blockSlack?: number;
+}
+
+interface MazeCourseSpec {
+  code: string;
+  title: string;
+  description: string;
+  from: number;
+  to: number;
+}
+
+const MAZE_COURSE_SPECS: MazeCourseSpec[] = [
+  {
+    code: 'MAZE-FOUNDATION',
+    title: 'Mê cung 1: Nền tảng kéo-thả',
+    description: 'Làm quen di chuyển, rẽ hướng, vòng lặp và các bản đồ mê cung nhỏ.',
+    from: 1,
+    to: 36,
+  },
+  {
+    code: 'MAZE-LAB-01',
+    title: 'Mê cung 2: Luyện đường mê cung I',
+    description: 'Các mê cung sinh tự động kích thước vừa, tập trung vào quan sát đường đi và tối ưu khối lệnh.',
+    from: 37,
+    to: 61,
+  },
+  {
+    code: 'MAZE-LAB-02',
+    title: 'Mê cung 3: Luyện đường mê cung II',
+    description: 'Tăng độ dài đường đi, thêm ngõ cụt và yêu cầu dùng lặp gọn hơn.',
+    from: 62,
+    to: 86,
+  },
+  {
+    code: 'MAZE-LAB-03',
+    title: 'Mê cung 4: Luyện đường mê cung III',
+    description: 'Bài luyện nâng độ khó với bản đồ lớn hơn và giới hạn khối chặt hơn.',
+    from: 87,
+    to: 111,
+  },
+  {
+    code: 'MAZE-LAB-04',
+    title: 'Mê cung 5: Mê cung dài và kho báu',
+    description: 'Hoàn thiện nhóm mê cung sinh tự động với đường dài, kho báu và nhiều ngõ cụt.',
+    from: 112,
+    to: 136,
+  },
+  {
+    code: 'MAZE-HARVEST',
+    title: 'Mê cung 6: Thu hoạch và vật phẩm',
+    description: 'Dùng khối thu thập, cảm biến vật phẩm và chiến lược collect-all.',
+    from: 137,
+    to: 144,
+  },
+  {
+    code: 'MAZE-MONSTERS',
+    title: 'Mê cung 7: Quái vật và canh nhịp',
+    description: 'Làm quen quái vật đứng yên, tuần tra, chờ nhịp và né chướng ngại.',
+    from: 145,
+    to: 168,
+  },
+  {
+    code: 'MAZE-ADVANCED-01',
+    title: 'Mê cung 8: Nâng cao I',
+    description: 'Kết hợp vật phẩm nhiều loại, quái vật và hộp bí ẩn trong bản đồ nhỏ.',
+    from: 169,
+    to: 192,
+  },
+  {
+    code: 'MAZE-ADVANCED-02',
+    title: 'Mê cung 9: Nâng cao II',
+    description: 'Mê cung tổng hợp dài hơn với nhiều mẫu quái vật và lựa chọn đường đi.',
+    from: 193,
+    to: 220,
+  },
+  {
+    code: 'MAZE-ADVANCED-03',
+    title: 'Mê cung 10: Thử thách tổng hợp',
+    description: 'Nhóm thử thách cuối, gom các cơ chế khó nhất của lộ trình mê cung.',
+    from: 221,
+    to: Number.MAX_SAFE_INTEGER,
+  },
+];
+
+function mazeCourseSpecForOrder(order: number): MazeCourseSpec {
+  return MAZE_COURSE_SPECS.find((spec) => order >= spec.from && order <= spec.to) ?? MAZE_COURSE_SPECS[0];
 }
 
 const move: Command = { type: BlockType.MOVE_FORWARD };
@@ -1424,32 +1509,44 @@ async function run() {
     console.warn('⚠️ Class BASIC-A not found; levels will be visible to all students instead.');
   }
 
-  // Maze course ("khóa học") grouping the levels.
-  let course = await courseRepo.findOneBy({ code: 'MAZE-101' });
-  if (!course) {
-    course = new Course();
-    course.code = 'MAZE-101';
-    course.title = 'Lập trình kéo-thả: Mê cung';
-    course.description = 'Khóa học làm quen với lập trình bằng cách kéo-thả khối lệnh điều khiển nhân vật đi trong mê cung.';
+  // Maze courses ("khóa học") grouping levels into a long-term learning path.
+  const coursesByCode = new Map<string, Course>();
+  for (const [idx, spec] of MAZE_COURSE_SPECS.entries()) {
+    let course = await courseRepo.findOneBy({ code: spec.code });
+    if (!course) {
+      course = new Course();
+      course.code = spec.code;
+      console.log(`✅ Course ${spec.code} created.`);
+    }
+    course.title = spec.title;
+    course.description = spec.description;
     course.status = PublishStatus.PUBLISHED;
+    course.contentKind = CourseContentKind.MAZE;
     course.totalPoints = 0;
+    course.assignmentCount = 0;
     course = await courseRepo.save(course);
-    console.log('✅ Course MAZE-101 created.');
-  }
-  course.assignmentCount = ALL_LEVELS.length;
-  await courseRepo.save(course);
+    coursesByCode.set(spec.code, course);
 
-  // Link course to BASIC-A class if not already linked.
-  if (basicA) {
-    const existingLink = await classCourseRepo.findOneBy({ classId: basicA.id, courseId: course.id });
-    if (!existingLink) {
-      const link = new ClassCourse();
+    if (basicA) {
+      const existingLink = await classCourseRepo.findOneBy({ classId: basicA.id, courseId: course.id });
+      const link = existingLink ?? new ClassCourse();
       link.classId = basicA.id;
       link.courseId = course.id;
-      link.orderIndex = 99;
+      link.orderIndex = 99 + idx;
       link.isRequired = false;
       await classCourseRepo.save(link);
-      console.log('✅ Linked MAZE-101 to BASIC-A.');
+    }
+  }
+
+  const legacyCourse = await courseRepo.findOneBy({ code: 'MAZE-101' });
+  if (legacyCourse) {
+    legacyCourse.status = PublishStatus.ARCHIVED;
+    legacyCourse.assignmentCount = 0;
+    legacyCourse.totalPoints = 0;
+    legacyCourse.contentKind = CourseContentKind.MAZE;
+    await courseRepo.save(legacyCourse);
+    if (basicA) {
+      await classCourseRepo.delete({ classId: basicA.id, courseId: legacyCourse.id });
     }
   }
 
@@ -1469,9 +1566,15 @@ async function run() {
 
   let order = 1;
   const seededTitles = new Set<string>();
+  const courseCounts = new Map<string, number>();
   let created = 0;
   let updated = 0;
   for (const lvl of ALL_LEVELS) {
+    const levelOrder = order++;
+    const courseSpec = mazeCourseSpecForOrder(levelOrder);
+    const course = coursesByCode.get(courseSpec.code);
+    if (!course) throw new Error(`Không tìm thấy course seed ${courseSpec.code}`);
+
     seededTitles.add(lvl.title);
     const existing = existingByTitle.get(lvl.title);
     const entity = existing ?? new MazeLevel();
@@ -1483,11 +1586,18 @@ async function run() {
     entity.difficulty = lvl.difficulty;
     entity.status = PublishStatus.PUBLISHED;
     entity.courseId = course.id;
-    entity.order = order++;
+    entity.order = levelOrder;
     entity.classIds = lvl.assignToBasicA && basicA ? [basicA.id] : null;
     await levelRepo.save(entity); // existing → UPDATE (same id), new → INSERT
+    courseCounts.set(course.id, (courseCounts.get(course.id) ?? 0) + 1);
     if (existing) updated++;
     else created++;
+  }
+
+  for (const course of coursesByCode.values()) {
+    course.assignmentCount = courseCounts.get(course.id) ?? 0;
+    course.totalPoints = 0;
+    await courseRepo.save(course);
   }
 
   // Remove only levels that no longer exist in the seed (cascades just THEIR
