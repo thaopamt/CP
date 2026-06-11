@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Avatar,
@@ -16,7 +16,7 @@ import {
   useConfirm,
   useToast,
 } from '@cp/ui';
-import { IUser, UserRole, fullName } from '@cp/shared';
+import { IStudentProfile, IUser, UserRole, fullName } from '@cp/shared';
 
 import {
   useCreateTeacher,
@@ -25,6 +25,12 @@ import {
   useUpdateTeacher,
   useUsersList,
 } from '../../api/users.queries';
+import { useStudentsList } from '../../api/student.queries';
+import {
+  useTeacherStudents,
+  useSetTeacherStudents,
+} from '../../api/teacherAssignments.queries';
+import { MultiSelectPicker } from '../../components/MultiSelectPicker';
 
 const PAGE_SIZE = 10;
 
@@ -50,6 +56,7 @@ export default function AdminUsersPage() {
 
   const [editing, setEditing] = useState<IUser | null | 'new'>(null);
   const [resetting, setResetting] = useState<IUser | null>(null);
+  const [managingStudents, setManagingStudents] = useState<IUser | null>(null);
 
   const { data, isLoading } = useUsersList({
     page,
@@ -153,6 +160,14 @@ export default function AdminUsersPage() {
             </button>
             <button
               type="button"
+              onClick={() => setManagingStudents(u)}
+              className="p-1 rounded text-on-surface-variant hover:text-primary"
+              aria-label={t('pages.admin.users.actions.manageStudents')}
+            >
+              <Icon name="groups" size={18} />
+            </button>
+            <button
+              type="button"
               onClick={() => setResetting(u)}
               className="p-1 rounded text-on-surface-variant hover:text-primary"
               aria-label={t('pages.admin.users.actions.resetPassword')}
@@ -249,6 +264,100 @@ export default function AdminUsersPage() {
           onError={(msg) => toast.error(msg)}
         />
       )}
+
+      {managingStudents && (
+        <ManageStudentsDialog
+          teacher={managingStudents}
+          onClose={() => setManagingStudents(null)}
+          onSaved={() => {
+            setManagingStudents(null);
+            toast.success(t('pages.admin.users.toast.studentsUpdated'));
+          }}
+          onError={(msg) => toast.error(msg)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ManageStudentsDialog({
+  teacher,
+  onClose,
+  onSaved,
+  onError,
+}: {
+  teacher: IUser;
+  onClose: () => void;
+  onSaved: () => void;
+  onError: (msg: string) => void;
+}) {
+  const { t } = useTranslation();
+  const studentsQuery = useStudentsList({ limit: 1000 });
+  const currentQuery = useTeacherStudents(teacher.id);
+  const save = useSetTeacherStudents(teacher.id);
+
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [seeded, setSeeded] = useState(false);
+  // Seed the selection once the current assignment loads.
+  useEffect(() => {
+    if (currentQuery.data && !seeded) {
+      setSelected(new Set(currentQuery.data.map((s) => s.id)));
+      setSeeded(true);
+    }
+  }, [currentQuery.data, seeded]);
+
+  async function submit() {
+    try {
+      await save.mutateAsync([...selected]);
+      onSaved();
+    } catch (err) {
+      onError(apiError(err));
+    }
+  }
+
+  const sName = (s: IStudentProfile) => `${s.firstName} ${s.lastName}`.trim();
+
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-on-surface/40 backdrop-blur-sm p-md"
+      onClick={onClose}
+    >
+      <div
+        className="bg-surface-container-lowest rounded-2xl border border-outline-variant/50 shadow-elev-3 w-full max-w-lg p-lg flex flex-col gap-md"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="flex items-center justify-between">
+          <div className="min-w-0">
+            <h2 className="font-manrope text-headline-md text-on-surface">
+              {t('pages.admin.users.manageStudents.title')}
+            </h2>
+            <p className="text-body-sm text-on-surface-variant truncate">{fullName(teacher)}</p>
+          </div>
+          <button type="button" onClick={onClose} className="p-1 rounded hover:bg-surface-container-high">
+            <Icon name="close" />
+          </button>
+        </header>
+        <MultiSelectPicker
+          loading={studentsQuery.isLoading || currentQuery.isLoading}
+          options={(studentsQuery.data?.items ?? []).map((s) => ({
+            id: s.id,
+            label: sName(s),
+            sublabel: s.username ?? s.email,
+          }))}
+          selected={selected}
+          onChange={setSelected}
+          searchPlaceholder={t('pages.admin.students.searchPlaceholder')}
+          emptyText={t('pages.admin.users.manageStudents.empty')}
+        />
+        <footer className="flex justify-end gap-sm">
+          <Button variant="outline" onClick={onClose}>
+            {t('common.cancel', 'Cancel')}
+          </Button>
+          <Button onClick={submit} disabled={save.isPending}>
+            {t('common.save', 'Save')}
+          </Button>
+        </footer>
+      </div>
     </div>
   );
 }

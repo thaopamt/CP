@@ -24,6 +24,9 @@ const vi: AppResources = {
     cancel: 'Huỷ',
     edit: 'Sửa',
     delete: 'Xoá',
+    manage: 'Quản lý',
+    noResults: 'Không có kết quả',
+    selectedCount: 'Đã chọn {{count}}',
     more: 'Thêm',
     moreFilters: 'Thêm bộ lọc',
     viewAll: 'Xem tất cả',
@@ -492,6 +495,9 @@ const vi: AppResources = {
         },
         showing: 'Hiển thị {{from}}–{{to}} trên {{total}}',
         emptyFiltered: 'Không có học sinh nào khớp bộ lọc hiện tại.',
+        assignedTeachers: 'Giáo viên phụ trách',
+        noTeachers: 'Chưa gán giáo viên nào.',
+        teachersUpdated: 'Đã cập nhật giáo viên phụ trách.',
       },
       users: {
         title: 'Quản lý giáo viên',
@@ -515,7 +521,12 @@ const vi: AppResources = {
         actions: {
           edit: 'Chỉnh sửa',
           resetPassword: 'Đặt lại mật khẩu',
+          manageStudents: 'Quản lý học sinh',
           delete: 'Xoá',
+        },
+        manageStudents: {
+          title: 'Học sinh phụ trách',
+          empty: 'Không có học sinh nào.',
         },
         showing: 'Hiển thị {{from}}–{{to}} trên {{total}}',
         emptyFiltered: 'Không có giáo viên nào khớp bộ lọc hiện tại.',
@@ -543,6 +554,7 @@ const vi: AppResources = {
           updated: 'Đã cập nhật giáo viên.',
           deleted: 'Đã xoá giáo viên.',
           passwordReset: 'Đã đặt lại mật khẩu.',
+          studentsUpdated: 'Đã cập nhật học sinh phụ trách.',
         },
       },
       studentCreate: {

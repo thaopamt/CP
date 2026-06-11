@@ -14,10 +14,15 @@ import {
   GuardianRelationship,
   IUpdateStudentPayload,
   IGuardianInput,
+  UserRole,
+  fullName,
 } from '@cp/shared';
 
 import { useStudent, useUpdateStudent } from '../../../api/student.queries';
+import { useStudentTeachers, useSetStudentTeachers } from '../../../api/teacherAssignments.queries';
+import { useUsersList } from '../../../api/users.queries';
 import { usePortalBase } from '../../../hooks/usePortalBase';
+import { MultiSelectPicker } from '../../../components/MultiSelectPicker';
 
 type Draft = {
   fullName: string;
@@ -59,9 +64,15 @@ export default function StudentEditPage() {
   const studentQuery = useStudent(idParam);
   const updateStudent = useUpdateStudent(idParam as string);
 
+  const teachersQuery = useUsersList({ role: UserRole.TEACHER, limit: 1000 });
+  const studentTeachersQuery = useStudentTeachers(idParam);
+  const setStudentTeachers = useSetStudentTeachers(idParam as string);
+
   const [draft, setDraft] = useState<Draft>(INITIAL);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [initialized, setInitialized] = useState(false);
+  const [teacherIds, setTeacherIds] = useState<Set<string>>(new Set());
+  const [teachersInitialized, setTeachersInitialized] = useState(false);
 
   useEffect(() => {
     if (studentQuery.data && !initialized) {
@@ -85,6 +96,13 @@ export default function StudentEditPage() {
       setInitialized(true);
     }
   }, [studentQuery.data, initialized]);
+
+  useEffect(() => {
+    if (studentTeachersQuery.data && !teachersInitialized) {
+      setTeacherIds(new Set(studentTeachersQuery.data.map((u) => u.id)));
+      setTeachersInitialized(true);
+    }
+  }, [studentTeachersQuery.data, teachersInitialized]);
 
   function patch(p: Partial<Draft>) {
     setDraft((prev) => ({ ...prev, ...p }));
@@ -143,6 +161,10 @@ export default function StudentEditPage() {
     };
     try {
       await updateStudent.mutateAsync(payload);
+      // Assigning teachers is an admin-only operation (PUT is ADMIN-gated).
+      if (base === '/admin') {
+        await setStudentTeachers.mutateAsync([...teacherIds]);
+      }
       navigate(`${base}/students/${idParam}`);
     } catch (err) {
       const msg =
@@ -282,6 +304,24 @@ export default function StudentEditPage() {
           </FormField>
         </div>
       </FormSection>
+
+      {/* Section: Assigned teachers (admin only) */}
+      {base === '/admin' && (
+        <FormSection icon="co_present" title={t('pages.admin.students.assignedTeachers')}>
+          <MultiSelectPicker
+            loading={teachersQuery.isLoading || studentTeachersQuery.isLoading}
+            options={(teachersQuery.data?.items ?? []).map((u) => ({
+              id: u.id,
+              label: fullName(u),
+              sublabel: u.email,
+            }))}
+            selected={teacherIds}
+            onChange={setTeacherIds}
+            searchPlaceholder={t('pages.admin.users.searchPlaceholder')}
+            emptyText={t('pages.admin.students.noTeachers')}
+          />
+        </FormSection>
+      )}
 
       {/* Section 4: Guardians */}
       <FormSection

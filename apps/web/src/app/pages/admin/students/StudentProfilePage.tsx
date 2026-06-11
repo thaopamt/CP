@@ -15,10 +15,16 @@ import {
   TrendBadge,
   useToast,
 } from '@cp/ui';
-import { IGuardian, ISubjectGrade } from '@cp/shared';
+import { IGuardian, ISubjectGrade, UserRole, fullName as formatName } from '@cp/shared';
 
 import { useStudent, useResetPasswordStudent } from '../../../api/student.queries';
+import {
+  useStudentTeachers,
+  useSetStudentTeachers,
+} from '../../../api/teacherAssignments.queries';
+import { useUsersList } from '../../../api/users.queries';
 import { usePortalBase } from '../../../hooks/usePortalBase';
+import { MultiSelectPicker } from '../../../components/MultiSelectPicker';
 import { ResetPasswordModal } from './ResetPasswordModal';
 import StudentScheduleTab from './StudentScheduleTab';
 import StudentAttendanceHistoryTab from './StudentAttendanceHistoryTab';
@@ -33,8 +39,10 @@ export default function StudentProfilePage() {
   const toast = useToast();
 
   const studentQuery = useStudent(idParam);
+  const studentTeachersQuery = useStudentTeachers(idParam);
   const [tab, setTab] = useState<Tab>('academics');
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [manageTeachersOpen, setManageTeachersOpen] = useState(false);
   const resetPassword = useResetPasswordStudent(idParam as string);
 
   const subjectGrades: ISubjectGrade[] = useMemo(
@@ -162,6 +170,46 @@ export default function StudentProfilePage() {
               </ul>
             )}
           </div>
+
+          {/* Assigned teachers */}
+          <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-md">
+            <header className="flex items-center justify-between mb-sm">
+              <h3 className="font-manrope text-headline-md text-on-surface">
+                {t('pages.admin.students.assignedTeachers')}
+              </h3>
+              {base === '/admin' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  leadingIcon={<Icon name="edit" size={16} />}
+                  onClick={() => setManageTeachersOpen(true)}
+                >
+                  {t('common.manage', 'Quản lý')}
+                </Button>
+              )}
+            </header>
+            {(studentTeachersQuery.data?.length ?? 0) === 0 ? (
+              <p className="text-label-sm text-on-surface-variant text-center py-md italic">
+                {t('pages.admin.students.noTeachers')}
+              </p>
+            ) : (
+              <ul className="flex flex-col divide-y divide-outline-variant/30">
+                {studentTeachersQuery.data?.map((teacher) => (
+                  <li key={teacher.id} className="flex items-center gap-sm py-sm">
+                    <Avatar
+                      size="sm"
+                      initials={`${teacher.firstName[0] ?? ''}${teacher.lastName[0] ?? ''}`.toUpperCase()}
+                      src={teacher.avatarUrl ?? undefined}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-on-surface font-medium truncate">{formatName(teacher)}</div>
+                      <div className="text-[12px] text-on-surface-variant truncate">{teacher.email}</div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </aside>
 
         {/* Right column */}
@@ -274,6 +322,88 @@ export default function StudentProfilePage() {
           }
         }}
       />
+      {manageTeachersOpen && (
+        <ManageTeachersDialog
+          studentId={idParam as string}
+          currentIds={(studentTeachersQuery.data ?? []).map((u) => u.id)}
+          onClose={() => setManageTeachersOpen(false)}
+          onSaved={() => {
+            setManageTeachersOpen(false);
+            toast.success(t('pages.admin.students.teachersUpdated', 'Đã cập nhật giáo viên'));
+          }}
+          onError={(msg) => toast.error(msg)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ManageTeachersDialog({
+  studentId,
+  currentIds,
+  onClose,
+  onSaved,
+  onError,
+}: {
+  studentId: string;
+  currentIds: string[];
+  onClose: () => void;
+  onSaved: () => void;
+  onError: (msg: string) => void;
+}) {
+  const { t } = useTranslation();
+  const teachersQuery = useUsersList({ role: UserRole.TEACHER, limit: 1000 });
+  const save = useSetStudentTeachers(studentId);
+  const [selected, setSelected] = useState<Set<string>>(new Set(currentIds));
+
+  async function submit() {
+    try {
+      await save.mutateAsync([...selected]);
+      onSaved();
+    } catch (err) {
+      const msg = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data
+        ?.message;
+      onError(Array.isArray(msg) ? msg.join(', ') : (msg ?? (err as Error).message));
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-on-surface/40 backdrop-blur-sm p-md"
+      onClick={onClose}
+    >
+      <div
+        className="bg-surface-container-lowest rounded-2xl border border-outline-variant/50 shadow-elev-3 w-full max-w-lg p-lg flex flex-col gap-md"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="flex items-center justify-between">
+          <h2 className="font-manrope text-headline-md text-on-surface">
+            {t('pages.admin.students.assignedTeachers')}
+          </h2>
+          <button type="button" onClick={onClose} className="p-1 rounded hover:bg-surface-container-high">
+            <Icon name="close" />
+          </button>
+        </header>
+        <MultiSelectPicker
+          loading={teachersQuery.isLoading}
+          options={(teachersQuery.data?.items ?? []).map((u) => ({
+            id: u.id,
+            label: formatName(u),
+            sublabel: u.email,
+          }))}
+          selected={selected}
+          onChange={setSelected}
+          emptyText={t('pages.admin.students.noTeachers')}
+        />
+        <footer className="flex justify-end gap-sm">
+          <Button variant="outline" onClick={onClose}>
+            {t('common.cancel', 'Cancel')}
+          </Button>
+          <Button onClick={submit} disabled={save.isPending}>
+            {t('common.save', 'Save')}
+          </Button>
+        </footer>
+      </div>
     </div>
   );
 }

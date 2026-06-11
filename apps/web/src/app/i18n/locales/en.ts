@@ -26,6 +26,9 @@ const en = {
     cancel: 'Cancel',
     edit: 'Edit',
     delete: 'Delete',
+    manage: 'Manage',
+    noResults: 'No results',
+    selectedCount: '{{count}} selected',
     more: 'More',
     moreFilters: 'More filters',
     viewAll: 'View all',
@@ -494,6 +497,9 @@ const en = {
         },
         showing: 'Showing {{from}}–{{to}} of {{total}}',
         emptyFiltered: 'No students match the current filters.',
+        assignedTeachers: 'Assigned teachers',
+        noTeachers: 'No teachers assigned yet.',
+        teachersUpdated: 'Assigned teachers updated.',
       },
       users: {
         title: 'Teacher management',
@@ -517,7 +523,12 @@ const en = {
         actions: {
           edit: 'Edit',
           resetPassword: 'Reset password',
+          manageStudents: 'Manage students',
           delete: 'Delete',
+        },
+        manageStudents: {
+          title: 'Assigned students',
+          empty: 'No students.',
         },
         showing: 'Showing {{from}}–{{to}} of {{total}}',
         emptyFiltered: 'No teachers match the current filters.',
@@ -545,6 +556,7 @@ const en = {
           updated: 'Teacher updated.',
           deleted: 'Teacher deleted.',
           passwordReset: 'Password reset.',
+          studentsUpdated: 'Assigned students updated.',
         },
       },
       studentCreate: {

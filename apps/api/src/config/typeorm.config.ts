@@ -13,7 +13,7 @@ export const typeOrmConfig = (cfg: ConfigService): TypeOrmModuleOptions => {
     url: cfg.get<string>('DATABASE_URL'),
     ssl: cfg.get<string>('DATABASE_URL')?.includes('amazonaws.com') ? { rejectUnauthorized: false } : undefined,
     autoLoadEntities: true,
-    synchronize: !isProd,
+    synchronize: true,
     logging: isProd ? ['error'] : ['error', 'warn'],
     namingStrategy: undefined,
   };
