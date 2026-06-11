@@ -82,6 +82,29 @@ interface ApiClassCourse {
   isRequired: boolean;
 }
 
+export interface ClassCourseStudentProgressAssignment {
+  assignmentId: string;
+  completed: boolean;
+  completedAt: string | null;
+  lastStatus: string | null;
+  lastSubmittedAt: string | null;
+  attemptCount: number;
+  passedCount: number;
+  totalCount: number;
+  bestSubmissionId: string | null;
+  lastSubmissionId: string | null;
+}
+
+export interface ClassCourseStudentProgress {
+  classId: string;
+  courseId: string;
+  completedAssignments: number;
+  totalAssignments: number;
+  percentage: number;
+  nextAssignmentId: string | null;
+  assignments: ClassCourseStudentProgressAssignment[];
+}
+
 // ── Adapters ──────────────────────────────────────────────────────────────
 
 function toAssignment(a: ApiAssignment): IAssignmentDef {
@@ -366,6 +389,13 @@ export const classCoursesApi = {
   async listForClass(classId: string): Promise<IClassCourseLink[]> {
     const { data } = await apiClient.get<ApiClassCourse[]>(`/classes/${classId}/courses`);
     return data.map(toClassCourseLink);
+  },
+
+  async myProgress(classId: string, courseId: string): Promise<ClassCourseStudentProgress> {
+    const { data } = await apiClient.get<ClassCourseStudentProgress>(
+      `/classes/${classId}/courses/${courseId}/my-progress`,
+    );
+    return data;
   },
 
   async attach(classId: string, courseIds: string[], isRequired = true): Promise<IClassCourseLink[]> {

@@ -9,11 +9,12 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { UserRole } from '@cp/shared';
+import { JwtPayload, UserRole } from '@cp/shared';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ClassCourse } from './class-course.entity';
 import { ClassCoursesService } from './class-courses.service';
 import { AttachCoursesDto, ReorderClassCoursesDto } from './dto/class-course.dto';
@@ -43,6 +44,16 @@ export class ClassCoursesController {
     @Param('courseId', new ParseUUIDPipe()) courseId: string,
   ) {
     return this.service.getCourseProgress(classId, courseId);
+  }
+
+  @Roles(UserRole.STUDENT)
+  @Get(':courseId/my-progress')
+  myProgress(
+    @CurrentUser() user: JwtPayload,
+    @Param('classId', new ParseUUIDPipe()) classId: string,
+    @Param('courseId', new ParseUUIDPipe()) courseId: string,
+  ) {
+    return this.service.getStudentCourseProgress(classId, courseId, user.sub);
   }
 
   @Roles(UserRole.ADMIN)

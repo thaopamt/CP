@@ -10,6 +10,7 @@ import {
   useUpdateDefaultLanguage,
 } from '../../api/student.queries';
 import { useChangePassword } from '../../api/me.queries';
+import { AvatarUpload } from '../../components/AvatarUpload';
 
 type TabType = 'profile' | 'stats' | 'preferences' | 'security';
 
@@ -177,15 +178,11 @@ export default function MePage() {
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-500/5 rounded-full blur-3xl -z-10"></div>
         
         <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
-          <div className="relative group cursor-pointer">
-            <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full blur opacity-40 group-hover:opacity-75 transition duration-500"></div>
-            <div className="relative">
-              <Avatar size="lg" src={user?.avatarUrl} initials={name[0]} className="w-24 h-24 border-4 border-[#121218] shadow-2xl" />
-            </div>
-            <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-emerald-500 border-4 border-[#0f0f13] flex items-center justify-center shadow-md">
-              <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
-            </div>
-          </div>
+          <AvatarUpload
+            currentAvatarUrl={user?.avatarUrl}
+            displayName={name}
+            variant="student"
+          />
 
           <div className="flex-1 text-center md:text-left min-w-0">
             <div className="flex flex-col md:flex-row md:items-center gap-3 justify-center md:justify-start">

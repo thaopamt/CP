@@ -33,6 +33,8 @@ export const curriculumKeys = {
     assignments: (courseId: string) => ['courses', 'assignments', courseId] as const,
   },
   classCourses: (classId: string) => ['classes', 'courses', classId] as const,
+  classCourseProgress: (classId: string, courseId: string) =>
+    ['classes', 'courses', classId, courseId, 'my-progress'] as const,
 };
 
 // ── Assignments ──────────────────────────────────────────────────────────
@@ -193,6 +195,22 @@ export function useClassCourses(classId: string | undefined) {
     queryKey: classId ? curriculumKeys.classCourses(classId) : ['classes', 'courses', 'noop'],
     queryFn: () => classCoursesApi.listForClass(classId as string),
     enabled: !!classId,
+  });
+}
+
+export function useClassCourseProgress(
+  classId: string | undefined,
+  courseId: string | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey:
+      classId && courseId
+        ? curriculumKeys.classCourseProgress(classId, courseId)
+        : ['classes', 'courses', 'my-progress', 'noop'],
+    queryFn: () => classCoursesApi.myProgress(classId as string, courseId as string),
+    enabled: !!classId && !!courseId && enabled,
+    staleTime: 15_000,
   });
 }
 

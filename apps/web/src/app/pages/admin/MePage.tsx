@@ -5,6 +5,7 @@ import { ROLE_LABEL } from '@cp/shared';
 
 import { useChangePassword, useMe, useUpdateMe } from '../../api/me.queries';
 import { useAuthStore } from '../../stores/auth.store';
+import { AvatarUpload } from '../../components/AvatarUpload';
 
 type ProfileDraft = {
   firstName: string;
@@ -129,14 +130,13 @@ export default function AdminMePage() {
 
       <section className="grid grid-cols-1 gap-md lg:grid-cols-[280px_1fr]">
         <aside className="rounded-xl border border-outline-variant/60 bg-surface-container-lowest p-lg">
-          <div className="flex items-center gap-md">
-            <Avatar
-              size="lg"
-              src={profile.avatarUrl || me?.avatarUrl}
-              initials={displayName.charAt(0).toUpperCase()}
-              className="h-16 w-16 text-xl"
+          <div className="flex flex-col items-center gap-md">
+            <AvatarUpload
+              currentAvatarUrl={me?.avatarUrl}
+              displayName={displayName}
+              variant="admin"
             />
-            <div className="min-w-0">
+            <div className="text-center min-w-0 w-full">
               <h2 className="truncate font-manrope text-headline-md text-on-surface">
                 {displayName}
               </h2>
@@ -216,16 +216,6 @@ export default function AdminMePage() {
                   className="w-full cursor-not-allowed rounded-lg border border-outline-variant bg-surface-container px-md py-sm text-on-surface-variant outline-none"
                 />
               </Field>
-              <Field label={isVi ? 'Ảnh đại diện' : 'Avatar URL'} className="md:col-span-2">
-                <input
-                  value={profile.avatarUrl}
-                  onChange={(event) =>
-                    setProfile((prev) => ({ ...prev, avatarUrl: event.target.value }))
-                  }
-                  className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-md py-sm outline-none focus:ring-2 focus:ring-primary"
-                />
-              </Field>
-
               <div className="flex justify-end md:col-span-2">
                 <Button
                   type="submit"

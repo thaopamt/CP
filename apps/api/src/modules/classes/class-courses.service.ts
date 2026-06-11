@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 
@@ -42,6 +42,16 @@ export interface ClassCourseProgress {
   courseId: string;
   assignments: ClassCourseProgressAssignment[];
   students: ClassCourseProgressStudent[];
+}
+
+export interface ClassCourseStudentProgress {
+  classId: string;
+  courseId: string;
+  completedAssignments: number;
+  totalAssignments: number;
+  percentage: number;
+  nextAssignmentId: string | null;
+  assignments: ClassCourseProgressStudentAssignment[];
 }
 
 /**
@@ -269,6 +279,127 @@ export class ClassCoursesService {
           assignments: assignmentProgress,
         };
       }),
+    };
+  }
+
+  async getStudentCourseProgress(
+    classId: string,
+    courseId: string,
+    studentId: string,
+  ): Promise<ClassCourseStudentProgress> {
+    const link = await this.junction.findOne({ where: { classId, courseId } });
+    if (!link) throw new NotFoundException(`Course ${courseId} is not attached to class ${classId}`);
+
+    const enrollment = await this.ds.query<Array<{ exists: boolean }>>(
+      `
+      SELECT true AS "exists"
+      FROM enrollments e
+      WHERE e.class_id = $1
+        AND e.student_id = $2
+        AND e.deleted_at IS NULL
+      LIMIT 1
+      `,
+      [classId, studentId],
+    );
+    if (enrollment.length === 0) {
+      throw new ForbiddenException('Student is not enrolled in this class');
+    }
+
+    const assignments = await this.ds.query<ClassCourseProgressAssignment[]>(
+      `
+      SELECT
+        ca.id AS "courseAssignmentId",
+        ca.assignment_id AS "assignmentId",
+        a.title AS "title",
+        ca.order_index AS "orderIndex",
+        a.points AS "points"
+      FROM course_assignments ca
+      JOIN assignments a ON a.id = ca.assignment_id
+      WHERE ca.course_id = $1
+        AND ca.deleted_at IS NULL
+        AND a.deleted_at IS NULL
+      ORDER BY ca.order_index ASC, a.title ASC
+      `,
+      [courseId],
+    );
+
+    if (assignments.length === 0) {
+      return {
+        classId,
+        courseId,
+        completedAssignments: 0,
+        totalAssignments: 0,
+        percentage: 0,
+        nextAssignmentId: null,
+        assignments: [],
+      };
+    }
+
+    const progressRows = await this.ds.query<
+      Array<{
+        assignmentId: string;
+        completed: boolean;
+        completedAt: Date | null;
+        lastStatus: string | null;
+        lastSubmittedAt: Date | null;
+        attemptCount: number;
+        passedCount: number;
+        totalCount: number;
+        bestSubmissionId: string | null;
+        lastSubmissionId: string | null;
+      }>
+    >(
+      `
+      SELECT
+        assignment_id AS "assignmentId",
+        completed,
+        completed_at AS "completedAt",
+        last_status AS "lastStatus",
+        last_submitted_at AS "lastSubmittedAt",
+        attempt_count AS "attemptCount",
+        passed_count AS "passedCount",
+        total_count AS "totalCount",
+        best_submission_id AS "bestSubmissionId",
+        last_submission_id AS "lastSubmissionId"
+      FROM student_assignment_progress
+      WHERE student_id = $1
+        AND assignment_id = ANY($2::uuid[])
+        AND deleted_at IS NULL
+      `,
+      [studentId, assignments.map((assignment) => assignment.assignmentId)],
+    );
+
+    const progressByAssignment = new Map(progressRows.map((row) => [row.assignmentId, row]));
+    const assignmentProgress = assignments.map<ClassCourseProgressStudentAssignment>((assignment) => {
+      const row = progressByAssignment.get(assignment.assignmentId);
+      return {
+        assignmentId: assignment.assignmentId,
+        completed: row?.completed ?? false,
+        completedAt: row?.completedAt?.toISOString?.() ?? null,
+        lastStatus: row?.lastStatus ?? null,
+        lastSubmittedAt: row?.lastSubmittedAt?.toISOString?.() ?? null,
+        attemptCount: Number(row?.attemptCount ?? 0),
+        passedCount: Number(row?.passedCount ?? 0),
+        totalCount: Number(row?.totalCount ?? 0),
+        bestSubmissionId: row?.bestSubmissionId ?? null,
+        lastSubmissionId: row?.lastSubmissionId ?? null,
+      };
+    });
+    const completedAssignments = assignmentProgress.filter((item) => item.completed).length;
+    const totalAssignments = assignments.length;
+    const nextAssignment = assignments.find((assignment) => {
+      const progress = progressByAssignment.get(assignment.assignmentId);
+      return !(progress?.completed ?? false);
+    });
+
+    return {
+      classId,
+      courseId,
+      completedAssignments,
+      totalAssignments,
+      percentage: totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0,
+      nextAssignmentId: nextAssignment?.assignmentId ?? null,
+      assignments: assignmentProgress,
     };
   }
 }

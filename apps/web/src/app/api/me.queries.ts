@@ -24,6 +24,26 @@ export function useUpdateMe() {
   });
 }
 
+export function useUploadAvatar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => meApi.uploadAvatar(file),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: meQueryKeys.current() });
+    },
+  });
+}
+
+export function useDeleteAvatar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => meApi.deleteAvatar(),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: meQueryKeys.current() });
+    },
+  });
+}
+
 export function useChangePassword() {
   return useMutation({
     mutationFn: (payload: ChangePasswordRequest) => meApi.changePassword(payload),

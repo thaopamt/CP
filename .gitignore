@@ -12,6 +12,9 @@ out-tsc/
 # Disk-backed grading test cases (TESTCASE_STORAGE_DIR)
 storage/
 
+# Uploaded files (avatars, etc.)
+uploads/
+
 # Env
 .env
 .env.local

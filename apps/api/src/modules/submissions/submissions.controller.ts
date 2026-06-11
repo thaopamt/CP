@@ -1,6 +1,6 @@
-import { Controller, Post, Get, Body, UseGuards, Req, Param, Query, NotFoundException } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req, Param, Query, NotFoundException, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, In, Repository } from 'typeorm';
+import { Brackets, In, LessThan, Repository } from 'typeorm';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -22,9 +22,13 @@ import {
   UserRole,
 } from '@cp/shared';
 
+/** Submissions stuck in PENDING longer than this are considered orphaned. */
+const STALE_PENDING_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
+
 @Controller('submissions')
 @UseGuards(JwtAuthGuard)
-export class SubmissionsController {
+export class SubmissionsController implements OnModuleInit {
+  private readonly logger = new Logger(SubmissionsController.name);
   constructor(
     private readonly executionService: ExecutionService,
     @InjectRepository(Submission)
@@ -38,6 +42,36 @@ export class SubmissionsController {
     private readonly testcaseStorage: TestcaseStorageService,
     private readonly assignmentProgress: StudentAssignmentProgressService,
   ) {}
+
+  /**
+   * On server startup, mark any orphaned PENDING submissions as INTERNAL_ERROR.
+   *
+   * This handles the case where the server was restarted/crashed while a
+   * submission was being graded — the in-flight grading is lost and the DB
+   * record stays PENDING forever.  We detect these by looking for PENDING
+   * submissions older than STALE_PENDING_THRESHOLD_MS.
+   */
+  async onModuleInit() {
+    const cutoff = new Date(Date.now() - STALE_PENDING_THRESHOLD_MS);
+    const staleSubmissions = await this.submissionRepo.find({
+      where: {
+        status: SubmissionStatus.PENDING,
+        createdAt: LessThan(cutoff),
+      },
+    });
+
+    if (staleSubmissions.length === 0) return;
+
+    this.logger.warn(
+      `Found ${staleSubmissions.length} stale PENDING submission(s). Marking as INTERNAL_ERROR.`,
+    );
+
+    for (const sub of staleSubmissions) {
+      sub.status = SubmissionStatus.INTERNAL_ERROR;
+      await this.submissionRepo.save(sub);
+      this.logger.warn(`  → Submission ${sub.id} (created ${sub.createdAt.toISOString()}) marked INTERNAL_ERROR`);
+    }
+  }
 
   @Post('run')
   async runCode(@Body() payload: ICodeExecutionRequest) {

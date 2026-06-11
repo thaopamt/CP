@@ -4,7 +4,8 @@ import { TypeOrmCrudService } from '@dataui/crud-typeorm';
 import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
 import { DataSource, Repository, In, MoreThanOrEqual, Not } from 'typeorm';
-import { EnrollmentStatus, UserRole, SubmissionStatus } from '@cp/shared';
+import { DayOfWeek, EnrollmentStatus, PublishStatus, SubmissionStatus, UserRole } from '@cp/shared';
+import type { ICourseNextStep } from '@cp/shared';
 
 import { User } from '../users/user.entity';
 import { StudentProfile } from './student-profile.entity';
@@ -14,8 +15,11 @@ import { UpdateStudentDto } from './dto/update-student.dto';
 import { UpdateMyStudentDto } from './dto/update-my-student.dto';
 import { Enrollment } from '../classes/enrollment.entity';
 import { ClassCourse } from '../classes/class-course.entity';
+import { CourseAssignment } from '../courses/course-assignment.entity';
 import { Assignment } from '../assignments/assignment.entity';
 import { Submission } from '../submissions/submission.entity';
+import { StudentAssignmentProgress } from '../submissions/student-assignment-progress.entity';
+import { StudentSchedule } from './student-schedule.entity';
 
 @Injectable()
 export class StudentsService extends TypeOrmCrudService<StudentProfile> {
@@ -252,15 +256,20 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
     const profile = await this.repo.findOne({ where: { userId }, relations: ['user'] });
     if (!profile) throw new NotFoundException(`Student profile not found for user ${userId}`);
 
-    // 1. Daily Quests
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
+    const startOfWeek = new Date(startOfDay);
+    const day = startOfWeek.getDay();
+    startOfWeek.setDate(startOfWeek.getDate() - (day === 0 ? 6 : day - 1));
+
     const dailyQuestsCompleted = await this.ds.getRepository(Submission).count({
       where: { userId, status: SubmissionStatus.ACCEPTED, createdAt: MoreThanOrEqual(startOfDay) },
     });
+    const weeklyAccepted = await this.ds.getRepository(Submission).count({
+      where: { userId, status: SubmissionStatus.ACCEPTED, createdAt: MoreThanOrEqual(startOfWeek) },
+    });
     const dailyQuestsTarget = 5;
 
-    // 2. Leaderboard
     const topProfiles = await this.repo.find({
       order: { xp: 'DESC' },
       take: 10,
@@ -268,60 +277,216 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
     });
     const leaderboard = topProfiles.map((p, index) => ({
       rank: index + 1,
-      name: p.userId === userId ? 'You' : `${p.user.firstName} ${p.user.lastName.charAt(0)}.`,
+      name: p.userId === userId ? 'You' : this.formatDisplayName(p.user),
       points: p.xp.toLocaleString(),
       isMe: p.userId === userId,
-      avatarInitial: p.userId === userId ? 'Y' : p.user.firstName.charAt(0).toUpperCase(),
+      avatarInitial: this.getInitials(p.user),
     }));
 
-    // 3. Enrolled Courses
-    const enrollments = await this.ds.getRepository(Enrollment).find({ where: { studentId: userId } });
+    const enrollments = await this.ds.getRepository(Enrollment).find({
+      where: { studentId: userId },
+      relations: ['class'],
+    });
     const classIds = enrollments.map(e => e.classId);
-    
-    let enrolledCourses: any[] = [];
-    if (classIds.length > 0) {
-      const classCourses = await this.ds.getRepository(ClassCourse).find({
-        where: { classId: In(classIds) },
-        relations: ['course'],
-      });
-      
-      // Deduplicate courses
-      const uniqueCourses = new Map();
-      classCourses.forEach(cc => {
-        if (!uniqueCourses.has(cc.course.id)) {
-          uniqueCourses.set(cc.course.id, {
-            id: cc.course.id,
-            title: cc.course.title,
-            progress: 0, // Mocked until progress calculation is implemented
-            colorGradient: 'from-cyan-500 to-blue-600',
-            icon: 'menu_book',
-          });
-        }
-      });
-      enrolledCourses = Array.from(uniqueCourses.values());
+
+    const classCourses = classIds.length
+      ? await this.ds.getRepository(ClassCourse).find({
+          where: { classId: In(classIds) },
+          relations: ['course', 'class'],
+          order: { orderIndex: 'ASC' },
+        })
+      : [];
+    const courseIds = [...new Set(classCourses.map((cc) => cc.courseId))];
+    const courseAssignments = courseIds.length
+      ? await this.ds.getRepository(CourseAssignment)
+          .createQueryBuilder('ca')
+          .leftJoinAndSelect('ca.assignment', 'a')
+          .where('"ca"."course_id" IN (:...courseIds)', { courseIds })
+          .andWhere('a.status = :status', { status: PublishStatus.PUBLISHED })
+          .orderBy('"ca"."order_index"', 'ASC')
+          .getMany()
+      : [];
+    const scopedAssignments = await this.getScopedAssignmentsForDashboard(classIds);
+
+    const allAssignments = new Map<string, Assignment>();
+    for (const ca of courseAssignments) allAssignments.set(ca.assignment.id, ca.assignment);
+    for (const assignment of scopedAssignments) allAssignments.set(assignment.id, assignment);
+
+    const assignmentIds = [...allAssignments.keys()];
+    const progressRows = assignmentIds.length
+      ? await this.ds.getRepository(StudentAssignmentProgress).find({
+          where: { studentId: userId, assignmentId: In(assignmentIds) },
+        })
+      : [];
+    const progressByAssignment = new Map(progressRows.map((p) => [p.assignmentId, p]));
+    const getProgress = (assignmentId: string): number => {
+      const p = progressByAssignment.get(assignmentId);
+      if (!p) return 0;
+      if (p.completed) return 100;
+      if (p.totalCount > 0) return Math.max(5, Math.round((p.passedCount / p.totalCount) * 100));
+      return p.lastStatus ? 10 : 0;
+    };
+
+    const totalAssignments = assignmentIds.length;
+    const totalCompleted = progressRows.filter((p) => p.completed).length;
+    const overallProgress = totalAssignments > 0 ? Math.round((totalCompleted / totalAssignments) * 100) : 0;
+
+    const courseAssignmentsByCourse = new Map<string, CourseAssignment[]>();
+    for (const ca of courseAssignments) {
+      const rows = courseAssignmentsByCourse.get(ca.courseId) ?? [];
+      rows.push(ca);
+      courseAssignmentsByCourse.set(ca.courseId, rows);
     }
 
-    // 4. Active Quests (Assignments)
-    let activeQuests: any[] = [];
-    if (classIds.length > 0) {
-      // Postgres array overlap operator '&&'
-      const assignments = await this.ds.getRepository(Assignment)
-        .createQueryBuilder('a')
-        .where('a.classIds && ARRAY[:...classIds]::uuid[]', { classIds })
-        .limit(5)
-        .getMany();
+    const enrolledCourses = Array.from(
+      classCourses.reduce((acc, cc) => {
+        if (!acc.has(cc.course.id)) acc.set(cc.course.id, cc);
+        return acc;
+      }, new Map<string, ClassCourse>()).values(),
+    ).map((cc, idx) => {
+      const rows = courseAssignmentsByCourse.get(cc.courseId) ?? [];
+      const completedAssignments = rows.filter((row) => getProgress(row.assignmentId) === 100).length;
+      const progress = rows.length > 0 ? Math.round((completedAssignments / rows.length) * 100) : 0;
+      return {
+        id: cc.course.id,
+        classId: cc.classId,
+        className: cc.class?.name,
+        code: cc.course.code,
+        title: cc.course.title,
+        progress,
+        completedAssignments,
+        totalAssignments: rows.length,
+        route: `/student/classes/${cc.classId}/courses/${cc.course.id}`,
+        colorGradient: idx % 2 === 0 ? 'from-primary to-tertiary' : 'from-secondary to-primary',
+        icon: 'menu_book',
+      };
+    });
 
-      activeQuests = assignments.map((a, idx) => ({
+    const courseNextSteps = classCourses
+      .map((cc): ICourseNextStep | null => {
+        const rows = [...(courseAssignmentsByCourse.get(cc.courseId) ?? [])].sort(
+          (a, b) => a.orderIndex - b.orderIndex,
+        );
+        if (rows.length === 0) return null;
+
+        const completedAssignments = rows.filter((row) => getProgress(row.assignmentId) === 100).length;
+        const courseProgress = Math.round((completedAssignments / rows.length) * 100);
+        const nextRow = rows.find((row) => getProgress(row.assignmentId) < 100);
+        if (!nextRow) return null;
+
+        const assignment = nextRow.assignment;
+        return {
+          id: `${cc.id}:${assignment.id}`,
+          classId: cc.classId,
+          className: cc.class?.name ?? null,
+          courseId: cc.course.id,
+          courseCode: cc.course.code,
+          courseTitle: cc.course.title,
+          courseProgress,
+          completedAssignments,
+          totalAssignments: rows.length,
+          assignmentId: assignment.id,
+          assignmentTitle: assignment.title,
+          assignmentDifficulty: assignment.difficulty,
+          assignmentPoints: assignment.points,
+          assignmentProgress: getProgress(assignment.id),
+          estimatedMinutes: assignment.estimatedMinutes ?? undefined,
+          route: assignment.codingConfig
+            ? `/student/workspace/${assignment.id}`
+            : `/student/assignments/${assignment.id}`,
+        };
+      })
+      .filter((step): step is ICourseNextStep => step !== null)
+      .sort((a, b) => {
+        const aStarted = a.assignmentProgress > 0 ? 0 : 1;
+        const bStarted = b.assignmentProgress > 0 ? 0 : 1;
+        if (aStarted !== bStarted) return aStarted - bStarted;
+        return b.assignmentProgress - a.assignmentProgress || b.courseProgress - a.courseProgress;
+      })
+      .slice(0, 6);
+
+    const recentSubmissions = await this.ds.getRepository(Submission).find({
+      where: { userId },
+      relations: ['assignment'],
+      order: { createdAt: 'DESC' },
+      take: 5,
+    });
+    const recentAccepted = recentSubmissions.find((submission) => submission.status === SubmissionStatus.ACCEPTED);
+    const targetPoints = recentAccepted?.assignment?.points ?? Math.max(10, profile.level * 10);
+
+    const activeQuests = Array.from(allAssignments.values())
+      .map((a, idx) => ({
         id: a.id,
         title: a.title,
-        icon: idx % 2 === 0 ? 'functions' : 'code',
+        subject: a.tags?.[0] ?? 'Practice',
+        icon: a.codingConfig ? 'code' : 'assignment',
         duration: a.estimatedMinutes ? `${a.estimatedMinutes} mins` : '20 mins',
-        progress: 0, // Mocked until detailed submission progress is calculated
-        colorPrefix: idx % 2 === 0 ? 'emerald' : 'purple',
-      }));
-    }
+        progress: getProgress(a.id),
+        difficulty: a.difficulty,
+        xpReward: a.points,
+        route: a.codingConfig ? `/student/workspace/${a.id}` : `/student/assignments/${a.id}`,
+        colorPrefix: idx % 2 === 0 ? 'emerald' : 'cyan',
+      }))
+      .filter((a) => a.progress < 100)
+      .sort((a, b) => {
+        const aStarted = a.progress > 0 ? 0 : 1;
+        const bStarted = b.progress > 0 ? 0 : 1;
+        if (aStarted !== bStarted) return aStarted - bStarted;
+        const aPointDistance = Math.abs(a.xpReward - targetPoints);
+        const bPointDistance = Math.abs(b.xpReward - targetPoints);
+        return aPointDistance - bPointDistance || b.progress - a.progress || b.xpReward - a.xpReward;
+      })
+      .slice(0, 6);
+
+    const scheduleRows = await this.ds.getRepository(StudentSchedule).find({
+      where: { studentId: userId },
+      relations: ['class'],
+      order: { startTime: 'ASC' },
+    });
+    const todayKey = this.getTodayKey();
+    const todaySchedule = scheduleRows
+      .filter((session) => session.dayOfWeek === todayKey)
+      .sort((a, b) => this.timeToMinutes(a.startTime) - this.timeToMinutes(b.startTime))
+      .map((session) => this.toScheduleSummary(session, 0));
+    const nextSession = this.findNextScheduleSession(scheduleRows);
+
+    const recommendedCourseStep = courseNextSteps[0];
+    const recommendedNext = recommendedCourseStep
+      ? {
+          title: recommendedCourseStep.assignmentTitle,
+          subtitle: recommendedCourseStep.assignmentProgress > 0
+            ? 'Continue from your course sequence'
+            : 'Next assignment in your course',
+          icon: recommendedCourseStep.assignmentProgress > 0 ? 'pending_actions' : 'play_lesson',
+          route: recommendedCourseStep.route,
+          actionLabel: 'Open',
+          tone: recommendedCourseStep.assignmentProgress > 0 ? 'success' : 'primary',
+          source: 'course',
+        }
+      : activeQuests[0]
+        ? {
+          title: activeQuests[0].title,
+          subtitle: 'Standalone assignment matched to your level',
+          icon: activeQuests[0].icon,
+          route: activeQuests[0].route,
+          actionLabel: 'Open',
+          tone: activeQuests[0].progress > 0 ? 'success' : 'primary',
+          source: 'assignment',
+        }
+      : nextSession
+        ? {
+            title: nextSession.className ?? 'Next class',
+            subtitle: `${this.formatDay(nextSession.dayOfWeek)} ${nextSession.startTime}-${nextSession.endTime}`,
+            icon: 'event',
+            route: '/student/classes',
+            actionLabel: 'View schedule',
+            tone: 'neutral',
+            source: 'schedule',
+          }
+        : null;
 
     return {
+      studentName: this.formatFullName(profile.user),
       level: profile.level,
       xp: profile.xp,
       xpForNext: profile.level * 1000,
@@ -329,33 +494,176 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       gems: profile.gems,
       dailyQuestsCompleted,
       dailyQuestsTarget,
+      weeklyAccepted,
+      totalAssignments,
+      totalCompleted,
+      overallProgress,
       defaultLanguage: profile.defaultLanguage || 'cpp',
       activeQuests,
       enrolledCourses,
-      achievements: [ // Kept mocked as agreed
+      courseNextSteps,
+      achievements: [
         {
-          id: 'a1',
+          id: 'firstAccepted',
           icon: 'workspace_premium',
-          label: 'Top of the Class',
-          caption: 'Ranked #1 this week',
-          unlocked: true,
+          label: 'First accepted',
+          caption: 'Solved your first assignment',
+          unlocked: totalCompleted > 0,
         },
         {
-          id: 'a2',
+          id: 'dailyGoal',
           icon: 'bolt',
-          label: 'Lightning Fast',
-          caption: 'Solved in under 5 mins',
-          unlocked: true,
+          label: 'Daily goal',
+          caption: 'Finished today target',
+          unlocked: dailyQuestsCompleted >= dailyQuestsTarget,
         },
         {
-          id: 'a3',
+          id: 'streak3',
+          icon: 'local_fire_department',
+          label: 'Three-day streak',
+          caption: 'Studied three days in a row',
+          unlocked: profile.streak >= 3,
+        },
+        {
+          id: 'tenSolved',
           icon: 'military_tech',
-          label: 'Code Master',
-          caption: 'Completed 50 quests',
-          unlocked: false,
+          label: 'Code master',
+          caption: 'Completed 10 assignments',
+          unlocked: totalCompleted >= 10,
         },
       ],
       leaderboard,
+      todaySchedule,
+      nextSession,
+      recentSubmissions: recentSubmissions.map((submission) => ({
+        id: submission.id,
+        assignmentId: submission.assignmentId,
+        assignmentTitle: submission.assignment?.title ?? 'Assignment',
+        status: submission.status,
+        language: submission.language,
+        passedCount: submission.passedCount,
+        totalCount: submission.totalCount,
+        createdAt: submission.createdAt.toISOString(),
+        route: submission.assignment?.codingConfig
+          ? `/student/workspace/${submission.assignmentId}`
+          : `/student/assignments/${submission.assignmentId}`,
+      })),
+      recommendedNext,
     };
+  }
+
+  private async getScopedAssignmentsForDashboard(classIds: string[]): Promise<Assignment[]> {
+    const qb = this.ds.getRepository(Assignment)
+      .createQueryBuilder('a')
+      .where('a.status = :status', { status: PublishStatus.PUBLISHED });
+
+    if (classIds.length > 0) {
+      qb.andWhere(
+        '("a"."class_ids" IS NULL OR CARDINALITY("a"."class_ids") = 0 OR "a"."class_ids" && ARRAY[:...classIds]::uuid[])',
+        { classIds },
+      );
+    } else {
+      qb.andWhere('("a"."class_ids" IS NULL OR CARDINALITY("a"."class_ids") = 0)');
+    }
+
+    return qb.orderBy('a.updatedAt', 'DESC').limit(40).getMany();
+  }
+
+  private getTodayKey(): DayOfWeek {
+    const days = [
+      DayOfWeek.SUN,
+      DayOfWeek.MON,
+      DayOfWeek.TUE,
+      DayOfWeek.WED,
+      DayOfWeek.THU,
+      DayOfWeek.FRI,
+      DayOfWeek.SAT,
+    ];
+    return days[new Date().getDay()];
+  }
+
+  private findNextScheduleSession(rows: StudentSchedule[]) {
+    if (!rows.length) return null;
+    const now = new Date();
+    const todayIndex = now.getDay();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    const ranked = rows
+      .map((row) => {
+        const dayIndex = this.dayIndex(row.dayOfWeek);
+        let startsInDays = (dayIndex - todayIndex + 7) % 7;
+        const startMinutes = this.timeToMinutes(row.startTime);
+        if (startsInDays === 0 && startMinutes < currentMinutes) startsInDays = 7;
+        return { row, startsInDays, startMinutes };
+      })
+      .sort((a, b) => a.startsInDays - b.startsInDays || a.startMinutes - b.startMinutes);
+
+    const next = ranked[0];
+    return next ? this.toScheduleSummary(next.row, next.startsInDays) : null;
+  }
+
+  private toScheduleSummary(session: StudentSchedule, startsInDays?: number) {
+    return {
+      id: session.id,
+      classId: session.classId,
+      className: session.class?.name ?? null,
+      classCode: session.class?.code ?? null,
+      dayOfWeek: session.dayOfWeek,
+      startTime: this.formatTime(session.startTime),
+      endTime: this.formatTime(session.endTime),
+      ...(startsInDays !== undefined ? { startsInDays } : {}),
+    };
+  }
+
+  private dayIndex(day: DayOfWeek): number {
+    return {
+      [DayOfWeek.SUN]: 0,
+      [DayOfWeek.MON]: 1,
+      [DayOfWeek.TUE]: 2,
+      [DayOfWeek.WED]: 3,
+      [DayOfWeek.THU]: 4,
+      [DayOfWeek.FRI]: 5,
+      [DayOfWeek.SAT]: 6,
+    }[day];
+  }
+
+  private timeToMinutes(time: string): number {
+    const [hour, minute] = time.split(':').map((part) => Number(part));
+    return (Number.isFinite(hour) ? hour : 0) * 60 + (Number.isFinite(minute) ? minute : 0);
+  }
+
+  private formatTime(time: string): string {
+    return time.slice(0, 5);
+  }
+
+  private formatDay(day: DayOfWeek): string {
+    return {
+      [DayOfWeek.MON]: 'Mon',
+      [DayOfWeek.TUE]: 'Tue',
+      [DayOfWeek.WED]: 'Wed',
+      [DayOfWeek.THU]: 'Thu',
+      [DayOfWeek.FRI]: 'Fri',
+      [DayOfWeek.SAT]: 'Sat',
+      [DayOfWeek.SUN]: 'Sun',
+    }[day];
+  }
+
+  private formatFullName(user: User): string {
+    return [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.username || 'Student';
+  }
+
+  private formatDisplayName(user: User): string {
+    const initial = user.lastName?.charAt(0);
+    return initial ? `${user.firstName} ${initial}.` : user.firstName || user.username || 'Student';
+  }
+
+  private getInitials(user: User): string {
+    const name = this.formatFullName(user);
+    return name
+      .split(/\s+/)
+      .map((part) => part.charAt(0))
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() || 'S';
   }
 }

@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon, StatusBadge } from '@cp/ui';
-import { PublishStatus } from '@cp/shared';
+import { PublishStatus, type IClassCourseLink } from '@cp/shared';
 import { useClass } from '../../api/class.queries';
-import { useClassCourses } from '../../api/curriculum.queries';
+import { useClassCourseProgress, useClassCourses } from '../../api/curriculum.queries';
 
 type Tab = 'overview' | 'courses' | 'classmates';
 
@@ -56,10 +56,10 @@ export default function StudentClassDetailPage() {
     cls.status === 'ACTIVE'
       ? 'success'
       : cls.status === 'UPCOMING'
-      ? 'warning'
-      : cls.status === 'ARCHIVED'
-      ? 'neutral'
-      : ('neutral' as const);
+        ? 'warning'
+        : cls.status === 'ARCHIVED'
+          ? 'neutral'
+          : ('neutral' as const);
 
   return (
     <div className="flex flex-col gap-lg pt-md pb-lg">
@@ -240,69 +240,15 @@ export default function StudentClassDetailPage() {
               </div>
             ) : (
               <div className="flex flex-col gap-md">
-                {coursesQuery.data.map((link, idx) => {
-                  const course = link.course;
-                  const statusColor =
-                    course.status === PublishStatus.PUBLISHED
-                      ? 'success'
-                      : course.status === PublishStatus.DRAFT
-                      ? 'warning'
-                      : 'neutral';
-                  return (
-                    <div
-                      key={link.id}
-                      onClick={() => navigate(`/student/classes/${classId}/courses/${course.id}`)}
-                      className="bg-surface-container-low border border-outline-variant/50 rounded-xl p-md hover:shadow-md hover:border-primary/30 transition-all cursor-pointer group flex gap-md items-start"
-                    >
-                      {/* Order number */}
-                      <div className="w-10 h-10 rounded-lg bg-primary-container text-on-primary-container grid place-items-center font-manrope font-bold text-body-lg shrink-0">
-                        {idx + 1}
-                      </div>
-
-                      {/* Course info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-sm flex-wrap mb-xs">
-                          <span className="text-[11px] font-mono text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded">
-                            {course.code}
-                          </span>
-                          <StatusBadge tone={statusColor}>
-                            {t(`enums.publishStatus.${course.status}`)}
-                          </StatusBadge>
-                          {link.isRequired && (
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-error bg-error-container/30 px-1.5 py-0.5 rounded">
-                              Required
-                            </span>
-                          )}
-                        </div>
-                        <h4 className="font-manrope text-on-surface font-bold text-body-lg leading-tight mb-xs">
-                          {course.title}
-                        </h4>
-                        {course.description && (
-                          <p className="text-label-sm text-on-surface-variant line-clamp-2 mb-sm">
-                            {course.description}
-                          </p>
-                        )}
-
-                        {/* Course meta chips */}
-                        <div className="flex flex-wrap gap-sm">
-                          <span className="inline-flex items-center gap-xs text-[11px] text-on-surface-variant bg-surface-container-high px-2 py-1 rounded-md">
-                            <Icon name="assignment" size={14} />
-                            {course.assignmentCount} assignment{course.assignmentCount !== 1 ? 's' : ''}
-                          </span>
-                          <span className="inline-flex items-center gap-xs text-[11px] text-on-surface-variant bg-surface-container-high px-2 py-1 rounded-md">
-                            <Icon name="stars" size={14} />
-                            {course.totalPoints} pts
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Arrow chevron */}
-                      <div className="shrink-0 self-center text-on-surface-variant/40">
-                        <Icon name="chevron_right" size={24} />
-                      </div>
-                    </div>
-                  );
-                })}
+                {coursesQuery.data.map((link, idx) => (
+                  <StudentCourseCard
+                    key={link.id}
+                    classId={classId}
+                    link={link}
+                    order={idx + 1}
+                    progressEnabled={tab === 'courses'}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -345,6 +291,103 @@ function StatCard({ icon, label, value }: { icon: string; label: string; value: 
       </div>
       <div className="font-manrope text-headline-md text-on-surface font-bold leading-tight truncate">
         {value}
+      </div>
+    </div>
+  );
+}
+
+function StudentCourseCard({
+  classId,
+  link,
+  order,
+  progressEnabled,
+}: {
+  classId: string | undefined;
+  link: IClassCourseLink;
+  order: number;
+  progressEnabled: boolean;
+}) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const course = link.course;
+  const progressQuery = useClassCourseProgress(classId, course.id, progressEnabled);
+  const progress = progressQuery.data;
+  const percentage = progress?.percentage ?? 0;
+  const completedAssignments = progress?.completedAssignments ?? 0;
+  const totalAssignments = progress?.totalAssignments ?? course.assignmentCount;
+  const statusColor =
+    course.status === PublishStatus.PUBLISHED
+      ? 'success'
+      : course.status === PublishStatus.DRAFT
+        ? 'warning'
+        : 'neutral';
+
+  return (
+    <div
+      onClick={() => navigate(`/student/classes/${classId}/courses/${course.id}`)}
+      className="bg-surface-container-low border border-outline-variant/50 rounded-xl p-md hover:shadow-md hover:border-primary/30 transition-all cursor-pointer group flex gap-md items-start"
+    >
+      <div className="w-10 h-10 rounded-lg bg-primary-container text-on-primary-container grid place-items-center font-manrope font-bold text-body-lg shrink-0">
+        {order}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-sm flex-wrap mb-xs">
+          <span className="text-[11px] font-mono text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded">
+            {course.code}
+          </span>
+          <StatusBadge tone={statusColor}>{t(`enums.publishStatus.${course.status}`)}</StatusBadge>
+          {link.isRequired && (
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-error bg-error-container/30 px-1.5 py-0.5 rounded">
+              Required
+            </span>
+          )}
+        </div>
+        <h4 className="font-manrope text-on-surface font-bold text-body-lg leading-tight mb-xs">
+          {course.title}
+        </h4>
+        {course.description && (
+          <p className="text-label-sm text-on-surface-variant line-clamp-2 mb-sm">{course.description}</p>
+        )}
+
+        <div className="flex flex-wrap gap-sm">
+          <span className="inline-flex items-center gap-xs text-[11px] text-on-surface-variant bg-surface-container-high px-2 py-1 rounded-md">
+            <Icon name="assignment" size={14} />
+            {course.assignmentCount} assignment{course.assignmentCount !== 1 ? 's' : ''}
+          </span>
+          <span className="inline-flex items-center gap-xs text-[11px] text-on-surface-variant bg-surface-container-high px-2 py-1 rounded-md">
+            <Icon name="stars" size={14} />
+            {course.totalPoints} pts
+          </span>
+        </div>
+
+        <div className="mt-md flex flex-col gap-xs">
+          <div className="flex items-center justify-between gap-sm">
+            <span className="inline-flex items-center gap-xs text-[11px] font-semibold text-on-surface-variant">
+              <Icon name="query_stats" size={14} className="text-primary" />
+              Progress
+            </span>
+            {progressQuery.isLoading ? (
+              <span className="h-4 w-24 rounded-full bg-surface-container-high animate-pulse" />
+            ) : progressQuery.isError ? (
+              <span className="text-[11px] text-error">Progress unavailable</span>
+            ) : (
+              <span className="text-[11px] font-semibold text-on-surface">
+                {percentage}%
+              </span>
+            )}
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-surface-container-high">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500"
+              style={{ width: `${Math.max(0, Math.min(100, percentage))}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="shrink-0 self-center text-on-surface-variant/40">
+        <Icon name="chevron_right" size={24} />
       </div>
     </div>
   );

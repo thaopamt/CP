@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { DifficultyBadge, Icon, useConfirm } from '@cp/ui';
 import {
@@ -41,6 +41,7 @@ type LeftTab = 'description' | 'submissions';
 type BottomTab = 'testcase' | 'terminal' | 'result';
 type WorkspaceRouteState = { classId?: string; courseId?: string } | null;
 type NextAssignmentTarget = { title: string; path: string; state?: WorkspaceRouteState };
+type WorkspaceDraft = { language: string; code: string };
 
 export default function StudentWorkspacePage() {
   const { problemId } = useParams<{ problemId: string }>();
@@ -67,21 +68,27 @@ export default function StudentWorkspacePage() {
 
   const savedLang = localStorage.getItem('cp_default_language');
   const defaultLangOption = LANG_OPTIONS.find(l => l.value === savedLang) || LANG_OPTIONS[0];
-  
-  const [language, setLanguage] = useState(() => {
+
+  const readCurrentWorkspaceDraft = (): WorkspaceDraft => {
+    const fallback = LANG_OPTIONS.find(l => l.value === localStorage.getItem('cp_default_language')) || defaultLangOption;
     try {
       const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
-      if (draft?.language) return draft.language;
-    } catch { /* ignore */ }
-    return defaultLangOption.value;
+      const draftLang = LANG_OPTIONS.find(l => l.value === draft?.language) || fallback;
+      return {
+        language: draftLang.value,
+        code: typeof draft?.code === 'string' ? draft.code : draftLang.template,
+      };
+    } catch {
+      return { language: fallback.value, code: fallback.template };
+    }
+  };
+  
+  const [language, setLanguage] = useState(() => {
+    return readCurrentWorkspaceDraft().language;
   });
   
   const [code, setCode] = useState(() => {
-    try {
-      const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
-      if (draft?.code) return draft.code;
-    } catch { /* ignore */ }
-    return defaultLangOption.template;
+    return readCurrentWorkspaceDraft().code;
   });
 
   // ── Auto-save code to localStorage (debounced 500ms) ──
@@ -185,6 +192,34 @@ export default function StudentWorkspacePage() {
   const [cursorOffset, setCursorOffset] = useState(0);
   const editorWrapRef = useRef<HTMLDivElement>(null);
   const editorScrollRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const nextDraft = readCurrentWorkspaceDraft();
+    setLanguage(nextDraft.language);
+    setCode(nextDraft.code);
+    setLeftTab('description');
+    setBottomTab('testcase');
+    setActiveTestIdx(0);
+    setActiveResultIdx(0);
+    setRunResults(null);
+    setCustomInput('');
+    setCustomOutput('');
+    setTerminalInput('');
+    setTerminalResult(null);
+    setTerminalError('');
+    setTerminalRunning(false);
+    setTerminalHistory([]);
+    setTerminalMultiline(false);
+    setRunning(false);
+    setCopiedField(null);
+    setCursorOffset(0);
+    inputHistoryRef.current = [];
+    inputHistoryIdxRef.current = -1;
+    interactiveExec.kill();
+    interactiveExec.clearLines();
+    terminalBodyRef.current?.scrollTo({ top: 0 });
+    editorScrollRef.current?.scrollTo({ top: 0, left: 0 });
+  }, [problemId]);
 
   const handleRemoteCodeChange = useCallback((newCode: string, newLanguage: string) => {
     setCode(newCode);
@@ -306,23 +341,24 @@ export default function StudentWorkspacePage() {
     document.addEventListener('mouseup', onUp);
   }, [splitY]);
 
-  const visibleTestCases = assignment?.codingConfig?.testCases?.filter(tc => !tc.isHidden) ?? [];
-
-  // Set initial custom input from first test case
-  useEffect(() => {
-    if (visibleTestCases.length > 0 && !customInput) {
-      setCustomInput(visibleTestCases[0].input);
-      setCustomOutput(visibleTestCases[0].output);
-      setTerminalInput(visibleTestCases[0].input);
-    }
-  }, [visibleTestCases.length]);
+  const visibleTestCases = useMemo(
+    () => assignment?.codingConfig?.testCases?.filter(tc => !tc.isHidden) ?? [],
+    [assignment?.codingConfig?.testCases],
+  );
 
   useEffect(() => {
-    if (visibleTestCases[activeTestIdx]) {
-      setCustomInput(visibleTestCases[activeTestIdx].input);
-      setCustomOutput(visibleTestCases[activeTestIdx].output);
-    }
-  }, [activeTestIdx]);
+    const firstCase = visibleTestCases[0];
+    setActiveTestIdx(0);
+    setCustomInput(firstCase?.input ?? '');
+    setCustomOutput(firstCase?.output ?? '');
+    setTerminalInput(firstCase?.input ?? '');
+  }, [assignment?.id, visibleTestCases]);
+
+  useEffect(() => {
+    const selectedCase = visibleTestCases[activeTestIdx];
+    setCustomInput(selectedCase?.input ?? '');
+    setCustomOutput(selectedCase?.output ?? '');
+  }, [activeTestIdx, visibleTestCases]);
 
   const handleUseCaseInTerminal = () => {
     setTerminalInput(customInput);

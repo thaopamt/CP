@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Icon, Pagination } from '@cp/ui';
+import { Icon, Pagination, Avatar } from '@cp/ui';
 import { SubmissionStatus, UserRole } from '@cp/shared';
 import { useAllSubmissions } from '../../api/submissions.queries';
 import { useAuthStore } from '../../stores/auth.store';
@@ -191,13 +191,34 @@ export default function SubmissionsPage() {
   return (
     <div className="max-w-[1400px] mx-auto py-lg space-y-lg">
       {/* ── Header ───────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-headline-md font-manrope font-extrabold text-on-surface">
-          {t('pages.submissions.title', 'Submissions')}
-        </h1>
-        <p className="text-body-md text-on-surface-variant mt-xs">
-          {t('pages.submissions.subtitle', 'All student submissions across assignments.')}
-        </p>
+      <div className="flex items-start justify-between gap-md">
+        <div>
+          <h1 className="text-headline-md font-manrope font-extrabold text-on-surface">
+            {t('pages.submissions.title', 'Submissions')}
+          </h1>
+          <p className="text-body-md text-on-surface-variant mt-xs">
+            {t('pages.submissions.subtitle', 'All student submissions across assignments.')}
+          </p>
+        </div>
+        {user && (
+          <button
+            type="button"
+            onClick={() => navigate(`${portalPrefix}/me`)}
+            className="flex items-center gap-sm shrink-0 rounded-xl px-sm py-xs hover:bg-surface-container-highest transition-colors"
+          >
+            <div className="text-right hidden sm:block">
+              <p className="text-label-sm font-semibold text-on-surface leading-tight">
+                {user.username ? `@${user.username}` : `${user.firstName} ${user.lastName}`.trim()}
+              </p>
+              <p className="text-[11px] text-on-surface-variant leading-tight">{user.email}</p>
+            </div>
+            <Avatar
+              size="md"
+              src={user.avatarUrl}
+              initials={(user.firstName?.[0] || user.email[0] || '?').toUpperCase()}
+            />
+          </button>
+        )}
       </div>
 
       {/* ── Stats cards ──────────────────────────────────────────── */}

@@ -35,14 +35,23 @@ import { NestFactory } from '@nestjs/core';
 // eslint-disable-next-line import/first
 import { Logger, ValidationPipe } from '@nestjs/common';
 // eslint-disable-next-line import/first
+import { NestExpressApplication } from '@nestjs/platform-express';
+// eslint-disable-next-line import/first
+import { join } from 'path';
+// eslint-disable-next-line import/first
 import { AppModule } from './app/app.module';
 // eslint-disable-next-line import/first
 import { StripPasswordHashInterceptor } from './common/interceptors/strip-password-hash.interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
 
   app.setGlobalPrefix('api');
+
+  // Serve uploaded avatars at /api/uploads/avatars
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/api/uploads/',
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

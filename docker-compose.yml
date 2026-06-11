@@ -12,6 +12,7 @@ services:
     user: root
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - cp_uploads:/app/uploads
     ports:
       - "127.0.0.1:3000:3000"
 
@@ -52,3 +53,4 @@ services:
 
 volumes:
   piston_packages:
+  cp_uploads:
