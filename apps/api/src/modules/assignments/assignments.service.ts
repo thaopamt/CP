@@ -37,7 +37,9 @@ export class AssignmentsService extends TypeOrmCrudService<Assignment> {
       UPDATE courses c
       SET
         assignment_count = totals.assignment_count,
-        total_points = totals.total_points
+        total_points = totals.total_points,
+        updated_at = NOW(),
+        version = c.version + 1
       FROM (
         SELECT
           ca.course_id,

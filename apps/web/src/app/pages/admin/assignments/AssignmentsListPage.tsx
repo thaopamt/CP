@@ -122,6 +122,13 @@ export default function AssignmentsListPage() {
             >
               <Icon name="visibility" size={18} />
             </Link>
+            <Link
+              to={`/admin/assignments/${a.id}/edit`}
+              className="p-1 rounded text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center"
+              title="Edit Assignment"
+            >
+              <Icon name="edit" size={18} />
+            </Link>
             <button
               type="button"
               onClick={async () => {
