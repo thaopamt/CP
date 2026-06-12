@@ -49,6 +49,7 @@ export default function StudentWorkspacePage() {
   const navigate = useNavigate();
   const confirm = useConfirm();
   const routeState = location.state as WorkspaceRouteState;
+  const classIdFromState = routeState?.classId;
   const courseIdFromState = routeState?.courseId;
 
   const { data: assignment, isLoading, isError } = useAssignment(problemId);
@@ -124,6 +125,11 @@ export default function StudentWorkspacePage() {
     setCopiedField(fieldId);
     setTimeout(() => setCopiedField(null), 1500);
   };
+
+  const classIdForBack = classIdFromState ?? assignment?.classIds?.[0];
+  const handleBack = useCallback(() => {
+    navigate(classIdForBack ? `/student/classes/${classIdForBack}` : '/student/classes');
+  }, [classIdForBack, navigate]);
 
   // Interactive execution (WebSocket)
   const interactiveExec = useInteractiveExec();
@@ -610,8 +616,8 @@ export default function StudentWorkspacePage() {
         <div className="flex flex-col items-center gap-4 text-center">
           <Icon name="error" size={40} className="text-red-400" />
           <h2 className="text-lg font-semibold text-white">Problem not found</h2>
-          <button onClick={() => navigate(-1)} className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-500 transition-colors">
-            Back to Problems
+          <button onClick={handleBack} className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-500 transition-colors">
+            Back to Class
           </button>
         </div>
       </div>
@@ -624,7 +630,7 @@ export default function StudentWorkspacePage() {
       {/* ── Top Bar ─────────────────────────────────────────────────── */}
       <header className="h-12 flex items-center justify-between px-4 bg-[#1e1e3a] border-b border-white/5 shrink-0">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm">
+          <button onClick={handleBack} className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm">
             <Icon name="arrow_back" size={18} />
             <span className="hidden sm:inline">Back</span>
           </button>
