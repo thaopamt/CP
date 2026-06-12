@@ -64,6 +64,22 @@ export class TeacherAssignmentsService {
     return this.getStudentsForTeacher(teacherId);
   }
 
+  /**
+   * Student-profile ids that must be HIDDEN from `teacherId` in list views:
+   * students assigned to at least one teacher but NOT to this one. Students
+   * with no teacher assignment stay visible to every teacher.
+   */
+  async hiddenStudentProfileIds(teacherId: string): Promise<string[]> {
+    const rows: Array<{ studentId: string }> = await this.links
+      .createQueryBuilder('ts')
+      .select('ts.studentId', 'studentId')
+      .groupBy('ts.studentId')
+      .having('BOOL_OR(ts.teacher_id = :teacherId) = false')
+      .setParameter('teacherId', teacherId)
+      .getRawMany();
+    return rows.map((r) => r.studentId);
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   private async ensureStudent(studentId: string): Promise<void> {

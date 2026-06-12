@@ -72,6 +72,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
           cohortYear: dto.cohortYear ?? new Date().getFullYear() + (12 - dto.grade),
           startDate: dto.startDate ?? null,
           status: dto.status ?? EnrollmentStatus.ACTIVE,
+          tuitionPerSession: dto.tuitionPerSession ?? 0,
         }),
       );
 
@@ -129,6 +130,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       if (dto.cohortYear !== undefined) profilePatch.cohortYear = dto.cohortYear;
       if (dto.startDate !== undefined) profilePatch.startDate = dto.startDate;
       if (dto.status !== undefined) profilePatch.status = dto.status;
+      if (dto.tuitionPerSession !== undefined) profilePatch.tuitionPerSession = dto.tuitionPerSession;
       if (dto.honorRoll !== undefined) profilePatch.honorRoll = dto.honorRoll;
       if (Object.keys(profilePatch).length) {
         await profileRepo.update({ id }, profilePatch);

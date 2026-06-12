@@ -9,11 +9,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { DayOfWeek, UserRole } from '@cp/shared';
+import { DayOfWeek, JwtPayload, UserRole } from '@cp/shared';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AttendanceService } from './attendance.service';
 import {
   BulkUpsertAttendanceDto,
@@ -56,18 +57,20 @@ export class AttendanceController {
     @Query('dayOfWeek') dayOfWeek: DayOfWeek,
     @Query('startTime') startTime: string,
     @Query('endTime') endTime: string,
+    @CurrentUser() user: JwtPayload,
   ) {
     const d = date || new Date().toISOString().slice(0, 10);
-    return this.service.getScheduleSlotAttendance(d, dayOfWeek, startTime, endTime);
+    return this.service.getScheduleSlotAttendance(d, dayOfWeek, startTime, endTime, user);
   }
 
   @Get('schedule-slots/summaries')
   async getScheduleSlotSummaries(
     @Query('from') from: string,
     @Query('to') to: string,
+    @CurrentUser() user: JwtPayload,
   ) {
     const today = new Date().toISOString().slice(0, 10);
-    return this.service.getScheduleSlotSummaries(from || today, to || from || today);
+    return this.service.getScheduleSlotSummaries(from || today, to || from || today, user);
   }
 
   @Post('schedule-slots')
@@ -107,9 +110,10 @@ export class AttendanceController {
   async getClassDateAttendance(
     @Param('classId', ParseUUIDPipe) classId: string,
     @Query('date') date: string,
+    @CurrentUser() user: JwtPayload,
   ) {
     const d = date || new Date().toISOString().slice(0, 10);
-    return this.service.getClassDateAttendance(classId, d);
+    return this.service.getClassDateAttendance(classId, d, user);
   }
 
   @Post('classes/:classId')

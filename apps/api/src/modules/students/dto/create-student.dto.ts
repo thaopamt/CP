@@ -61,6 +61,9 @@ export class CreateStudentDto implements ICreateStudentPayload {
   @IsOptional() @IsEnum(EnrollmentStatus)
   status?: EnrollmentStatus;
 
+  @IsOptional() @IsInt() @Min(0)
+  tuitionPerSession?: number;
+
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })

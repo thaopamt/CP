@@ -1,114 +1,190 @@
-import { useMemo } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
   Column,
   DataTable,
+  FilterToolbar,
   Icon,
-  InvoiceStatusBadge,
   PageHeader,
+  Pagination,
+  SearchBox,
   StatCard,
-  Timeline,
-  TimelineItem,
+  useToast,
 } from '@cp/ui';
-import { IInvoiceRow, InvoiceStatus } from '@cp/shared';
+import { IFinanceMonthlyRow } from '@cp/shared';
+
+import { financeApi } from '../../api/finance.api';
+import { useFinanceMonthlyReport } from '../../api/finance.queries';
+
+const PAGE_SIZE = 25;
+
+function currentMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
 
 export default function AdminFinancePage() {
   const { t, i18n } = useTranslation();
+  const toast = useToast();
   const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
+  const [month, setMonth] = useState(currentMonth);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [exporting, setExporting] = useState(false);
+  const deferredSearch = useDeferredValue(search.trim());
 
-  const invoices: IInvoiceRow[] = useMemo(
-    () => [
-      { id: 'inv-1', invoiceNumber: 'INV-2024-0182', accountName: t('pages.admin.finance.accounts.sarah'), accountEmail: 'sarah.jenkins@cp.local', amount: 1250, dueDate: '2024-10-30', status: InvoiceStatus.PAID },
-      { id: 'inv-2', invoiceNumber: 'INV-2024-0181', accountName: t('pages.admin.finance.accounts.aiko'), accountEmail: 'aiko.tanaka@cp.local', amount: 2100, dueDate: '2024-10-25', status: InvoiceStatus.OVERDUE },
-      { id: 'inv-3', invoiceNumber: 'INV-2024-0180', accountName: t('pages.admin.finance.accounts.michael'), accountEmail: 'michael.rossi@cp.local', amount: 890, dueDate: '2024-11-05', status: InvoiceStatus.PARTIAL },
-      { id: 'inv-4', invoiceNumber: 'INV-2024-0179', accountName: t('pages.admin.finance.accounts.liam'), accountEmail: 'liam.carter@cp.local', amount: 1500, dueDate: '2024-11-12', status: InvoiceStatus.DRAFT },
-      { id: 'inv-5', invoiceNumber: 'INV-2024-0178', accountName: t('pages.admin.finance.accounts.priya'), accountEmail: 'priya.singh@cp.local', amount: 2200, dueDate: '2024-10-22', status: InvoiceStatus.PAID },
-    ],
-    [t],
+  useEffect(() => {
+    setPage(1);
+  }, [month, deferredSearch]);
+
+  const reportQuery = useFinanceMonthlyReport({
+    month,
+    search: deferredSearch || undefined,
+    page,
+    limit: PAGE_SIZE,
+  });
+
+  const money = useMemo(
+    () =>
+      new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency: 'VND',
+        maximumFractionDigits: 0,
+      }),
+    [locale],
   );
 
-  const activities: TimelineItem[] = useMemo(
-    () => [
-      {
-        id: '1',
-        icon: 'paid',
-        tone: 'tertiary',
-        title: t('pages.admin.finance.activities.paymentReceived', { amount: '$2,200' }),
-        meta: t('pages.admin.finance.accounts.priya'),
-        time: t('ui.helpQueue.minutesAgo', { count: 12 }),
-      },
-      {
-        id: '2',
-        icon: 'warning',
-        tone: 'error',
-        title: t('pages.admin.finance.activities.invoiceOverdue', { amount: '$2,100' }),
-        meta: t('pages.admin.finance.accounts.aiko'),
-        time: t('ui.helpQueue.hoursAgo', { count: 2 }),
-      },
-      {
-        id: '3',
-        icon: 'description',
-        tone: 'secondary',
-        title: t('pages.admin.finance.activities.draftCreated'),
-        meta: 'INV-2024-0179',
-        time: t('ui.helpQueue.hoursAgo', { count: 5 }),
-      },
-      {
-        id: '4',
-        icon: 'send',
-        tone: 'primary',
-        title: t('pages.admin.finance.activities.reminderSent'),
-        meta: t('pages.admin.finance.meta.accountCount', { count: 12 }),
-        time: t('ui.helpQueue.daysAgo', { count: 1 }),
-      },
-    ],
-    [t],
-  );
+  const numberFormat = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const report = reportQuery.data;
+  const summary = report?.summary;
 
-  const columns: Column<IInvoiceRow>[] = [
-    { key: 'invoice', header: t('pages.admin.finance.columns.invoice'), cell: (row) => <span className="text-primary font-bold">{row.invoiceNumber}</span> },
+  const columns: Column<IFinanceMonthlyRow>[] = [
     {
-      key: 'account',
-      header: t('pages.admin.finance.columns.account'),
+      key: 'student',
+      header: t('pages.admin.finance.columns.student'),
       cell: (row) => (
-        <div className="min-w-0">
-          <div className="text-on-surface font-medium truncate">{row.accountName}</div>
-          <div className="text-[12px] text-on-surface-variant truncate">{row.accountEmail}</div>
+        <div className="min-w-[220px]">
+          <div className="font-semibold text-on-surface">{row.studentName}</div>
+          <div className="text-[12px] text-on-surface-variant truncate">
+            {row.username ? `${row.username} · ` : ''}
+            {row.email}
+          </div>
         </div>
+      ),
+    },
+    {
+      key: 'grade',
+      header: t('pages.admin.finance.columns.grade'),
+      cell: (row) => (
+        <span className="whitespace-nowrap text-on-surface-variant">
+          {t('pages.admin.studentProfile.gradeShort', { grade: row.grade })}
+        </span>
+      ),
+    },
+    {
+      key: 'classes',
+      header: t('pages.admin.finance.columns.classes'),
+      cell: (row) =>
+        row.classNames.length ? (
+          <div className="flex max-w-[260px] flex-wrap gap-xs">
+            {row.classNames.slice(0, 3).map((name) => (
+              <span
+                key={name}
+                className="rounded-md bg-primary-container/30 px-xs py-0.5 text-[11px] font-semibold text-primary"
+              >
+                {name}
+              </span>
+            ))}
+            {row.classNames.length > 3 && (
+              <span className="rounded-md bg-surface-container-high px-xs py-0.5 text-[11px] text-on-surface-variant">
+                +{row.classNames.length - 3}
+              </span>
+            )}
+          </div>
+        ) : (
+          <span className="text-on-surface-variant">-</span>
+        ),
+    },
+    {
+      key: 'sessions',
+      header: t('pages.admin.finance.columns.sessions'),
+      align: 'right',
+      cell: (row) => (
+        <span className="font-semibold text-on-surface">{numberFormat.format(row.billableSessions)}</span>
+      ),
+    },
+    {
+      key: 'rate',
+      header: t('pages.admin.finance.columns.rate'),
+      align: 'right',
+      cell: (row) => (
+        <span className={row.missingTuitionConfig ? 'font-semibold text-error' : 'text-on-surface'}>
+          {money.format(row.tuitionPerSession)}
+        </span>
       ),
     },
     {
       key: 'amount',
       header: t('pages.admin.finance.columns.amount'),
       align: 'right',
-      cell: (row) => <span className="text-on-surface font-semibold">${row.amount.toLocaleString()}</span>,
-    },
-    {
-      key: 'due',
-      header: t('pages.admin.finance.columns.due'),
-      cell: (row) => (
-        <span className="text-on-surface-variant whitespace-nowrap">
-          {new Date(row.dueDate).toLocaleDateString(locale)}
-        </span>
-      ),
+      cell: (row) => <span className="font-bold text-on-surface">{money.format(row.amountDue)}</span>,
     },
     {
       key: 'status',
       header: t('pages.admin.finance.columns.status'),
-      cell: (row) => <InvoiceStatusBadge status={row.status} />,
-    },
-    {
-      key: 'actions',
-      header: '',
-      align: 'right',
-      cell: () => (
-        <button className="opacity-0 group-hover:opacity-100 p-1 rounded text-on-surface-variant hover:text-primary transition-opacity" aria-label={t('common.more')}>
-          <Icon name="more_horiz" size={18} />
-        </button>
-      ),
+      cell: (row) =>
+        row.missingTuitionConfig ? (
+          <span className="inline-flex items-center gap-xs rounded-full bg-error-container/50 px-sm py-1 text-[11px] font-semibold text-error">
+            <Icon name="error" size={14} />
+            {t('pages.admin.finance.status.missingRate')}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-xs rounded-full bg-tertiary-container/40 px-sm py-1 text-[11px] font-semibold text-tertiary">
+            <Icon name="check_circle" size={14} />
+            {t('pages.admin.finance.status.configured')}
+          </span>
+        ),
     },
   ];
+
+  async function exportCsv() {
+    setExporting(true);
+    try {
+      const first = await financeApi.monthly({
+        month,
+        search: deferredSearch || undefined,
+        page: 1,
+        limit: 100,
+      });
+      const rest =
+        first.pageCount > 1
+          ? await Promise.all(
+              Array.from({ length: first.pageCount - 1 }, (_, index) =>
+                financeApi.monthly({
+                  month,
+                  search: deferredSearch || undefined,
+                  page: index + 2,
+                  limit: 100,
+                }),
+              ),
+            )
+          : [];
+      const rows = [first, ...rest].flatMap((r) => r.rows);
+      const csv = toCsv(rows, money);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `finance-${month}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error((err as Error).message || t('pages.admin.finance.exportFailed'));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-lg">
@@ -116,48 +192,129 @@ export default function AdminFinancePage() {
         title={t('pages.admin.finance.title')}
         subtitle={t('pages.admin.finance.subtitle')}
         actions={
-          <>
-            <Button variant="ghost" leadingIcon={<Icon name="ios_share" size={18} />}>
-              {t('common.export')}
-            </Button>
-            <Button variant="admin" leadingIcon={<Icon name="add" size={18} />}>
-              {t('pages.admin.finance.newInvoice')}
-            </Button>
-          </>
+          <Button
+            variant="ghost"
+            leadingIcon={<Icon name={exporting ? 'progress_activity' : 'ios_share'} size={18} className={exporting ? 'animate-spin' : undefined} />}
+            onClick={exportCsv}
+            disabled={exporting || reportQuery.isLoading}
+          >
+            {t('common.export')}
+          </Button>
         }
       />
 
+      <FilterToolbar>
+        <SearchBox
+          value={search}
+          onChange={setSearch}
+          placeholder={t('pages.admin.finance.searchPlaceholder')}
+        />
+        <label className="flex items-center gap-sm text-label-sm text-on-surface-variant">
+          <span>{t('pages.admin.finance.month')}</span>
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value || currentMonth())}
+            className="rounded-lg border border-outline-variant bg-surface-container-low px-md py-sm text-label-sm text-on-surface outline-none focus:ring-2 focus:ring-primary"
+          />
+        </label>
+      </FilterToolbar>
+
       <section className="grid grid-cols-1 md:grid-cols-3 gap-md">
-        <StatCard label={t('pages.admin.finance.kpi.totalRevenue')} value="$1.2M" icon="payments" iconColor="text-tertiary" trend="up" delta="+12.5%" />
-        <StatCard label={t('pages.admin.finance.kpi.outstanding')} value="$84,200" icon="schedule" iconColor="text-error" trend="down" delta="−3.1%" />
-        <StatCard label={t('pages.admin.finance.kpi.activeAccounts')} value="2,184" icon="account_balance_wallet" iconColor="text-secondary" trend="up" delta="+1.4%" />
+        <StatCard
+          label={t('pages.admin.finance.kpi.totalDue')}
+          value={money.format(summary?.totalAmountDue ?? 0)}
+          icon="payments"
+          iconColor="text-tertiary"
+        />
+        <StatCard
+          label={t('pages.admin.finance.kpi.billableSessions')}
+          value={numberFormat.format(summary?.billableSessions ?? 0)}
+          icon="event_available"
+          iconColor="text-primary"
+        />
+        <StatCard
+          label={t('pages.admin.finance.kpi.missingRates')}
+          value={numberFormat.format(summary?.studentsMissingTuition ?? 0)}
+          icon="warning"
+          iconColor="text-error"
+        />
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-md">
-        <section className="lg:col-span-2 bg-surface-container-lowest border border-outline-variant/50 rounded-xl shadow-elev-1 overflow-hidden">
-          <header className="p-md md:p-lg border-b border-outline-variant/30 flex justify-between items-center bg-surface-bright">
-            <h3 className="font-manrope text-headline-md text-on-surface">
-              {t('pages.admin.finance.recentInvoices')}
-            </h3>
-            <button className="text-primary text-label-sm font-semibold hover:underline">
-              {t('common.viewAll')}
-            </button>
-          </header>
-          <DataTable rows={invoices} columns={columns} rowKey={(r) => r.id} />
-        </section>
+      <section className="overflow-hidden rounded-xl border border-outline-variant/50 bg-surface-container-lowest shadow-elev-1">
+        <header className="flex flex-col gap-xs border-b border-outline-variant/30 bg-surface-bright p-md md:p-lg">
+          <h3 className="font-manrope text-headline-md text-on-surface">
+            {t('pages.admin.finance.monthlyReceivables')}
+          </h3>
+          <p className="text-label-sm text-on-surface-variant">
+            {summary
+              ? t('pages.admin.finance.reportMeta', {
+                  from: new Date(`${summary.from}T00:00:00`).toLocaleDateString(locale),
+                  to: new Date(`${summary.to}T00:00:00`).toLocaleDateString(locale),
+                  count: summary.totalStudents,
+                })
+              : t('common.loading')}
+          </p>
+        </header>
 
-        <aside className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-md">
-          <header className="flex items-center justify-between mb-md">
-            <h3 className="font-manrope text-headline-md text-on-surface">
-              {t('pages.admin.finance.recentActivity')}
-            </h3>
-          </header>
-          <Timeline items={activities} />
-          <button className="mt-md w-full text-primary text-label-sm font-semibold py-sm rounded-lg hover:bg-primary/5">
-            {t('common.viewHistory')}
-          </button>
-        </aside>
-      </div>
+        {reportQuery.isError ? (
+          <div className="grid min-h-[220px] place-items-center p-xl text-center text-error">
+            <div>
+              <Icon name="error" size={36} className="mx-auto mb-sm" />
+              <p>{(reportQuery.error as Error | undefined)?.message ?? t('pages.admin.finance.loadFailed')}</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {reportQuery.isLoading && !report ? (
+              <div className="grid min-h-[220px] place-items-center text-on-surface-variant">
+                <Icon name="progress_activity" size={36} className="animate-spin" />
+              </div>
+            ) : (
+              <DataTable
+                rows={report?.rows ?? []}
+                columns={columns}
+                rowKey={(row) => row.studentId}
+                emptyState={t('pages.admin.finance.empty')}
+              />
+            )}
+            <div className="flex items-center justify-between border-t border-outline-variant/30 px-md py-sm">
+              <span className="text-label-sm text-on-surface-variant">
+                {t('pages.admin.finance.totalRows', { count: report?.total ?? 0 })}
+              </span>
+              <Pagination page={report?.page ?? page} pageCount={report?.pageCount ?? 1} onChange={setPage} />
+            </div>
+          </>
+        )}
+      </section>
     </div>
   );
+}
+
+function toCsv(rows: IFinanceMonthlyRow[], money: Intl.NumberFormat) {
+  const header = [
+    'Student',
+    'Email',
+    'Grade',
+    'Classes',
+    'Billable sessions',
+    'Tuition per session',
+    'Amount due',
+    'Missing tuition config',
+  ];
+  const body = rows.map((row) => [
+    row.studentName,
+    row.email,
+    String(row.grade),
+    row.classNames.join('; '),
+    String(row.billableSessions),
+    money.format(row.tuitionPerSession),
+    money.format(row.amountDue),
+    row.missingTuitionConfig ? 'YES' : 'NO',
+  ]);
+  return [header, ...body].map((line) => line.map(csvCell).join(',')).join('\n');
+}
+
+function csvCell(value: string) {
+  return `"${value.replace(/"/g, '""')}"`;
 }

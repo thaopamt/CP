@@ -45,6 +45,9 @@ export class UpdateStudentDto {
   @IsOptional() @IsEnum(EnrollmentStatus)
   status?: EnrollmentStatus;
 
+  @IsOptional() @IsInt() @Min(0)
+  tuitionPerSession?: number;
+
   @IsOptional() @IsBoolean()
   honorRoll?: boolean;
 

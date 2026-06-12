@@ -7,6 +7,8 @@ import { ScheduleSlotCancellation } from './schedule-slot-cancellation.entity';
 import { ClassEntity } from '../classes/class.entity';
 import { Enrollment } from '../classes/enrollment.entity';
 import { StudentSchedule } from '../students/student-schedule.entity';
+import { StudentProfile } from '../students/student-profile.entity';
+import { TeacherStudent } from '../students/teacher-student.entity';
 import { AttendanceController } from './attendance.controller';
 import { AttendanceService } from './attendance.service';
 
@@ -19,6 +21,8 @@ import { AttendanceService } from './attendance.service';
       ClassEntity,
       Enrollment,
       StudentSchedule,
+      StudentProfile,
+      TeacherStudent,
     ]),
   ],
   controllers: [AttendanceController],

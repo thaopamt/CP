@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { AttendanceStatus, DayOfWeek, IStudentAttendanceHistoryItem } from '@cp/shared';
+import { AttendanceStatus, DayOfWeek, IStudentAttendanceHistoryItem, JwtPayload, UserRole } from '@cp/shared';
 
 import { AttendanceRecord } from './attendance.entity';
 import { ClassEntity } from '../classes/class.entity';
 import { Enrollment } from '../classes/enrollment.entity';
 import { StudentSchedule } from '../students/student-schedule.entity';
+import { StudentProfile } from '../students/student-profile.entity';
 import { AttendanceEntryDto } from './dto/attendance.dto';
 import { ScheduleSlotAttendanceRecord } from './schedule-slot-attendance.entity';
 import { ScheduleSlotCancellation } from './schedule-slot-cancellation.entity';
@@ -33,7 +34,47 @@ export class AttendanceService {
     private readonly scheduleSlotAttendance: Repository<ScheduleSlotAttendanceRecord>,
     @InjectRepository(ScheduleSlotCancellation)
     private readonly scheduleSlotCancellations: Repository<ScheduleSlotCancellation>,
+    @InjectRepository(StudentProfile)
+    private readonly studentProfiles: Repository<StudentProfile>,
   ) {}
+
+  /**
+   * Teacher-portal visibility rule for attendance rosters.
+   *
+   * Given a roster's student *user* ids, returns the subset that must be
+   * HIDDEN from `viewer` when the viewer is a teacher: a student is hidden
+   * iff they are assigned to at least one teacher but NOT to this viewer.
+   * Students with no teacher assignment at all stay visible to everyone.
+   *
+   * Admins (or any non-teacher viewer) hide nothing.
+   */
+  private async hiddenStudentUserIds(
+    viewer: JwtPayload | undefined,
+    studentUserIds: string[],
+  ): Promise<Set<string>> {
+    if (!viewer || viewer.role !== UserRole.TEACHER || studentUserIds.length === 0) {
+      return new Set();
+    }
+    const rows: Array<{ userId: string; mine: boolean | null; total: string }> =
+      await this.studentProfiles
+        .createQueryBuilder('sp')
+        .leftJoin('teacher_students', 'ts', 'ts.student_id = sp.id')
+        .select('sp.userId', 'userId')
+        .addSelect('BOOL_OR(ts.teacher_id = :teacherId)', 'mine')
+        .addSelect('COUNT(ts.id)', 'total')
+        .where('sp.userId IN (:...ids)', { ids: studentUserIds })
+        .setParameter('teacherId', viewer.sub)
+        .groupBy('sp.userId')
+        .getRawMany();
+
+    const hidden = new Set<string>();
+    for (const r of rows) {
+      const assignedToAny = Number(r.total) > 0;
+      const assignedToViewer = r.mine === true;
+      if (assignedToAny && !assignedToViewer) hidden.add(r.userId);
+    }
+    return hidden;
+  }
 
   /**
    * Class-owned weekly sessions have been removed. Keep this endpoint shape for
@@ -49,17 +90,26 @@ export class AttendanceService {
    * Build the attendance payload for student-level schedules linked to a class
    * on a date.
    */
-  async getClassDateAttendance(classId: string, date: string) {
+  async getClassDateAttendance(classId: string, date: string, viewer?: JwtPayload) {
     const cls = await this.classes.findOne({ where: { id: classId } });
     if (!cls) throw new NotFoundException(`Class ${classId} not found`);
 
     const dow = JS_DOW_TO_ENUM[new Date(date).getUTCDay()];
-    const customSchedulesForClassDay = dow
+    const allSchedulesForClassDay = dow
       ? await this.studentSchedules.find({
           where: { classId, dayOfWeek: dow, student: { isActive: true } },
           relations: ['student'],
         })
       : [];
+
+    // Teacher portal: only their own students (or students with no teacher).
+    const hidden = await this.hiddenStudentUserIds(
+      viewer,
+      allSchedulesForClassDay.map((s) => s.studentId),
+    );
+    const customSchedulesForClassDay = hidden.size
+      ? allSchedulesForClassDay.filter((s) => !hidden.has(s.studentId))
+      : allSchedulesForClassDay;
 
     const studentInfoMap = new Map<string, { id: string; name: string }>();
     for (const s of customSchedulesForClassDay) {
@@ -386,12 +436,27 @@ export class AttendanceService {
     }));
   }
 
-  async getScheduleSlotAttendance(date: string, dayOfWeek: DayOfWeek, startTime: string, endTime: string) {
-    const schedules = await this.studentSchedules.find({
+  async getScheduleSlotAttendance(
+    date: string,
+    dayOfWeek: DayOfWeek,
+    startTime: string,
+    endTime: string,
+    viewer?: JwtPayload,
+  ) {
+    const allSchedules = await this.studentSchedules.find({
       where: { dayOfWeek, startTime, endTime, student: { isActive: true } },
       relations: ['student'],
       order: { student: { firstName: 'ASC', lastName: 'ASC' } },
     });
+
+    // Teacher portal: only their own students (or students with no teacher).
+    const hidden = await this.hiddenStudentUserIds(
+      viewer,
+      allSchedules.map((s) => s.studentId),
+    );
+    const schedules = hidden.size
+      ? allSchedules.filter((s) => !hidden.has(s.studentId))
+      : allSchedules;
 
     const studentIds = schedules.map((s) => s.studentId);
     const existing = studentIds.length
@@ -456,14 +521,24 @@ export class AttendanceService {
     }
   }
 
-  async getScheduleSlotSummaries(from: string, to: string) {
+  async getScheduleSlotSummaries(from: string, to: string, viewer?: JwtPayload) {
     const dates = this.eachDate(from, to);
     if (dates.length === 0) return [];
 
-    const schedules = await this.studentSchedules.find({
+    const allSchedules = await this.studentSchedules.find({
       where: { student: { isActive: true } },
       relations: ['student'],
     });
+
+    // Teacher portal: drop other teachers' students so slots that end up with
+    // no visible students disappear entirely from the calendar.
+    const hidden = await this.hiddenStudentUserIds(
+      viewer,
+      allSchedules.map((s) => s.studentId),
+    );
+    const schedules = hidden.size
+      ? allSchedules.filter((s) => !hidden.has(s.studentId))
+      : allSchedules;
 
     const schedulesByDow = new Map<DayOfWeek, StudentSchedule[]>();
     for (const schedule of schedules) {
