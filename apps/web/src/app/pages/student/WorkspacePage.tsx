@@ -128,8 +128,13 @@ export default function StudentWorkspacePage() {
 
   const classIdForBack = classIdFromState ?? assignment?.classIds?.[0];
   const handleBack = useCallback(() => {
+    if (classIdForBack && courseIdFromState) {
+      navigate(`/student/classes/${classIdForBack}/courses/${courseIdFromState}`);
+      return;
+    }
+
     navigate(classIdForBack ? `/student/classes/${classIdForBack}` : '/student/classes');
-  }, [classIdForBack, navigate]);
+  }, [classIdForBack, courseIdFromState, navigate]);
 
   // Interactive execution (WebSocket)
   const interactiveExec = useInteractiveExec();
@@ -617,7 +622,7 @@ export default function StudentWorkspacePage() {
           <Icon name="error" size={40} className="text-red-400" />
           <h2 className="text-lg font-semibold text-white">Problem not found</h2>
           <button onClick={handleBack} className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-500 transition-colors">
-            Back to Class
+            Back to Course
           </button>
         </div>
       </div>
