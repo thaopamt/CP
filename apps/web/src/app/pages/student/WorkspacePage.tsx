@@ -4,6 +4,8 @@ import { DifficultyBadge, Icon, useConfirm } from '@cp/ui';
 import {
   DifficultyLevel,
   ICodeExecutionResponse,
+  ISubmission,
+  SubmissionStatus,
 } from '@cp/shared';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -22,7 +24,7 @@ import 'prismjs/components/prism-python';
 import 'prismjs/components/prism-javascript';
 
 import { useAssignment, useCourseAssignments } from '../../api/curriculum.queries';
-import { useRunCode, useSubmitCode, useSubmissions } from '../../api/submissions.queries';
+import { useAllMySubmissions, useRunCode, useSubmitCode, useSubmissions } from '../../api/submissions.queries';
 import { useMyTasks, useStudentDashboard, useUpdateDefaultLanguage } from '../../api/student.queries';
 import { useLiveCodingSync } from '../../hooks/useLiveCodingSync';
 import { useInteractiveExec } from '../../hooks/useInteractiveExec';
@@ -42,6 +44,73 @@ type BottomTab = 'testcase' | 'terminal' | 'result';
 type WorkspaceRouteState = { classId?: string; courseId?: string } | null;
 type NextAssignmentTarget = { title: string; path: string; state?: WorkspaceRouteState };
 type WorkspaceDraft = { language: string; code: string };
+type CourseProgressStatus = 'accepted' | 'partial' | 'wrong' | 'idle';
+type CourseProgressItem = {
+  id: string;
+  title: string;
+  isCoding: boolean;
+  status: CourseProgressStatus;
+};
+
+function getCourseProgressStatus(submissions: ISubmission[] | undefined): CourseProgressStatus {
+  if (!submissions?.length) return 'idle';
+
+  if (submissions.some((submission) => submission.status === SubmissionStatus.ACCEPTED || (
+    submission.totalCount > 0 && submission.passedCount >= submission.totalCount
+  ))) {
+    return 'accepted';
+  }
+
+  if (submissions.some((submission) => submission.passedCount > 0)) {
+    return 'partial';
+  }
+
+  return 'wrong';
+}
+
+function CourseProgressDots({
+  items,
+  currentAssignmentId,
+  onSelect,
+}: {
+  items: CourseProgressItem[];
+  currentAssignmentId?: string;
+  onSelect: (item: CourseProgressItem) => void;
+}) {
+  if (items.length === 0) return null;
+
+  return (
+    <nav
+      aria-label="Course assignment progress"
+      className="mx-3 flex min-w-[96px] flex-1 justify-center overflow-hidden"
+    >
+      <div className="flex max-w-full items-center gap-1.5 overflow-x-auto rounded-lg border border-white/10 bg-white/5 px-2 py-1.5">
+        {items.map((item, index) => {
+          const isCurrent = item.id === currentAssignmentId;
+          const statusClass = {
+            accepted: 'border-emerald-400 bg-emerald-400',
+            partial: 'border-emerald-400 bg-transparent',
+            wrong: 'border-amber-400 bg-amber-400',
+            idle: 'border-transparent bg-white/20',
+          }[item.status];
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onSelect(item)}
+              title={`Bài ${index + 1}: ${item.title}`}
+              aria-label={`Bài ${index + 1}: ${item.title}${isCurrent ? ' đang làm' : ''}`}
+              className={`h-2.5 w-2.5 shrink-0 rounded-full border-2 transition-all hover:scale-125 focus:outline-none focus:ring-2 focus:ring-emerald-300/70 ${
+                isCurrent ? 'scale-125 ring-2 ring-white/70' : ''
+              } ${statusClass}`}
+            />
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
 
 export default function StudentWorkspacePage() {
   const { problemId } = useParams<{ problemId: string }>();
@@ -55,7 +124,9 @@ export default function StudentWorkspacePage() {
   const { data: assignment, isLoading, isError } = useAssignment(problemId);
   const { data: courseAssignments = [] } = useCourseAssignments(courseIdFromState);
   const myTasksParams = useMemo(() => ({ page: 1, limit: 200 }), []);
+  const allMySubmissionsParams = useMemo(() => ({ limit: 500 }), []);
   const { data: myTasksData } = useMyTasks(myTasksParams);
+  const { data: allMySubmissionsData } = useAllMySubmissions(allMySubmissionsParams, !!courseIdFromState);
   const { data: submissions = [] } = useSubmissions(assignment?.id || '');
   const runMutation = useRunCode();
   const submitMutation = useSubmitCode();
@@ -168,11 +239,50 @@ export default function StudentWorkspacePage() {
         })),
     [assignment?.codingConfig?.testCases],
   );
+  const orderedCourseAssignments = useMemo(
+    () => [...courseAssignments].sort((a, b) => a.order - b.order),
+    [courseAssignments],
+  );
+  const submissionsByAssignmentId = useMemo(() => {
+    const map = new Map<string, ISubmission[]>();
+    const allSubmissions = (allMySubmissionsData?.data ?? []) as ISubmission[];
+
+    for (const submission of allSubmissions) {
+      const list = map.get(submission.assignmentId) ?? [];
+      list.push(submission);
+      map.set(submission.assignmentId, list);
+    }
+
+    if (assignment?.id && submissions.length > 0) {
+      map.set(assignment.id, submissions as ISubmission[]);
+    }
+
+    return map;
+  }, [allMySubmissionsData?.data, assignment?.id, submissions]);
+  const courseProgressItems = useMemo<CourseProgressItem[]>(
+    () =>
+      orderedCourseAssignments.map((courseAssignment) => ({
+        id: courseAssignment.assignment.id,
+        title: courseAssignment.assignment.title,
+        isCoding: !!courseAssignment.assignment.codingConfig,
+        status: getCourseProgressStatus(submissionsByAssignmentId.get(courseAssignment.assignment.id)),
+      })),
+    [orderedCourseAssignments, submissionsByAssignmentId],
+  );
+  const handleCourseProgressSelect = useCallback((item: CourseProgressItem) => {
+    if (item.id === problemId) return;
+
+    if (item.isCoding) {
+      navigate(`/student/workspace/${item.id}`, { state: routeState });
+      return;
+    }
+
+    navigate(`/student/assignments/${item.id}`);
+  }, [navigate, problemId, routeState]);
 
   const nextAssignmentTarget = useMemo<NextAssignmentTarget | null>(() => {
     if (!problemId) return null;
 
-    const orderedCourseAssignments = [...courseAssignments].sort((a, b) => a.order - b.order);
     const courseAssignmentIndex = orderedCourseAssignments.findIndex(
       (courseAssignment) => courseAssignment.assignment.id === problemId,
     );
@@ -197,7 +307,7 @@ export default function StudentWorkspacePage() {
       title: nextTask.title,
       path: `/student/assignments/${nextTask.id}`,
     };
-  }, [courseAssignments, myTasksData?.items, problemId, routeState]);
+  }, [myTasksData?.items, orderedCourseAssignments, problemId, routeState]);
 
   // Cursor tracking
   const [cursorOffset, setCursorOffset] = useState(0);
@@ -648,6 +758,12 @@ export default function StudentWorkspacePage() {
             <DifficultyBadge difficulty={assignment.difficulty as DifficultyLevel} />
           </div>
         </div>
+
+        <CourseProgressDots
+          items={courseProgressItems}
+          currentAssignmentId={problemId}
+          onSelect={handleCourseProgressSelect}
+        />
 
         <div className="flex items-center gap-2">
           <select
