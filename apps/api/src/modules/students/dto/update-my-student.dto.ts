@@ -2,15 +2,6 @@ import { IsDateString, IsEnum, IsOptional, IsString, Length } from 'class-valida
 
 
 export class UpdateMyStudentDto {
-  @IsOptional()
-  @IsString()
-  @Length(1, 80)
-  firstName?: string;
-
-  @IsOptional()
-  @IsString()
-  @Length(1, 80)
-  lastName?: string;
 
   @IsOptional()
   @IsString()

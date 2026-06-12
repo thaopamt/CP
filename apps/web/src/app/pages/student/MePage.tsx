@@ -61,10 +61,7 @@ export default function MePage() {
     e.preventDefault();
     try {
       const updated = await updateCurrentStudent.mutateAsync({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
         username: username.trim() || null,
-
         homeAddress: address.trim() || null,
       });
       updateUser({
@@ -292,9 +289,8 @@ export default function MePage() {
                   <input
                     type="text"
                     value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="w-full bg-[#161622] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
-                    required
+                    disabled
+                    className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-sm text-gray-500 cursor-not-allowed outline-none"
                   />
                 </div>
 
@@ -305,9 +301,8 @@ export default function MePage() {
                   <input
                     type="text"
                     value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full bg-[#161622] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
-                    required
+                    disabled
+                    className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-sm text-gray-500 cursor-not-allowed outline-none"
                   />
                 </div>
 
