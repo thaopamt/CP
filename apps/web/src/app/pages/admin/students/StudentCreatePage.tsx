@@ -144,7 +144,7 @@ export default function StudentCreatePage() {
       e.password = t('pages.admin.studentCreate.validation.passwordMin');
 
     if (draft.grade < 1 || draft.grade > 9) e.grade = t('pages.admin.studentCreate.validation.gradeRange');
-    if (![500000, 600000].includes(draft.monthlyTuition)) {
+    if (!Number.isFinite(draft.monthlyTuition) || draft.monthlyTuition < 0) {
       e.monthlyTuition = t('pages.admin.studentCreate.validation.monthlyTuition');
     }
     draft.schedules.forEach((s, i) => {
@@ -329,14 +329,14 @@ export default function StudentCreatePage() {
             hint={t('pages.admin.studentCreate.fields.monthlyTuitionHint')}
             error={errors.monthlyTuition}
           >
-            <select
+            <input
+              type="number"
+              min={0}
+              step={10000}
               value={draft.monthlyTuition}
               onChange={(e) => patch({ monthlyTuition: Number(e.target.value) })}
               className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-            >
-              <option value={500000}>500.000 VND</option>
-              <option value={600000}>600.000 VND</option>
-            </select>
+            />
           </FormField>
         </div>
       </FormSection>

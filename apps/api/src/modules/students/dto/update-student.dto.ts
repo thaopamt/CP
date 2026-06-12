@@ -4,7 +4,6 @@ import {
   IsBoolean,
   IsDateString,
   IsEnum,
-  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -46,7 +45,7 @@ export class UpdateStudentDto {
   @IsOptional() @IsEnum(EnrollmentStatus)
   status?: EnrollmentStatus;
 
-  @IsOptional() @IsInt() @Min(0) @IsIn([500000, 600000])
+  @IsOptional() @IsInt() @Min(0)
   monthlyTuition?: number;
 
   @IsOptional() @IsBoolean()

@@ -1,8 +1,8 @@
-export type FinanceBillingStatus =
-  | 'READY'
-  | 'MISSING_TUITION'
-  | 'NO_SCHEDULE'
-  | 'NO_BILLABLE';
+export type FinanceBillingStatus = 'READY' | 'MISSING_TUITION' | 'NO_SCHEDULE' | 'NO_BILLABLE';
+
+export const FINANCE_COLLECTION_STATUSES = ['PENDING', 'PRINTED', 'SENT', 'PAID'] as const;
+
+export type FinanceCollectionStatus = (typeof FINANCE_COLLECTION_STATUSES)[number];
 
 export interface IFinanceMonthlyRow {
   profileId: string;
@@ -15,11 +15,16 @@ export interface IFinanceMonthlyRow {
   classNames: string[];
   scheduledSessions: number;
   billableSessions: number;
+  defaultMonthlyTuition: number;
   monthlyTuition: number;
   tuitionPerSession: number;
+  calculatedAmountDue: number;
   amountDue: number;
+  amountDueOverride?: number | null;
+  hasAmountDueOverride: boolean;
   missingTuitionConfig: boolean;
   billingStatus: FinanceBillingStatus;
+  collectionStatus: FinanceCollectionStatus;
 }
 
 export interface IFinanceMonthlySummary {
@@ -31,6 +36,7 @@ export interface IFinanceMonthlySummary {
   billableSessions: number;
   totalPotentialAmount: number;
   totalAmountDue: number;
+  totalOutstandingAmount: number;
   studentsMissingTuition: number;
 }
 
@@ -49,6 +55,35 @@ export interface IFinanceMonthlyReport {
 export interface IFinanceMonthlyReportParams {
   month?: string;
   search?: string;
+  status?: FinanceCollectionStatus;
   page?: number;
   limit?: number;
+}
+
+export interface IFinanceMonthlyAmountDuePayload {
+  month: string;
+  amountDue: number;
+}
+
+export interface IFinanceMonthlyAmountDueOverride {
+  studentId: string;
+  month: string;
+  amountDue: number;
+}
+
+export interface IFinanceMonthlyAmountDueResetResult {
+  studentId: string;
+  month: string;
+  reset: true;
+}
+
+export interface IFinanceMonthlyStatusPayload {
+  month: string;
+  status: FinanceCollectionStatus;
+}
+
+export interface IFinanceMonthlyStatusUpdate {
+  studentId: string;
+  month: string;
+  status: FinanceCollectionStatus;
 }

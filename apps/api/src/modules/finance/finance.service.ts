@@ -1,13 +1,20 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, In, Repository } from 'typeorm';
 import {
   AttendanceStatus,
   DayOfWeek,
+  FINANCE_COLLECTION_STATUSES,
   FinanceBillingStatus,
+  FinanceCollectionStatus,
+  IFinanceMonthlyAmountDueOverride,
+  IFinanceMonthlyAmountDuePayload,
+  IFinanceMonthlyAmountDueResetResult,
   IFinanceMonthlyReport,
   IFinanceMonthlyReportParams,
   IFinanceMonthlyRow,
+  IFinanceMonthlyStatusPayload,
+  IFinanceMonthlyStatusUpdate,
 } from '@cp/shared';
 
 import { AttendanceRecord } from '../attendance/attendance.entity';
@@ -15,6 +22,8 @@ import { ScheduleSlotAttendanceRecord } from '../attendance/schedule-slot-attend
 import { ScheduleSlotCancellation } from '../attendance/schedule-slot-cancellation.entity';
 import { StudentProfile } from '../students/student-profile.entity';
 import { StudentSchedule } from '../students/student-schedule.entity';
+import { FinanceMonthlyAmountDue } from './finance-monthly-amount-due.entity';
+import { FinanceMonthlyStatus } from './finance-monthly-status.entity';
 
 const BILLABLE_STATUSES = [AttendanceStatus.PRESENT, AttendanceStatus.LATE];
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -48,6 +57,10 @@ export class FinanceService {
     private readonly studentSchedules: Repository<StudentSchedule>,
     @InjectRepository(AttendanceRecord)
     private readonly attendanceRecords: Repository<AttendanceRecord>,
+    @InjectRepository(FinanceMonthlyAmountDue)
+    private readonly amountDueOverrides: Repository<FinanceMonthlyAmountDue>,
+    @InjectRepository(FinanceMonthlyStatus)
+    private readonly monthlyStatuses: Repository<FinanceMonthlyStatus>,
   ) {}
 
   async getMonthlyReport(params: IFinanceMonthlyReportParams = {}): Promise<IFinanceMonthlyReport> {
@@ -58,21 +71,29 @@ export class FinanceService {
 
     const page = this.normalizePositiveInt(params.page, 1);
     const limit = Math.min(this.normalizePositiveInt(params.limit, 25), 100);
+    const statusFilter = this.normalizeCollectionStatus(params.status, true);
     const { from, to } = this.monthRange(month);
 
-    const [profiles, slotRows, cancellations, legacyRows] = await Promise.all([
-      this.profiles.find({ relations: ['user'], order: { createdAt: 'DESC' } }),
-      this.scheduleSlotAttendance.find({
-        where: { date: Between(from, to), status: In(BILLABLE_STATUSES) },
-      }),
-      this.scheduleSlotCancellations.find({ where: { date: Between(from, to) } }),
-      this.attendanceRecords.find({
-        where: { date: Between(from, to), status: In(BILLABLE_STATUSES) },
-        relations: ['class'],
-      }),
-    ]);
+    const [profiles, slotRows, cancellations, legacyRows, amountDueOverrides, monthlyStatuses] =
+      await Promise.all([
+        this.profiles.find({ relations: ['user'], order: { createdAt: 'DESC' } }),
+        this.scheduleSlotAttendance.find({
+          where: { date: Between(from, to), status: In(BILLABLE_STATUSES) },
+        }),
+        this.scheduleSlotCancellations.find({ where: { date: Between(from, to) } }),
+        this.attendanceRecords.find({
+          where: { date: Between(from, to), status: In(BILLABLE_STATUSES) },
+          relations: ['class'],
+        }),
+        this.amountDueOverrides.find({ where: { month } }),
+        this.monthlyStatuses.find({ where: { month } }),
+      ]);
 
     const profileByStudentId = new Map(profiles.map((profile) => [profile.userId, profile]));
+    const amountDueOverrideByStudentId = new Map(
+      amountDueOverrides.map((override) => [override.studentId, override]),
+    );
+    const statusByStudentId = new Map(monthlyStatuses.map((status) => [status.studentId, status]));
     const accumulators = new Map<string, StudentBillingAccumulator>();
     const getAccumulator = (studentId: string) => {
       let acc = accumulators.get(studentId);
@@ -104,7 +125,8 @@ export class FinanceService {
       const dayOfWeek = JS_DOW_TO_ENUM[new Date(`${date}T00:00:00.000Z`).getUTCDay()];
       for (const schedule of schedules) {
         if (schedule.dayOfWeek !== dayOfWeek) continue;
-        if (cancelledSlots.has(this.slotKey(date, schedule.dayOfWeek, schedule.startTime, schedule.endTime))) continue;
+        if (cancelledSlots.has(this.slotKey(date, schedule.dayOfWeek, schedule.startTime, schedule.endTime)))
+          continue;
 
         const acc = getAccumulator(schedule.studentId);
         acc.scheduledSessions += 1;
@@ -143,12 +165,7 @@ export class FinanceService {
       .filter((profile) => {
         if (!search) return true;
         const user = profile.user;
-        const haystack = [
-          user?.firstName,
-          user?.lastName,
-          user?.username,
-          user?.email,
-        ]
+        const haystack = [user?.firstName, user?.lastName, user?.username, user?.email]
           .filter(Boolean)
           .join(' ')
           .toLowerCase();
@@ -161,19 +178,27 @@ export class FinanceService {
           billableSessions: 0,
           classNames: new Set<string>(),
         };
-        const monthlyTuition = Math.max(0, profile.monthlyTuition ?? 0);
-        const tuitionPerSession = acc.scheduledSessions > 0
-          ? Math.round(monthlyTuition / acc.scheduledSessions)
-          : 0;
-        const amountDue = acc.scheduledSessions > 0
-          ? Math.round((monthlyTuition * acc.billableSessions) / acc.scheduledSessions)
-          : 0;
+        const defaultMonthlyTuition = this.coerceMoneyAmount(profile.monthlyTuition ?? 0);
+        const monthlyTuition = defaultMonthlyTuition;
+        const tuitionPerSession =
+          acc.scheduledSessions > 0 ? Math.round(monthlyTuition / acc.scheduledSessions) : 0;
+        const calculatedAmountDue =
+          acc.scheduledSessions > 0
+            ? Math.round((monthlyTuition * acc.billableSessions) / acc.scheduledSessions)
+            : 0;
+        const amountDueOverride = amountDueOverrideByStudentId.get(profile.userId);
+        const amountDueOverrideAmount = amountDueOverride
+          ? this.coerceMoneyAmount(amountDueOverride.amountDue)
+          : null;
+        const amountDue = amountDueOverrideAmount ?? calculatedAmountDue;
         const studentName = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || 'Unknown';
         const billingStatus = this.billingStatus({
           monthlyTuition,
           scheduledSessions: acc.scheduledSessions,
           billableSessions: acc.billableSessions,
+          hasAmountDueOverride: amountDueOverrideAmount !== null,
         });
+        const collectionStatus = this.coerceCollectionStatus(statusByStudentId.get(profile.userId)?.status);
         return {
           profileId: profile.id,
           studentId: profile.userId,
@@ -185,13 +210,19 @@ export class FinanceService {
           classNames: [...acc.classNames].sort((a, b) => a.localeCompare(b)),
           scheduledSessions: acc.scheduledSessions,
           billableSessions: acc.billableSessions,
+          defaultMonthlyTuition,
           monthlyTuition,
           tuitionPerSession,
+          calculatedAmountDue,
           amountDue,
-          missingTuitionConfig: monthlyTuition <= 0,
+          amountDueOverride: amountDueOverrideAmount,
+          hasAmountDueOverride: amountDueOverrideAmount !== null,
+          missingTuitionConfig: monthlyTuition <= 0 && amountDueOverrideAmount === null,
           billingStatus,
+          collectionStatus,
         };
-      });
+      })
+      .filter((row) => !statusFilter || row.collectionStatus === statusFilter);
 
     const summary = allRows.reduce(
       (acc, row) => {
@@ -199,6 +230,7 @@ export class FinanceService {
         acc.billableSessions += row.billableSessions;
         acc.totalPotentialAmount += row.monthlyTuition;
         acc.totalAmountDue += row.amountDue;
+        if (row.collectionStatus !== 'PAID') acc.totalOutstandingAmount += row.amountDue;
         if (row.missingTuitionConfig) acc.studentsMissingTuition += 1;
         return acc;
       },
@@ -211,6 +243,7 @@ export class FinanceService {
         billableSessions: 0,
         totalPotentialAmount: 0,
         totalAmountDue: 0,
+        totalOutstandingAmount: 0,
         studentsMissingTuition: 0,
       },
     );
@@ -232,9 +265,110 @@ export class FinanceService {
     };
   }
 
+  async setMonthlyAmountDue(
+    studentId: string,
+    payload: IFinanceMonthlyAmountDuePayload,
+  ): Promise<IFinanceMonthlyAmountDueOverride> {
+    const month = this.normalizeMonth(payload.month);
+    const amountDue = this.normalizeMoneyAmount(payload.amountDue);
+    const profile = await this.profiles.findOne({ where: { userId: studentId } });
+    if (!profile) {
+      throw new NotFoundException('student profile not found');
+    }
+
+    const existing = await this.amountDueOverrides.findOne({ where: { studentId, month } });
+    const saved = await this.amountDueOverrides.save({
+      ...(existing ?? {}),
+      studentId,
+      month,
+      amountDue,
+    });
+
+    return {
+      studentId: saved.studentId,
+      month: saved.month,
+      amountDue: saved.amountDue,
+    };
+  }
+
+  async resetMonthlyAmountDue(
+    studentId: string,
+    monthValue: string,
+  ): Promise<IFinanceMonthlyAmountDueResetResult> {
+    const month = this.normalizeMonth(monthValue);
+    await this.amountDueOverrides.delete({ studentId, month });
+    return { studentId, month, reset: true };
+  }
+
+  async setMonthlyStatus(
+    studentId: string,
+    payload: IFinanceMonthlyStatusPayload,
+  ): Promise<IFinanceMonthlyStatusUpdate> {
+    const month = this.normalizeMonth(payload.month);
+    const status = this.normalizeCollectionStatus(payload.status);
+    if (!status) {
+      throw new BadRequestException('status is invalid');
+    }
+    const profile = await this.profiles.findOne({ where: { userId: studentId } });
+    if (!profile) {
+      throw new NotFoundException('student profile not found');
+    }
+
+    const existing = await this.monthlyStatuses.findOne({ where: { studentId, month } });
+    const saved = await this.monthlyStatuses.save({
+      ...(existing ?? {}),
+      studentId,
+      month,
+      status,
+    });
+
+    return {
+      studentId: saved.studentId,
+      month: saved.month,
+      status: saved.status,
+    };
+  }
+
   private normalizePositiveInt(value: unknown, fallback: number): number {
     const n = Number(value);
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+  }
+
+  private normalizeMonth(month: string | undefined): string {
+    if (!month || !MONTH_RE.test(month)) {
+      throw new BadRequestException('month must use YYYY-MM format');
+    }
+    return month;
+  }
+
+  private normalizeMoneyAmount(value: unknown): number {
+    const amount = Number(value);
+    if (!Number.isFinite(amount) || amount < 0) {
+      throw new BadRequestException('amountDue must be a non-negative number');
+    }
+    return Math.round(amount);
+  }
+
+  private normalizeCollectionStatus(value: unknown, allowAll = false): FinanceCollectionStatus | undefined {
+    if (allowAll && (value === undefined || value === null || value === '' || value === 'all')) {
+      return undefined;
+    }
+    if (FINANCE_COLLECTION_STATUSES.includes(value as FinanceCollectionStatus)) {
+      return value as FinanceCollectionStatus;
+    }
+    throw new BadRequestException('status is invalid');
+  }
+
+  private coerceMoneyAmount(value: unknown): number {
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) return 0;
+    return Math.max(0, Math.round(amount));
+  }
+
+  private coerceCollectionStatus(value: unknown): FinanceCollectionStatus {
+    return FINANCE_COLLECTION_STATUSES.includes(value as FinanceCollectionStatus)
+      ? (value as FinanceCollectionStatus)
+      : 'PENDING';
   }
 
   private monthRange(month: string) {
@@ -265,12 +399,7 @@ export class FinanceService {
   }
 
   private attendanceSlotKey(row: ScheduleSlotAttendanceRecord) {
-    return [
-      row.studentId,
-      row.dayOfWeek,
-      this.timePart(row.startTime),
-      this.timePart(row.endTime),
-    ].join('_');
+    return [row.studentId, row.dayOfWeek, this.timePart(row.startTime), this.timePart(row.endTime)].join('_');
   }
 
   private slotKey(date: string, dayOfWeek: string, startTime: string, endTime: string) {
@@ -289,7 +418,9 @@ export class FinanceService {
     monthlyTuition: number;
     scheduledSessions: number;
     billableSessions: number;
+    hasAmountDueOverride: boolean;
   }): FinanceBillingStatus {
+    if (row.hasAmountDueOverride) return 'READY';
     if (row.monthlyTuition <= 0) return 'MISSING_TUITION';
     if (row.scheduledSessions <= 0) return 'NO_SCHEDULE';
     if (row.billableSessions <= 0) return 'NO_BILLABLE';

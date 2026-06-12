@@ -10,15 +10,22 @@ import {
   PageHeader,
   Pagination,
   SearchBox,
+  SelectFilter,
   StatCard,
   useToast,
 } from '@cp/ui';
-import { IFinanceMonthlyRow } from '@cp/shared';
+import { FINANCE_COLLECTION_STATUSES, FinanceCollectionStatus, IFinanceMonthlyRow } from '@cp/shared';
 
 import { financeApi } from '../../api/finance.api';
-import { useFinanceMonthlyReport } from '../../api/finance.queries';
+import {
+  useFinanceMonthlyReport,
+  useResetFinanceMonthlyAmountDue,
+  useSetFinanceMonthlyAmountDue,
+  useSetFinanceMonthlyStatus,
+} from '../../api/finance.queries';
 
 const PAGE_SIZE = 25;
+type StatusFilter = 'all' | FinanceCollectionStatus;
 
 function currentMonth() {
   const now = new Date();
@@ -26,10 +33,7 @@ function currentMonth() {
 }
 
 function formatDate(value: string | Date) {
-  const date =
-    typeof value === 'string'
-      ? new Date(`${value.slice(0, 10)}T00:00:00`)
-      : value;
+  const date = typeof value === 'string' ? new Date(`${value.slice(0, 10)}T00:00:00`) : value;
   if (Number.isNaN(date.getTime())) return '';
   return [
     String(date.getDate()).padStart(2, '0'),
@@ -48,6 +52,20 @@ function initials(name: string) {
     .toUpperCase();
 }
 
+function normalizeAmountInput(value: string) {
+  return value.replace(/\D/g, '');
+}
+
+function formatAmountInput(value: string, formatter: Intl.NumberFormat) {
+  const normalized = normalizeAmountInput(value);
+  if (!normalized) return '';
+
+  const amount = Number(normalized);
+  if (!Number.isSafeInteger(amount)) return normalized;
+
+  return formatter.format(amount);
+}
+
 export default function AdminFinancePage() {
   const { t, i18n } = useTranslation();
   const toast = useToast();
@@ -56,15 +74,21 @@ export default function AdminFinancePage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [exporting, setExporting] = useState(false);
+  const [amountDrafts, setAmountDrafts] = useState<Record<string, string>>({});
+  const [collectionStatusFilter, setCollectionStatusFilter] = useState<StatusFilter>('all');
   const deferredSearch = useDeferredValue(search.trim());
+  const setMonthlyAmountDue = useSetFinanceMonthlyAmountDue();
+  const resetMonthlyAmountDue = useResetFinanceMonthlyAmountDue();
+  const setMonthlyStatus = useSetFinanceMonthlyStatus();
 
   useEffect(() => {
     setPage(1);
-  }, [month, deferredSearch]);
+  }, [month, deferredSearch, collectionStatusFilter]);
 
   const reportQuery = useFinanceMonthlyReport({
     month,
     search: deferredSearch || undefined,
+    status: collectionStatusFilter === 'all' ? undefined : collectionStatusFilter,
     page,
     limit: PAGE_SIZE,
   });
@@ -86,28 +110,81 @@ export default function AdminFinancePage() {
     row.billingStatus ?? (row.missingTuitionConfig ? 'MISSING_TUITION' : 'READY');
   const getBillingStatusLabel = (row: IFinanceMonthlyRow) =>
     t(`pages.admin.finance.status.${getBillingStatus(row)}`);
-  const statusMeta = (row: IFinanceMonthlyRow) => {
-    const status = getBillingStatus(row);
-    const meta = {
-      READY: {
-        icon: 'receipt_long',
-        className: 'bg-tertiary-container/40 text-tertiary',
-      },
-      MISSING_TUITION: {
-        icon: 'error',
-        className: 'bg-error-container/50 text-error',
-      },
-      NO_SCHEDULE: {
-        icon: 'event_busy',
-        className: 'bg-secondary-container/50 text-on-secondary-container',
-      },
-      NO_BILLABLE: {
-        icon: 'pending_actions',
-        className: 'bg-outline-variant/40 text-on-surface-variant',
-      },
-    } satisfies Record<string, { icon: string; className: string }>;
-    return meta[status];
-  };
+  const getCollectionStatusLabel = (status: FinanceCollectionStatus) =>
+    t(`pages.admin.finance.collectionStatus.${status}`);
+  const amountBusy = setMonthlyAmountDue.isPending || resetMonthlyAmountDue.isPending;
+
+  function amountDraftValue(row: IFinanceMonthlyRow) {
+    return amountDrafts[row.studentId] ?? String(row.amountDue);
+  }
+
+  function setAmountDraft(row: IFinanceMonthlyRow, value: string) {
+    setAmountDrafts((prev) => ({
+      ...prev,
+      [row.studentId]: normalizeAmountInput(value),
+    }));
+  }
+
+  function clearAmountDraft(row: IFinanceMonthlyRow) {
+    setAmountDrafts((prev) => {
+      const next = { ...prev };
+      delete next[row.studentId];
+      return next;
+    });
+  }
+
+  async function commitAmountDue(row: IFinanceMonthlyRow) {
+    const raw = normalizeAmountInput(amountDraftValue(row));
+    if (raw === '') {
+      if (row.hasAmountDueOverride) {
+        try {
+          await resetMonthlyAmountDue.mutateAsync({ studentId: row.studentId, month });
+          toast.success(t('pages.admin.finance.amountDue.reset'));
+        } catch (err) {
+          toast.error((err as Error).message || t('pages.admin.finance.amountDue.resetFailed'));
+          return;
+        }
+      }
+      clearAmountDraft(row);
+      return;
+    }
+
+    const amountDue = Number(raw);
+    if (!Number.isSafeInteger(amountDue) || amountDue < 0) {
+      toast.error(t('pages.admin.finance.amountDue.invalidAmount'));
+      return;
+    }
+
+    try {
+      const roundedAmount = Math.round(amountDue);
+      if (roundedAmount === row.calculatedAmountDue) {
+        if (row.hasAmountDueOverride) {
+          await resetMonthlyAmountDue.mutateAsync({ studentId: row.studentId, month });
+          toast.success(t('pages.admin.finance.amountDue.reset'));
+        }
+      } else if (roundedAmount !== row.amountDue || !row.hasAmountDueOverride) {
+        await setMonthlyAmountDue.mutateAsync({
+          studentId: row.studentId,
+          month,
+          amountDue: roundedAmount,
+        });
+        toast.success(t('pages.admin.finance.amountDue.saved'));
+      }
+      clearAmountDraft(row);
+    } catch (err) {
+      toast.error((err as Error).message || t('pages.admin.finance.amountDue.saveFailed'));
+    }
+  }
+
+  async function updateCollectionStatus(row: IFinanceMonthlyRow, status: FinanceCollectionStatus) {
+    if (status === row.collectionStatus) return;
+    try {
+      await setMonthlyStatus.mutateAsync({ studentId: row.studentId, month, status });
+      toast.success(t('pages.admin.finance.collectionStatusSaved'));
+    } catch (err) {
+      toast.error((err as Error).message || t('pages.admin.finance.collectionStatusSaveFailed'));
+    }
+  }
 
   const columns: Column<IFinanceMonthlyRow>[] = [
     {
@@ -154,7 +231,9 @@ export default function AdminFinancePage() {
       header: t('pages.admin.finance.columns.monthlyTuition'),
       align: 'center',
       cell: (row) => (
-        <span className={row.missingTuitionConfig ? 'font-semibold text-error' : 'text-on-surface'}>
+        <span
+          className={row.missingTuitionConfig ? 'font-semibold text-error' : 'font-semibold text-on-surface'}
+        >
           {money.format(row.monthlyTuition)}
         </span>
       ),
@@ -163,29 +242,70 @@ export default function AdminFinancePage() {
       key: 'rate',
       header: t('pages.admin.finance.columns.sessionRate'),
       align: 'center',
-      cell: (row) => (
-        <span className="text-on-surface-variant">
-          {money.format(row.tuitionPerSession)}
-        </span>
-      ),
+      cell: (row) => <span className="text-on-surface-variant">{money.format(row.tuitionPerSession)}</span>,
     },
     {
       key: 'amount',
       header: t('pages.admin.finance.columns.amount'),
       align: 'center',
-      cell: (row) => <span className="font-bold text-on-surface">{money.format(row.amountDue)}</span>,
+      cell: (row) => (
+        <input
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          placeholder={money.format(0)}
+          value={formatAmountInput(amountDraftValue(row), money)}
+          onChange={(event) => setAmountDraft(row, event.target.value)}
+          onBlur={() => void commitAmountDue(row)}
+          onFocus={(event) => event.currentTarget.select()}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') event.currentTarget.blur();
+            if (event.key === 'Escape') {
+              clearAmountDraft(row);
+            }
+          }}
+          disabled={amountBusy}
+          className={`w-36 rounded-lg border px-sm py-xs text-center text-label-sm font-semibold outline-none transition focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60 ${
+            row.hasAmountDueOverride
+              ? 'border-primary/70 bg-primary-container/10 text-on-surface'
+              : 'border-transparent bg-transparent text-on-surface hover:border-outline-variant hover:bg-surface-container-low focus:border-primary focus:bg-surface-container-low'
+          }`}
+          aria-label={t('pages.admin.finance.amountDue.inputLabel')}
+          title={row.hasAmountDueOverride ? t('pages.admin.finance.amountDue.overrideTitle') : undefined}
+        />
+      ),
     },
     {
       key: 'status',
       header: t('pages.admin.finance.columns.status'),
       align: 'center',
       cell: (row) => {
-        const meta = statusMeta(row);
+        const billingStatus = getBillingStatus(row);
         return (
-          <span className={`inline-flex items-center gap-xs rounded-full px-sm py-1 text-[11px] font-semibold ${meta.className}`}>
-            <Icon name={meta.icon} size={14} />
-            {getBillingStatusLabel(row)}
-          </span>
+          <div className="flex items-center justify-center gap-xs">
+            <select
+              value={row.collectionStatus}
+              onChange={(event) =>
+                void updateCollectionStatus(row, event.target.value as FinanceCollectionStatus)
+              }
+              className="w-40 rounded-lg border border-transparent bg-transparent px-sm py-xs text-center text-label-sm font-semibold text-on-surface outline-none transition hover:border-outline-variant hover:bg-surface-container-low focus:border-primary focus:bg-surface-container-low focus:ring-2 focus:ring-primary"
+              aria-label={t('pages.admin.finance.collectionStatusInputLabel')}
+            >
+              {FINANCE_COLLECTION_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {getCollectionStatusLabel(status)}
+                </option>
+              ))}
+            </select>
+            {billingStatus !== 'READY' && (
+              <span
+                className="inline-grid h-8 w-8 place-items-center rounded-lg bg-error-container/40 text-error"
+                title={getBillingStatusLabel(row)}
+              >
+                <Icon name="info" size={16} />
+              </span>
+            )}
+          </div>
         );
       },
     },
@@ -218,6 +338,7 @@ export default function AdminFinancePage() {
       return;
     }
 
+    const invoiceStatus = row.collectionStatus === 'PAID' ? row.collectionStatus : 'PRINTED';
     const html = buildInvoiceHtml({
       row,
       month,
@@ -225,7 +346,7 @@ export default function AdminFinancePage() {
       to: formatDate(summary.to),
       issuedAt: formatDate(new Date()),
       money,
-      status: getBillingStatusLabel(row),
+      status: getCollectionStatusLabel(invoiceStatus),
       t,
     });
     invoiceWindow.document.open();
@@ -235,6 +356,14 @@ export default function AdminFinancePage() {
     invoiceWindow.setTimeout(() => {
       invoiceWindow.print();
     }, 250);
+
+    if (invoiceStatus !== row.collectionStatus) {
+      void setMonthlyStatus
+        .mutateAsync({ studentId: row.studentId, month, status: invoiceStatus })
+        .catch((err) => {
+          toast.error((err as Error).message || t('pages.admin.finance.collectionStatusSaveFailed'));
+        });
+    }
   }
 
   async function exportCsv() {
@@ -243,6 +372,7 @@ export default function AdminFinancePage() {
       const first = await financeApi.monthly({
         month,
         search: deferredSearch || undefined,
+        status: collectionStatusFilter === 'all' ? undefined : collectionStatusFilter,
         page: 1,
         limit: 100,
       });
@@ -253,6 +383,7 @@ export default function AdminFinancePage() {
                 financeApi.monthly({
                   month,
                   search: deferredSearch || undefined,
+                  status: collectionStatusFilter === 'all' ? undefined : collectionStatusFilter,
                   page: index + 2,
                   limit: 100,
                 }),
@@ -260,7 +391,7 @@ export default function AdminFinancePage() {
             )
           : [];
       const rows = [first, ...rest].flatMap((r) => r.rows);
-      const csv = toCsv(rows, money, getBillingStatusLabel);
+      const csv = toCsv(rows, money, getCollectionStatusLabel, getBillingStatusLabel);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -283,7 +414,13 @@ export default function AdminFinancePage() {
         actions={
           <Button
             variant="ghost"
-            leadingIcon={<Icon name={exporting ? 'progress_activity' : 'ios_share'} size={18} className={exporting ? 'animate-spin' : undefined} />}
+            leadingIcon={
+              <Icon
+                name={exporting ? 'progress_activity' : 'ios_share'}
+                size={18}
+                className={exporting ? 'animate-spin' : undefined}
+              />
+            }
             onClick={exportCsv}
             disabled={exporting || reportQuery.isLoading}
           >
@@ -307,9 +444,21 @@ export default function AdminFinancePage() {
             className="rounded-lg border border-outline-variant bg-surface-container-low px-md py-sm text-label-sm text-on-surface outline-none focus:ring-2 focus:ring-primary"
           />
         </label>
+        <SelectFilter
+          label={t('pages.admin.finance.filters.statusLabel')}
+          value={collectionStatusFilter}
+          onChange={(event) => setCollectionStatusFilter(event.target.value as StatusFilter)}
+          options={[
+            { value: 'all', label: t('pages.admin.finance.filters.statusAll') },
+            ...FINANCE_COLLECTION_STATUSES.map((status) => ({
+              value: status,
+              label: getCollectionStatusLabel(status),
+            })),
+          ]}
+        />
       </FilterToolbar>
 
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-md">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-md">
         <StatCard
           label={t('pages.admin.finance.kpi.potentialDue')}
           value={money.format(summary?.totalPotentialAmount ?? 0)}
@@ -323,15 +472,9 @@ export default function AdminFinancePage() {
           iconColor="text-tertiary"
         />
         <StatCard
-          label={t('pages.admin.finance.kpi.billableSessions')}
-          value={numberFormat.format(summary?.billableSessions ?? 0)}
-          icon="event_available"
-          iconColor="text-primary"
-        />
-        <StatCard
-          label={t('pages.admin.finance.kpi.missingRates')}
-          value={numberFormat.format(summary?.studentsMissingTuition ?? 0)}
-          icon="warning"
+          label={t('pages.admin.finance.kpi.outstandingDue')}
+          value={money.format(summary?.totalOutstandingAmount ?? 0)}
+          icon="pending_actions"
           iconColor="text-error"
         />
       </section>
@@ -356,7 +499,9 @@ export default function AdminFinancePage() {
           <div className="grid min-h-[220px] place-items-center p-xl text-center text-error">
             <div>
               <Icon name="error" size={36} className="mx-auto mb-sm" />
-              <p>{(reportQuery.error as Error | undefined)?.message ?? t('pages.admin.finance.loadFailed')}</p>
+              <p>
+                {(reportQuery.error as Error | undefined)?.message ?? t('pages.admin.finance.loadFailed')}
+              </p>
             </div>
           </div>
         ) : (
@@ -389,7 +534,8 @@ export default function AdminFinancePage() {
 function toCsv(
   rows: IFinanceMonthlyRow[],
   money: Intl.NumberFormat,
-  statusLabel: (row: IFinanceMonthlyRow) => string,
+  collectionStatusLabel: (status: FinanceCollectionStatus) => string,
+  billingStatusLabel: (row: IFinanceMonthlyRow) => string,
 ) {
   const header = [
     'Student',
@@ -398,7 +544,9 @@ function toCsv(
     'Billable sessions',
     'Monthly tuition',
     'Derived tuition per session',
+    'Calculated amount due',
     'Amount due',
+    'Collection status',
     'Billing status',
   ];
   const body = rows.map((row) => [
@@ -408,8 +556,10 @@ function toCsv(
     String(row.billableSessions),
     money.format(row.monthlyTuition),
     money.format(row.tuitionPerSession),
+    money.format(row.calculatedAmountDue),
     money.format(row.amountDue),
-    statusLabel(row),
+    collectionStatusLabel(row.collectionStatus),
+    billingStatusLabel(row),
   ]);
   return [header, ...body].map((line) => line.map(csvCell).join(',')).join('\n');
 }
@@ -456,6 +606,9 @@ function buildInvoiceHtml({
     [t('pages.admin.finance.invoice.fields.billableSessions'), String(row.billableSessions)],
     [t('pages.admin.finance.invoice.fields.monthlyTuition'), money.format(row.monthlyTuition)],
     [t('pages.admin.finance.invoice.fields.sessionRate'), money.format(row.tuitionPerSession)],
+    ...(row.hasAmountDueOverride
+      ? [[t('pages.admin.finance.invoice.fields.calculatedAmountDue'), money.format(row.calculatedAmountDue)]]
+      : []),
   ];
 
   return `<!doctype html>
@@ -505,7 +658,8 @@ function buildInvoiceHtml({
     <section class="section grid">
       ${lines
         .map(
-          ([label, value]) => `<div class="item"><span class="label">${escapeHtml(label)}</span><span class="value">${escapeHtml(value)}</span></div>`,
+          ([label, value]) =>
+            `<div class="item"><span class="label">${escapeHtml(label)}</span><span class="value">${escapeHtml(value)}</span></div>`,
         )
         .join('')}
     </section>

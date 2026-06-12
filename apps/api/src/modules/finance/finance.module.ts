@@ -7,6 +7,8 @@ import { ScheduleSlotCancellation } from '../attendance/schedule-slot-cancellati
 import { StudentProfile } from '../students/student-profile.entity';
 import { StudentSchedule } from '../students/student-schedule.entity';
 import { FinanceController } from './finance.controller';
+import { FinanceMonthlyAmountDue } from './finance-monthly-amount-due.entity';
+import { FinanceMonthlyStatus } from './finance-monthly-status.entity';
 import { FinanceService } from './finance.service';
 
 @Module({
@@ -17,6 +19,8 @@ import { FinanceService } from './finance.service';
       ScheduleSlotCancellation,
       StudentSchedule,
       AttendanceRecord,
+      FinanceMonthlyAmountDue,
+      FinanceMonthlyStatus,
     ]),
   ],
   controllers: [FinanceController],

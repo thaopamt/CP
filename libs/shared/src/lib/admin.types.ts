@@ -162,7 +162,7 @@ export interface IStudentProfile {
   enrolledAt: string;         // ISO datetime
   startDate?: string | null;
   status: EnrollmentStatus;
-  monthlyTuition: number;     // VND per month, divided across scheduled sessions
+  monthlyTuition: number;     // Default monthly tuition in VND
 
   /** Denormalized KPIs (refreshed by jobs) */
   cumulativeGpa: number;      // 0..4

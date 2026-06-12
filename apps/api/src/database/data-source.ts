@@ -28,6 +28,8 @@ import { Badge } from '../modules/quests/badge.entity';
 import { StudentBadge } from '../modules/quests/student-badge.entity';
 import { MazeLevel } from '../modules/maze/maze-level.entity';
 import { MazeSubmission } from '../modules/maze/maze-submission.entity';
+import { FinanceMonthlyAmountDue } from '../modules/finance/finance-monthly-amount-due.entity';
+import { FinanceMonthlyStatus } from '../modules/finance/finance-monthly-status.entity';
 
 // Load env in CLI context (TypeORM CLI doesn't go through ConfigModule)
 loadEnv({ path: join(process.cwd(), 'apps/api/.env') });
@@ -72,6 +74,8 @@ export const AppDataSource = new DataSource({
     StudentBadge,
     MazeLevel,
     MazeSubmission,
+    FinanceMonthlyAmountDue,
+    FinanceMonthlyStatus,
   ],
   migrations: [join(__dirname, 'migrations/*.{ts,js}')],
   synchronize: true,
