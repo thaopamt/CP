@@ -115,32 +115,32 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
     );
     const existingKeys = new Set(existing.map((sq) => `${sq.questId}:${sq.periodKey}`));
 
-    const toCreate: StudentQuest[] = [];
+    const toCreate: Partial<StudentQuest>[] = [];
     for (const quest of visible) {
       const periodKey = this.periodKeyFor(quest, now);
       if (existingKeys.has(`${quest.id}:${periodKey}`)) continue;
 
       const locked = !!quest.prerequisiteQuestId && !claimedQuestIds.has(quest.prerequisiteQuestId);
-      toCreate.push(
-        this.studentQuests.create({
-          userId,
-          questId: quest.id,
-          periodKey,
-          progress: 0,
-          progressData: { countedIds: [], pointsAccrued: 0 },
-          status: locked ? StudentQuestStatus.LOCKED : StudentQuestStatus.IN_PROGRESS,
-          startedAt: locked ? null : now,
-        }),
-      );
+      toCreate.push({
+        userId,
+        questId: quest.id,
+        periodKey,
+        progress: 0,
+        progressData: { countedIds: [], pointsAccrued: 0 },
+        status: locked ? StudentQuestStatus.LOCKED : StudentQuestStatus.IN_PROGRESS,
+        startedAt: locked ? null : now,
+      });
     }
 
-    for (const row of toCreate) {
-      // Tolerate races on the unique (user, quest, period) constraint.
-      try {
-        await this.studentQuests.save(row);
-      } catch {
-        /* already created concurrently — ignore */
-      }
+    if (toCreate.length > 0) {
+      // Idempotent under concurrent /student-quests/me requests.
+      await this.studentQuests
+        .createQueryBuilder()
+        .insert()
+        .into(StudentQuest)
+        .values(toCreate)
+        .orIgnore()
+        .execute();
     }
 
     // Expire stale, still-in-progress recurring attempts from older windows.

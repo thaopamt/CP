@@ -70,8 +70,8 @@ export default function StudentQuestsPage() {
       {
         key: 'daily',
         icon: 'today',
-        iconColor: 'text-emerald-400',
-        bgGlow: 'bg-emerald-400/5',
+        iconColor: 'text-emerald-700 dark:text-emerald-200',
+        bgGlow: 'bg-emerald-50 dark:bg-emerald-500/[0.12]',
         title: t('gamif.student.quests.daily'),
         quests: dailyQuests,
       },
@@ -80,8 +80,8 @@ export default function StudentQuestsPage() {
       cols.push({
         key: 'weekly',
         icon: 'date_range',
-        iconColor: 'text-sky-400',
-        bgGlow: 'bg-sky-400/5',
+        iconColor: 'text-sky-700 dark:text-sky-200',
+        bgGlow: 'bg-sky-50 dark:bg-sky-500/[0.12]',
         title: t('gamif.student.quests.weekly'),
         quests: weeklyQuests,
       });
@@ -89,16 +89,16 @@ export default function StudentQuestsPage() {
     cols.push({
       key: 'main',
       icon: 'auto_stories',
-      iconColor: 'text-cyan-400',
-      bgGlow: 'bg-cyan-400/5',
+      iconColor: 'text-cyan-700 dark:text-cyan-200',
+      bgGlow: 'bg-cyan-50 dark:bg-cyan-500/[0.12]',
       title: t('gamif.student.quests.main'),
       quests: mainQuests,
     });
     cols.push({
       key: 'bounty',
       icon: 'local_fire_department',
-      iconColor: 'text-orange-400',
-      bgGlow: 'bg-orange-400/5',
+      iconColor: 'text-orange-700 dark:text-orange-200',
+      bgGlow: 'bg-orange-50 dark:bg-orange-500/[0.13]',
       title: t('gamif.student.quests.bounty'),
       quests: bountyQuests,
     });
@@ -106,8 +106,8 @@ export default function StudentQuestsPage() {
       cols.push({
         key: 'event',
         icon: 'celebration',
-        iconColor: 'text-fuchsia-400',
-        bgGlow: 'bg-fuchsia-400/5',
+        iconColor: 'text-fuchsia-700 dark:text-fuchsia-200',
+        bgGlow: 'bg-fuchsia-50 dark:bg-fuchsia-500/[0.12]',
         title: t('gamif.student.quests.event'),
         quests: eventQuests,
       });
@@ -117,10 +117,10 @@ export default function StudentQuestsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen p-8 flex items-center justify-center bg-[#0f0f13]">
+      <div className="grid min-h-[60vh] place-items-center text-on-surface-variant">
         <div className="flex flex-col items-center gap-4">
-          <Icon name="sync" className="animate-spin text-emerald-400" size={48} />
-          <span className="text-gray-500 text-sm font-medium">{t('gamif.student.quests.loading')}</span>
+          <Icon name="sync" className="animate-spin text-primary" size={48} />
+          <span className="text-sm font-medium">{t('gamif.student.quests.loading')}</span>
         </div>
       </div>
     );
@@ -134,44 +134,50 @@ export default function StudentQuestsPage() {
   ];
 
   return (
-    <div className="min-h-screen text-gray-200 p-4 md:p-8 font-sans" style={{ backgroundColor: '#0f0f13' }}>
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-lg py-lg text-on-surface">
       {/* ── Hero Header ── */}
-      <header className="mb-8">
+      <header>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <h1 className="text-3xl md:text-4xl font-black text-white mb-2 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-[0_4px_15px_rgba(251,191,36,0.3)]">
-                <Icon name="swords" size={28} className="text-white" />
+            <h1 className="font-manrope text-headline-md md:text-headline-lg font-extrabold text-on-surface mb-2 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-lg bg-tertiary-container text-on-tertiary-container flex items-center justify-center shadow-elev-1 dark:bg-amber-400/15 dark:text-amber-100 dark:ring-1 dark:ring-amber-200/25 dark:shadow-[0_0_34px_rgba(251,191,36,0.14)]">
+                <Icon name="swords" size={28} />
               </div>
               {t('gamif.student.quests.title')}
             </h1>
-            <p className="text-gray-400 max-w-lg">{t('gamif.student.quests.subtitle')}</p>
+            <p className="text-body-md text-on-surface-variant max-w-lg">{t('gamif.student.quests.subtitle')}</p>
           </div>
 
           {/* Quick stats */}
           <div className="flex gap-3 flex-wrap">
             <StatPill
               icon="flag"
-              color="text-cyan-400"
-              bgColor="bg-cyan-400/10"
+              color="text-cyan-700 dark:text-cyan-300"
+              bgColor="bg-cyan-50 dark:bg-cyan-400/10"
               value={`${completedCount}/${totalQuests}`}
               label={t('gamif.student.quests.statCompleted')}
             />
-            <StatPill icon="star" color="text-emerald-400" bgColor="bg-emerald-400/10" value={`${totalXpEarned}`} label="XP" />
+            <StatPill
+              icon="star"
+              color="text-emerald-700 dark:text-emerald-300"
+              bgColor="bg-emerald-50 dark:bg-emerald-400/10"
+              value={`${totalXpEarned}`}
+              label="XP"
+            />
           </div>
         </div>
       </header>
 
       {/* ── Filter pills ── */}
-      <div className="flex gap-2 mb-8 overflow-x-auto pb-1">
+      <div className="flex gap-xs overflow-x-auto rounded-lg bg-surface-container-low p-xs dark:border dark:border-white/10 dark:bg-[#17131d]/90 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
         {filterOptions.map((opt) => (
           <button
             key={opt.key}
             onClick={() => setFilter(opt.key)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200 ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all duration-200 ${
               filter === opt.key
-                ? 'bg-white/10 text-white border border-white/20 shadow-lg'
-                : 'bg-white/5 text-gray-400 border border-transparent hover:bg-white/10 hover:text-gray-200'
+                ? 'bg-primary text-on-primary shadow-elev-1 dark:bg-primary-container dark:text-on-primary-container dark:ring-1 dark:ring-primary/30'
+                : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface dark:hover:bg-white/[0.08] dark:hover:text-on-surface'
             }`}
           >
             <Icon name={opt.icon} size={16} />
@@ -181,7 +187,7 @@ export default function StudentQuestsPage() {
       </div>
 
       {/* ── Quest Columns ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 gap-lg lg:grid-cols-3">
         {columns.map((col) => (
           <QuestColumn
             key={col.key}
@@ -237,21 +243,21 @@ function QuestColumn({
   return (
     <div className="flex flex-col gap-4">
       {/* Section header */}
-      <div className={`flex items-center gap-3 px-4 py-3 rounded-xl ${bgGlow} border border-white/5`}>
-        <div className={`w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center ${iconColor}`}>
+      <div className={`flex items-center gap-3 px-4 py-3 rounded-lg ${bgGlow} border border-outline-variant/70 shadow-elev-1 dark:border-white/10 dark:shadow-[0_18px_42px_rgba(0,0,0,0.22)]`}>
+        <div className={`w-8 h-8 rounded-lg bg-surface-container-lowest flex items-center justify-center ${iconColor} dark:bg-white/[0.06] dark:ring-1 dark:ring-white/10`}>
           <Icon name={icon} size={20} />
         </div>
-        <h2 className="text-lg font-bold text-white flex-1">{title}</h2>
-        <span className="text-xs font-mono text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">{quests.length}</span>
+        <h2 className="text-lg font-bold text-on-surface flex-1">{title}</h2>
+        <span className="text-xs font-mono text-on-surface-variant bg-surface-container-high px-2 py-0.5 rounded-md dark:bg-white/[0.07] dark:text-on-surface">{quests.length}</span>
       </div>
 
       {/* Cards */}
       {quests.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-3">
-            <Icon name="inbox" size={32} className="text-gray-600" />
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-outline-variant bg-surface-container-low py-12 text-center dark:border-white/10 dark:bg-[#17131d]/70">
+          <div className="w-16 h-16 rounded-lg bg-surface-container-high flex items-center justify-center mb-3 dark:bg-white/[0.06]">
+            <Icon name="inbox" size={32} className="text-on-surface-variant" />
           </div>
-          <p className="text-sm text-gray-500">{emptyText}</p>
+          <p className="text-sm text-on-surface-variant">{emptyText}</p>
         </div>
       ) : (
         quests.map((sq) => <QuestCard key={sq.id} sq={sq} onOpen={onOpen} t={t} />)
@@ -285,13 +291,19 @@ function QuestCard({
       ? t('gamif.student.quests.resetsWeekly')
       : t('gamif.student.quests.resetsDaily');
 
-  let cardClass = 'border-white/5';
-  if (isCompleted) cardClass = 'border-amber-400/40 shadow-[0_0_20px_rgba(251,191,36,0.15)]';
-  if (isClaimed) cardClass = 'border-white/5 opacity-50';
-  if (isLocked) cardClass = 'border-white/5 opacity-60';
+  let cardClass = 'border-outline-variant bg-surface-container-lowest dark:border-white/10 dark:bg-[#18151f]/95 dark:shadow-[0_14px_34px_rgba(0,0,0,0.22)]';
+  if (isCompleted)
+    cardClass =
+      'border-amber-400/60 bg-amber-50/80 shadow-elev-1 dark:border-amber-300/35 dark:bg-amber-400/[0.12] dark:ring-1 dark:ring-amber-200/15 dark:shadow-[0_18px_44px_rgba(0,0,0,0.28)]';
+  if (isClaimed)
+    cardClass =
+      'border-outline-variant/70 bg-surface-container-low opacity-70 dark:border-white/10 dark:bg-[#15121b]/80 dark:opacity-65';
+  if (isLocked)
+    cardClass =
+      'border-outline-variant/60 bg-surface-container-low opacity-75 dark:border-white/10 dark:bg-[#15121b]/70 dark:opacity-80';
 
-  const progressColor = isCompleted ? 'bg-amber-400' : isClaimed ? 'bg-gray-500' : 'bg-cyan-400';
-  const progressTrackColor = isCompleted ? 'bg-amber-400/20' : 'bg-[#0a0a0f]';
+  const progressColor = isCompleted ? 'bg-amber-500 dark:bg-amber-300' : isClaimed ? 'bg-outline' : 'bg-primary';
+  const progressTrackColor = isCompleted ? 'bg-amber-100 dark:bg-amber-300/20' : 'bg-surface-container-highest dark:bg-white/[0.08]';
 
   return (
     <div
@@ -304,30 +316,24 @@ function QuestCard({
           onOpen(sq);
         }
       }}
-      className={`group relative overflow-hidden rounded-2xl bg-[#16161e] border ${cardClass} p-5 transition-all duration-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-400/40 ${
-        !isClaimed && !isLocked ? 'hover:-translate-y-1 hover:shadow-xl' : 'hover:border-white/15'
+      className={`group relative overflow-hidden rounded-lg border ${cardClass} p-5 transition-all duration-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+        !isClaimed && !isLocked
+          ? 'hover:-translate-y-1 hover:border-primary/40 hover:shadow-elev-2 dark:hover:border-primary/50 dark:hover:shadow-[0_20px_54px_rgba(0,0,0,0.34)]'
+          : 'hover:border-outline dark:hover:border-white/20'
       }`}
     >
       {/* View-detail affordance */}
-      <span className="absolute top-3 right-3 z-20 text-gray-600 group-hover:text-cyan-400 transition-colors">
+      <span className="absolute top-3 right-3 z-20 text-on-surface-variant/50 group-hover:text-primary transition-colors dark:text-white/25 dark:group-hover:text-primary-fixed-dim">
         <Icon name="chevron_right" size={18} />
       </span>
-
-      {/* Glow effect for completed */}
-      {isCompleted && (
-        <>
-          <div className="absolute top-0 right-0 -mt-6 -mr-6 w-28 h-28 bg-amber-400/10 rounded-full blur-2xl" />
-          <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-20 h-20 bg-amber-400/5 rounded-full blur-xl" />
-        </>
-      )}
 
       <div className="flex gap-4 items-start relative z-10">
         {/* Icon */}
         <div
-          className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-500 ${
+          className={`w-14 h-14 rounded-lg flex items-center justify-center shrink-0 border transition-all duration-500 ${
             isCompleted
-              ? 'bg-amber-400/15 border-amber-400/30 text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.2)]'
-              : 'bg-white/5 border-white/10 text-gray-400'
+              ? 'bg-amber-100 border-amber-300 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300'
+              : 'bg-surface-container-high border-outline-variant/70 text-on-surface-variant group-hover:bg-primary-container group-hover:text-on-primary-container dark:bg-white/[0.06] dark:border-white/10 dark:group-hover:bg-primary/20 dark:group-hover:text-primary-fixed-dim'
           } ${isLocked ? 'grayscale' : ''}`}
         >
           <Icon name={isLocked ? 'lock' : sq.quest.icon} size={28} />
@@ -336,34 +342,34 @@ function QuestCard({
         <div className="flex-1 min-w-0">
           {/* Title & objective */}
           <div className="flex items-start justify-between gap-2">
-            <h3 className={`font-bold text-lg mb-0.5 truncate ${isClaimed || isLocked ? 'text-gray-500' : 'text-white'} ${isClaimed ? 'line-through' : ''}`}>
+            <h3 className={`font-bold text-lg mb-0.5 truncate ${isClaimed || isLocked ? 'text-on-surface-variant' : 'text-on-surface'} ${isClaimed ? 'line-through' : ''}`}>
               {sq.quest.title}
             </h3>
             {recurs && !isLocked && (
-              <span className="shrink-0 flex items-center gap-1 text-[10px] font-bold text-sky-300 bg-sky-400/10 px-2 py-0.5 rounded-full whitespace-nowrap">
+              <span className="shrink-0 flex items-center gap-1 text-[10px] font-bold text-sky-700 bg-sky-100 px-2 py-0.5 rounded-md whitespace-nowrap dark:border dark:border-sky-300/20 dark:bg-sky-400/[0.12] dark:text-sky-200">
                 <Icon name="refresh" size={11} /> {recurrenceLabel}
               </span>
             )}
           </div>
 
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-2 flex items-center gap-1">
+          <p className="text-[11px] font-semibold uppercase text-on-surface-variant mb-2 flex items-center gap-1">
             <Icon name="adjust" size={12} /> {objectiveLabel}
           </p>
 
           {sq.quest.description && (
-            <p className="text-[12px] text-gray-400 mb-3 line-clamp-2 leading-relaxed">{sq.quest.description}</p>
+            <p className="text-[12px] text-on-surface-variant mb-3 line-clamp-2 leading-relaxed">{sq.quest.description}</p>
           )}
 
           {isLocked ? (
-            <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 bg-white/5 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 text-xs font-semibold text-on-surface-variant bg-surface-container-high rounded-lg px-3 py-2 dark:border dark:border-white/10 dark:bg-white/[0.06]">
               <Icon name="lock" size={14} /> {t('gamif.student.quests.locked')}
             </div>
           ) : (
             <>
               {/* Progress */}
               <div className="flex justify-between text-xs font-semibold mb-1.5">
-                <span className="text-gray-400">{t('gamif.student.quests.progress')}</span>
-                <span className={isCompleted ? 'text-amber-400' : isClaimed ? 'text-gray-500' : 'text-cyan-400'}>
+                <span className="text-on-surface-variant">{t('gamif.student.quests.progress')}</span>
+                <span className={isCompleted ? 'text-amber-700 dark:text-amber-300' : isClaimed ? 'text-on-surface-variant' : 'text-primary'}>
                   {sq.progress} / {sq.quest.targetCount} {unit}
                 </span>
               </div>
@@ -378,10 +384,10 @@ function QuestCard({
               {/* Footer: rewards + actions */}
               <div className="flex items-center justify-between">
                 <div className="flex gap-2">
-                  <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md">
+                  <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-md dark:border-emerald-300/20 dark:bg-emerald-400/[0.12] dark:text-emerald-200">
                     <Icon name="star" size={11} /> +{sq.quest.rewardXp} XP
                   </span>
-                  <span className="flex items-center gap-1 text-[11px] font-bold text-fuchsia-400 bg-fuchsia-400/10 px-2 py-1 rounded-md">
+                  <span className="flex items-center gap-1 text-[11px] font-bold text-fuchsia-700 bg-fuchsia-50 border border-fuchsia-100 px-2 py-1 rounded-md dark:border-fuchsia-300/20 dark:bg-fuchsia-400/[0.12] dark:text-fuchsia-200">
                     <Icon name="diamond" size={11} /> {sq.quest.rewardGems}
                   </span>
                 </div>
@@ -389,7 +395,7 @@ function QuestCard({
                 {isDone && (
                   <span
                     className={`text-xs font-bold flex items-center gap-1 ${
-                      isClaimed ? 'text-gray-500' : 'text-emerald-400'
+                      isClaimed ? 'text-on-surface-variant' : 'text-emerald-700 dark:text-emerald-300'
                     }`}
                   >
                     <Icon name="check_circle" size={14} className={isClaimed ? 'text-emerald-500/60' : ''} />{' '}
@@ -397,7 +403,7 @@ function QuestCard({
                   </span>
                 )}
                 {isInProgress && progressPct > 0 && (
-                  <span className="text-[11px] font-bold text-cyan-400/60">{progressPct}%</span>
+                  <span className="text-[11px] font-bold text-primary/70">{progressPct}%</span>
                 )}
               </div>
             </>
@@ -434,68 +440,68 @@ function QuestDetailModal({
   const fmtDay = (d?: string | null) => (d ? new Date(d).toLocaleDateString() : '—');
 
   const statusTone: Record<string, string> = {
-    LOCKED: 'text-gray-400 bg-white/5',
-    IN_PROGRESS: 'text-cyan-300 bg-cyan-400/10',
-    COMPLETED: 'text-amber-300 bg-amber-400/10',
-    CLAIMED: 'text-emerald-300 bg-emerald-400/10',
-    EXPIRED: 'text-rose-300 bg-rose-400/10',
+    LOCKED: 'text-on-surface-variant bg-surface-container-high border border-outline-variant/60 dark:border-white/10 dark:bg-white/[0.06]',
+    IN_PROGRESS: 'text-sky-700 bg-sky-100 border border-sky-200 dark:border-sky-300/20 dark:bg-sky-400/[0.12] dark:text-sky-200',
+    COMPLETED: 'text-amber-700 bg-amber-100 border border-amber-200 dark:border-amber-300/20 dark:bg-amber-400/[0.12] dark:text-amber-200',
+    CLAIMED: 'text-emerald-700 bg-emerald-100 border border-emerald-200 dark:border-emerald-300/20 dark:bg-emerald-400/[0.12] dark:text-emerald-200',
+    EXPIRED: 'text-rose-700 bg-rose-100 border border-rose-200 dark:border-rose-300/20 dark:bg-rose-400/[0.12] dark:text-rose-200',
   };
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4 dark:bg-black/70"
       onClick={onClose}
     >
       <div
-        className="relative w-full sm:max-w-lg max-h-[92vh] overflow-y-auto bg-[#16161e] border border-white/10 rounded-t-3xl sm:rounded-3xl shadow-2xl"
+        className="relative w-full sm:max-w-lg max-h-[92vh] overflow-y-auto bg-surface-container-lowest border border-outline-variant rounded-t-xl sm:rounded-xl shadow-elev-3 dark:border-white/10 dark:bg-[#18151f] dark:shadow-[0_24px_80px_rgba(0,0,0,0.5)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-[#16161e]/95 backdrop-blur border-b border-white/5 px-6 py-4 flex items-start gap-4">
+        <div className="sticky top-0 z-10 bg-surface-container-lowest/95 backdrop-blur border-b border-outline-variant px-6 py-4 flex items-start gap-4 dark:border-white/10 dark:bg-[#18151f]/95">
           <div
-            className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border ${
+            className={`w-14 h-14 rounded-lg flex items-center justify-center shrink-0 border ${
               isCompleted
-                ? 'bg-amber-400/15 border-amber-400/30 text-amber-400'
-                : 'bg-white/5 border-white/10 text-cyan-300'
+                ? 'bg-amber-100 border-amber-300 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300'
+                : 'bg-primary-container border-primary/20 text-on-primary-container dark:bg-primary/20 dark:border-primary/30 dark:text-primary-fixed-dim'
             } ${isLocked ? 'grayscale' : ''}`}
           >
             <Icon name={isLocked ? 'lock' : quest.icon} size={30} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-bold uppercase text-on-surface-variant bg-surface-container-high px-2 py-0.5 rounded-md dark:border dark:border-white/10 dark:bg-white/[0.06]">
                 {t(`gamif.questType.${quest.type}`)}
               </span>
-              <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${statusTone[sq.status]}`}>
+              <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${statusTone[sq.status]}`}>
                 {t(`gamif.sqStatus.${sq.status}`)}
               </span>
             </div>
-            <h2 className="text-xl font-black text-white mt-1 leading-tight">{quest.title}</h2>
+            <h2 className="text-xl font-black text-on-surface mt-1 leading-tight">{quest.title}</h2>
           </div>
           <button
             onClick={onClose}
             aria-label={t('gamif.student.quests.detail.close')}
-            className="shrink-0 w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-colors"
+            className="shrink-0 w-8 h-8 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-colors dark:bg-white/[0.06] dark:hover:bg-white/[0.1]"
           >
             <Icon name="close" size={18} />
           </button>
         </div>
 
         <div className="px-6 py-5 flex flex-col gap-5">
-          {quest.description && <p className="text-sm text-gray-300 leading-relaxed">{quest.description}</p>}
+          {quest.description && <p className="text-sm text-on-surface-variant leading-relaxed">{quest.description}</p>}
 
           {/* Progress */}
           {!isLocked && (
             <div>
               <div className="flex justify-between text-xs font-semibold mb-1.5">
-                <span className="text-gray-400">{t('gamif.student.quests.progress')}</span>
-                <span className={isCompleted ? 'text-amber-400' : 'text-cyan-400'}>
+                <span className="text-on-surface-variant">{t('gamif.student.quests.progress')}</span>
+                <span className={isCompleted ? 'text-amber-700 dark:text-amber-300' : 'text-primary'}>
                   {sq.progress} / {quest.targetCount} {unit}
                 </span>
               </div>
-              <div className="w-full h-2.5 bg-[#0a0a0f] rounded-full overflow-hidden">
+              <div className="w-full h-2.5 bg-surface-container-highest rounded-full overflow-hidden dark:bg-white/[0.08]">
                 <div
-                  className={`h-full rounded-full transition-all duration-700 ${isCompleted ? 'bg-amber-400' : 'bg-cyan-400'}`}
+                  className={`h-full rounded-full transition-all duration-700 ${isCompleted ? 'bg-amber-500 dark:bg-amber-300' : 'bg-primary'}`}
                   style={{ width: `${progressPct}%` }}
                 />
               </div>
@@ -546,10 +552,10 @@ function QuestDetailModal({
             {prereqTitle ? (
               <DetailRow label={t('gamif.student.quests.detail.prerequisite')} value={prereqTitle} />
             ) : (
-              <p className="text-xs text-gray-500">{t('gamif.student.quests.detail.noPrerequisite')}</p>
+              <p className="text-xs text-on-surface-variant">{t('gamif.student.quests.detail.noPrerequisite')}</p>
             )}
             {isLocked && (
-              <p className="text-xs text-amber-400/80 mt-1 flex items-center gap-1">
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1 flex items-center gap-1">
                 <Icon name="info" size={13} /> {t('gamif.student.quests.detail.lockedNote')}
               </p>
             )}
@@ -558,14 +564,14 @@ function QuestDetailModal({
           {/* Rewards */}
           <DetailSection icon="redeem" title={t('gamif.student.quests.detail.secRewards')}>
             <div className="flex gap-2 flex-wrap">
-              <span className="flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-md">
+              <span className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-md dark:border-emerald-300/20 dark:bg-emerald-400/[0.12] dark:text-emerald-200">
                 <Icon name="star" size={13} /> +{quest.rewardXp} XP
               </span>
-              <span className="flex items-center gap-1 text-xs font-bold text-fuchsia-400 bg-fuchsia-400/10 px-2.5 py-1 rounded-md">
+              <span className="flex items-center gap-1 text-xs font-bold text-fuchsia-700 bg-fuchsia-50 border border-fuchsia-100 px-2.5 py-1 rounded-md dark:border-fuchsia-300/20 dark:bg-fuchsia-400/[0.12] dark:text-fuchsia-200">
                 <Icon name="diamond" size={13} /> {quest.rewardGems}
               </span>
               {quest.rewardBadgeId && (
-                <span className="flex items-center gap-1 text-xs font-bold text-amber-300 bg-amber-400/10 px-2.5 py-1 rounded-md">
+                <span className="flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-md dark:border-amber-300/20 dark:bg-amber-400/[0.12] dark:text-amber-200">
                   <Icon name="workspace_premium" size={13} /> {t('gamif.student.quests.detail.rewardBadge')}
                 </span>
               )}
@@ -585,9 +591,9 @@ function QuestDetailModal({
         </div>
 
         {/* Footer actions */}
-        <div className="sticky bottom-0 bg-[#16161e]/95 backdrop-blur border-t border-white/5 px-6 py-4 flex items-center justify-between gap-3">
+        <div className="sticky bottom-0 bg-surface-container-lowest/95 backdrop-blur border-t border-outline-variant px-6 py-4 flex items-center justify-between gap-3 dark:border-white/10 dark:bg-[#18151f]/95">
           {isCompleted ? (
-            <span className="text-sm font-bold text-emerald-400 flex items-center gap-1.5">
+            <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
               <Icon name="check_circle" size={18} /> {t('gamif.student.quests.rewardEarned')}
             </span>
           ) : (
@@ -595,7 +601,7 @@ function QuestDetailModal({
           )}
           <button
             onClick={onClose}
-            className="text-sm font-semibold text-gray-300 hover:text-white px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+            className="text-sm font-semibold text-on-surface-variant hover:text-on-surface px-4 py-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest transition-colors dark:bg-white/[0.06] dark:hover:bg-white/[0.1]"
           >
             {t('gamif.student.quests.detail.close')}
           </button>
@@ -608,10 +614,10 @@ function QuestDetailModal({
 function DetailSection({ icon, title, children }: { icon: string; title: string; children: ReactNode }) {
   return (
     <div>
-      <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-2 flex items-center gap-1.5">
+      <h3 className="text-[11px] font-bold uppercase text-on-surface-variant mb-2 flex items-center gap-1.5">
         <Icon name={icon} size={14} /> {title}
       </h3>
-      <div className="bg-white/[0.03] border border-white/5 rounded-xl px-4 py-3 flex flex-col gap-1.5">{children}</div>
+      <div className="bg-surface-container-low border border-outline-variant/70 rounded-lg px-4 py-3 flex flex-col gap-1.5 dark:border-white/10 dark:bg-white/[0.04]">{children}</div>
     </div>
   );
 }
@@ -619,8 +625,8 @@ function DetailSection({ icon, title, children }: { icon: string; title: string;
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3 text-sm">
-      <span className="text-gray-400">{label}</span>
-      <span className="text-gray-100 font-semibold text-right">{value}</span>
+      <span className="text-on-surface-variant">{label}</span>
+      <span className="text-on-surface font-semibold text-right">{value}</span>
     </div>
   );
 }
@@ -642,13 +648,13 @@ function StatPill({
   pulse?: boolean;
 }) {
   return (
-    <div className={`flex items-center gap-2 px-4 py-2 rounded-xl bg-[#16161e] border border-white/5 ${pulse ? 'animate-pulse' : ''}`}>
+    <div className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant shadow-elev-1 dark:border-white/10 dark:bg-[#18151f]/95 dark:shadow-[0_16px_42px_rgba(0,0,0,0.24)] ${pulse ? 'animate-pulse' : ''}`}>
       <div className={`w-8 h-8 rounded-lg ${bgColor} flex items-center justify-center ${color}`}>
         <Icon name={icon} size={16} />
       </div>
       <div>
-        <div className="text-sm font-black text-white">{value}</div>
-        <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">{label}</div>
+        <div className="text-sm font-black text-on-surface">{value}</div>
+        <div className="text-[10px] text-on-surface-variant uppercase font-bold">{label}</div>
       </div>
     </div>
   );
