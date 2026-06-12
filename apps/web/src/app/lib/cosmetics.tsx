@@ -12,6 +12,18 @@ const FRAME_GRADIENT: Record<string, string> = {
   silver: 'bg-gradient-to-br from-slate-300 to-slate-500',
   gold: 'bg-gradient-to-br from-amber-300 to-yellow-500',
   neon: 'bg-gradient-to-br from-fuchsia-500 via-cyan-400 to-violet-500',
+  emerald: 'bg-gradient-to-br from-emerald-400 to-teal-600',
+  sapphire: 'bg-gradient-to-br from-sky-400 to-blue-700',
+  ruby: 'bg-gradient-to-br from-rose-500 to-red-700',
+  amethyst: 'bg-gradient-to-br from-purple-400 to-fuchsia-700',
+  ember: 'bg-gradient-to-br from-orange-500 to-red-600',
+  frost: 'bg-gradient-to-br from-cyan-200 to-sky-500',
+  rose: 'bg-gradient-to-br from-pink-300 to-rose-500',
+  toxic: 'bg-gradient-to-br from-lime-400 to-green-600',
+  obsidian: 'bg-gradient-to-br from-gray-600 to-gray-900',
+  royal: 'bg-gradient-to-br from-indigo-500 via-purple-500 to-amber-400',
+  diamond: 'bg-gradient-to-br from-cyan-100 via-sky-200 to-blue-400',
+  rainbow: 'bg-gradient-to-br from-red-500 via-yellow-400 to-blue-500',
 };
 
 /** Tinted gradient used as a profile-header background for each theme. */
