@@ -4,6 +4,7 @@ import {
   IsBoolean,
   IsDateString,
   IsEnum,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -61,8 +62,8 @@ export class CreateStudentDto implements ICreateStudentPayload {
   @IsOptional() @IsEnum(EnrollmentStatus)
   status?: EnrollmentStatus;
 
-  @IsOptional() @IsInt() @Min(0)
-  tuitionPerSession?: number;
+  @IsOptional() @IsInt() @Min(0) @IsIn([500000, 600000])
+  monthlyTuition?: number;
 
   @IsOptional()
   @IsArray()

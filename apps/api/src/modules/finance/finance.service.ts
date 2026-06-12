@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Between, In, Repository } from 'typeorm';
 import {
   AttendanceStatus,
+  DayOfWeek,
+  FinanceBillingStatus,
   IFinanceMonthlyReport,
   IFinanceMonthlyReportParams,
   IFinanceMonthlyRow,
@@ -17,7 +19,18 @@ import { StudentSchedule } from '../students/student-schedule.entity';
 const BILLABLE_STATUSES = [AttendanceStatus.PRESENT, AttendanceStatus.LATE];
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
+const JS_DOW_TO_ENUM: Record<number, DayOfWeek> = {
+  0: DayOfWeek.SUN,
+  1: DayOfWeek.MON,
+  2: DayOfWeek.TUE,
+  3: DayOfWeek.WED,
+  4: DayOfWeek.THU,
+  5: DayOfWeek.FRI,
+  6: DayOfWeek.SAT,
+};
+
 type StudentBillingAccumulator = {
+  scheduledSessions: number;
   billableSessions: number;
   classNames: Set<string>;
 };
@@ -64,16 +77,16 @@ export class FinanceService {
     const getAccumulator = (studentId: string) => {
       let acc = accumulators.get(studentId);
       if (!acc) {
-        acc = { billableSessions: 0, classNames: new Set<string>() };
+        acc = { scheduledSessions: 0, billableSessions: 0, classNames: new Set<string>() };
         accumulators.set(studentId, acc);
       }
       return acc;
     };
 
-    const slotStudentIds = [...new Set(slotRows.map((row) => row.studentId))];
-    const schedules = slotStudentIds.length
+    const studentIds = profiles.map((profile) => profile.userId);
+    const schedules = studentIds.length
       ? await this.studentSchedules.find({
-          where: { studentId: In(slotStudentIds) },
+          where: { studentId: In(studentIds) },
           relations: ['class'],
         })
       : [];
@@ -84,6 +97,21 @@ export class FinanceService {
       cancellations.map((row) => this.slotKey(row.date, row.dayOfWeek, row.startTime, row.endTime)),
     );
     const countedSlotClassKeys = new Set<string>();
+    const scheduledClassKeys = new Set<string>();
+    const dates = this.eachDate(from, to);
+
+    for (const date of dates) {
+      const dayOfWeek = JS_DOW_TO_ENUM[new Date(`${date}T00:00:00.000Z`).getUTCDay()];
+      for (const schedule of schedules) {
+        if (schedule.dayOfWeek !== dayOfWeek) continue;
+        if (cancelledSlots.has(this.slotKey(date, schedule.dayOfWeek, schedule.startTime, schedule.endTime))) continue;
+
+        const acc = getAccumulator(schedule.studentId);
+        acc.scheduledSessions += 1;
+        if (schedule.class?.name) acc.classNames.add(schedule.class.name);
+        scheduledClassKeys.add(this.studentDateClassKey(schedule.studentId, date, schedule.classId));
+      }
+    }
 
     for (const row of slotRows) {
       if (!BILLABLE_STATUSES.includes(row.status)) continue;
@@ -105,6 +133,7 @@ export class FinanceService {
       if (countedSlotClassKeys.has(duplicateKey)) continue;
 
       const acc = getAccumulator(row.studentId);
+      if (!scheduledClassKeys.has(duplicateKey)) acc.scheduledSessions += 1;
       acc.billableSessions += 1;
       if (row.class?.name) acc.classNames.add(row.class.name);
     }
@@ -127,27 +156,48 @@ export class FinanceService {
       })
       .map<IFinanceMonthlyRow>((profile) => {
         const user = profile.user;
-        const acc = accumulators.get(profile.userId) ?? { billableSessions: 0, classNames: new Set<string>() };
-        const tuitionPerSession = Math.max(0, profile.tuitionPerSession ?? 0);
+        const acc = accumulators.get(profile.userId) ?? {
+          scheduledSessions: 0,
+          billableSessions: 0,
+          classNames: new Set<string>(),
+        };
+        const monthlyTuition = Math.max(0, profile.monthlyTuition ?? 0);
+        const tuitionPerSession = acc.scheduledSessions > 0
+          ? Math.round(monthlyTuition / acc.scheduledSessions)
+          : 0;
+        const amountDue = acc.scheduledSessions > 0
+          ? Math.round((monthlyTuition * acc.billableSessions) / acc.scheduledSessions)
+          : 0;
         const studentName = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || 'Unknown';
+        const billingStatus = this.billingStatus({
+          monthlyTuition,
+          scheduledSessions: acc.scheduledSessions,
+          billableSessions: acc.billableSessions,
+        });
         return {
           profileId: profile.id,
           studentId: profile.userId,
           studentName,
           username: user?.username ?? null,
+          avatarUrl: user?.avatarUrl ?? null,
           email: user?.email ?? '',
           grade: profile.grade,
           classNames: [...acc.classNames].sort((a, b) => a.localeCompare(b)),
+          scheduledSessions: acc.scheduledSessions,
           billableSessions: acc.billableSessions,
+          monthlyTuition,
           tuitionPerSession,
-          amountDue: acc.billableSessions * tuitionPerSession,
-          missingTuitionConfig: tuitionPerSession <= 0,
+          amountDue,
+          missingTuitionConfig: monthlyTuition <= 0,
+          billingStatus,
         };
       });
 
     const summary = allRows.reduce(
       (acc, row) => {
+        acc.scheduledSessions += row.scheduledSessions;
         acc.billableSessions += row.billableSessions;
+        acc.totalPotentialAmount += row.monthlyTuition;
         acc.totalAmountDue += row.amountDue;
         if (row.missingTuitionConfig) acc.studentsMissingTuition += 1;
         return acc;
@@ -157,7 +207,9 @@ export class FinanceService {
         from,
         to,
         totalStudents: allRows.length,
+        scheduledSessions: 0,
         billableSessions: 0,
+        totalPotentialAmount: 0,
         totalAmountDue: 0,
         studentsMissingTuition: 0,
       },
@@ -192,6 +244,17 @@ export class FinanceService {
     return { from, to };
   }
 
+  private eachDate(from: string, to: string): string[] {
+    const start = new Date(`${from}T00:00:00.000Z`);
+    const end = new Date(`${to}T00:00:00.000Z`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return [];
+    const out: string[] = [];
+    for (const d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+      out.push(d.toISOString().slice(0, 10));
+    }
+    return out;
+  }
+
   private studentScheduleKey(schedule: StudentSchedule) {
     return [
       schedule.studentId,
@@ -220,5 +283,16 @@ export class FinanceService {
 
   private timePart(value: string) {
     return value.slice(0, 5);
+  }
+
+  private billingStatus(row: {
+    monthlyTuition: number;
+    scheduledSessions: number;
+    billableSessions: number;
+  }): FinanceBillingStatus {
+    if (row.monthlyTuition <= 0) return 'MISSING_TUITION';
+    if (row.scheduledSessions <= 0) return 'NO_SCHEDULE';
+    if (row.billableSessions <= 0) return 'NO_BILLABLE';
+    return 'READY';
   }
 }

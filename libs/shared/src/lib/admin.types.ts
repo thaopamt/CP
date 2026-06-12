@@ -162,7 +162,7 @@ export interface IStudentProfile {
   enrolledAt: string;         // ISO datetime
   startDate?: string | null;
   status: EnrollmentStatus;
-  tuitionPerSession: number;  // VND per billable attendance session
+  monthlyTuition: number;     // VND per month, divided across scheduled sessions
 
   /** Denormalized KPIs (refreshed by jobs) */
   cumulativeGpa: number;      // 0..4
@@ -196,7 +196,7 @@ export interface ICreateStudentPayload {
   cohortYear?: number;
   startDate?: string;
   status?: EnrollmentStatus;
-  tuitionPerSession?: number;
+  monthlyTuition?: number;
   guardians?: IGuardianInput[];
 }
 
@@ -208,7 +208,7 @@ export interface IUpdateStudentPayload {
   cohortYear?: number;
   startDate?: string;
   status?: EnrollmentStatus;
-  tuitionPerSession?: number;
+  monthlyTuition?: number;
   guardians?: IGuardianInput[];
 }
 

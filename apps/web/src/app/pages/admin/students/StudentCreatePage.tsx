@@ -38,7 +38,7 @@ type Draft = {
   grade: number;
   startDate: string;
   status: EnrollmentStatus;
-  tuitionPerSession: number;
+  monthlyTuition: number;
   isAccountActive: boolean;
   defaultLanguage: string;
   schedules: ScheduleDraft[];
@@ -60,7 +60,7 @@ const INITIAL: Draft = {
   grade: 1,
   startDate: '',
   status: EnrollmentStatus.ACTIVE,
-  tuitionPerSession: 0,
+  monthlyTuition: 500000,
   isAccountActive: true,
   defaultLanguage: 'cpp',
   schedules: [],
@@ -144,8 +144,8 @@ export default function StudentCreatePage() {
       e.password = t('pages.admin.studentCreate.validation.passwordMin');
 
     if (draft.grade < 1 || draft.grade > 9) e.grade = t('pages.admin.studentCreate.validation.gradeRange');
-    if (!Number.isInteger(draft.tuitionPerSession) || draft.tuitionPerSession < 0) {
-      e.tuitionPerSession = t('pages.admin.studentCreate.validation.tuitionPerSession');
+    if (![500000, 600000].includes(draft.monthlyTuition)) {
+      e.monthlyTuition = t('pages.admin.studentCreate.validation.monthlyTuition');
     }
     draft.schedules.forEach((s, i) => {
       if (!s.startTime || !s.endTime || s.startTime >= s.endTime) {
@@ -166,7 +166,7 @@ export default function StudentCreatePage() {
       grade: draft.grade,
       startDate: draft.startDate || undefined,
       status: draft.status,
-      tuitionPerSession: draft.tuitionPerSession,
+      monthlyTuition: draft.monthlyTuition,
       guardians: draft.guardians
         .filter((g) => g.fullName.trim() || g.phoneNumber?.trim())
         .map((g) => ({
@@ -325,18 +325,18 @@ export default function StudentCreatePage() {
       <FormSection icon="payments" title={t('pages.admin.studentCreate.sections.finance')}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
           <FormField
-            label={t('pages.admin.studentCreate.fields.tuitionPerSession')}
-            hint={t('pages.admin.studentCreate.fields.tuitionPerSessionHint')}
-            error={errors.tuitionPerSession}
+            label={t('pages.admin.studentCreate.fields.monthlyTuition')}
+            hint={t('pages.admin.studentCreate.fields.monthlyTuitionHint')}
+            error={errors.monthlyTuition}
           >
-            <input
-              type="number"
-              min={0}
-              step={1000}
-              value={draft.tuitionPerSession}
-              onChange={(e) => patch({ tuitionPerSession: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
+            <select
+              value={draft.monthlyTuition}
+              onChange={(e) => patch({ monthlyTuition: Number(e.target.value) })}
               className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
-            />
+            >
+              <option value={500000}>500.000 VND</option>
+              <option value={600000}>600.000 VND</option>
+            </select>
           </FormField>
         </div>
       </FormSection>

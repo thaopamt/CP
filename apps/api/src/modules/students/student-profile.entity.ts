@@ -49,8 +49,8 @@ export class StudentProfile extends BaseEntity {
   @Column({ type: 'enum', enum: EnrollmentStatus, default: EnrollmentStatus.ACTIVE })
   status!: EnrollmentStatus;
 
-  @Column({ type: 'int', default: 0, name: 'tuition_per_session' })
-  tuitionPerSession!: number;
+  @Column({ type: 'int', default: 0, name: 'monthly_tuition' })
+  monthlyTuition!: number;
 
   // ── Denormalized KPIs (refreshed by background jobs / triggers) ───
   @Column({ type: 'float', default: 0, name: 'cumulative_gpa' })

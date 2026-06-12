@@ -54,7 +54,7 @@ interface ApiStudentProfile {
   enrolledAt: string;
   startDate: string | null;
   status: EnrollmentStatus;
-  tuitionPerSession: number;
+  monthlyTuition: number;
   cumulativeGpa: number;
   attendanceRate: number;
   daysAbsent: number;
@@ -101,7 +101,7 @@ function toStudent(s: ApiStudentProfile): IStudentProfile {
     enrolledAt: s.enrolledAt,
     startDate: s.startDate,
     status: s.status,
-    tuitionPerSession: s.tuitionPerSession ?? 0,
+    monthlyTuition: s.monthlyTuition ?? 0,
     cumulativeGpa: s.cumulativeGpa ?? 0,
     attendanceRate: s.attendanceRate ?? 0,
     daysAbsent: s.daysAbsent ?? 0,
