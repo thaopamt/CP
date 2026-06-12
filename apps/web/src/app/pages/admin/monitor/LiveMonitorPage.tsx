@@ -87,9 +87,46 @@ function DetailModal({
 }) {
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const isLocalChangeRef = useRef(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftCode, setDraftCode] = useState(code);
   const { user } = useAuthStore();
   const adminName = user ? (fullName(user) || user.email) : 'Admin';
+  const canEdit = language !== 'maze' && !!student.problemId;
+  const editorValue = isEditing ? draftCode : code;
+
+  const emitAdminEditState = useCallback((editing: boolean, cursorOffset?: number) => {
+    if (!socketRef.current || !student.problemId) return;
+    socketRef.current.emit('admin_edit_state', {
+      studentId: student.studentId,
+      problemId: student.problemId,
+      isEditing: editing,
+      cursorOffset,
+      adminName,
+    });
+  }, [adminName, socketRef, student.problemId, student.studentId]);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setDraftCode(code);
+    }
+  }, [code, isEditing]);
+
+  useEffect(() => {
+    setIsEditing(false);
+  }, [student.studentId, student.problemId]);
+
+  useEffect(() => {
+    if (!isEditing) return;
+    const frame = requestAnimationFrame(() => {
+      const textarea = editorContainerRef.current?.querySelector('textarea');
+      textarea?.focus();
+      emitAdminEditState(true, textarea?.selectionStart ?? 0);
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      emitAdminEditState(false);
+    };
+  }, [emitAdminEditState, isEditing]);
 
   // Close on Escape
   useEffect(() => {
@@ -100,13 +137,25 @@ function DetailModal({
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
 
+  const handleEnableEdit = useCallback(() => {
+    setDraftCode(code);
+    setIsEditing(true);
+  }, [code]);
+
+  const handleDisableEdit = useCallback(() => {
+    setIsEditing(false);
+  }, []);
+
   // Handle admin typing — emit immediately, no debounce
-  const handleCodeChange = (newCode: string) => {
-    isLocalChangeRef.current = true;
+  const handleCodeChange = useCallback((newCode: string) => {
+    if (!isEditing) return;
+    setDraftCode(newCode);
+
     // Update parent codeMap immediately
     if (student.problemId) {
       onAdminCodeChange(student.studentId, student.problemId, newCode, language);
     }
+
     // Emit to server immediately
     if (socketRef.current && student.problemId) {
       // Get cursor position from textarea
@@ -121,10 +170,11 @@ function DetailModal({
         adminName,
       });
     }
-  };
+  }, [adminName, isEditing, language, onAdminCodeChange, socketRef, student.problemId, student.studentId]);
 
   // Track admin cursor movement (clicks, arrow keys, etc.)
   useEffect(() => {
+    if (!isEditing) return;
     const container = editorContainerRef.current;
     if (!container) return;
 
@@ -158,25 +208,7 @@ function DetailModal({
       container.removeEventListener('keyup', onKeyUp);
       document.removeEventListener('selectionchange', onSelect);
     };
-  }, [student.studentId, student.problemId, socketRef]);
-
-  // Save and restore cursor position when code is updated from student (remote)
-  useEffect(() => {
-    if (isLocalChangeRef.current) {
-      isLocalChangeRef.current = false;
-      return;
-    }
-    // Remote code update — preserve cursor position
-    const textarea = editorContainerRef.current?.querySelector('textarea');
-    if (textarea) {
-      const pos = textarea.selectionStart;
-      // React will update the textarea value, then we restore cursor
-      requestAnimationFrame(() => {
-        const clampedPos = Math.min(pos, code.length);
-        textarea.setSelectionRange(clampedPos, clampedPos);
-      });
-    }
-  }, [code]);
+  }, [adminName, isEditing, socketRef, student.problemId, student.studentId]);
 
   // Student cursor for RemoteCursors overlay
   const remoteCursors: RemoteCursor[] = [];
@@ -222,6 +254,27 @@ function DetailModal({
               </span>
               LIVE
             </span>
+            {canEdit && (
+              isEditing ? (
+                <button
+                  type="button"
+                  onClick={handleDisableEdit}
+                  className="h-8 px-3 rounded-lg flex items-center gap-1.5 bg-white/10 text-gray-200 text-xs font-semibold hover:bg-white/15 transition-colors"
+                >
+                  <Icon name="visibility" size={15} />
+                  Xem
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleEnableEdit}
+                  className="h-8 px-3 rounded-lg flex items-center gap-1.5 bg-violet-500 text-white text-xs font-semibold hover:bg-violet-400 transition-colors"
+                >
+                  <Icon name="edit" size={15} />
+                  Sửa code
+                </button>
+              )
+            )}
             <button
               onClick={onClose}
               className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
@@ -307,22 +360,34 @@ function DetailModal({
             </div>
           ) : (
             <div ref={scrollContainerRef} className="min-h-0 overflow-auto relative">
-              <div ref={editorContainerRef} style={{ position: 'relative' }}>
-                <Editor
-                  value={code || '// Waiting for code...'}
-                  onValueChange={handleCodeChange}
-                  highlight={(c) => highlightCode(c, language)}
-                  padding={16}
-                  className="w-full min-h-full font-mono text-[13px] bg-transparent text-gray-300 outline-none"
-                  textareaClassName="focus:outline-none"
-                  style={{
-                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                    lineHeight: '20px',
-                  }}
-                />
+              <div ref={editorContainerRef} className="relative min-h-full">
+                {isEditing ? (
+                  <Editor
+                    value={draftCode}
+                    onValueChange={handleCodeChange}
+                    highlight={(c) => highlightCode(c, language)}
+                    padding={16}
+                    placeholder="// Waiting for code..."
+                    className="w-full min-h-full font-mono text-[13px] bg-transparent text-gray-300 outline-none"
+                    textareaClassName="focus:outline-none"
+                    style={{
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                      lineHeight: '20px',
+                    }}
+                  />
+                ) : editorValue ? (
+                  <pre
+                    className="min-h-full w-full whitespace-pre p-4 font-mono text-[13px] leading-5 text-gray-300"
+                    dangerouslySetInnerHTML={{ __html: highlightCode(editorValue, language) }}
+                  />
+                ) : (
+                  <div className="flex min-h-[220px] items-center justify-center p-4 text-sm italic text-gray-600">
+                    Chưa có code…
+                  </div>
+                )}
                 <RemoteCursors
                   cursors={remoteCursors}
-                  code={code || ''}
+                  code={editorValue || ''}
                   scrollContainerRef={scrollContainerRef}
                   lineHeight={20}
                   paddingTop={16}
@@ -335,7 +400,7 @@ function DetailModal({
 
         {/* Footer stats */}
         <div className="flex items-center justify-between px-5 py-2 bg-[#1e1e3a] border-t border-white/10 text-xs text-gray-500 shrink-0">
-          <span>{code ? code.split('\n').length : 0} dòng</span>
+          <span>{editorValue ? editorValue.split('\n').length : 0} dòng</span>
           <span>Cập nhật: {new Date(student.lastActive).toLocaleTimeString('vi-VN')}</span>
         </div>
       </div>

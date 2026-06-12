@@ -15,6 +15,11 @@ type ProblemExample = {
   output: string;
   explanation?: string;
 };
+type AdminEditSession = {
+  studentId: string;
+  problemId: string;
+  adminName?: string;
+};
 
 export interface ActiveStudent {
   socketId: string;
@@ -50,6 +55,8 @@ export class LiveMonitorGateway implements OnGatewayConnection, OnGatewayDisconn
   private onlineStudents = new Map<string, ActiveStudent>();
   // Track admin socket IDs for global broadcast
   private adminSockets = new Set<string>();
+  // Track workspaces where an admin is actively editing so stale cursors can be cleared.
+  private adminEditSessions = new Map<string, Map<string, AdminEditSession>>();
 
   handleConnection(client: Socket) {
     console.log(`LiveMonitor: Client connected: ${client.id}`);
@@ -58,6 +65,7 @@ export class LiveMonitorGateway implements OnGatewayConnection, OnGatewayDisconn
   handleDisconnect(client: Socket) {
     console.log(`LiveMonitor: Client disconnected: ${client.id}`);
     this.adminSockets.delete(client.id);
+    this.clearAdminEditSessions(client.id);
     this.onlineStudents.delete(client.id);
     if (this.activeStudents.has(client.id)) {
       this.activeStudents.delete(client.id);
@@ -233,6 +241,7 @@ export class LiveMonitorGateway implements OnGatewayConnection, OnGatewayDisconn
     @ConnectedSocket() client: Socket,
   ) {
     const roomName = `workspace_${data.studentId}_${data.problemId}`;
+    this.clearAdminEditSession(client.id, data.studentId, data.problemId, client);
     client.leave(roomName);
     console.log(`LiveMonitor: Admin stopped watching ${roomName}`);
   }
@@ -251,6 +260,15 @@ export class LiveMonitorGateway implements OnGatewayConnection, OnGatewayDisconn
     @ConnectedSocket() client: Socket,
   ) {
     if (!data?.studentId || !data?.problemId) return;
+
+    const sessionKey = `${data.studentId}_${data.problemId}`;
+    const sessions = this.adminEditSessions.get(client.id) ?? new Map<string, AdminEditSession>();
+    sessions.set(sessionKey, {
+      studentId: data.studentId,
+      problemId: data.problemId,
+      adminName: data.adminName,
+    });
+    this.adminEditSessions.set(client.id, sessions);
 
     // 1. Update server-side state so the snapshot stays current
     const student = Array.from(this.activeStudents.values()).find(
@@ -277,6 +295,44 @@ export class LiveMonitorGateway implements OnGatewayConnection, OnGatewayDisconn
 
     // 3. Broadcast code_update to all admins (except the sender) for grid preview
     client.to('admin_global').emit('code_update', payload);
+  }
+
+  @SubscribeMessage('admin_edit_state')
+  handleAdminEditState(
+    @MessageBody()
+    data: {
+      studentId: string;
+      problemId: string;
+      isEditing: boolean;
+      cursorOffset?: number;
+      adminName?: string;
+    },
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (!data?.studentId || !data?.problemId) return;
+
+    const key = `${data.studentId}_${data.problemId}`;
+    if (data.isEditing) {
+      const sessions = this.adminEditSessions.get(client.id) ?? new Map<string, AdminEditSession>();
+      sessions.set(key, {
+        studentId: data.studentId,
+        problemId: data.problemId,
+        adminName: data.adminName,
+      });
+      this.adminEditSessions.set(client.id, sessions);
+    } else {
+      this.adminEditSessions.get(client.id)?.delete(key);
+      if (this.adminEditSessions.get(client.id)?.size === 0) {
+        this.adminEditSessions.delete(client.id);
+      }
+    }
+
+    const roomName = `workspace_${data.studentId}_${data.problemId}`;
+    client.to(roomName).emit('admin_edit_state_push', {
+      isEditing: data.isEditing,
+      cursorOffset: data.cursorOffset,
+      adminName: data.adminName,
+    });
   }
 
   @SubscribeMessage('admin_cursor_move')
@@ -339,5 +395,41 @@ export class LiveMonitorGateway implements OnGatewayConnection, OnGatewayDisconn
 
   private normalizePresenceStatus(status?: StudentPresenceStatus): Exclude<StudentPresenceStatus, 'coding'> {
     return status === 'away' || status === 'idle' ? status : 'online';
+  }
+
+  private clearAdminEditSessions(socketId: string) {
+    const sessions = this.adminEditSessions.get(socketId);
+    if (!sessions) return;
+    for (const session of sessions.values()) {
+      const roomName = `workspace_${session.studentId}_${session.problemId}`;
+      this.server.to(roomName).emit('admin_edit_state_push', {
+        isEditing: false,
+        adminName: session.adminName,
+      });
+    }
+    this.adminEditSessions.delete(socketId);
+  }
+
+  private clearAdminEditSession(
+    socketId: string,
+    studentId: string,
+    problemId: string,
+    client: Socket,
+  ) {
+    const key = `${studentId}_${problemId}`;
+    const sessions = this.adminEditSessions.get(socketId);
+    if (!sessions) return;
+    const session = sessions.get(key);
+    if (!session) return;
+
+    const roomName = `workspace_${studentId}_${problemId}`;
+    client.to(roomName).emit('admin_edit_state_push', {
+      isEditing: false,
+      adminName: session.adminName,
+    });
+    sessions.delete(key);
+    if (sessions.size === 0) {
+      this.adminEditSessions.delete(socketId);
+    }
   }
 }

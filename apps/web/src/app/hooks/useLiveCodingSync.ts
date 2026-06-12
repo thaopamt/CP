@@ -36,6 +36,7 @@ export function useLiveCodingSync(
   // Admin cursor state
   const [adminCursor, setAdminCursor] = useState<number | null>(null);
   const [adminName, setAdminName] = useState<string | null>(null);
+  const [adminIsEditing, setAdminIsEditing] = useState(false);
 
   useEffect(() => {
     codeRef.current = code;
@@ -46,6 +47,10 @@ export function useLiveCodingSync(
 
   useEffect(() => {
     if (!problemId || !user) return;
+
+    setAdminCursor(null);
+    setAdminName(null);
+    setAdminIsEditing(false);
 
     const socketUrl = resolveSocketNamespace('/live-monitor');
     const socket = io(socketUrl, {
@@ -81,6 +86,7 @@ export function useLiveCodingSync(
       (data: { code: string; language: string; cursorOffset?: number; adminName?: string }) => {
         skipNextEmitRef.current = true;
         onRemoteCodeChangeRef.current?.(data.code, data.language);
+        setAdminIsEditing(true);
         if (typeof data.cursorOffset === 'number') {
           setAdminCursor(data.cursorOffset);
         }
@@ -94,7 +100,25 @@ export function useLiveCodingSync(
     socket.on(
       'admin_cursor_push',
       (data: { cursorOffset: number; adminName?: string }) => {
+        setAdminIsEditing(true);
         setAdminCursor(data.cursorOffset);
+        if (data.adminName) {
+          setAdminName(data.adminName);
+        }
+      },
+    );
+
+    socket.on(
+      'admin_edit_state_push',
+      (data: { isEditing: boolean; cursorOffset?: number; adminName?: string }) => {
+        setAdminIsEditing(data.isEditing);
+        if (!data.isEditing) {
+          setAdminCursor(null);
+          return;
+        }
+        if (typeof data.cursorOffset === 'number') {
+          setAdminCursor(data.cursorOffset);
+        }
         if (data.adminName) {
           setAdminName(data.adminName);
         }
@@ -138,5 +162,5 @@ export function useLiveCodingSync(
     }
   }, [code, language, cursorOffset, problemId, user]);
 
-  return { adminCursor, adminName };
+  return { adminCursor, adminName, adminIsEditing };
 }

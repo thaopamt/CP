@@ -278,7 +278,7 @@ export default function StudentWorkspacePage() {
   };
 
   // Kích hoạt Live Coding Sync
-  const { adminCursor, adminName } = useLiveCodingSync(problemId, code, language, cursorOffset, {
+  const { adminCursor, adminName, adminIsEditing } = useLiveCodingSync(problemId, code, language, cursorOffset, {
     title: assignment?.title,
     description: assignment?.description,
     examples: liveProblemExamples,
@@ -956,7 +956,7 @@ export default function StudentWorkspacePage() {
                         color: '#d4d4d4', // fallback color
                       }}
                     />
-                    {typeof adminCursor === 'number' && (
+                    {adminIsEditing && typeof adminCursor === 'number' && (
                       <RemoteCursors
                         cursors={[{ name: adminName || 'Giáo viên', offset: adminCursor, color: '#a78bfa' }]}
                         code={code}
