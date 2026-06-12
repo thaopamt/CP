@@ -5,8 +5,8 @@ import { useAuthStore } from '../stores/auth.store';
 import { useUIStore } from '../stores/ui.store';
 import { GlobalChatRealtimeBridge, GlobalChatUnreadBadge, LogoutButton, UserAvatar, ThemeToggle } from './_shared';
 
-// Mirrors the Admin sidebar minus the Dashboard, Finance, Users and
-// Quest-analytics tabs. Routes resolve to shared admin page components.
+// Mirrors the Admin sidebar minus the Dashboard, Users and
+// Quest-analytics tabs. Finance has its own read-only teacher page.
 const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/teacher/students', icon: 'groups', key: 'nav.teacher.students' },
   { to: '/teacher/classes', icon: 'class', key: 'nav.teacher.classes' },
@@ -16,6 +16,7 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/teacher/assignments', icon: 'assignment', key: 'nav.teacher.assignments' },
   { to: '/teacher/maze', icon: 'extension', key: 'nav.teacher.maze' },
   { to: '/teacher/schedule', icon: 'calendar_month', key: 'nav.teacher.schedule' },
+  { to: '/teacher/finance', icon: 'account_balance', key: 'nav.teacher.finance' },
   { to: '/teacher/monitor', icon: 'screen_share', key: 'nav.teacher.monitor' },
   { to: '/teacher/chat', icon: 'forum', key: 'nav.teacher.globalChat' },
   { to: '/teacher/submissions', icon: 'history', key: 'nav.teacher.submissions' },

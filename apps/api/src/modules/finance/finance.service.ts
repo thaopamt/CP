@@ -63,7 +63,10 @@ export class FinanceService {
     private readonly monthlyStatuses: Repository<FinanceMonthlyStatus>,
   ) {}
 
-  async getMonthlyReport(params: IFinanceMonthlyReportParams = {}): Promise<IFinanceMonthlyReport> {
+  async getMonthlyReport(
+    params: IFinanceMonthlyReportParams = {},
+    options?: { visibleStudentUserIds?: string[] },
+  ): Promise<IFinanceMonthlyReport> {
     const month = params.month || new Date().toISOString().slice(0, 7);
     if (!MONTH_RE.test(month)) {
       throw new BadRequestException('month must use YYYY-MM format');
@@ -74,7 +77,11 @@ export class FinanceService {
     const statusFilter = this.normalizeCollectionStatus(params.status, true);
     const { from, to } = this.monthRange(month);
 
-    const [profiles, slotRows, cancellations, legacyRows, amountDueOverrides, monthlyStatuses] =
+    const visibleSet = options?.visibleStudentUserIds
+      ? new Set(options.visibleStudentUserIds)
+      : null;
+
+    const [allProfiles, slotRows, cancellations, legacyRows, amountDueOverrides, monthlyStatuses] =
       await Promise.all([
         this.profiles.find({ relations: ['user'], order: { createdAt: 'DESC' } }),
         this.scheduleSlotAttendance.find({
@@ -88,6 +95,11 @@ export class FinanceService {
         this.amountDueOverrides.find({ where: { month } }),
         this.monthlyStatuses.find({ where: { month } }),
       ]);
+
+    // When teacher-scoped, only include profiles for visible students
+    const profiles = visibleSet
+      ? allProfiles.filter((p) => visibleSet.has(p.userId))
+      : allProfiles;
 
     const profileByStudentId = new Map(profiles.map((profile) => [profile.userId, profile]));
     const amountDueOverrideByStudentId = new Map(

@@ -88,6 +88,7 @@ const vi: AppResources = {
       assignments: 'Bài tập',
       maze: 'Mê cung',
       schedule: 'Lịch học',
+      finance: 'Tài chính',
       monitor: 'Giám sát',
       attendance: 'Điểm danh',
       liveClassroom: 'Lớp trực tiếp',

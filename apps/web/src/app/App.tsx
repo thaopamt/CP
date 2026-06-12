@@ -74,6 +74,7 @@ const StudentCourseDetail = lazy(() => import('./pages/student/CourseDetailPage'
 const StudentMe = lazy(() => import('./pages/student/MePage'));
 const GlobalChatPage = lazy(() => import('./pages/shared/GlobalChatPage'));
 const SubmissionsPage = lazy(() => import('./pages/shared/SubmissionsPage'));
+const TeacherFinance = lazy(() => import('./pages/teacher/FinancePage'));
 
 import { ToastProvider, ConfirmProvider } from '@cp/ui';
 
@@ -149,8 +150,9 @@ export default function App() {
 
               {/* ── Teacher portal ───────────────────────────────────── */}
               {/* Mirrors the Admin portal (shared page components) minus the
-                  Dashboard, Finance, Users and Quest-analytics tabs. Pages build
-                  links via usePortalBase() so they stay within /teacher/*. */}
+                  Dashboard, Users and Quest-analytics tabs. Finance has its own
+                  read-only teacher page. Pages build links via usePortalBase()
+                  so they stay within /teacher/*. */}
               <Route
                 path="/teacher"
                 element={
@@ -186,6 +188,7 @@ export default function App() {
                 <Route path="maze/progress" element={<AdminMazeProgress />} />
                 <Route path="maze/:id/edit" element={<AdminMazeEdit />} />
                 <Route path="schedule" element={<AdminSchedule />} />
+                <Route path="finance" element={<TeacherFinance />} />
                 <Route path="monitor" element={<LiveMonitorPage />} />
                 <Route path="chat" element={<GlobalChatPage />} />
                 <Route path="submissions" element={<SubmissionsPage />} />

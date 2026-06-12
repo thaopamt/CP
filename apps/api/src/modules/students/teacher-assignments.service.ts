@@ -80,6 +80,23 @@ export class TeacherAssignmentsService {
     return rows.map((r) => r.studentId);
   }
 
+  /**
+   * Returns the set of User IDs for students visible to `teacherId`, or `null`
+   * if all students are visible (no hidden students).
+   *
+   * Visible = assigned to this teacher OR not assigned to any teacher.
+   */
+  async visibleStudentUserIds(teacherId: string): Promise<string[] | null> {
+    const hiddenProfileIds = await this.hiddenStudentProfileIds(teacherId);
+    if (!hiddenProfileIds.length) return null; // all visible
+
+    const hiddenSet = new Set(hiddenProfileIds);
+    const allProfiles = await this.students.find({ select: { id: true, userId: true } });
+    return allProfiles
+      .filter((p) => !hiddenSet.has(p.id))
+      .map((p) => p.userId);
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   private async ensureStudent(studentId: string): Promise<void> {

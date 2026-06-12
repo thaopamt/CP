@@ -22,6 +22,20 @@ export function useFinanceMonthlyReport(params: IFinanceMonthlyReportParams) {
   });
 }
 
+export const teacherFinanceKeys = {
+  all: ['teacher-finance'] as const,
+  monthly: (params: IFinanceMonthlyReportParams) => ['teacher-finance', 'monthly', params] as const,
+};
+
+export function useTeacherFinanceMonthlyReport(params: IFinanceMonthlyReportParams) {
+  return useQuery({
+    queryKey: teacherFinanceKeys.monthly(params),
+    queryFn: () => financeApi.teacherMonthly(params),
+    placeholderData: keepPreviousData,
+    staleTime: 15_000,
+  });
+}
+
 export function useSetFinanceMonthlyAmountDue() {
   const qc = useQueryClient();
   return useMutation({

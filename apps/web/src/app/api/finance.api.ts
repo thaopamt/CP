@@ -45,4 +45,10 @@ export const financeApi = {
     );
     return data;
   },
+  async teacherMonthly(params: IFinanceMonthlyReportParams): Promise<IFinanceMonthlyReport> {
+    const { data } = await apiClient.get<IFinanceMonthlyReport>('/teacher/finance/monthly', {
+      params,
+    });
+    return data;
+  },
 };

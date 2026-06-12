@@ -35,6 +35,6 @@ import { TeacherAssignmentsService } from './teacher-assignments.service';
     TeacherAssignmentsController,
   ],
   providers: [StudentsService, StudentScheduleService, TeacherAssignmentsService],
-  exports: [StudentsService, StudentScheduleService],
+  exports: [StudentsService, StudentScheduleService, TeacherAssignmentsService],
 })
 export class StudentsModule {}

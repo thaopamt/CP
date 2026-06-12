@@ -90,6 +90,7 @@ const en = {
       assignments: 'Assignments',
       maze: 'Maze',
       schedule: 'Schedule',
+      finance: 'Finance',
       monitor: 'Monitor',
       attendance: 'Attendance',
       liveClassroom: 'Live Classroom',
