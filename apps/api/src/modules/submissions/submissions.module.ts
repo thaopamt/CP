@@ -10,13 +10,14 @@ import { Submission, SubmissionTestResult } from './submission.entity';
 import { StudentAssignmentProgress } from './student-assignment-progress.entity';
 import { StudentAssignmentProgressService } from './student-assignment-progress.service';
 import { Assignment } from '../assignments/assignment.entity';
+import { StudentProfile } from '../students/student-profile.entity';
 import { QuestsModule } from '../quests/quests.module';
 import { TestcasesModule } from '../testcases/testcases.module';
 import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Submission, SubmissionTestResult, StudentAssignmentProgress, Assignment]),
+    TypeOrmModule.forFeature([Submission, SubmissionTestResult, StudentAssignmentProgress, Assignment, StudentProfile]),
     UsersModule,
     QuestsModule,
     TestcasesModule,

@@ -99,6 +99,10 @@ export interface ILeaderboardRankEntry {
   badgeCount: number;
   /** The value of the chosen scope, pre-formatted server-side. */
   value: number;
+  /** Equipped cosmetics (gem shop) — flair shown next to the name. */
+  nameColor?: string | null;
+  title?: string | null;
+  frame?: string | null;
   /** True for the requesting student's own row. */
   isMe?: boolean;
 }

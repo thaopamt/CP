@@ -1,0 +1,49 @@
+import { ReactNode } from 'react';
+
+/**
+ * Maps gem-shop cosmetic codes (the `frameKey` / `themeKey` stored on the
+ * student profile) to Tailwind classes. Keep these keys in sync with
+ * apps/api/src/database/seeds/seed-shop.ts.
+ */
+
+/** Gradient used as the ring around an avatar for each frame. */
+const FRAME_GRADIENT: Record<string, string> = {
+  bronze: 'bg-gradient-to-br from-amber-600 to-orange-800',
+  silver: 'bg-gradient-to-br from-slate-300 to-slate-500',
+  gold: 'bg-gradient-to-br from-amber-300 to-yellow-500',
+  neon: 'bg-gradient-to-br from-fuchsia-500 via-cyan-400 to-violet-500',
+};
+
+/** Tinted gradient used as a profile-header background for each theme. */
+export const THEME_GRADIENT: Record<string, string> = {
+  sunset: 'bg-gradient-to-r from-orange-400/20 via-pink-500/10 to-purple-500/20',
+  aurora: 'bg-gradient-to-r from-emerald-400/20 via-cyan-400/10 to-violet-500/20',
+  galaxy: 'bg-gradient-to-r from-indigo-500/25 via-purple-600/15 to-fuchsia-500/25',
+};
+
+export function themeGradientClass(themeKey?: string | null): string | null {
+  if (!themeKey) return null;
+  return THEME_GRADIENT[themeKey] ?? null;
+}
+
+/**
+ * Wraps an avatar in a cosmetic frame ring. When `frameKey` is null/unknown the
+ * children render unchanged (no wrapper), so it's safe to always use.
+ */
+export function AvatarFrame({
+  frameKey,
+  children,
+  className = '',
+}: {
+  frameKey?: string | null;
+  children: ReactNode;
+  className?: string;
+}) {
+  const gradient = frameKey ? FRAME_GRADIENT[frameKey] : undefined;
+  if (!gradient) return <>{children}</>;
+  return (
+    <span className={`inline-grid place-items-center rounded-full p-[2px] ${gradient} ${className}`}>
+      {children}
+    </span>
+  );
+}

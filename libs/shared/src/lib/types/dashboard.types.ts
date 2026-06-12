@@ -96,6 +96,11 @@ export interface IStudentDashboardData {
   xpForNext: number;
   streak: number;
   gems: number;
+  /** Equipped cosmetics from the gem shop (null when nothing equipped in a slot). */
+  nameColor?: string | null;
+  equippedTitle?: string | null;
+  equippedFrame?: string | null;
+  equippedTheme?: string | null;
   dailyQuestsCompleted: number;
   dailyQuestsTarget: number;
   weeklyAccepted: number;

@@ -11,6 +11,7 @@ import { Badge } from './badge.entity';
 import { StudentBadge } from './student-badge.entity';
 import { StudentProfile } from '../students/student-profile.entity';
 import { GamificationGateway } from './gamification.gateway';
+import { applyXpGain } from './period-keys';
 
 @Injectable()
 export class BadgesService extends TypeOrmCrudService<Badge> {
@@ -71,6 +72,7 @@ export class BadgesService extends TypeOrmCrudService<Badge> {
       const profRepo = tx.getRepository(StudentProfile);
       const fresh = await profRepo.findOne({ where: { userId } });
       if (!fresh) return;
+      const now = new Date();
 
       for (const badge of eligible) {
         // Guard against races: skip if already owned.
@@ -79,7 +81,7 @@ export class BadgesService extends TypeOrmCrudService<Badge> {
         await sbRepo.save(sbRepo.create({ userId, badgeId: badge.id }));
         badge.earnedCount += 1;
         await badgeRepo.save(badge);
-        fresh.xp += badge.rewardXp;
+        applyXpGain(fresh, badge.rewardXp, now);
         fresh.gems += badge.rewardGems;
         fresh.badgesEarned += 1;
         awarded.push(badge);

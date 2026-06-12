@@ -9,6 +9,7 @@ import { Submission, SubmissionTestResult } from './submission.entity';
 import { SubmissionEventsGateway } from './submission-events.gateway';
 import { StudentAssignmentProgressService } from './student-assignment-progress.service';
 import { Assignment } from '../assignments/assignment.entity';
+import { StudentProfile } from '../students/student-profile.entity';
 import { QuestsService } from '../quests/quests.service';
 import { TestcaseStorageService } from '../testcases/testcase-storage.service';
 import {
@@ -37,6 +38,8 @@ export class SubmissionsController implements OnModuleInit {
     private readonly assignmentRepo: Repository<Assignment>,
     @InjectRepository(SubmissionTestResult)
     private readonly testResultRepo: Repository<SubmissionTestResult>,
+    @InjectRepository(StudentProfile)
+    private readonly studentProfileRepo: Repository<StudentProfile>,
     private readonly questsService: QuestsService,
     private readonly submissionEvents: SubmissionEventsGateway,
     private readonly testcaseStorage: TestcaseStorageService,
@@ -194,6 +197,24 @@ export class SubmissionsController implements OnModuleInit {
       for (const r of rows) (r as any).testResults = byId.get(r.id) ?? [];
       await Promise.all(rows.map((row) => this.hydrateMissingTestInputs(row)));
       rows.forEach((row) => this.redactHiddenTestResultsForViewer(row, opts.viewerRole));
+
+      // Attach each author's equipped cosmetics (title/frame/name color — live on
+      // StudentProfile, not the User entity).
+      const userIds = [...new Set(rows.map((r) => r.user?.id).filter(Boolean))] as string[];
+      if (userIds.length) {
+        const profiles = await this.studentProfileRepo.find({
+          where: { userId: In(userIds) },
+          select: ['userId', 'equippedTitle', 'equippedFrame', 'nameColor'],
+        });
+        const cosmeticByUser = new Map(profiles.map((p) => [p.userId, p]));
+        for (const r of rows) {
+          if (!r.user) continue;
+          const c = cosmeticByUser.get(r.user.id);
+          (r.user as any).equippedTitle = c?.equippedTitle ?? null;
+          (r.user as any).equippedFrame = c?.equippedFrame ?? null;
+          (r.user as any).nameColor = c?.nameColor ?? null;
+        }
+      }
     }
 
     // Status distribution over the filtered scope (ignores status filter + paging).

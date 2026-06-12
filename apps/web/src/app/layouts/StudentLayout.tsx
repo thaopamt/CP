@@ -1,11 +1,11 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
 import { useUIStore } from '../stores/ui.store';
 import { useStudentLivePresence } from '../hooks/useStudentLivePresence';
-import { useGamificationSocket } from '../hooks/useGamificationSocket';
-import { GlobalChatRealtimeBridge, GlobalChatUnreadBadge, LogoutButton, UserAvatar, ThemeToggle } from './_shared';
+import { useStudentDashboard } from '../api/student.queries';
+import { GamificationCelebration } from '../components/GamificationCelebration';
+import { GlobalChatRealtimeBridge, GlobalChatUnreadBadge, LogoutButton, UserMenu } from './_shared';
 
 const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/student', icon: 'home', key: 'nav.student.home', end: true },
@@ -16,17 +16,18 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/student/quests', icon: 'rocket_launch', key: 'nav.student.quests' },
   { to: '/student/badges', icon: 'workspace_premium', key: 'nav.student.badges' },
   { to: '/student/leaderboard', icon: 'leaderboard', key: 'nav.student.leaderboard' },
+  { to: '/student/shop', icon: 'storefront', key: 'nav.student.shop' },
   { to: '/student/chat', icon: 'forum', key: 'nav.student.globalChat' },
-  { to: '/student/me', icon: 'person', key: 'nav.student.me' },
 ];
 
-/** Only show 5 most important items in the mobile floating nav to prevent overflow */
+/** Only show 5 most important items in the mobile floating nav to prevent overflow.
+ *  Profile ("Me") now lives in the avatar dropdown in the top bar. */
 const MOBILE_NAV = [
   NAV[0], // home
   NAV[2], // assignments
   NAV[5], // quests
   NAV[6], // badges
-  NAV[9], // me
+  NAV[8], // shop
 ];
 
 /**
@@ -44,16 +45,17 @@ export default function StudentLayout() {
   const user = useAuthStore((s) => s.user);
   const { isSidebarCollapsed, toggleSidebar } = useUIStore();
   const location = useLocation();
+  const { data: dashboard } = useStudentDashboard();
 
   const sidebarWidth = isSidebarCollapsed ? 'w-[80px]' : 'w-[240px] lg:w-[280px]';
   const marginLeft = isSidebarCollapsed ? 'md:ml-[80px]' : 'md:ml-[240px] lg:ml-[280px]';
 
   useStudentLivePresence(location.pathname);
-  useGamificationSocket();
 
   return (
     <div className="min-h-screen bg-surface text-on-surface font-inter">
       <GlobalChatRealtimeBridge />
+      <GamificationCelebration />
       {/* Sidebar — full height on desktop */}
       <nav className={`hidden md:flex flex-col ${sidebarWidth} fixed top-0 bottom-0 left-0 p-md gap-sm bg-surface-container-lowest border-r border-outline-variant z-50 transition-all duration-300`}>
         {/* Collapse toggle button */}
@@ -121,9 +123,13 @@ export default function StudentLayout() {
           <button className="p-2 rounded-full hover:bg-surface-container-high" aria-label={t('topBar.notifications')}>
             <span className="material-symbols-outlined">notifications</span>
           </button>
-          <ThemeToggle />
-          <LanguageSwitcher />
-          <UserAvatar user={user} size="sm" />
+          <UserMenu
+            user={user}
+            frame={dashboard?.equippedFrame}
+            nameColor={dashboard?.nameColor}
+            title={dashboard?.equippedTitle}
+            profilePath="/student/me"
+          />
         </div>
       </header>
 
@@ -143,9 +149,13 @@ export default function StudentLayout() {
           <button className="p-2 rounded-full hover:bg-surface-container-high" aria-label={t('topBar.notifications')}>
             <span className="material-symbols-outlined">notifications</span>
           </button>
-          <ThemeToggle />
-          <LanguageSwitcher />
-          <UserAvatar user={user} size="sm" />
+          <UserMenu
+            user={user}
+            frame={dashboard?.equippedFrame}
+            nameColor={dashboard?.nameColor}
+            title={dashboard?.equippedTitle}
+            profilePath="/student/me"
+          />
         </div>
       </header>
 

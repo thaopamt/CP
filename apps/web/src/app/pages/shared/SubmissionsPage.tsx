@@ -6,27 +6,52 @@ import { SubmissionStatus, UserRole } from '@cp/shared';
 import { useAllSubmissions } from '../../api/submissions.queries';
 import { useAuthStore } from '../../stores/auth.store';
 import { useSubmissionRealtimeFeed } from '../../hooks/useSubmissionRealtimeFeed';
+import { AvatarFrame } from '../../lib/cosmetics';
 
 const PAGE_SIZE = 20;
 
 /* ── Status config ──────────────────────────────────────────────── */
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string; border: string }> = {
-  [SubmissionStatus.ACCEPTED]:             { label: 'AC', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', icon: 'check_circle',   border: 'border-emerald-500/30' },
-  [SubmissionStatus.WRONG_ANSWER]:         { label: 'WA',       color: 'text-red-600 dark:text-red-400',         bg: 'bg-red-500/10',     icon: 'cancel',         border: 'border-red-500/30' },
-  [SubmissionStatus.TIME_LIMIT_EXCEEDED]:  { label: 'TLE',      color: 'text-amber-600 dark:text-amber-400',     bg: 'bg-amber-500/10',   icon: 'timer_off',      border: 'border-amber-500/30' },
-  [SubmissionStatus.MEMORY_LIMIT_EXCEEDED]:{ label: 'MLE',      color: 'text-orange-600 dark:text-orange-400',   bg: 'bg-orange-500/10',  icon: 'memory',         border: 'border-orange-500/30' },
-  [SubmissionStatus.COMPILATION_ERROR]:    { label: 'CE',       color: 'text-purple-600 dark:text-purple-400',   bg: 'bg-purple-500/10',  icon: 'code_off',       border: 'border-purple-500/30' },
-  [SubmissionStatus.RUNTIME_ERROR]:        { label: 'RE',       color: 'text-rose-600 dark:text-rose-400',       bg: 'bg-rose-500/10',    icon: 'error',          border: 'border-rose-500/30' },
-  [SubmissionStatus.PENDING]:              { label: 'Pending',  color: 'text-blue-600 dark:text-blue-400',       bg: 'bg-blue-500/10',    icon: 'hourglass_top',  border: 'border-blue-500/30' },
-  [SubmissionStatus.INTERNAL_ERROR]:       { label: 'IE',       color: 'text-gray-600 dark:text-gray-400',       bg: 'bg-gray-500/10',    icon: 'warning',        border: 'border-gray-500/30' },
+  [SubmissionStatus.ACCEPTED]: { label: 'AC', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', icon: 'check_circle', border: 'border-emerald-500/30' },
+  [SubmissionStatus.WRONG_ANSWER]: { label: 'WA', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-500/10', icon: 'cancel', border: 'border-red-500/30' },
+  [SubmissionStatus.TIME_LIMIT_EXCEEDED]: { label: 'TLE', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10', icon: 'timer_off', border: 'border-amber-500/30' },
+  [SubmissionStatus.MEMORY_LIMIT_EXCEEDED]: { label: 'MLE', color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-500/10', icon: 'memory', border: 'border-orange-500/30' },
+  [SubmissionStatus.COMPILATION_ERROR]: { label: 'CE', color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-500/10', icon: 'code_off', border: 'border-purple-500/30' },
+  [SubmissionStatus.RUNTIME_ERROR]: { label: 'RE', color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-500/10', icon: 'error', border: 'border-rose-500/30' },
+  [SubmissionStatus.PENDING]: { label: 'Pending', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10', icon: 'hourglass_top', border: 'border-blue-500/30' },
+  [SubmissionStatus.INTERNAL_ERROR]: { label: 'IE', color: 'text-gray-600 dark:text-gray-400', bg: 'bg-gray-500/10', icon: 'warning', border: 'border-gray-500/30' },
 };
 
-const LANG_ICON: Record<string, string> = {
-  cpp: 'C++',
-  java: 'Java',
-  python: 'Python',
-  javascript: 'JS',
+const LANG_CONFIG: Record<string, { label: string; color: string }> = {
+  cpp: { label: 'C++', color: 'text-sky-700 bg-sky-100 dark:text-sky-300 dark:bg-sky-500/15' },
+  java: { label: 'Java', color: 'text-orange-700 bg-orange-100 dark:text-orange-300 dark:bg-orange-500/15' },
+  python: { label: 'Python', color: 'text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-500/15' },
+  javascript: { label: 'JS', color: 'text-yellow-700 bg-yellow-100 dark:text-yellow-300 dark:bg-yellow-500/15' },
 };
+
+function LangBadge({ language, className = '' }: { language: string; className?: string }) {
+  const c = LANG_CONFIG[language] ?? {
+    label: language,
+    color: 'text-on-surface-variant bg-surface-container-high',
+  };
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold font-mono ${c.color} ${className}`}>
+      {c.label}
+    </span>
+  );
+}
+
+/** Initials fallback for a submission's author. */
+function userInitials(u: { username?: string | null; firstName?: string; email?: string } | undefined): string {
+  return ((u?.username || u?.firstName)?.[0] || u?.email?.[0] || '?').toUpperCase();
+}
+
+/** Display name for a submission's author — username (no `@`) or full name. */
+function userName(u: { username?: string | null; firstName?: string; lastName?: string } | undefined): string {
+  if (!u) return 'Unknown';
+  if (u.username) return u.username;
+  return `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Unknown';
+}
 
 function formatDate(dateStr: string) {
   try {
@@ -200,25 +225,6 @@ export default function SubmissionsPage() {
             {t('pages.submissions.subtitle', 'All student submissions across assignments.')}
           </p>
         </div>
-        {user && (
-          <button
-            type="button"
-            onClick={() => navigate(`${portalPrefix}/me`)}
-            className="flex items-center gap-sm shrink-0 rounded-xl px-sm py-xs hover:bg-surface-container-highest transition-colors"
-          >
-            <div className="text-right hidden sm:block">
-              <p className="text-label-sm font-semibold text-on-surface leading-tight">
-                {user.username ? `@${user.username}` : `${user.firstName} ${user.lastName}`.trim()}
-              </p>
-              <p className="text-[11px] text-on-surface-variant leading-tight">{user.email}</p>
-            </div>
-            <Avatar
-              size="md"
-              src={user.avatarUrl}
-              initials={(user.firstName?.[0] || user.email[0] || '?').toUpperCase()}
-            />
-          </button>
-        )}
       </div>
 
       {/* ── Stats cards ──────────────────────────────────────────── */}
@@ -328,27 +334,41 @@ export default function SubmissionsPage() {
                     >
                       {/* Student */}
                       <div className="flex items-center gap-sm min-w-0 pr-sm text-left">
-                        <div className="w-7 h-7 rounded-full bg-primary-container text-on-primary-container grid place-items-center text-[11px] font-bold shrink-0">
-                          {((sub.user?.username || sub.user?.firstName)?.[0] || '?').toUpperCase()}
-                        </div>
+                        <AvatarFrame frameKey={sub.user?.equippedFrame} className="shrink-0">
+                          <Avatar
+                            size="sm"
+                            src={sub.user?.avatarUrl}
+                            initials={userInitials(sub.user)}
+                            className={`shrink-0 ${sub.user?.equippedFrame ? '' : 'ring-2 ring-outline'}`}
+                          />
+                        </AvatarFrame>
                         <div className="min-w-0">
-                          <p className="text-label-sm text-on-surface font-medium truncate">
-                            {sub.user?.username ? `@${sub.user.username}` : `${sub.user?.firstName || ''} ${sub.user?.lastName || ''}`.trim() || 'Unknown'}
+                          <p
+                            className="text-label-sm text-on-surface font-medium truncate"
+                            style={sub.user?.nameColor ? { color: sub.user.nameColor } : undefined}
+                          >
+                            {userName(sub.user)}
                           </p>
+                          {sub.user?.equippedTitle && (
+                            <p className="text-[11px] font-semibold text-fuchsia-600 dark:text-fuchsia-300 truncate">
+                              {sub.user.equippedTitle}
+                            </p>
+                          )}
                         </div>
                       </div>
 
                       {/* Problem */}
-                      <div className="min-w-0 pr-sm text-left">
+                      <div className="flex items-center gap-xs min-w-0 pr-sm text-left">
+                        <span className="material-symbols-outlined text-[16px] text-on-surface-variant/70 shrink-0">description</span>
                         <p className="text-label-sm text-on-surface font-medium truncate group-hover:text-primary transition-colors">
                           {sub.assignment?.title || 'Unknown'}
                         </p>
                       </div>
 
                       {/* Language */}
-                      <span className="text-label-sm text-on-surface-variant font-mono">
-                        {LANG_ICON[sub.language] || sub.language}
-                      </span>
+                      <div className="flex justify-center">
+                        <LangBadge language={sub.language} />
+                      </div>
 
                       {/* Status badge */}
                       <div className="flex flex-col items-center gap-0.5">
@@ -399,12 +419,27 @@ export default function SubmissionsPage() {
                 >
                   <div className="flex items-start justify-between gap-sm mb-sm">
                     <div className="flex items-center gap-sm min-w-0 flex-1">
-                      <div className="w-7 h-7 rounded-full bg-primary-container text-on-primary-container grid place-items-center text-[11px] font-bold shrink-0">
-                        {((sub.user?.username || sub.user?.firstName)?.[0] || '?').toUpperCase()}
+                      <AvatarFrame frameKey={sub.user?.equippedFrame} className="shrink-0">
+                        <Avatar
+                          size="sm"
+                          src={sub.user?.avatarUrl}
+                          initials={userInitials(sub.user)}
+                          className={`shrink-0 ${sub.user?.equippedFrame ? '' : 'ring-2 ring-outline'}`}
+                        />
+                      </AvatarFrame>
+                      <div className="min-w-0">
+                        <p
+                          className="text-label-sm text-on-surface font-medium truncate"
+                          style={sub.user?.nameColor ? { color: sub.user.nameColor } : undefined}
+                        >
+                          {userName(sub.user)}
+                        </p>
+                        {sub.user?.equippedTitle && (
+                          <p className="text-[11px] font-semibold text-fuchsia-600 dark:text-fuchsia-300 truncate">
+                            {sub.user.equippedTitle}
+                          </p>
+                        )}
                       </div>
-                      <p className="text-label-sm text-on-surface font-medium truncate">
-                        {sub.user?.username ? `@${sub.user.username}` : `${sub.user?.firstName || ''} ${sub.user?.lastName || ''}`.trim() || 'Unknown'}
-                      </p>
                     </div>
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold shrink-0 ${sc.bg} ${sc.color}`}>
                       <span className={`material-symbols-outlined text-[13px] ${isJudging(sub) ? 'animate-spin' : ''}`}>
@@ -417,7 +452,7 @@ export default function SubmissionsPage() {
                     {sub.assignment?.title || 'Unknown'}
                   </p>
                   <div className="flex items-center gap-md text-[12px] text-on-surface-variant">
-                    <span className="font-mono">{LANG_ICON[sub.language] || sub.language}</span>
+                    <LangBadge language={sub.language} />
                     <span><span className="text-on-surface font-semibold">{sub.passedCount}</span>/{sub.totalCount}</span>
                     {sub.totalExecutionTimeMs != null && <span>{sub.totalExecutionTimeMs}ms</span>}
                     <span className="ml-auto" title={formatDateFull(sub.createdAt)}>{formatDate(sub.createdAt)}</span>
@@ -506,7 +541,7 @@ function SubmissionModal({
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold ${sc.bg} ${sc.color}`}>
                   {sc.label}
                 </span>
-                <span className="text-[11px] text-on-surface-variant font-mono">{LANG_ICON[sub.language] || sub.language}</span>
+                <LangBadge language={sub.language} />
                 <span className="text-[11px] text-on-surface-variant">{formatDateFull(sub.createdAt)}</span>
               </div>
             </div>
@@ -539,9 +574,13 @@ function SubmissionModal({
             </div>
           )}
           {sub.user && (
-            <div className="flex items-center gap-xs text-label-sm text-on-surface-variant ml-auto">
-              <span className="material-symbols-outlined text-[15px]">person</span>
-              {sub.user.username ? `@${sub.user.username}` : `${sub.user.firstName || ''} ${sub.user.lastName || ''}`.trim() || 'Unknown'}
+            <div className="flex items-center gap-xs text-label-sm text-on-surface ml-auto">
+              <AvatarFrame frameKey={sub.user.equippedFrame}>
+                <Avatar size="sm" src={sub.user.avatarUrl} initials={userInitials(sub.user)} className={sub.user.equippedFrame ? '' : 'ring-2 ring-outline'} />
+              </AvatarFrame>
+              <span className="font-medium" style={sub.user.nameColor ? { color: sub.user.nameColor } : undefined}>
+                {userName(sub.user)}
+              </span>
             </div>
           )}
         </div>
@@ -583,7 +622,7 @@ function SubmissionModal({
                   ? { label: 'RUN', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10', icon: 'progress_activity', border: 'border-blue-500/30' }
                   : STATUS_CONFIG[tr.status] || STATUS_CONFIG[SubmissionStatus.INTERNAL_ERROR];
                 const isExpanded = expandedTests.has(idx);
-                
+
                 // Extract input and expected output (fallback to assignment config if missing)
                 const inlineCases = sub.assignment?.codingConfig?.testCases ?? [];
                 const tc = inlineCases[tr.testCaseIndex];
@@ -660,18 +699,17 @@ function SubmissionModal({
                         {/* Actual Output */}
                         {!hideDetails && <div>
                           <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Your Output</span>
-                          <pre className={`mt-0.5 text-[11px] font-mono rounded-lg px-sm py-xs max-h-[100px] overflow-auto whitespace-pre-wrap break-all ${
-                            runningTest || tr.isPlaceholder
+                          <pre className={`mt-0.5 text-[11px] font-mono rounded-lg px-sm py-xs max-h-[100px] overflow-auto whitespace-pre-wrap break-all ${runningTest || tr.isPlaceholder
                               ? 'text-on-surface-variant bg-surface-container-highest'
                               : tr.status === SubmissionStatus.ACCEPTED
-                              ? 'text-emerald-600 bg-emerald-500/5'
-                              : 'text-red-500 bg-red-500/5'
-                          }`}>
+                                ? 'text-emerald-600 bg-emerald-500/5'
+                                : 'text-red-500 bg-red-500/5'
+                            }`}>
                             {runningTest
                               ? '(running...)'
                               : tr.isPlaceholder
-                              ? '(pending)'
-                              : (
+                                ? '(pending)'
+                                : (
                                   <>
                                     {actualPv.text || '(empty)'}
                                     {actualPv.truncated && <span className="text-on-surface-variant"> … (đã rút gọn)</span>}

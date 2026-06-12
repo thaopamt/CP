@@ -19,6 +19,7 @@ import { StudentProfile } from '../students/student-profile.entity';
 import { Enrollment } from '../classes/enrollment.entity';
 import { BadgesService } from './badges.service';
 import { GamificationGateway } from './gamification.gateway';
+import { applyXpGain } from './period-keys';
 
 /** Context emitted by the submission/maze pipelines into the objective engine. */
 export interface QuestEngineEvent {
@@ -197,8 +198,9 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
       let badgeAwarded: Badge | null = null;
 
       if (profile) {
+        const now = new Date();
         const prevLevel = profile.level;
-        profile.xp += sq.quest.rewardXp;
+        applyXpGain(profile, sq.quest.rewardXp, now);
         profile.gems += sq.quest.rewardGems;
         profile.questsCompleted += 1;
         while (profile.xp >= profile.level * XP_PER_LEVEL) profile.level += 1;
@@ -213,7 +215,7 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
               await studentBadgeRepo.save(studentBadgeRepo.create({ userId, badgeId: badge.id }));
               badge.earnedCount += 1;
               await badgeRepo.save(badge);
-              profile.xp += badge.rewardXp;
+              applyXpGain(profile, badge.rewardXp, now);
               profile.gems += badge.rewardGems;
               profile.badgesEarned += 1;
               badgeAwarded = badge;

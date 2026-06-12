@@ -38,11 +38,15 @@ function disconnect() {
  * badge earned, level up) and surfaces them as toasts while keeping the relevant
  * React Query caches fresh. Mount once near the student shell.
  */
-export function useGamificationSocket(onEvent?: (event: IGamificationEvent) => void) {
+export function useGamificationSocket(
+  onEvent?: (event: IGamificationEvent) => void,
+  options?: { showToast?: boolean },
+) {
   const token = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
   const toast = useToast();
   const qc = useQueryClient();
+  const showToast = options?.showToast ?? true;
 
   useEffect(() => {
     if (!token || !user) {
@@ -52,13 +56,16 @@ export function useGamificationSocket(onEvent?: (event: IGamificationEvent) => v
     const s = ensureSocket(token);
 
     const handler = (event: IGamificationEvent) => {
-      const emoji =
-        event.type === 'level:up' ? '⬆️' : event.type === 'badge:earned' ? '🏅' : '⚔️';
-      toast.success(`${emoji} ${event.title} — ${event.message}`);
+      if (showToast) {
+        const emoji =
+          event.type === 'level:up' ? '⬆️' : event.type === 'badge:earned' ? '🏅' : '⚔️';
+        toast.success(`${emoji} ${event.title} — ${event.message}`);
+      }
       void qc.invalidateQueries({ queryKey: ['student-quests'] });
       void qc.invalidateQueries({ queryKey: ['student-badges'] });
       void qc.invalidateQueries({ queryKey: ['students', 'dashboard'] });
       void qc.invalidateQueries({ queryKey: ['leaderboard'] });
+      void qc.invalidateQueries({ queryKey: ['shop'] });
       onEvent?.(event);
     };
 
@@ -66,5 +73,5 @@ export function useGamificationSocket(onEvent?: (event: IGamificationEvent) => v
     return () => {
       s.off('gamification:event', handler);
     };
-  }, [token, user, toast, qc, onEvent]);
+  }, [token, user, toast, qc, onEvent, showToast]);
 }

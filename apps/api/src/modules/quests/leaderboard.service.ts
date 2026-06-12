@@ -10,6 +10,7 @@ import {
 } from '@cp/shared';
 import { StudentProfile } from '../students/student-profile.entity';
 import { StudentBadge } from './student-badge.entity';
+import { currentMonthlyXp, currentWeeklyXp, monthKey, weekKey } from './period-keys';
 
 const SCOPE_COLUMN: Record<LeaderboardScope, string> = {
   xp: 'p.xp',
@@ -41,6 +42,22 @@ export class LeaderboardService {
     }
   }
 
+  /**
+   * Windowed ranking value. `weekly`/`monthly` rank by XP earned in the current
+   * period (stale buckets count as 0 — the season has effectively reset);
+   * `all_time` uses the chosen scope column.
+   */
+  private windowValue(
+    p: StudentProfile,
+    scope: LeaderboardScope,
+    window: LeaderboardWindow,
+    now: Date,
+  ): number {
+    if (window === 'weekly') return currentWeeklyXp(p, now);
+    if (window === 'monthly') return currentMonthlyXp(p, now);
+    return this.scopeValue(p, scope);
+  }
+
   private async badgeCounts(userIds: string[]): Promise<Map<string, number>> {
     if (userIds.length === 0) return new Map();
     const rows = await this.studentBadges
@@ -57,7 +74,19 @@ export class LeaderboardService {
     const scope: LeaderboardScope = params.scope ?? 'xp';
     const window: LeaderboardWindow = params.window ?? 'all_time';
     const limit = Math.min(100, Math.max(1, params.limit ?? 20));
-    const orderCol = SCOPE_COLUMN[scope];
+    const now = new Date();
+
+    // Windowed leaderboards rank by XP earned in the live period; a stale bucket
+    // (key from a previous week/month) is treated as 0 via the CASE guard.
+    const curWeek = weekKey(now);
+    const curMonth = monthKey(now);
+    const orderCol =
+      window === 'weekly'
+        ? `(CASE WHEN p.week_key = :curWeek THEN p.weekly_xp ELSE 0 END)`
+        : window === 'monthly'
+          ? `(CASE WHEN p.month_key = :curMonth THEN p.monthly_xp ELSE 0 END)`
+          : SCOPE_COLUMN[scope];
+    const periodParams = { curWeek, curMonth };
 
     const baseQb = this.profiles
       .createQueryBuilder('p')
@@ -79,6 +108,7 @@ export class LeaderboardService {
       .orderBy(orderCol, 'DESC')
       .addOrderBy('p.xp', 'DESC')
       .addOrderBy('p.level', 'DESC')
+      .setParameters(periodParams)
       .limit(limit)
       .getMany();
 
@@ -102,7 +132,10 @@ export class LeaderboardService {
       streak: p.streak,
       questsCompleted: p.questsCompleted,
       badgeCount: badgeMap.get(p.userId) ?? 0,
-      value: this.scopeValue(p, scope),
+      value: this.windowValue(p, scope, window, now),
+      nameColor: p.nameColor ?? null,
+      title: p.equippedTitle ?? null,
+      frame: p.equippedFrame ?? null,
       isMe: currentUserId ? p.userId === currentUserId : false,
     });
 
@@ -110,10 +143,11 @@ export class LeaderboardService {
 
     let me: ILeaderboardRankEntry | null = null;
     if (myProfile) {
-      const myValue = this.scopeValue(myProfile, scope);
+      const myValue = this.windowValue(myProfile, scope, window, now);
       const ahead = await baseQb
         .clone()
         .andWhere(`${orderCol} > :myValue`, { myValue })
+        .setParameters(periodParams)
         .getCount();
       me = toEntry(myProfile, ahead + 1);
     }
