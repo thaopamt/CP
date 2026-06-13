@@ -144,11 +144,13 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
         .execute();
     }
 
-    // Expire stale, still-in-progress recurring attempts from older windows.
+    // Expire stale recurring attempts from older windows — regardless of status.
+    // COMPLETED/CLAIMED rows from a past day/week must also be retired, otherwise
+    // they linger forever next to the fresh attempt and the page looks un-reset.
     const staleIds = existing
       .filter(
         (sq) =>
-          sq.status === StudentQuestStatus.IN_PROGRESS &&
+          sq.status !== StudentQuestStatus.EXPIRED &&
           sq.periodKey !== 'static' &&
           sq.periodKey !== this.dayKey(now) &&
           sq.periodKey !== this.weekKey(now),
