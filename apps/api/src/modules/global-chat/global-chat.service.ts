@@ -356,6 +356,12 @@ export class GlobalChatService {
   }
 
   private async createNotificationsForMessage(message: GlobalChatMessageEntity): Promise<void> {
+    // Don't notify anyone when a student sends a chat message.
+    const senderRole =
+      message.sender?.role ??
+      (await this.userRepo.findOne({ where: { id: message.senderId }, select: ['role'] }))?.role;
+    if (senderRole === UserRole.STUDENT) return;
+
     const recipients = await this.userRepo
       .createQueryBuilder('user')
       .select(['user.id'])
