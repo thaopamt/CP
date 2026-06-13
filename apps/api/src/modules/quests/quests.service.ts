@@ -205,7 +205,8 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
         applyXpGain(profile, sq.quest.rewardXp, now);
         profile.gems += sq.quest.rewardGems;
         profile.questsCompleted += 1;
-        while (profile.xp >= profile.level * XP_PER_LEVEL) profile.level += 1;
+        // Level N spans [N*1000, (N+1)*1000); advance once xp reaches the next.
+        while (profile.xp >= (profile.level + 1) * XP_PER_LEVEL) profile.level += 1;
         leveledUp = profile.level > prevLevel;
         newLevel = profile.level;
 

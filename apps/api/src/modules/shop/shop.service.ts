@@ -124,7 +124,8 @@ export class ShopService {
         if (p.xp && p.xp > 0) {
           const prevLevel = profile.level;
           applyXpGain(profile, p.xp, now);
-          while (profile.xp >= profile.level * XP_PER_LEVEL) profile.level += 1;
+          // Level N spans [N*1000, (N+1)*1000); advance once xp reaches the next.
+          while (profile.xp >= (profile.level + 1) * XP_PER_LEVEL) profile.level += 1;
           awardedXp = p.xp;
           message =
             profile.level > prevLevel
