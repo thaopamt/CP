@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon, useToast, TabPills } from '@cp/ui';
+import { CharacterGender, ICharacterEquip, IShopCatalogEntry, ShopItemCategory } from '@cp/shared';
 
+import { CharacterViewer } from '../../lib/character';
+import { useEquipItem, useInventory, useSetGender, useUnequipItem } from '../../api/shop.queries';
 import { useAuthStore } from '../../stores/auth.store';
 import {
   useCurrentStudent,
@@ -14,6 +18,16 @@ import { AvatarUpload } from '../../components/AvatarUpload';
 import { AvatarFrame, themeGradientClass } from '../../lib/cosmetics';
 
 type TabType = 'profile' | 'stats' | 'preferences' | 'security';
+
+/** Character equipment slots shown on the profile (key matches ICharacterEquip). */
+const CHAR_SLOTS = [
+  { key: 'hat', cat: ShopItemCategory.HAT, en: 'Hat', vi: 'Mũ', icon: '🎩' },
+  { key: 'outfit', cat: ShopItemCategory.OUTFIT, en: 'Outfit', vi: 'Trang phục', icon: '👕' },
+  { key: 'weapon', cat: ShopItemCategory.WEAPON, en: 'Weapon', vi: 'Vũ khí', icon: '⚔️' },
+  { key: 'pet', cat: ShopItemCategory.PET, en: 'Pet', vi: 'Thú cưng', icon: '🐾' },
+  { key: 'wings', cat: ShopItemCategory.WINGS, en: 'Wings', vi: 'Cánh', icon: '🪽' },
+  { key: 'background', cat: ShopItemCategory.BACKGROUND, en: 'Background', vi: 'Nền', icon: '🖼️' },
+] as const;
 
 // Shared input styling (light + dark via semantic tokens).
 const INPUT =
@@ -28,10 +42,16 @@ export default function MePage() {
   const { i18n } = useTranslation();
   const vi = i18n.language === 'vi';
   const toast = useToast();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const updateUser = useAuthStore((s) => s.updateUser);
   const { data: student, isLoading: isStudentLoading } = useCurrentStudent();
   const { data: dashboard, isLoading: isDashboardLoading } = useStudentDashboard();
+  const { data: inventory } = useInventory();
+  const equipItem = useEquipItem();
+  const unequipItem = useUnequipItem();
+  const setGender = useSetGender();
+  const [activeSlot, setActiveSlot] = useState<ShopItemCategory>(ShopItemCategory.OUTFIT);
   const updateCurrentStudent = useUpdateCurrentStudent();
   const updateDefaultLanguage = useUpdateDefaultLanguage();
   const changePassword = useChangePassword();
@@ -231,6 +251,34 @@ export default function MePage() {
           </div>
         </div>
       </header>
+
+      {/* ── Dressing room ── */}
+      <DressingRoom
+        vi={vi}
+        character={dashboard?.character}
+        inventory={inventory ?? []}
+        activeSlot={activeSlot}
+        setActiveSlot={setActiveSlot}
+        busy={equipItem.isPending || unequipItem.isPending || setGender.isPending}
+        onPickGender={(g) => setGender.mutate(g, { onError: () => toast.error(vi ? 'Không đổi được giới tính.' : 'Failed to set gender.') })}
+        onToggleItem={async (entry) => {
+          try {
+            if (entry.equipped) await unequipItem.mutateAsync(entry.item.id);
+            else await equipItem.mutateAsync(entry.item.id);
+          } catch {
+            toast.error(vi ? 'Có lỗi xảy ra.' : 'Something went wrong.');
+          }
+        }}
+        onClearSlot={async (equippedId) => {
+          if (!equippedId) return;
+          try {
+            await unequipItem.mutateAsync(equippedId);
+          } catch {
+            toast.error(vi ? 'Có lỗi xảy ra.' : 'Something went wrong.');
+          }
+        }}
+        onGoShop={() => navigate('/student/shop')}
+      />
 
       {/* ── Main layout ── */}
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8 items-start">
@@ -499,5 +547,148 @@ function KpiCard({ icon, accent, label, value, caption }: { icon: string; accent
       <p className="text-3xl font-black text-on-surface mt-1">{value}</p>
       <p className="text-xs text-on-surface-variant mt-2 font-medium">{caption}</p>
     </div>
+  );
+}
+
+/** Item tile preview: real art image, else emoji, else color swatch, else icon. */
+function ItemPreview({ entry }: { entry: IShopCatalogEntry }) {
+  const p = entry.item.payload;
+  if (p?.imageUrl) return <img src={p.imageUrl} alt="" className="w-10 h-10 object-contain" />;
+  if (p?.emoji) return <span className="text-2xl leading-none select-none">{p.emoji}</span>;
+  if (p?.color) return <span className="w-6 h-6 rounded-full border border-outline" style={{ backgroundColor: p.color }} />;
+  return <Icon name={entry.item.icon || 'redeem'} size={24} className="text-on-surface-variant" />;
+}
+
+const PILL = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors disabled:opacity-50';
+
+/** Interactive dressing room: pick gender, browse owned items per slot, equip live. */
+function DressingRoom({
+  vi,
+  character,
+  inventory,
+  activeSlot,
+  setActiveSlot,
+  busy,
+  onPickGender,
+  onToggleItem,
+  onClearSlot,
+  onGoShop,
+}: {
+  vi: boolean;
+  character?: ICharacterEquip | null;
+  inventory: IShopCatalogEntry[];
+  activeSlot: ShopItemCategory;
+  setActiveSlot: (c: ShopItemCategory) => void;
+  busy: boolean;
+  onPickGender: (g: CharacterGender) => void;
+  onToggleItem: (entry: IShopCatalogEntry) => void;
+  onClearSlot: (equippedId: string | null) => void;
+  onGoShop: () => void;
+}) {
+  const gender = character?.gender ?? null;
+  const ownedForSlot = inventory.filter((e) => e.item.category === activeSlot);
+  const equippedEntry = ownedForSlot.find((e) => e.equipped);
+
+  const tile = (selected: boolean) =>
+    `flex flex-col items-center justify-center gap-1 p-2 rounded-xl border text-[11px] font-semibold transition-all disabled:opacity-50 h-[84px] ${
+      selected
+        ? 'border-primary bg-primary/10 text-on-surface ring-1 ring-primary/40'
+        : 'border-outline-variant bg-surface-container hover:bg-surface-container-high text-on-surface-variant'
+    }`;
+
+  return (
+    <section className="mb-8 rounded-3xl border border-outline-variant bg-surface-container-lowest p-6 shadow-elev-1">
+      <h2 className="text-xl font-bold text-on-surface mb-4 flex items-center gap-2">
+        <Icon name="checkroom" className="text-primary" />
+        {vi ? 'Phòng thay đồ' : 'Dressing Room'}
+      </h2>
+
+      <div className="grid md:grid-cols-[240px_1fr] gap-6 items-start">
+        {/* Live preview + gender */}
+        <div className="flex flex-col items-center gap-4">
+          <CharacterViewer character={character} size={220} className="shrink-0" />
+          <div className="flex gap-2">
+            {(['male', 'female'] as const).map((g) => (
+              <button
+                key={g}
+                type="button"
+                disabled={busy}
+                onClick={() => onPickGender(g)}
+                className={`${PILL} ${
+                  gender === g ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                <Icon name={g === 'male' ? 'man' : 'woman'} size={16} />
+                {g === 'male' ? (vi ? 'Nam' : 'Male') : vi ? 'Nữ' : 'Female'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Slot tabs + owned items */}
+        <div className="min-w-0">
+          <div className="flex flex-wrap gap-2 mb-4">
+            {CHAR_SLOTS.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setActiveSlot(s.cat)}
+                className={`${PILL} ${
+                  activeSlot === s.cat ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                <span className="leading-none">{s.icon}</span>
+                {vi ? s.vi : s.en}
+              </button>
+            ))}
+          </div>
+
+          {ownedForSlot.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-10 text-center rounded-xl border border-dashed border-outline-variant bg-surface-container">
+              <p className="text-sm text-on-surface-variant">
+                {vi ? 'Bạn chưa sở hữu món nào ở ô này.' : 'You own no items in this slot yet.'}
+              </p>
+              <button type="button" onClick={onGoShop} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-primary text-on-primary hover:opacity-90">
+                <Icon name="storefront" size={16} /> {vi ? 'Đến Cửa hàng' : 'Go to Shop'}
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                <button
+                  type="button"
+                  disabled={busy || !equippedEntry}
+                  onClick={() => onClearSlot(equippedEntry?.item.id ?? null)}
+                  className={tile(!equippedEntry)}
+                >
+                  <Icon name="block" size={22} className="text-on-surface-variant" />
+                  <span>{vi ? 'Bỏ trống' : 'None'}</span>
+                </button>
+                {ownedForSlot.map((entry) => (
+                  <button
+                    key={entry.item.id}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => onToggleItem(entry)}
+                    className={tile(entry.equipped)}
+                    title={entry.item.name}
+                  >
+                    <ItemPreview entry={entry} />
+                    <span className="truncate w-full px-1">{entry.item.name}</span>
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={onGoShop}
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-surface-container-high text-on-surface hover:bg-surface-container-highest"
+              >
+                <Icon name="storefront" size={16} /> {vi ? 'Mua thêm ở Cửa hàng' : 'Buy more in Shop'}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }

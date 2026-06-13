@@ -4,6 +4,7 @@ import { Icon } from '@cp/ui';
 import { LeaderboardScope, LeaderboardWindow, ILeaderboardRankEntry } from '@cp/shared';
 import { useLeaderboard } from '../../api/gamification.queries';
 import { AvatarFrame } from '../../lib/cosmetics';
+import { CharacterAvatar, hasCharacter } from '../../lib/character';
 
 type TFn = (key: string, opts?: Record<string, unknown>) => string;
 
@@ -203,7 +204,9 @@ function PodiumCard({
           <Icon name={config.icon} size={isFirst ? 24 : 20} />
         </div>
         <AvatarFrame frameKey={entry.frame}>
-          {entry.avatarUrl ? (
+          {hasCharacter(entry.character) ? (
+            <CharacterAvatar character={entry.character} size={isFirst ? 80 : 64} className={config.glow} />
+          ) : entry.avatarUrl ? (
             <img
               src={entry.avatarUrl}
               alt={entry.name}
@@ -278,7 +281,9 @@ function RankRow({
 
       {/* Avatar */}
       <AvatarFrame frameKey={entry.frame} className="shrink-0">
-        {entry.avatarUrl ? (
+        {hasCharacter(entry.character) ? (
+          <CharacterAvatar character={entry.character} size={36} />
+        ) : entry.avatarUrl ? (
           <img src={entry.avatarUrl} alt={entry.name} className="w-9 h-9 rounded-full object-cover border border-outline-variant dark:border-white/10" />
         ) : (
           <div className="w-9 h-9 rounded-full grid place-items-center text-xs font-black bg-surface-container-high text-on-surface border border-outline-variant dark:border-white/10">

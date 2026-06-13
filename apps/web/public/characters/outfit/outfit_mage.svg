@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 768">
+  <!-- robe body -->
+  <path d="M300 322 Q384 292 468 322 L524 662 Q384 694 244 662 Z" fill="#7c3aed"/>
+  <!-- sleeves -->
+  <path d="M300 332 L250 484 L292 496 L322 360 Z" fill="#6d28d9"/>
+  <path d="M468 332 L518 484 L476 496 L446 360 Z" fill="#6d28d9"/>
+  <!-- collar -->
+  <path d="M338 320 L384 360 L430 320 Z" fill="#a78bfa"/>
+  <!-- belt -->
+  <rect x="300" y="470" width="168" height="24" rx="6" fill="#fbbf24"/>
+  <circle cx="384" cy="482" r="14" fill="#f59e0b" stroke="#d97706" stroke-width="4"/>
+  <!-- stars -->
+  <path d="M350 545 l7 16 17 2 -13 12 4 17 -15 -9 -15 9 4 -17 -13 -12 17 -2 Z" fill="#fde047"/>
+  <path d="M430 600 l6 13 14 2 -11 10 3 14 -12 -7 -12 7 3 -14 -11 -10 14 -2 Z" fill="#fde047"/>
+  <path d="M330 620 l5 11 12 1 -9 9 3 12 -11 -6 -11 6 3 -12 -9 -9 12 -1 Z" fill="#fde047"/>
+</svg>

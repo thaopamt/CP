@@ -23,11 +23,48 @@ export enum ShopItemCategory {
   NAME_COLOR = 'NAME_COLOR',
   TITLE = 'TITLE',
   CONSUMABLE = 'CONSUMABLE',
+  // ── Character equipment slots (paper-doll, Gunny-style) ──────────────────────
+  HAT = 'HAT',
+  OUTFIT = 'OUTFIT',
+  WEAPON = 'WEAPON',
+  PET = 'PET',
+  WINGS = 'WINGS',
+  BACKGROUND = 'BACKGROUND',
+}
+
+/** The character equipment slots, in back-to-front render order. */
+export const CHARACTER_SLOTS = [
+  ShopItemCategory.BACKGROUND,
+  ShopItemCategory.WINGS,
+  ShopItemCategory.OUTFIT,
+  ShopItemCategory.PET,
+  ShopItemCategory.HAT,
+  ShopItemCategory.WEAPON,
+] as const;
+
+export function isCharacterSlot(category: ShopItemCategory): boolean {
+  return (CHARACTER_SLOTS as readonly ShopItemCategory[]).includes(category);
+}
+
+/**
+ * Where/how a character sprite sits on the 768×768 canvas. When present the
+ * renderer positions the layer by this transform; when absent the layer fills
+ * the whole canvas (art pre-positioned by the artist). Admin-editable.
+ */
+export interface ICharacterTransform {
+  /** Center X as % of canvas (0–100). */
+  x: number;
+  /** Center Y as % of canvas (0–100). */
+  y: number;
+  /** Box size as a fraction of the canvas (e.g. 0.3 = 30%). */
+  scale: number;
+  /** Rotation in degrees. */
+  rotation: number;
 }
 
 /** Effect payload — fields are interpreted by category. */
 export interface IShopItemPayload {
-  /** NAME_COLOR: hex color applied to the display name. */
+  /** NAME_COLOR / BACKGROUND: hex color or tint. */
   color?: string;
   /** PROFILE_THEME: theme key the frontend maps to a gradient/skin. */
   themeKey?: string;
@@ -35,11 +72,41 @@ export interface IShopItemPayload {
   frameKey?: string;
   /** TITLE: the cosmetic title text shown next to the name. */
   title?: string;
+  /** Character slots: emoji placeholder shown until real art is supplied. */
+  emoji?: string;
+  /** Character slots: image URL for real sprite art (overrides emoji). */
+  imageUrl?: string;
+  /** Character slots: admin-set placement on the character canvas. */
+  transform?: ICharacterTransform;
   /** CONSUMABLE: flat XP granted on purchase. */
   xp?: number;
   /** CONSUMABLE (gem box): random gems granted in [gemsMin, gemsMax]. */
   gemsMin?: number;
   gemsMax?: number;
+}
+
+/** A single equipped character item, denormalised for rendering anywhere. */
+export interface ICharacterSlotItem {
+  code: string;
+  emoji?: string | null;
+  imageUrl?: string | null;
+  color?: string | null;
+  transform?: ICharacterTransform | null;
+}
+
+/** Chosen base-body gender; drives the always-present body layer. */
+export type CharacterGender = 'male' | 'female';
+
+/** A student's equipped character — slot key (lowercased category) → item. */
+export interface ICharacterEquip {
+  /** Base-body gender (the layer items are dressed onto). */
+  gender?: CharacterGender | null;
+  background?: ICharacterSlotItem | null;
+  wings?: ICharacterSlotItem | null;
+  outfit?: ICharacterSlotItem | null;
+  pet?: ICharacterSlotItem | null;
+  hat?: ICharacterSlotItem | null;
+  weapon?: ICharacterSlotItem | null;
 }
 
 export interface IShopItem {
@@ -95,6 +162,8 @@ export interface IEquipResult {
   equippedTheme: string | null;
   nameColor: string | null;
   equippedTitle: string | null;
+  /** Full character equip map after the change (for live re-render). */
+  character: ICharacterEquip;
 }
 
 export interface ICreateShopItemPayload {

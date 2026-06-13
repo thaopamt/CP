@@ -36,4 +36,10 @@ export class ShopController {
   async unequip(@CurrentUser() user: JwtPayload, @Param('itemId') itemId: string) {
     return this.service.unequip(user.sub, itemId);
   }
+
+  @Post('character/gender/:gender')
+  async setGender(@CurrentUser() user: JwtPayload, @Param('gender') gender: string) {
+    const g = gender === 'female' ? 'female' : 'male';
+    return this.service.setGender(user.sub, g);
+  }
 }

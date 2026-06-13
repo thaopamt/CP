@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { CharacterGender } from '@cp/shared';
 import { shopApi } from './shop.api';
 
 export const shopQueryKeys = {
@@ -11,6 +12,13 @@ export function useShopCatalog() {
   return useQuery({
     queryKey: shopQueryKeys.catalog(),
     queryFn: () => shopApi.catalog().then((res) => res.data),
+  });
+}
+
+export function useInventory() {
+  return useQuery({
+    queryKey: shopQueryKeys.inventory(),
+    queryFn: () => shopApi.inventory().then((res) => res.data),
   });
 }
 
@@ -41,6 +49,14 @@ export function useUnequipItem() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (itemId: string) => shopApi.unequip(itemId).then((res) => res.data),
+    onSuccess: () => invalidateShop(qc),
+  });
+}
+
+export function useSetGender() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (gender: CharacterGender) => shopApi.setGender(gender).then((res) => res.data),
     onSuccess: () => invalidateShop(qc),
   });
 }

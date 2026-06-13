@@ -204,7 +204,7 @@ export class SubmissionsController implements OnModuleInit {
       if (userIds.length) {
         const profiles = await this.studentProfileRepo.find({
           where: { userId: In(userIds) },
-          select: ['userId', 'equippedTitle', 'equippedFrame', 'nameColor'],
+          select: ['userId', 'equippedTitle', 'equippedFrame', 'nameColor', 'character'],
         });
         const cosmeticByUser = new Map(profiles.map((p) => [p.userId, p]));
         for (const r of rows) {
@@ -213,6 +213,7 @@ export class SubmissionsController implements OnModuleInit {
           (r.user as any).equippedTitle = c?.equippedTitle ?? null;
           (r.user as any).equippedFrame = c?.equippedFrame ?? null;
           (r.user as any).nameColor = c?.nameColor ?? null;
+          (r.user as any).character = c?.character ?? null;
         }
       }
     }

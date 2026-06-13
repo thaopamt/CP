@@ -128,6 +128,7 @@ export default function StudentLayout() {
             frame={dashboard?.equippedFrame}
             nameColor={dashboard?.nameColor}
             title={dashboard?.equippedTitle}
+            character={dashboard?.character}
             profilePath="/student/me"
           />
         </div>
@@ -154,6 +155,7 @@ export default function StudentLayout() {
             frame={dashboard?.equippedFrame}
             nameColor={dashboard?.nameColor}
             title={dashboard?.equippedTitle}
+            character={dashboard?.character}
             profilePath="/student/me"
           />
         </div>

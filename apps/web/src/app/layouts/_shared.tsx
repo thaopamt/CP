@@ -6,7 +6,9 @@ import { useGlobalChatSocket } from '../hooks/useGlobalChatSocket';
 import { useAuthStore } from '../stores/auth.store';
 import { useGlobalChatStore } from '../stores/globalChat.store';
 import { useUIStore } from '../stores/ui.store';
+import { ICharacterEquip } from '@cp/shared';
 import { AvatarFrame } from '../lib/cosmetics';
+import { CharacterAvatar, hasCharacter } from '../lib/character';
 
 /**
  * Initials avatar shared by all three portal top bars. Optional gem-shop
@@ -17,24 +19,31 @@ export function UserAvatar({
   size = 'md',
   frame,
   nameColor,
+  character,
 }: {
   user: IUser | null;
   size?: 'sm' | 'md';
   frame?: string | null;
   nameColor?: string | null;
+  character?: ICharacterEquip | null;
 }) {
   const dim = size === 'sm' ? 'w-8 h-8 text-[12px]' : 'w-10 h-10 text-label-sm';
+  const px = size === 'sm' ? 32 : 40;
   if (!user) return <div className={`${dim} rounded-full bg-surface-container-high`} />;
   const initials = `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase();
   return (
     <AvatarFrame frameKey={frame}>
-      <div
-        className={`${dim} rounded-full bg-primary-container text-on-primary-container grid place-items-center font-bold border border-outline-variant/40`}
-        title={fullName(user)}
-        style={nameColor ? { color: nameColor } : undefined}
-      >
-        {initials || '·'}
-      </div>
+      {hasCharacter(character) ? (
+        <CharacterAvatar character={character} size={px} />
+      ) : (
+        <div
+          className={`${dim} rounded-full bg-primary-container text-on-primary-container grid place-items-center font-bold border border-outline-variant/40`}
+          title={fullName(user)}
+          style={nameColor ? { color: nameColor } : undefined}
+        >
+          {initials || '·'}
+        </div>
+      )}
     </AvatarFrame>
   );
 }
@@ -89,12 +98,14 @@ export function UserMenu({
   frame,
   nameColor,
   title,
+  character,
   profilePath = '/student/me',
 }: {
   user: IUser | null;
   frame?: string | null;
   nameColor?: string | null;
   title?: string | null;
+  character?: ICharacterEquip | null;
   profilePath?: string;
 }) {
   const { t, i18n } = useTranslation();
@@ -133,7 +144,7 @@ export function UserMenu({
         aria-expanded={open}
         aria-label={t('nav.student.me')}
       >
-        <UserAvatar user={user} size="sm" frame={frame} nameColor={nameColor} />
+        <UserAvatar user={user} size="sm" frame={frame} nameColor={nameColor} character={character} />
       </button>
 
       {open && (
@@ -143,7 +154,7 @@ export function UserMenu({
         >
           {/* Identity header */}
           <div className="flex items-center gap-3 px-2 py-2">
-            <UserAvatar user={user} size="md" frame={frame} nameColor={nameColor} />
+            <UserAvatar user={user} size="md" frame={frame} nameColor={nameColor} character={character} />
             <div className="min-w-0">
               <p
                 className="text-label-sm font-bold text-on-surface truncate"

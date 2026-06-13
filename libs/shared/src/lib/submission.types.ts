@@ -117,6 +117,7 @@ export interface IRealtimeSubmission extends Omit<ISubmission, 'testResults'> {
     equippedTitle?: string | null;
     equippedFrame?: string | null;
     nameColor?: string | null;
+    character?: import('./types/shop.types').ICharacterEquip | null;
   };
   testResults?: ISubmissionRealtimeTestResult[];
   judgeProgress?: ISubmissionJudgeProgress;

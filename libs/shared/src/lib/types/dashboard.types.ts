@@ -1,6 +1,7 @@
 import { IAchievement } from '../student.types';
 import { DayOfWeek } from '../class.types';
 import { SubmissionStatus } from '../submission.types';
+import type { ICharacterEquip } from './shop.types';
 
 export interface IActiveQuest {
   id: string;
@@ -101,6 +102,8 @@ export interface IStudentDashboardData {
   equippedTitle?: string | null;
   equippedFrame?: string | null;
   equippedTheme?: string | null;
+  /** Equipped character (paper-doll) for the avatar + profile viewer. */
+  character?: ICharacterEquip | null;
   dailyQuestsCompleted: number;
   dailyQuestsTarget: number;
   weeklyAccepted: number;

@@ -103,6 +103,8 @@ export interface ILeaderboardRankEntry {
   nameColor?: string | null;
   title?: string | null;
   frame?: string | null;
+  /** Equipped character (paper-doll) for the avatar. */
+  character?: import('./shop.types').ICharacterEquip | null;
   /** True for the requesting student's own row. */
   isMe?: boolean;
 }

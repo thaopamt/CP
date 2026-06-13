@@ -136,6 +136,7 @@ export class LeaderboardService {
       nameColor: p.nameColor ?? null,
       title: p.equippedTitle ?? null,
       frame: p.equippedFrame ?? null,
+      character: p.character ?? null,
       isMe: currentUserId ? p.userId === currentUserId : false,
     });
 

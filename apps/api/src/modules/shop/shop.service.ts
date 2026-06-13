@@ -6,13 +6,19 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import {
+  BadgeRarity,
+  CharacterGender,
+  ICharacterEquip,
+  ICreateShopItemPayload,
   IEquipResult,
   IPurchaseResult,
   IShopCatalogEntry,
   IShopCatalogResponse,
   IShopItem,
+  IUpdateShopItemPayload,
   ShopItemCategory,
   ShopItemKind,
+  isCharacterSlot,
 } from '@cp/shared';
 
 import { StudentProfile } from '../students/student-profile.entity';
@@ -219,6 +225,71 @@ export class ShopService {
     });
   }
 
+  // ── Admin: manage the catalog ───────────────────────────────────────────────
+
+  /** All items (incl. inactive) for the admin catalog. */
+  async adminList(): Promise<IShopItem[]> {
+    const items = await this.items.find({ order: { sortOrder: 'ASC', price: 'ASC' } });
+    return items.map((i) => this.toDto(i));
+  }
+
+  async adminCreate(payload: ICreateShopItemPayload): Promise<IShopItem> {
+    const existing = await this.items.findOne({ where: { code: payload.code } });
+    if (existing) throw new BadRequestException('Mã vật phẩm đã tồn tại.');
+    const item = await this.items.save(
+      this.items.create({
+        code: payload.code,
+        name: payload.name,
+        description: payload.description ?? '',
+        icon: payload.icon ?? 'redeem',
+        kind: payload.kind,
+        category: payload.category,
+        rarity: payload.rarity ?? BadgeRarity.COMMON,
+        price: payload.price,
+        payload: payload.payload ?? null,
+        sortOrder: payload.sortOrder ?? 0,
+        isActive: payload.isActive ?? true,
+      }),
+    );
+    return this.toDto(item);
+  }
+
+  async adminUpdate(id: string, patch: IUpdateShopItemPayload): Promise<IShopItem> {
+    const item = await this.items.findOne({ where: { id } });
+    if (!item) throw new NotFoundException('Shop item not found');
+    Object.assign(item, {
+      ...(patch.name !== undefined && { name: patch.name }),
+      ...(patch.description !== undefined && { description: patch.description }),
+      ...(patch.icon !== undefined && { icon: patch.icon }),
+      ...(patch.kind !== undefined && { kind: patch.kind }),
+      ...(patch.category !== undefined && { category: patch.category }),
+      ...(patch.rarity !== undefined && { rarity: patch.rarity }),
+      ...(patch.price !== undefined && { price: patch.price }),
+      ...(patch.payload !== undefined && { payload: patch.payload }),
+      ...(patch.sortOrder !== undefined && { sortOrder: patch.sortOrder }),
+      ...(patch.isActive !== undefined && { isActive: patch.isActive }),
+    });
+    await this.items.save(item);
+    return this.toDto(item);
+  }
+
+  async adminDelete(id: string): Promise<{ ok: true }> {
+    await this.items.delete({ id });
+    return { ok: true };
+  }
+
+  /** Set the base-body gender (free choice, not an owned item). */
+  async setGender(userId: string, gender: CharacterGender): Promise<IEquipResult> {
+    return this.ds.transaction(async (tx) => {
+      const profRepo = tx.getRepository(StudentProfile);
+      const profile = await profRepo.findOne({ where: { userId } });
+      if (!profile) throw new NotFoundException('Student profile not found');
+      profile.character = { ...(profile.character ?? {}), gender };
+      await profRepo.save(profile);
+      return this.equipResult('', false, profile);
+    });
+  }
+
   private applyCosmeticToProfile(profile: StudentProfile, item: ShopItem): void {
     const p = item.payload ?? {};
     switch (item.category) {
@@ -235,6 +306,19 @@ export class ShopService {
         profile.equippedTitle = p.title ?? item.name;
         break;
       default:
+        if (isCharacterSlot(item.category)) {
+          const slot = characterSlotKey(item.category);
+          profile.character = {
+            ...(profile.character ?? {}),
+            [slot]: {
+              code: item.code,
+              emoji: p.emoji ?? null,
+              imageUrl: p.imageUrl ?? null,
+              color: p.color ?? null,
+              transform: p.transform ?? null,
+            },
+          };
+        }
         break;
     }
   }
@@ -254,6 +338,12 @@ export class ShopService {
         profile.equippedTitle = null;
         break;
       default:
+        if (isCharacterSlot(category)) {
+          const slot = characterSlotKey(category);
+          const next = { ...(profile.character ?? {}) };
+          delete (next as Record<string, unknown>)[slot];
+          profile.character = next;
+        }
         break;
     }
   }
@@ -266,6 +356,12 @@ export class ShopService {
       equippedTheme: profile.equippedTheme ?? null,
       nameColor: profile.nameColor ?? null,
       equippedTitle: profile.equippedTitle ?? null,
+      character: profile.character ?? {},
     };
   }
+}
+
+/** Lowercased slot key used inside the `character` JSON (e.g. HAT → "hat"). */
+function characterSlotKey(category: ShopItemCategory): keyof ICharacterEquip {
+  return category.toLowerCase() as keyof ICharacterEquip;
 }

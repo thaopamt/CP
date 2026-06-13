@@ -495,6 +495,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       equippedTitle: profile.equippedTitle ?? null,
       equippedFrame: profile.equippedFrame ?? null,
       equippedTheme: profile.equippedTheme ?? null,
+      character: profile.character ?? null,
       dailyQuestsCompleted,
       dailyQuestsTarget,
       weeklyAccepted,

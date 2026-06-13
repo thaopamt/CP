@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 768">
+  <!-- blade -->
+  <polygon points="540,470 562,470 562,300 551,276 540,300" fill="#e2e8f0" stroke="#94a3b8" stroke-width="5" stroke-linejoin="round"/>
+  <line x1="551" y1="300" x2="551" y2="462" stroke="#cbd5e1" stroke-width="4"/>
+  <!-- guard -->
+  <rect x="516" y="468" width="70" height="18" rx="7" fill="#f59e0b" stroke="#d97706" stroke-width="4"/>
+  <!-- handle -->
+  <rect x="543" y="486" width="16" height="50" rx="7" fill="#7c2d12"/>
+  <!-- pommel -->
+  <circle cx="551" cy="544" r="11" fill="#f59e0b" stroke="#d97706" stroke-width="3"/>
+</svg>

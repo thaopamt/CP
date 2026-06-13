@@ -6,7 +6,7 @@ import {
   OneToMany,
   OneToOne,
 } from 'typeorm';
-import { EnrollmentStatus } from '@cp/shared';
+import { EnrollmentStatus, ICharacterEquip } from '@cp/shared';
 
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../users/user.entity';
@@ -104,6 +104,13 @@ export class StudentProfile extends BaseEntity {
   /** Cosmetic title shown next to the name (e.g. "Huyền thoại"), or null. */
   @Column({ type: 'varchar', length: 60, nullable: true, name: 'equipped_title' })
   equippedTitle!: string | null;
+
+  /**
+   * Equipped character (paper-doll). Slot key → { code, emoji, imageUrl, color }.
+   * Denormalised so the composed avatar renders anywhere without a catalog join.
+   */
+  @Column({ type: 'jsonb', default: () => "'{}'::jsonb", name: 'character_equip' })
+  character!: ICharacterEquip;
 
   @Column({ type: 'int', default: 0 })
   streak!: number;

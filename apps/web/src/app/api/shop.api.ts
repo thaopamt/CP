@@ -1,4 +1,5 @@
 import {
+  CharacterGender,
   IEquipResult,
   IPurchaseResult,
   IShopCatalogEntry,
@@ -12,6 +13,9 @@ export const shopApi = {
   },
   inventory() {
     return apiClient.get<IShopCatalogEntry[]>('/shop/inventory');
+  },
+  setGender(gender: CharacterGender) {
+    return apiClient.post<IEquipResult>(`/shop/character/gender/${gender}`);
   },
   purchase(itemId: string) {
     return apiClient.post<IPurchaseResult>(`/shop/purchase/${itemId}`);

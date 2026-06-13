@@ -18,6 +18,12 @@ type TFn = (key: string, opts?: Record<string, unknown>) => string;
 
 const CATEGORIES: (ShopItemCategory | 'all')[] = [
   'all',
+  ShopItemCategory.HAT,
+  ShopItemCategory.OUTFIT,
+  ShopItemCategory.WEAPON,
+  ShopItemCategory.PET,
+  ShopItemCategory.WINGS,
+  ShopItemCategory.BACKGROUND,
   ShopItemCategory.AVATAR_FRAME,
   ShopItemCategory.PROFILE_THEME,
   ShopItemCategory.NAME_COLOR,
@@ -195,15 +201,21 @@ function ShopCard({
   const r = RARITY[item.rarity] ?? RARITY.COMMON;
   const isCosmetic = item.kind === ShopItemKind.COSMETIC;
   const canAfford = gems >= item.price;
-  const swatch = item.payload?.color;
+  const emoji = item.payload?.emoji;
+  const swatch = !emoji ? item.payload?.color : undefined;
 
   return (
     <div
       className={`rounded-lg border bg-surface-container-lowest p-4 flex flex-col shadow-elev-1 dark:bg-[#18151f]/95 ${r.border} ${r.glow}`}
     >
       {/* Icon / preview */}
-      <div className="relative mb-3 h-20 rounded-lg bg-surface-container-high grid place-items-center overflow-hidden dark:bg-white/[0.06]">
-        {swatch ? (
+      <div
+        className="relative mb-3 h-20 rounded-lg bg-surface-container-high grid place-items-center overflow-hidden dark:bg-white/[0.06]"
+        style={emoji && item.payload?.color ? { backgroundColor: item.payload.color } : undefined}
+      >
+        {emoji ? (
+          <span className="text-[44px] leading-none select-none">{emoji}</span>
+        ) : swatch ? (
           <span className="w-10 h-10 rounded-full border-2 border-outline" style={{ backgroundColor: swatch }} />
         ) : (
           <Icon name={item.icon || 'redeem'} size={40} className="text-on-surface-variant" />

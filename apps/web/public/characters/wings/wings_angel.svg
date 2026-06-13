@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 768">
+  <!-- left wing -->
+  <path d="M306 338 Q176 296 142 430 Q236 398 306 436 Z" fill="#ffffff" stroke="#e2e8f0" stroke-width="5"/>
+  <path d="M250 360 q-30 30 -40 60 M286 372 q-26 26 -34 52 M300 400 q-22 18 -28 36" stroke="#e2e8f0" stroke-width="4" fill="none"/>
+  <!-- right wing -->
+  <path d="M462 338 Q592 296 626 430 Q532 398 462 436 Z" fill="#ffffff" stroke="#e2e8f0" stroke-width="5"/>
+  <path d="M518 360 q30 30 40 60 M482 372 q26 26 34 52 M468 400 q22 18 28 36" stroke="#e2e8f0" stroke-width="4" fill="none"/>
+</svg>

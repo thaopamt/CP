@@ -52,6 +52,7 @@ const AdminQuestCreate = lazy(() => import('./pages/admin/quests/QuestCreatePage
 const AdminQuestEdit = lazy(() => import('./pages/admin/quests/QuestEditPage'));
 const AdminQuestAnalytics = lazy(() => import('./pages/admin/quests/QuestAnalyticsPage'));
 const AdminBadgesList = lazy(() => import('./pages/admin/badges/BadgesListPage'));
+const AdminShopItems = lazy(() => import('./pages/admin/shop/ShopItemsPage'));
 const AdminBadgeCreate = lazy(() => import('./pages/admin/badges/BadgeCreatePage'));
 const AdminBadgeEdit = lazy(() => import('./pages/admin/badges/BadgeEditPage'));
 const LiveMonitorPage = lazy(() => import('./pages/admin/monitor/LiveMonitorPage'));
@@ -136,6 +137,7 @@ export default function App() {
                 <Route path="quests/:id/edit" element={<AdminQuestEdit />} />
                 <Route path="quests/analytics" element={<AdminQuestAnalytics />} />
                 <Route path="badges" element={<AdminBadgesList />} />
+                <Route path="shop" element={<AdminShopItems />} />
                 <Route path="badges/new" element={<AdminBadgeCreate />} />
                 <Route path="badges/:id/edit" element={<AdminBadgeEdit />} />
                 <Route path="monitor" element={<LiveMonitorPage />} />
