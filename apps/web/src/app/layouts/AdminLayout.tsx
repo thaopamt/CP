@@ -1,6 +1,6 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
 import { useUIStore } from '../stores/ui.store';
@@ -36,11 +36,21 @@ export default function AdminLayout() {
   const { isSidebarCollapsed, toggleSidebar } = useUIStore();
   const { pathname } = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const current =
-    NAV.find((item) => (item.end ? pathname === item.to : pathname.startsWith(item.to))) ??
-    (pathname.startsWith('/admin/settings')
-      ? { to: '/admin/me', icon: 'account_circle', key: 'nav.admin.me' }
-      : undefined);
+  // The most specific (longest matching) entry wins, so a nested route such as
+  // /admin/quests/analytics highlights only its own tab — not /admin/quests —
+  // while /admin/quests/new and /admin/quests/:id/edit still light up Quests.
+  const activeTo = useMemo(() => {
+    let best: string | null = null;
+    for (const item of NAV) {
+      const matches = item.end
+        ? pathname === item.to
+        : pathname === item.to || pathname.startsWith(`${item.to}/`);
+      if (matches && (best === null || item.to.length > best.length)) best = item.to;
+    }
+    if (best === null && pathname.startsWith('/admin/settings')) best = '/admin/me';
+    return best;
+  }, [pathname]);
+  const current = NAV.find((item) => item.to === activeTo);
   const currentLabel = current ? t(current.key) : t('nav.admin.dashboard');
 
   // Close mobile menu on route change
@@ -98,19 +108,19 @@ export default function AdminLayout() {
         </div>
 
         <div className="flex flex-col gap-xs mt-sm flex-1 overflow-y-auto">
-          {NAV.map((item) => (
-            <NavLink
+          {NAV.map((item) => {
+            const isActive = item.to === activeTo;
+            return (
+            <Link
               key={item.to}
               to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                [
-                  'flex items-center gap-md px-md py-sm rounded-lg transition-all text-label-sm overflow-hidden min-h-[44px]',
-                  isActive
-                    ? 'bg-primary-container text-on-primary-container font-bold'
-                    : 'text-on-surface-variant hover:bg-surface-container-highest',
-                ].join(' ')
-              }
+              aria-current={isActive ? 'page' : undefined}
+              className={[
+                'flex items-center gap-md px-md py-sm rounded-lg transition-all text-label-sm overflow-hidden min-h-[44px]',
+                isActive
+                  ? 'bg-primary-container text-on-primary-container font-bold'
+                  : 'text-on-surface-variant hover:bg-surface-container-highest',
+              ].join(' ')}
             >
               <span className="relative flex items-center justify-center">
                 <span className="material-symbols-outlined shrink-0">{item.icon}</span>
@@ -118,8 +128,9 @@ export default function AdminLayout() {
               </span>
               <span className="truncate">{t(item.key)}</span>
               {item.to.endsWith('/chat') && <GlobalChatUnreadBadge />}
-            </NavLink>
-          ))}
+            </Link>
+            );
+          })}
         </div>
 
         <LogoutButton />
@@ -153,21 +164,21 @@ export default function AdminLayout() {
         </div>
 
         <div className="flex flex-col gap-xs mt-sm flex-1 overflow-y-auto">
-          {NAV.map((item) => (
-            <NavLink
+          {NAV.map((item) => {
+            const isActive = item.to === activeTo;
+            return (
+            <Link
               key={item.to}
               to={item.to}
-              end={item.end}
+              aria-current={isActive ? 'page' : undefined}
               title={isSidebarCollapsed ? t(item.key) : undefined}
-              className={({ isActive }) =>
-                [
-                  'flex items-center py-sm rounded-lg transition-all text-label-sm overflow-hidden',
-                  isSidebarCollapsed ? 'justify-center px-0' : 'gap-md px-md',
-                  isActive
-                    ? 'bg-primary-container text-on-primary-container font-bold'
-                    : 'text-on-surface-variant hover:bg-surface-container-highest hover:translate-x-1 duration-200',
-                ].join(' ')
-              }
+              className={[
+                'flex items-center py-sm rounded-lg transition-all text-label-sm overflow-hidden',
+                isSidebarCollapsed ? 'justify-center px-0' : 'gap-md px-md',
+                isActive
+                  ? 'bg-primary-container text-on-primary-container font-bold'
+                  : 'text-on-surface-variant hover:bg-surface-container-highest hover:translate-x-1 duration-200',
+              ].join(' ')}
             >
               <span className="relative flex items-center justify-center">
                 <span className="material-symbols-outlined shrink-0">{item.icon}</span>
@@ -175,8 +186,9 @@ export default function AdminLayout() {
               </span>
               {!isSidebarCollapsed && <span className="truncate">{t(item.key)}</span>}
               {!isSidebarCollapsed && item.to.endsWith('/chat') && <GlobalChatUnreadBadge />}
-            </NavLink>
-          ))}
+            </Link>
+            );
+          })}
         </div>
 
         <LogoutButton />

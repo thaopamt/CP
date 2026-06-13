@@ -204,12 +204,12 @@ export default function StudentDashboardPage() {
             <div className="text-right">
               <div className="text-label-sm text-on-surface-variant">
                 {tr('pages.student.home.xpFraction', '{{current}} / {{next}} XP', {
-                  current: dashboard.xpIntoLevel.toLocaleString(),
-                  next: dashboard.xpPerLevel.toLocaleString(),
+                  current: dashboard.xp.toLocaleString(),
+                  next: dashboard.xpForNext.toLocaleString(),
                 })}
               </div>
               <div className="text-label-sm font-semibold text-primary">
-                {tr('pages.student.home.nextLevel', 'Cấp tiếp theo: {{next}}', {
+                {tr('pages.student.home.nextLevel', 'Tiếp theo: Cấp {{next}}', {
                   next: dashboard.level + 1,
                 })}
               </div>

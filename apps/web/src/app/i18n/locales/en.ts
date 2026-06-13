@@ -1327,7 +1327,7 @@ const en = {
         streakLine: "You're on a {{count}}-day learning streak. Keep the momentum going!",
         levelLabel: 'Level {{level}} Explorer',
         xpFraction: '{{current}} / {{next}} XP',
-        nextLevel: 'Next level: {{next}}',
+        nextLevel: 'Next: Level {{next}}',
         myQuests: 'My Quests',
         dailyGoal: 'Daily Goal',
         achievements: 'Achievements',
