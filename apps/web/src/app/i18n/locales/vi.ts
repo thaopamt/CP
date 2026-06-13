@@ -1324,6 +1324,7 @@ const vi: AppResources = {
         streakLine: 'Bạn đang trong chuỗi học {{count}} ngày. Tiếp tục giữ phong độ nhé!',
         levelLabel: 'Cấp {{level}} Người Khám Phá',
         xpFraction: '{{current}} / {{next}} XP',
+        nextLevel: 'Cấp tiếp theo: {{next}}',
         myQuests: 'Nhiệm vụ của tôi',
         dailyGoal: 'Mục tiêu hôm nay',
         achievements: 'Thành tựu',

@@ -85,9 +85,9 @@ export default function StudentDashboardPage() {
 
   const name = dashboard?.studentName || user?.firstName || 'Explorer';
   const xpPct = useMemo(() => {
-    if (!dashboard?.xpForNext) return 0;
-    return Math.max(0, Math.min(100, Math.round((dashboard.xp / dashboard.xpForNext) * 100)));
-  }, [dashboard?.xp, dashboard?.xpForNext]);
+    if (!dashboard?.xpPerLevel) return 0;
+    return Math.max(0, Math.min(100, Math.round((dashboard.xpIntoLevel / dashboard.xpPerLevel) * 100)));
+  }, [dashboard?.xpIntoLevel, dashboard?.xpPerLevel]);
 
   if (error) {
     return (
@@ -201,11 +201,18 @@ export default function StudentDashboardPage() {
               </div>
               <div className="text-label-sm text-on-surface-variant">XP</div>
             </div>
-            <div className="text-right text-label-sm text-on-surface-variant">
-              {tr('pages.student.home.xpFraction', '{{current}} / {{next}} XP', {
-                current: dashboard.xp.toLocaleString(),
-                next: dashboard.xpForNext.toLocaleString(),
-              })}
+            <div className="text-right">
+              <div className="text-label-sm text-on-surface-variant">
+                {tr('pages.student.home.xpFraction', '{{current}} / {{next}} XP', {
+                  current: dashboard.xpIntoLevel.toLocaleString(),
+                  next: dashboard.xpPerLevel.toLocaleString(),
+                })}
+              </div>
+              <div className="text-label-sm font-semibold text-primary">
+                {tr('pages.student.home.nextLevel', 'Cấp tiếp theo: {{next}}', {
+                  next: dashboard.level + 1,
+                })}
+              </div>
             </div>
           </div>
           <ProgressBar value={xpPct} />

@@ -489,6 +489,10 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       level: profile.level,
       xp: profile.xp,
       xpForNext: profile.level * 1000,
+      // Progress within the current level (the level-up loop keeps xp in
+      // [(level-1)*1000, level*1000)), so the bar resets each level.
+      xpIntoLevel: Math.max(0, profile.xp - (profile.level - 1) * 1000),
+      xpPerLevel: 1000,
       streak: profile.streak,
       gems: profile.gems,
       nameColor: profile.nameColor ?? null,

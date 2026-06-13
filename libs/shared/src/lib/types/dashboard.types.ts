@@ -93,7 +93,12 @@ export interface IStudentDashboardData {
   studentName: string;
   level: number;
   xp: number;
+  /** Total XP threshold to reach the next level (level * 1000). */
   xpForNext: number;
+  /** XP accumulated within the current level — resets each level. */
+  xpIntoLevel: number;
+  /** XP span needed to clear one level (denominator for the progress bar). */
+  xpPerLevel: number;
   streak: number;
   gems: number;
   /** Equipped cosmetics from the gem shop (null when nothing equipped in a slot). */
