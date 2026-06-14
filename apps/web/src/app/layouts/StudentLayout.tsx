@@ -11,6 +11,7 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/student', icon: 'home', key: 'nav.student.home', end: true },
   { to: '/student/classes', icon: 'school', key: 'nav.student.classes' },
   { to: '/student/assignments', icon: 'assignment', key: 'nav.student.assignments' },
+  { to: '/student/blog', icon: 'article', key: 'nav.student.blog' },
   { to: '/student/maze', icon: 'extension', key: 'nav.student.maze' },
   { to: '/student/submissions', icon: 'history', key: 'nav.student.submissions' },
   { to: '/student/quests', icon: 'rocket_launch', key: 'nav.student.quests' },
@@ -25,9 +26,9 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
 const MOBILE_NAV = [
   NAV[0], // home
   NAV[2], // assignments
-  NAV[5], // quests
-  NAV[6], // badges
-  NAV[8], // shop
+  NAV[3], // blog
+  NAV[6], // quests
+  NAV[7], // badges
 ];
 
 /**

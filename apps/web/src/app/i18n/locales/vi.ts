@@ -63,6 +63,7 @@ const vi: AppResources = {
       curriculum: 'Chương trình',
       classes: 'Lớp học',
       courses: 'Khoá học',
+      blog: 'Blog',
       quests: 'Nhiệm vụ',
       badges: 'Huy hiệu',
       questAnalytics: 'Thống kê nhiệm vụ',
@@ -83,6 +84,7 @@ const vi: AppResources = {
       students: 'Học sinh',
       classes: 'Lớp học',
       courses: 'Khoá học',
+      blog: 'Blog',
       quests: 'Nhiệm vụ',
       badges: 'Huy hiệu',
       assignments: 'Bài tập',
@@ -103,6 +105,7 @@ const vi: AppResources = {
       home: 'Trang chủ',
       classes: 'Lớp học',
       assignments: 'Bài tập',
+      blog: 'Blog',
       maze: 'Mê cung',
       submissions: 'Bài nộp',
       workspace: 'Không gian code',
@@ -377,6 +380,61 @@ const vi: AppResources = {
   },
 
   pages: {
+    blog: {
+      backToBlog: 'Về Blog',
+      showing: 'Hiển thị {{from}}-{{to}} trên {{total}}',
+      article: {
+        unknownAuthor: 'Đội ngũ Zenith',
+      },
+      manage: {
+        title: 'Blog',
+        subtitle: 'Tạo và quản lý bài viết cho tất cả cổng.',
+        create: 'Bài viết mới',
+        searchPlaceholder: 'Tìm bài viết...',
+        tagPlaceholder: 'Lọc tag...',
+        empty: 'Chưa có bài Blog nào.',
+        deleteConfirm: 'Xoá bài Blog này?',
+        columns: {
+          title: 'Bài viết',
+          author: 'Tác giả',
+          tags: 'Tag',
+          date: 'Ngày',
+        },
+      },
+      create: {
+        title: 'Bài Blog mới',
+        subtitle: 'Soạn thông báo, hướng dẫn hoặc ghi chú học tập.',
+        submit: 'Tạo bài viết',
+      },
+      edit: {
+        title: 'Sửa bài Blog',
+        submit: 'Lưu thay đổi',
+      },
+      preview: {
+        title: 'Xem trước Blog',
+      },
+      form: {
+        title: 'Tiêu đề',
+        slug: 'Slug',
+        slugPlaceholder: 'Tự tạo nếu để trống',
+        coverUrl: 'URL ảnh bìa',
+        tags: 'Tag',
+        tagsPlaceholder: 'python, contests, news',
+        excerpt: 'Tóm tắt',
+        write: 'Viết',
+        preview: 'Xem trước',
+        emptyPreview: 'Chưa có nội dung xem trước.',
+        currentStatus: 'Trạng thái hiện tại',
+      },
+      reader: {
+        title: 'Blog',
+        subtitle: 'Đọc cập nhật, hướng dẫn và ghi chú học tập từ giáo viên.',
+        article: 'Bài viết',
+        searchPlaceholder: 'Tìm bài viết...',
+        tagPlaceholder: 'Lọc tag...',
+        empty: 'Chưa có bài đã đăng.',
+      },
+    },
     admin: {
       dashboard: {
         title: 'Tổng quan',

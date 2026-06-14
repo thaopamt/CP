@@ -18,6 +18,7 @@ import { LiveMonitorModule } from '../modules/live-monitor/live-monitor.module';
 import { AttendanceModule } from '../modules/attendance/attendance.module';
 import { MazeModule } from '../modules/maze/maze.module';
 import { FinanceModule } from '../modules/finance/finance.module';
+import { BlogModule } from '../modules/blog/blog.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { FinanceModule } from '../modules/finance/finance.module';
     AttendanceModule,
     FinanceModule,
     MazeModule,
+    BlogModule,
   ],
 })
 export class AppModule {}

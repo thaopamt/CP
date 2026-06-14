@@ -65,6 +65,7 @@ const en = {
       curriculum: 'Curriculum',
       classes: 'Classes',
       courses: 'Courses',
+      blog: 'Blog',
       quests: 'Quests',
       badges: 'Badges',
       questAnalytics: 'Quest Insights',
@@ -85,6 +86,7 @@ const en = {
       students: 'Students',
       classes: 'Classes',
       courses: 'Courses',
+      blog: 'Blog',
       quests: 'Quests',
       badges: 'Badges',
       assignments: 'Assignments',
@@ -105,6 +107,7 @@ const en = {
       home: 'Home',
       classes: 'Classes',
       assignments: 'Assignments',
+      blog: 'Blog',
       maze: 'Maze',
       submissions: 'Submissions',
       workspace: 'Workspace',
@@ -379,6 +382,61 @@ const en = {
   },
 
   pages: {
+    blog: {
+      backToBlog: 'Back to Blog',
+      showing: 'Showing {{from}}-{{to}} of {{total}}',
+      article: {
+        unknownAuthor: 'Zenith team',
+      },
+      manage: {
+        title: 'Blog',
+        subtitle: 'Create and manage learning updates for every portal.',
+        create: 'New post',
+        searchPlaceholder: 'Search posts...',
+        tagPlaceholder: 'Filter tag...',
+        empty: 'No blog posts yet.',
+        deleteConfirm: 'Delete this blog post?',
+        columns: {
+          title: 'Post',
+          author: 'Author',
+          tags: 'Tags',
+          date: 'Date',
+        },
+      },
+      create: {
+        title: 'New blog post',
+        subtitle: 'Draft an update for students and staff.',
+        submit: 'Create post',
+      },
+      edit: {
+        title: 'Edit blog post',
+        submit: 'Save changes',
+      },
+      preview: {
+        title: 'Blog preview',
+      },
+      form: {
+        title: 'Title',
+        slug: 'Slug',
+        slugPlaceholder: 'Auto-generated if empty',
+        coverUrl: 'Cover URL',
+        tags: 'Tags',
+        tagsPlaceholder: 'python, contests, news',
+        excerpt: 'Excerpt',
+        write: 'Write',
+        preview: 'Preview',
+        emptyPreview: 'Nothing to preview.',
+        currentStatus: 'Current status',
+      },
+      reader: {
+        title: 'Blog',
+        subtitle: 'Read updates, guides, and learning notes from your teachers.',
+        article: 'Article',
+        searchPlaceholder: 'Search articles...',
+        tagPlaceholder: 'Filter tag...',
+        empty: 'No published posts yet.',
+      },
+    },
     admin: {
       dashboard: {
         title: 'Overview',

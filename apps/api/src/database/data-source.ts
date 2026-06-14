@@ -29,6 +29,7 @@ import { ShopItem } from '../modules/shop/shop-item.entity';
 import { StudentInventory } from '../modules/shop/student-inventory.entity';
 import { FinanceMonthlyAmountDue } from '../modules/finance/finance-monthly-amount-due.entity';
 import { FinanceMonthlyStatus } from '../modules/finance/finance-monthly-status.entity';
+import { BlogPost } from '../modules/blog/blog-post.entity';
 
 // Load env in CLI context (TypeORM CLI doesn't go through ConfigModule)
 loadEnv({ path: join(process.cwd(), 'apps/api/.env') });
@@ -72,6 +73,7 @@ export const AppDataSource = new DataSource({
     MazeSubmission,
     FinanceMonthlyAmountDue,
     FinanceMonthlyStatus,
+    BlogPost,
     ShopItem,
     StudentInventory,
   ],

@@ -11,6 +11,7 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/teacher/students', icon: 'groups', key: 'nav.teacher.students' },
   { to: '/teacher/classes', icon: 'class', key: 'nav.teacher.classes' },
   { to: '/teacher/courses', icon: 'menu_book', key: 'nav.teacher.courses' },
+  { to: '/teacher/blog', icon: 'article', key: 'nav.teacher.blog' },
   { to: '/teacher/quests', icon: 'swords', key: 'nav.teacher.quests' },
   { to: '/teacher/badges', icon: 'workspace_premium', key: 'nav.teacher.badges' },
   { to: '/teacher/assignments', icon: 'assignment', key: 'nav.teacher.assignments' },

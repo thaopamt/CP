@@ -7,6 +7,7 @@ export * from './lib/teacher.types';
 export * from './lib/student.types';
 export * from './lib/class.types';
 export * from './lib/curriculum.types';
+export * from './lib/blog.types';
 export * from './lib/submission.types';
 export * from './lib/finance.types';
 export * from './lib/maze';

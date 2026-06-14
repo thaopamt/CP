@@ -37,6 +37,10 @@ const AdminAssignmentsList = lazy(() => import('./pages/admin/assignments/Assign
 const AdminAssignmentCreate = lazy(() => import('./pages/admin/assignments/AssignmentCreatePage'));
 const AdminAssignmentDetail = lazy(() => import('./pages/admin/assignments/AssignmentDetailPage'));
 const AdminAssignmentEdit = lazy(() => import('./pages/admin/assignments/AssignmentEditPage'));
+const BlogManageList = lazy(() => import('./pages/admin/blog/BlogManageListPage'));
+const BlogCreate = lazy(() => import('./pages/admin/blog/BlogCreatePage'));
+const BlogEdit = lazy(() => import('./pages/admin/blog/BlogEditPage'));
+const BlogPreview = lazy(() => import('./pages/admin/blog/BlogPreviewPage'));
 const AdminCoursesList = lazy(() => import('./pages/admin/courses/CoursesListPage'));
 const AdminCourseDetail = lazy(() => import('./pages/admin/courses/CourseDetailPage'));
 const AdminClassCurriculum = lazy(() => import('./pages/admin/classes/ClassCurriculumPage'));
@@ -69,6 +73,8 @@ const StudentShop = lazy(() => import('./pages/student/ShopPage'));
 const StudentAssignments = lazy(() => import('./pages/student/AssignmentsPage'));
 const StudentWorkspace = lazy(() => import('./pages/student/WorkspacePage'));
 const StudentAssignmentDetail = lazy(() => import('./pages/student/AssignmentDetailPage'));
+const StudentBlogList = lazy(() => import('./pages/student/blog/BlogListPage'));
+const StudentBlogDetail = lazy(() => import('./pages/student/blog/BlogDetailPage'));
 const StudentClasses = lazy(() => import('./pages/student/ClassesPage'));
 const StudentClassDetail = lazy(() => import('./pages/student/ClassDetailPage'));
 const StudentCourseDetail = lazy(() => import('./pages/student/CourseDetailPage'));
@@ -128,6 +134,10 @@ export default function App() {
                 <Route path="assignments/new" element={<AdminAssignmentCreate />} />
                 <Route path="assignments/:id" element={<AdminAssignmentDetail />} />
                 <Route path="assignments/:id/edit" element={<AdminAssignmentEdit />} />
+                <Route path="blog" element={<BlogManageList />} />
+                <Route path="blog/new" element={<BlogCreate />} />
+                <Route path="blog/preview/:id" element={<BlogPreview />} />
+                <Route path="blog/:id/edit" element={<BlogEdit />} />
                 <Route path="schedule" element={<AdminSchedule />} />
                 <Route path="finance" element={<AdminFinance />} />
                 <Route path="users" element={<AdminUsers />} />
@@ -178,6 +188,10 @@ export default function App() {
                 <Route path="assignments/new" element={<AdminAssignmentCreate />} />
                 <Route path="assignments/:id" element={<AdminAssignmentDetail />} />
                 <Route path="assignments/:id/edit" element={<AdminAssignmentEdit />} />
+                <Route path="blog" element={<BlogManageList />} />
+                <Route path="blog/new" element={<BlogCreate />} />
+                <Route path="blog/preview/:id" element={<BlogPreview />} />
+                <Route path="blog/:id/edit" element={<BlogEdit />} />
                 <Route path="quests" element={<AdminQuestsList />} />
                 <Route path="quests/new" element={<AdminQuestCreate />} />
                 <Route path="quests/:id/edit" element={<AdminQuestEdit />} />
@@ -212,6 +226,8 @@ export default function App() {
                 <Route path="classes/:classId/courses/:courseId" element={<StudentCourseDetail />} />
                 <Route path="assignments" element={<StudentAssignments />} />
                 <Route path="assignments/:id" element={<StudentAssignmentDetail />} />
+                <Route path="blog" element={<StudentBlogList />} />
+                <Route path="blog/:slug" element={<StudentBlogDetail />} />
                 <Route path="maze" element={<StudentMazeLevels />} />
                 <Route path="maze/:levelId" element={<StudentMazeSolve />} />
                 <Route path="workspace" element={<StudentWorkspace />} />
