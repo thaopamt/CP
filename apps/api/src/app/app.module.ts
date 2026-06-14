@@ -11,6 +11,7 @@ import { StudentsModule } from '../modules/students/students.module';
 import { AssignmentsModule } from '../modules/assignments/assignments.module';
 import { CoursesModule } from '../modules/courses/courses.module';
 import { SubmissionsModule } from '../modules/submissions/submissions.module';
+import { ExamsModule } from '../modules/exams/exams.module';
 import { QuestsModule } from '../modules/quests/quests.module';
 import { ShopModule } from '../modules/shop/shop.module';
 import { LiveMonitorModule } from '../modules/live-monitor/live-monitor.module';
@@ -38,6 +39,7 @@ import { BlogModule } from '../modules/blog/blog.module';
     ClassesModule,
     StudentsModule,
     SubmissionsModule,
+    ExamsModule,
     QuestsModule,
     ShopModule,
     LiveMonitorModule,

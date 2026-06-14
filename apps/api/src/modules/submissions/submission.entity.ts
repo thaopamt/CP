@@ -31,6 +31,21 @@ export class Submission {
   @JoinColumn({ name: 'assignmentId' })
   assignment!: Assignment;
 
+  /**
+   * Set when this submission belongs to an exam. Nullable so the regular
+   * (non-exam) submission flow is unaffected.
+   */
+  @Column({ type: 'uuid', nullable: true, name: 'exam_id' })
+  examId!: string | null;
+
+  /**
+   * Exam-relevant score (0..ExamProblem.points) computed by ExamScoringService
+   * at submit/rejudge time. Lets the live leaderboard aggregate without
+   * re-reading testResults. Null for non-exam submissions.
+   */
+  @Column({ type: 'int', nullable: true, name: 'exam_score' })
+  examScore!: number | null;
+
   @Column({ type: 'varchar' })
   language!: string;
 

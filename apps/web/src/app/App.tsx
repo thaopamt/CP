@@ -62,6 +62,9 @@ const AdminBadgesList = lazy(() => import('./pages/admin/badges/BadgesListPage')
 const AdminBadgeCreate = lazy(() => import('./pages/admin/badges/BadgeCreatePage'));
 const AdminBadgeEdit = lazy(() => import('./pages/admin/badges/BadgeEditPage'));
 const LiveMonitorPage = lazy(() => import('./pages/admin/monitor/LiveMonitorPage'));
+const AdminExamsList = lazy(() => import('./pages/admin/exams/ExamsListPage'));
+const AdminExamForm = lazy(() => import('./pages/admin/exams/ExamFormPage'));
+const AdminExamDetail = lazy(() => import('./pages/admin/exams/ExamDetailPage'));
 const AdminMazeList = lazy(() => import('./pages/admin/maze/MazeLevelsListPage'));
 const AdminMazeCreate = lazy(() => import('./pages/admin/maze/MazeLevelCreatePage'));
 const AdminMazeEdit = lazy(() => import('./pages/admin/maze/MazeLevelEditPage'));
@@ -78,6 +81,10 @@ const StudentWorkspace = lazy(() => import('./pages/student/WorkspacePage'));
 const StudentAssignmentDetail = lazy(() => import('./pages/student/AssignmentDetailPage'));
 const StudentBlogList = lazy(() => import('./pages/student/blog/BlogListPage'));
 const StudentBlogDetail = lazy(() => import('./pages/student/blog/BlogDetailPage'));
+const StudentExamsList = lazy(() => import('./pages/student/exams/ExamsListPage'));
+const StudentTakeExam = lazy(() => import('./pages/student/exams/TakeExamPage'));
+const StudentExamLeaderboard = lazy(() => import('./pages/student/exams/ExamLeaderboardPage'));
+const StudentExamResult = lazy(() => import('./pages/student/exams/ExamResultPage'));
 const StudentClasses = lazy(() => import('./pages/student/ClassesPage'));
 const StudentClassDetail = lazy(() => import('./pages/student/ClassDetailPage'));
 const StudentCourseDetail = lazy(() => import('./pages/student/CourseDetailPage'));
@@ -159,6 +166,10 @@ export default function App() {
                 <Route path="maze/new" element={<AdminMazeCreate />} />
                 <Route path="maze/progress" element={<AdminMazeProgress />} />
                 <Route path="maze/:id/edit" element={<AdminMazeEdit />} />
+                <Route path="exams" element={<AdminExamsList />} />
+                <Route path="exams/new" element={<AdminExamForm />} />
+                <Route path="exams/:id" element={<AdminExamDetail />} />
+                <Route path="exams/:id/edit" element={<AdminExamForm />} />
 
                 <Route path="submissions" element={<SubmissionsPage />} />
                 <Route path="me" element={<AdminMe />} />
@@ -208,6 +219,10 @@ export default function App() {
                 <Route path="maze/new" element={<AdminMazeCreate />} />
                 <Route path="maze/progress" element={<AdminMazeProgress />} />
                 <Route path="maze/:id/edit" element={<AdminMazeEdit />} />
+                <Route path="exams" element={<AdminExamsList />} />
+                <Route path="exams/new" element={<AdminExamForm />} />
+                <Route path="exams/:id" element={<AdminExamDetail />} />
+                <Route path="exams/:id/edit" element={<AdminExamForm />} />
                 <Route path="schedule" element={<AdminSchedule />} />
                 <Route path="finance" element={<TeacherFinance />} />
                 <Route path="monitor" element={<LiveMonitorPage />} />
@@ -232,6 +247,10 @@ export default function App() {
                 <Route path="classes/:classId/courses/:courseId" element={<StudentCourseDetail />} />
                 <Route path="assignments" element={<StudentAssignments />} />
                 <Route path="assignments/:id" element={<StudentAssignmentDetail />} />
+                <Route path="exams" element={<StudentExamsList />} />
+                <Route path="exams/:id/take" element={<StudentTakeExam />} />
+                <Route path="exams/:id/leaderboard" element={<StudentExamLeaderboard />} />
+                <Route path="exams/:id/result" element={<StudentExamResult />} />
                 <Route path="blog" element={<StudentBlogList />} />
                 <Route path="blog/:slug" element={<StudentBlogDetail />} />
                 <Route path="maze" element={<StudentMazeLevels />} />

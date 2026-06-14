@@ -18,6 +18,7 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/student/badges', icon: 'workspace_premium', key: 'nav.student.badges' },
   { to: '/student/leaderboard', icon: 'leaderboard', key: 'nav.student.leaderboard' },
   { to: '/student/shop', icon: 'storefront', key: 'nav.student.shop' },
+  { to: '/student/exams', icon: 'emoji_events', key: 'nav.student.exams' },
 
 ];
 

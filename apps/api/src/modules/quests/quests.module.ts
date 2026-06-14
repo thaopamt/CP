@@ -47,6 +47,6 @@ import { Enrollment } from '../classes/enrollment.entity';
     QuestAnalyticsService,
     GamificationGateway,
   ],
-  exports: [QuestsService, BadgesService],
+  exports: [QuestsService, BadgesService, GamificationGateway],
 })
 export class QuestsModule {}

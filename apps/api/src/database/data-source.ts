@@ -30,6 +30,13 @@ import { StudentInventory } from '../modules/shop/student-inventory.entity';
 import { FinanceMonthlyAmountDue } from '../modules/finance/finance-monthly-amount-due.entity';
 import { FinanceMonthlyStatus } from '../modules/finance/finance-monthly-status.entity';
 import { BlogPost } from '../modules/blog/blog-post.entity';
+import { Exam } from '../modules/exams/exam.entity';
+import { ExamProblem } from '../modules/exams/exam-problem.entity';
+import { ExamParticipant } from '../modules/exams/exam-participant.entity';
+import { ExamRankingSnapshot } from '../modules/exams/exam-ranking-snapshot.entity';
+import { ExamRewardRule } from '../modules/exams/exam-reward-rule.entity';
+import { ExamRewardGrant } from '../modules/exams/exam-reward-grant.entity';
+import { ExamAuditLog } from '../modules/exams/exam-audit-log.entity';
 
 // Load env in CLI context (TypeORM CLI doesn't go through ConfigModule)
 loadEnv({ path: join(process.cwd(), 'apps/api/.env') });
@@ -76,6 +83,14 @@ export const AppDataSource = new DataSource({
     BlogPost,
     ShopItem,
     StudentInventory,
+
+    Exam,
+    ExamProblem,
+    ExamParticipant,
+    ExamRankingSnapshot,
+    ExamRewardRule,
+    ExamRewardGrant,
+    ExamAuditLog,
   ],
   migrations: [join(__dirname, 'migrations/*.{ts,js}')],
   synchronize: true,

@@ -16,6 +16,7 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/teacher/badges', icon: 'workspace_premium', key: 'nav.teacher.badges' },
   { to: '/teacher/assignments', icon: 'assignment', key: 'nav.teacher.assignments' },
   { to: '/teacher/maze', icon: 'extension', key: 'nav.teacher.maze' },
+  { to: '/teacher/exams', icon: 'emoji_events', key: 'nav.teacher.exams' },
   { to: '/teacher/schedule', icon: 'calendar_month', key: 'nav.teacher.schedule' },
   { to: '/teacher/finance', icon: 'account_balance', key: 'nav.teacher.finance' },
   { to: '/teacher/monitor', icon: 'screen_share', key: 'nav.teacher.monitor' },
