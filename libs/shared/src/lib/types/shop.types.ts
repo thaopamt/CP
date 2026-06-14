@@ -23,6 +23,15 @@ export enum ShopItemCategory {
   NAME_COLOR = 'NAME_COLOR',
   TITLE = 'TITLE',
   CONSUMABLE = 'CONSUMABLE',
+  // Cosmetic categories already present in the database (seeded shop data).
+  // They must stay in sync with the DB enum or `synchronize: true` fails to
+  // boot the API (it would try to drop these labels while rows still use them).
+  HAT = 'HAT',
+  OUTFIT = 'OUTFIT',
+  WEAPON = 'WEAPON',
+  PET = 'PET',
+  WINGS = 'WINGS',
+  BACKGROUND = 'BACKGROUND',
 }
 
 /** Effect payload — fields are interpreted by category. */
