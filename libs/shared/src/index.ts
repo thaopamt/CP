@@ -10,7 +10,7 @@ export * from './lib/curriculum.types';
 export * from './lib/submission.types';
 export * from './lib/finance.types';
 export * from './lib/maze';
-export * from './lib/global-chat.types';
+
 export * from './lib/types/dashboard.types';
 export * from './lib/types/quests.types';
 export * from './lib/types/gamification.types';

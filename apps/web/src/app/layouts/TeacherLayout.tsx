@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
 import { useUIStore } from '../stores/ui.store';
-import { GlobalChatRealtimeBridge, GlobalChatUnreadBadge, LogoutButton, UserAvatar, ThemeToggle } from './_shared';
+import { LogoutButton, UserAvatar, ThemeToggle } from './_shared';
 
 // Mirrors the Admin sidebar minus the Dashboard, Users and
 // Quest-analytics tabs. Finance has its own read-only teacher page.
@@ -18,7 +18,7 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/teacher/schedule', icon: 'calendar_month', key: 'nav.teacher.schedule' },
   { to: '/teacher/finance', icon: 'account_balance', key: 'nav.teacher.finance' },
   { to: '/teacher/monitor', icon: 'screen_share', key: 'nav.teacher.monitor' },
-  { to: '/teacher/chat', icon: 'forum', key: 'nav.teacher.globalChat' },
+
   { to: '/teacher/submissions', icon: 'history', key: 'nav.teacher.submissions' },
   { to: '/teacher/me', icon: 'account_circle', key: 'nav.teacher.me' },
 ];
@@ -42,7 +42,7 @@ export default function TeacherLayout() {
 
   return (
     <div className="min-h-screen bg-surface text-on-surface font-inter">
-      <GlobalChatRealtimeBridge />
+
       <nav className={`hidden md:flex flex-col ${sidebarWidth} h-screen fixed top-0 left-0 p-md gap-sm bg-surface-container-low border-r border-outline-variant z-50 transition-all duration-300`}>
         {/* Collapse toggle button */}
         <button 
@@ -85,12 +85,8 @@ export default function TeacherLayout() {
                 ].join(' ')
               }
             >
-              <span className="relative flex items-center justify-center">
-                <span className="material-symbols-outlined shrink-0">{item.icon}</span>
-                {item.to.endsWith('/chat') && isSidebarCollapsed && <GlobalChatUnreadBadge compact />}
-              </span>
+              <span className="material-symbols-outlined shrink-0">{item.icon}</span>
               {!isSidebarCollapsed && <span className="truncate">{t(item.key)}</span>}
-              {!isSidebarCollapsed && item.to.endsWith('/chat') && <GlobalChatUnreadBadge />}
             </NavLink>
           ))}
         </div>
@@ -142,10 +138,7 @@ export default function TeacherLayout() {
               ].join(' ')
             }
           >
-            <span className="relative">
-              <span className="material-symbols-outlined">{item.icon}</span>
-              {item.to.endsWith('/chat') && <GlobalChatUnreadBadge compact />}
-            </span>
+            <span className="material-symbols-outlined">{item.icon}</span>
             {t(item.key)}
           </NavLink>
         ))}

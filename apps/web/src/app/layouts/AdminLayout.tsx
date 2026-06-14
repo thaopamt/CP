@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
 import { useUIStore } from '../stores/ui.store';
-import { GlobalChatRealtimeBridge, GlobalChatUnreadBadge, LogoutButton, UserAvatar, ThemeToggle } from './_shared';
+import { LogoutButton, UserAvatar, ThemeToggle } from './_shared';
 
 const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/admin', icon: 'dashboard', key: 'nav.admin.dashboard', end: true },
@@ -20,7 +20,7 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/admin/finance', icon: 'payments', key: 'nav.admin.finance' },
   { to: '/admin/users', icon: 'group', key: 'nav.admin.users' },
   { to: '/admin/monitor', icon: 'screen_share', key: 'nav.admin.monitor' },
-  { to: '/admin/chat', icon: 'forum', key: 'nav.admin.globalChat' },
+
   { to: '/admin/submissions', icon: 'history', key: 'nav.admin.submissions' },
   { to: '/admin/me', icon: 'account_circle', key: 'nav.admin.me' },
 ];
@@ -70,7 +70,7 @@ export default function AdminLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface text-on-surface font-inter">
-      <GlobalChatRealtimeBridge />
+
 
       {/* ── Mobile Drawer Overlay ── */}
       {mobileMenuOpen && (
@@ -122,12 +122,8 @@ export default function AdminLayout() {
                   : 'text-on-surface-variant hover:bg-surface-container-highest',
               ].join(' ')}
             >
-              <span className="relative flex items-center justify-center">
-                <span className="material-symbols-outlined shrink-0">{item.icon}</span>
-                {item.to.endsWith('/chat') && <GlobalChatUnreadBadge compact />}
-              </span>
+              <span className="material-symbols-outlined shrink-0">{item.icon}</span>
               <span className="truncate">{t(item.key)}</span>
-              {item.to.endsWith('/chat') && <GlobalChatUnreadBadge />}
             </Link>
             );
           })}
@@ -180,12 +176,8 @@ export default function AdminLayout() {
                   : 'text-on-surface-variant hover:bg-surface-container-highest hover:translate-x-1 duration-200',
               ].join(' ')}
             >
-              <span className="relative flex items-center justify-center">
-                <span className="material-symbols-outlined shrink-0">{item.icon}</span>
-                {item.to.endsWith('/chat') && isSidebarCollapsed && <GlobalChatUnreadBadge compact />}
-              </span>
+              <span className="material-symbols-outlined shrink-0">{item.icon}</span>
               {!isSidebarCollapsed && <span className="truncate">{t(item.key)}</span>}
-              {!isSidebarCollapsed && item.to.endsWith('/chat') && <GlobalChatUnreadBadge />}
             </Link>
             );
           })}

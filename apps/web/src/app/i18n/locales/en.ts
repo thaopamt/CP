@@ -78,7 +78,7 @@ const en = {
       me: 'Me',
       settings: 'Settings',
       monitor: 'Live Monitor',
-      globalChat: 'Chat',
+
     },
     teacher: {
       dashboard: 'Dashboard',
@@ -99,7 +99,7 @@ const en = {
       submissions: 'Submissions',
       gradebook: 'Gradebook',
       me: 'My Account',
-      globalChat: 'Chat',
+
     },
     student: {
       home: 'Home',
@@ -113,7 +113,7 @@ const en = {
       leaderboard: 'Leaderboard',
       shop: 'Shop',
       me: 'Me',
-      globalChat: 'Chat',
+
     },
   },
 
@@ -135,54 +135,7 @@ const en = {
     demoHint: 'Try: {{accounts}} · password {{password}}',
   },
 
-  globalChat: {
-    title: 'Chat',
-    me: 'You',
-    empty: 'No messages yet.',
-    status: {
-      connected: 'Connected',
-      connecting: 'Connecting…',
-    },
-    actions: {
-      retry: 'Retry',
-      loadOlder: 'Load older messages',
-      send: 'Send message',
-      hide: 'Hide',
-    },
-    toolbar: {
-      inlineCode: 'Format as inline code',
-      inlineCodeShort: 'Inline',
-      codeBlock: 'Insert code block',
-      codeBlockShort: 'Code block',
-      insertEmoji: 'Insert {{emoji}}',
-      copyCode: 'Copy code',
-      copy: 'Copy',
-      copied: 'Copied',
-    },
-    input: {
-      label: 'Message',
-      placeholder: 'Type a message for everyone…',
-    },
-    message: {
-      hidden: 'This message was hidden by an administrator.',
-      pending: 'Sending',
-      sent: 'Sent',
-      failed: 'Failed',
-    },
-    typing: {
-      one: '{{name}} is typing…',
-      many: '{{count}} people are typing…',
-    },
-    moderation: {
-      defaultReason: 'Hidden by admin',
-      hiddenToast: 'Message hidden.',
-    },
-    errors: {
-      loadFailed: 'Could not load chat messages.',
-      sendFailed: 'Could not send message.',
-      hideFailed: 'Could not hide message.',
-    },
-  },
+
 
   ui: {
     pagination: {

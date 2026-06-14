@@ -14,7 +14,7 @@ import { SubmissionsModule } from '../modules/submissions/submissions.module';
 import { QuestsModule } from '../modules/quests/quests.module';
 import { ShopModule } from '../modules/shop/shop.module';
 import { LiveMonitorModule } from '../modules/live-monitor/live-monitor.module';
-import { GlobalChatModule } from '../modules/global-chat/global-chat.module';
+
 import { AttendanceModule } from '../modules/attendance/attendance.module';
 import { MazeModule } from '../modules/maze/maze.module';
 import { FinanceModule } from '../modules/finance/finance.module';
@@ -40,7 +40,7 @@ import { FinanceModule } from '../modules/finance/finance.module';
     QuestsModule,
     ShopModule,
     LiveMonitorModule,
-    GlobalChatModule,
+
     AttendanceModule,
     FinanceModule,
     MazeModule,

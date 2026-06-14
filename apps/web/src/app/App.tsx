@@ -73,7 +73,7 @@ const StudentClasses = lazy(() => import('./pages/student/ClassesPage'));
 const StudentClassDetail = lazy(() => import('./pages/student/ClassDetailPage'));
 const StudentCourseDetail = lazy(() => import('./pages/student/CourseDetailPage'));
 const StudentMe = lazy(() => import('./pages/student/MePage'));
-const GlobalChatPage = lazy(() => import('./pages/shared/GlobalChatPage'));
+
 const SubmissionsPage = lazy(() => import('./pages/shared/SubmissionsPage'));
 const TeacherFinance = lazy(() => import('./pages/teacher/FinancePage'));
 
@@ -143,7 +143,7 @@ export default function App() {
                 <Route path="maze/new" element={<AdminMazeCreate />} />
                 <Route path="maze/progress" element={<AdminMazeProgress />} />
                 <Route path="maze/:id/edit" element={<AdminMazeEdit />} />
-                <Route path="chat" element={<GlobalChatPage />} />
+
                 <Route path="submissions" element={<SubmissionsPage />} />
                 <Route path="me" element={<AdminMe />} />
                 <Route path="settings" element={<AdminMe />} />
@@ -191,7 +191,7 @@ export default function App() {
                 <Route path="schedule" element={<AdminSchedule />} />
                 <Route path="finance" element={<TeacherFinance />} />
                 <Route path="monitor" element={<LiveMonitorPage />} />
-                <Route path="chat" element={<GlobalChatPage />} />
+
                 <Route path="submissions" element={<SubmissionsPage />} />
                 <Route path="me" element={<AdminMe />} />
                 <Route path="settings" element={<AdminMe />} />
@@ -220,7 +220,7 @@ export default function App() {
                 <Route path="badges" element={<StudentBadges />} />
                 <Route path="leaderboard" element={<StudentLeaderboard />} />
                 <Route path="shop" element={<StudentShop />} />
-                <Route path="chat" element={<GlobalChatPage />} />
+
                 <Route path="submissions" element={<SubmissionsPage />} />
                 <Route path="me" element={<StudentMe />} />
               </Route>

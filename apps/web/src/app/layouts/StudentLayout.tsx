@@ -5,7 +5,7 @@ import { useUIStore } from '../stores/ui.store';
 import { useStudentLivePresence } from '../hooks/useStudentLivePresence';
 import { useStudentDashboard } from '../api/student.queries';
 import { GamificationCelebration } from '../components/GamificationCelebration';
-import { GlobalChatRealtimeBridge, GlobalChatUnreadBadge, LogoutButton, UserMenu } from './_shared';
+import { LogoutButton, UserMenu } from './_shared';
 
 const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/student', icon: 'home', key: 'nav.student.home', end: true },
@@ -17,7 +17,7 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/student/badges', icon: 'workspace_premium', key: 'nav.student.badges' },
   { to: '/student/leaderboard', icon: 'leaderboard', key: 'nav.student.leaderboard' },
   { to: '/student/shop', icon: 'storefront', key: 'nav.student.shop' },
-  { to: '/student/chat', icon: 'forum', key: 'nav.student.globalChat' },
+
 ];
 
 /** Only show 5 most important items in the mobile floating nav to prevent overflow.
@@ -54,7 +54,7 @@ export default function StudentLayout() {
 
   return (
     <div className="min-h-screen bg-surface text-on-surface font-inter">
-      <GlobalChatRealtimeBridge />
+
       <GamificationCelebration />
       {/* Sidebar — full height on desktop */}
       <nav className={`hidden md:flex flex-col ${sidebarWidth} fixed top-0 bottom-0 left-0 p-md gap-sm bg-surface-container-lowest border-r border-outline-variant z-50 transition-all duration-300`}>
@@ -101,12 +101,8 @@ export default function StudentLayout() {
                 ].join(' ')
               }
             >
-              <span className="relative flex items-center justify-center">
-                <span className="material-symbols-outlined shrink-0">{item.icon}</span>
-                {item.to.endsWith('/chat') && isSidebarCollapsed && <GlobalChatUnreadBadge compact />}
-              </span>
+              <span className="material-symbols-outlined shrink-0">{item.icon}</span>
               {!isSidebarCollapsed && <span className="truncate">{t(item.key)}</span>}
-              {!isSidebarCollapsed && item.to.endsWith('/chat') && <GlobalChatUnreadBadge />}
             </NavLink>
           ))}
         </div>
@@ -179,10 +175,7 @@ export default function StudentLayout() {
               ].join(' ')
             }
           >
-            <span className="relative">
-              <span className="material-symbols-outlined">{item.icon}</span>
-              {item.to.endsWith('/chat') && <GlobalChatUnreadBadge compact />}
-            </span>
+            <span className="material-symbols-outlined">{item.icon}</span>
           </NavLink>
         ))}
       </nav>

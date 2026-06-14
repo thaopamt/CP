@@ -76,7 +76,7 @@ const vi: AppResources = {
       me: 'Của tôi',
       settings: 'Cài đặt',
       monitor: 'Giám sát',
-      globalChat: 'Chat',
+
     },
     teacher: {
       dashboard: 'Tổng quan',
@@ -97,7 +97,7 @@ const vi: AppResources = {
       submissions: 'Bài nộp',
       gradebook: 'Sổ điểm',
       me: 'Của tôi',
-      globalChat: 'Chat',
+
     },
     student: {
       home: 'Trang chủ',
@@ -111,7 +111,7 @@ const vi: AppResources = {
       leaderboard: 'Bảng xếp hạng',
       shop: 'Cửa hàng',
       me: 'Của tôi',
-      globalChat: 'Chat',
+
     },
   },
 
@@ -133,54 +133,7 @@ const vi: AppResources = {
     demoHint: 'Thử: {{accounts}} · mật khẩu {{password}}',
   },
 
-  globalChat: {
-    title: 'Chat',
-    me: 'Bạn',
-    empty: 'Chưa có tin nhắn nào.',
-    status: {
-      connected: 'Realtime đã kết nối',
-      connecting: 'Đang kết nối realtime…',
-    },
-    actions: {
-      retry: 'Thử lại',
-      loadOlder: 'Tải tin nhắn cũ hơn',
-      send: 'Gửi tin nhắn',
-      hide: 'Ẩn',
-    },
-    toolbar: {
-      inlineCode: 'Định dạng mã inline',
-      inlineCodeShort: 'Inline',
-      codeBlock: 'Chèn khối code',
-      codeBlockShort: 'Khối code',
-      insertEmoji: 'Chèn {{emoji}}',
-      copyCode: 'Sao chép code',
-      copy: 'Chép',
-      copied: 'Đã chép',
-    },
-    input: {
-      label: 'Tin nhắn',
-      placeholder: 'Nhập tin nhắn cho mọi người…',
-    },
-    message: {
-      hidden: 'Tin nhắn đã bị ẩn bởi quản trị viên.',
-      pending: 'Đang gửi',
-      sent: 'Đã gửi',
-      failed: 'Gửi thất bại',
-    },
-    typing: {
-      one: '{{name}} đang nhập…',
-      many: '{{count}} người đang nhập…',
-    },
-    moderation: {
-      defaultReason: 'Ẩn bởi quản trị viên',
-      hiddenToast: 'Đã ẩn tin nhắn.',
-    },
-    errors: {
-      loadFailed: 'Không tải được tin nhắn.',
-      sendFailed: 'Không gửi được tin nhắn.',
-      hideFailed: 'Không ẩn được tin nhắn.',
-    },
-  },
+
 
   ui: {
     pagination: {
