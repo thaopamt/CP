@@ -22,7 +22,6 @@ export interface UpdateMePayload {
   firstName?: string;
   lastName?: string;
   username?: string | null;
-  avatarUrl?: string | null;
 }
 
 export interface ChangePasswordRequest {

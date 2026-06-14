@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Icon, useToast, TabPills } from '@cp/ui';
+import { Avatar, Icon, useToast, TabPills } from '@cp/ui';
 
 import { useAuthStore } from '../../stores/auth.store';
 import {
@@ -10,7 +10,6 @@ import {
   useUpdateDefaultLanguage,
 } from '../../api/student.queries';
 import { useChangePassword } from '../../api/me.queries';
-import { AvatarUpload } from '../../components/AvatarUpload';
 import { AvatarFrame, themeGradientClass } from '../../lib/cosmetics';
 
 type TabType = 'profile' | 'stats' | 'preferences' | 'security';
@@ -76,7 +75,6 @@ export default function MePage() {
         firstName: updated.firstName,
         lastName: updated.lastName,
         username: updated.username,
-        avatarUrl: updated.avatarUrl,
       });
       toast.success(vi ? 'Đã cập nhật thông tin cá nhân!' : 'Profile information updated!');
     } catch (err) {
@@ -157,7 +155,12 @@ export default function MePage() {
 
         <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
           <AvatarFrame frameKey={equippedFrame}>
-            <AvatarUpload currentAvatarUrl={user?.avatarUrl} displayName={name} variant="student" />
+            <Avatar
+              size="lg"
+              src={user?.avatarUrl}
+              initials={name.charAt(0).toUpperCase()}
+              className="w-28 h-28 shadow-2xl border-4 border-[#121218]"
+            />
           </AvatarFrame>
 
           <div className="flex-1 text-center md:text-left min-w-0">

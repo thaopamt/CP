@@ -22,16 +22,16 @@ export enum ShopItemCategory {
   PROFILE_THEME = 'PROFILE_THEME',
   NAME_COLOR = 'NAME_COLOR',
   TITLE = 'TITLE',
+  /**
+   * A full character image that replaces the student's avatar everywhere it is
+   * shown. Equipping one writes its `imageUrl` onto the user's avatar; the slot
+   * is mutually exclusive like other cosmetics.
+   */
+  CHARACTER = 'CHARACTER',
   CONSUMABLE = 'CONSUMABLE',
   // Cosmetic categories already present in the database (seeded shop data).
   // They must stay in sync with the DB enum or `synchronize: true` fails to
   // boot the API (it would try to drop these labels while rows still use them).
-  HAT = 'HAT',
-  OUTFIT = 'OUTFIT',
-  WEAPON = 'WEAPON',
-  PET = 'PET',
-  WINGS = 'WINGS',
-  BACKGROUND = 'BACKGROUND',
 }
 
 /** Effect payload — fields are interpreted by category. */
@@ -57,6 +57,8 @@ export interface IShopItem {
   name: string;
   description: string;
   icon: string;
+  /** Uploaded image URL — used by CHARACTER items as the avatar image; optional for others. */
+  imageUrl: string | null;
   kind: ShopItemKind;
   category: ShopItemCategory;
   rarity: BadgeRarity;
@@ -104,6 +106,8 @@ export interface IEquipResult {
   equippedTheme: string | null;
   nameColor: string | null;
   equippedTitle: string | null;
+  /** Effective avatar image after the change (CHARACTER slot); null when no character is equipped. */
+  avatarUrl: string | null;
 }
 
 export interface ICreateShopItemPayload {
@@ -111,6 +115,7 @@ export interface ICreateShopItemPayload {
   name: string;
   description?: string;
   icon?: string;
+  imageUrl?: string | null;
   kind: ShopItemKind;
   category: ShopItemCategory;
   rarity?: BadgeRarity;

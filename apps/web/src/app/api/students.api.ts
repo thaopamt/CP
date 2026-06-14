@@ -70,7 +70,6 @@ export interface UpdateMyStudentPayload {
   firstName?: string;
   lastName?: string;
   username?: string | null;
-  avatarUrl?: string | null;
   homeAddress?: string | null;
 }
 

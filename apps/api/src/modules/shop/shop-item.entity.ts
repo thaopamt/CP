@@ -24,6 +24,10 @@ export class ShopItem extends BaseEntity {
   @Column({ type: 'varchar', length: 50, default: 'redeem' })
   icon!: string;
 
+  /** Uploaded image URL. CHARACTER items use this as the avatar image. */
+  @Column({ type: 'text', nullable: true, name: 'image_url' })
+  imageUrl!: string | null;
+
   @Index()
   @Column({ type: 'enum', enum: ShopItemKind, default: ShopItemKind.COSMETIC })
   kind!: ShopItemKind;

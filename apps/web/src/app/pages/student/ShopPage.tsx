@@ -18,6 +18,7 @@ type TFn = (key: string, opts?: Record<string, unknown>) => string;
 
 const CATEGORIES: (ShopItemCategory | 'all')[] = [
   'all',
+  ShopItemCategory.CHARACTER,
   ShopItemCategory.AVATAR_FRAME,
   ShopItemCategory.PROFILE_THEME,
   ShopItemCategory.NAME_COLOR,
@@ -196,6 +197,7 @@ function ShopCard({
   const isCosmetic = item.kind === ShopItemKind.COSMETIC;
   const canAfford = gems >= item.price;
   const swatch = item.payload?.color;
+  const image = item.imageUrl;
 
   return (
     <div
@@ -203,7 +205,9 @@ function ShopCard({
     >
       {/* Icon / preview */}
       <div className="relative mb-3 h-20 rounded-lg bg-surface-container-high grid place-items-center overflow-hidden dark:bg-white/[0.06]">
-        {swatch ? (
+        {image ? (
+          <img src={image} alt="" className="h-full w-full object-cover" />
+        ) : swatch ? (
           <span className="w-10 h-10 rounded-full border-2 border-outline" style={{ backgroundColor: swatch }} />
         ) : (
           <Icon name={item.icon || 'redeem'} size={40} className="text-on-surface-variant" />

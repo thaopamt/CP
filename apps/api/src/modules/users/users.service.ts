@@ -61,7 +61,6 @@ export class UsersService extends TypeOrmCrudService<User> {
       firstName?: string;
       lastName?: string;
       username?: string | null;
-      avatarUrl?: string | null;
     },
   ): Promise<User> {
     const user = await this.findActiveById(id);
@@ -85,7 +84,6 @@ export class UsersService extends TypeOrmCrudService<User> {
         ...(patch.firstName !== undefined ? { firstName: patch.firstName.trim() } : {}),
         ...(patch.lastName !== undefined ? { lastName: patch.lastName.trim() } : {}),
         ...(patch.username !== undefined ? { username: nextUsername } : {}),
-        ...(patch.avatarUrl !== undefined ? { avatarUrl: patch.avatarUrl?.trim() || null } : {}),
       },
     );
 

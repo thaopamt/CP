@@ -9,8 +9,10 @@ import { useUIStore } from '../stores/ui.store';
 import { AvatarFrame } from '../lib/cosmetics';
 
 /**
- * Initials avatar shared by all three portal top bars. Optional gem-shop
- * cosmetics: `frame` draws a colored ring, `nameColor` tints the initials.
+ * Avatar shared by all three portal top bars. Shows the user's equipped
+ * character image (stored on `avatarUrl`) when present, otherwise initials.
+ * Optional gem-shop cosmetics: `frame` draws a colored ring, `nameColor`
+ * tints the initials.
  */
 export function UserAvatar({
   user,
@@ -28,13 +30,22 @@ export function UserAvatar({
   const initials = `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase();
   return (
     <AvatarFrame frameKey={frame}>
-      <div
-        className={`${dim} rounded-full bg-primary-container text-on-primary-container grid place-items-center font-bold border border-outline-variant/40`}
-        title={fullName(user)}
-        style={nameColor ? { color: nameColor } : undefined}
-      >
-        {initials || '·'}
-      </div>
+      {user.avatarUrl ? (
+        <img
+          src={user.avatarUrl}
+          alt=""
+          title={fullName(user)}
+          className={`${dim} rounded-full object-cover border border-outline-variant/40`}
+        />
+      ) : (
+        <div
+          className={`${dim} rounded-full bg-primary-container text-on-primary-container grid place-items-center font-bold border border-outline-variant/40`}
+          title={fullName(user)}
+          style={nameColor ? { color: nameColor } : undefined}
+        >
+          {initials || '·'}
+        </div>
+      )}
     </AvatarFrame>
   );
 }

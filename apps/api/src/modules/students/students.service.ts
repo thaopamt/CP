@@ -201,17 +201,8 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       const userRepo = tx.getRepository(User);
       const profileRepo = tx.getRepository(StudentProfile);
 
-      if (
-        dto.username !== undefined ||
-        dto.avatarUrl !== undefined
-      ) {
-        await userRepo.update(
-          { id: userId },
-          {
-            ...(dto.username !== undefined ? { username: nextUsername } : {}),
-            ...(dto.avatarUrl !== undefined ? { avatarUrl: dto.avatarUrl?.trim() || null } : {}),
-          },
-        );
+      if (dto.username !== undefined) {
+        await userRepo.update({ id: userId }, { username: nextUsername });
       }
 
       const profilePatch: Partial<StudentProfile> = {};

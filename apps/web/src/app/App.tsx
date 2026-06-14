@@ -41,6 +41,9 @@ const BlogManageList = lazy(() => import('./pages/admin/blog/BlogManageListPage'
 const BlogCreate = lazy(() => import('./pages/admin/blog/BlogCreatePage'));
 const BlogEdit = lazy(() => import('./pages/admin/blog/BlogEditPage'));
 const BlogPreview = lazy(() => import('./pages/admin/blog/BlogPreviewPage'));
+const AdminShopList = lazy(() => import('./pages/admin/shop/ShopListPage'));
+const AdminShopCreate = lazy(() => import('./pages/admin/shop/ShopCreatePage'));
+const AdminShopEdit = lazy(() => import('./pages/admin/shop/ShopEditPage'));
 const AdminCoursesList = lazy(() => import('./pages/admin/courses/CoursesListPage'));
 const AdminCourseDetail = lazy(() => import('./pages/admin/courses/CourseDetailPage'));
 const AdminClassCurriculum = lazy(() => import('./pages/admin/classes/ClassCurriculumPage'));
@@ -138,6 +141,9 @@ export default function App() {
                 <Route path="blog/new" element={<BlogCreate />} />
                 <Route path="blog/preview/:id" element={<BlogPreview />} />
                 <Route path="blog/:id/edit" element={<BlogEdit />} />
+                <Route path="shop" element={<AdminShopList />} />
+                <Route path="shop/new" element={<AdminShopCreate />} />
+                <Route path="shop/:id/edit" element={<AdminShopEdit />} />
                 <Route path="schedule" element={<AdminSchedule />} />
                 <Route path="finance" element={<AdminFinance />} />
                 <Route path="users" element={<AdminUsers />} />

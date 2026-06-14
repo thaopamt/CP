@@ -12,6 +12,7 @@ const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
   { to: '/admin/classes', icon: 'class', key: 'nav.admin.classes' },
   { to: '/admin/courses', icon: 'menu_book', key: 'nav.admin.courses' },
   { to: '/admin/blog', icon: 'article', key: 'nav.admin.blog' },
+  { to: '/admin/shop', icon: 'storefront', key: 'nav.admin.shop' },
   { to: '/admin/quests', icon: 'swords', key: 'nav.admin.quests' },
   { to: '/admin/badges', icon: 'workspace_premium', key: 'nav.admin.badges' },
   { to: '/admin/quests/analytics', icon: 'insights', key: 'nav.admin.questAnalytics' },

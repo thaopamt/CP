@@ -6,16 +6,20 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import {
+  BadgeRarity,
+  ICreateShopItemPayload,
   IEquipResult,
   IPurchaseResult,
   IShopCatalogEntry,
   IShopCatalogResponse,
   IShopItem,
+  IUpdateShopItemPayload,
   ShopItemCategory,
   ShopItemKind,
 } from '@cp/shared';
 
 import { StudentProfile } from '../students/student-profile.entity';
+import { User } from '../users/user.entity';
 import { BadgesService } from '../quests/badges.service';
 import { applyXpGain } from '../quests/period-keys';
 import { ShopItem } from './shop-item.entity';
@@ -29,6 +33,7 @@ export class ShopService {
     @InjectRepository(ShopItem) private readonly items: Repository<ShopItem>,
     @InjectRepository(StudentInventory) private readonly inventory: Repository<StudentInventory>,
     @InjectRepository(StudentProfile) private readonly profiles: Repository<StudentProfile>,
+    @InjectRepository(User) private readonly users: Repository<User>,
     private readonly badges: BadgesService,
     private readonly ds: DataSource,
   ) {}
@@ -40,6 +45,7 @@ export class ShopService {
       name: i.name,
       description: i.description,
       icon: i.icon,
+      imageUrl: i.imageUrl ?? null,
       kind: i.kind,
       category: i.category,
       rarity: i.rarity,
@@ -48,6 +54,68 @@ export class ShopService {
       sortOrder: i.sortOrder,
       isActive: i.isActive,
     };
+  }
+
+  // ── Admin CRUD ─────────────────────────────────────────────────────────
+  /** Every shop item, including inactive ones — for the admin manager. */
+  async listAll(): Promise<IShopItem[]> {
+    const rows = await this.items.find({
+      order: { category: 'ASC', sortOrder: 'ASC', price: 'ASC' },
+    });
+    return rows.map((i) => this.toDto(i));
+  }
+
+  async createItem(dto: ICreateShopItemPayload): Promise<IShopItem> {
+    const code = dto.code.trim();
+    if (await this.items.findOne({ where: { code } })) {
+      throw new BadRequestException('Mã vật phẩm đã tồn tại.');
+    }
+    const item = this.items.create({
+      code,
+      name: dto.name.trim(),
+      description: dto.description ?? '',
+      icon: dto.icon?.trim() || 'redeem',
+      imageUrl: dto.imageUrl ?? null,
+      kind: dto.kind,
+      category: dto.category,
+      rarity: dto.rarity ?? BadgeRarity.COMMON,
+      price: dto.price,
+      payload: dto.payload ?? null,
+      sortOrder: dto.sortOrder ?? 0,
+      isActive: dto.isActive ?? true,
+    });
+    await this.items.save(item);
+    return this.toDto(item);
+  }
+
+  async updateItem(id: string, dto: IUpdateShopItemPayload): Promise<IShopItem> {
+    const item = await this.items.findOne({ where: { id } });
+    if (!item) throw new NotFoundException('Shop item not found');
+    if (dto.code !== undefined && dto.code.trim() !== item.code) {
+      const dup = await this.items.findOne({ where: { code: dto.code.trim() } });
+      if (dup) throw new BadRequestException('Mã vật phẩm đã tồn tại.');
+      item.code = dto.code.trim();
+    }
+    if (dto.name !== undefined) item.name = dto.name.trim();
+    if (dto.description !== undefined) item.description = dto.description;
+    if (dto.icon !== undefined) item.icon = dto.icon.trim() || 'redeem';
+    if (dto.imageUrl !== undefined) item.imageUrl = dto.imageUrl;
+    if (dto.kind !== undefined) item.kind = dto.kind;
+    if (dto.category !== undefined) item.category = dto.category;
+    if (dto.rarity !== undefined) item.rarity = dto.rarity;
+    if (dto.price !== undefined) item.price = dto.price;
+    if (dto.payload !== undefined) item.payload = dto.payload;
+    if (dto.sortOrder !== undefined) item.sortOrder = dto.sortOrder;
+    if (dto.isActive !== undefined) item.isActive = dto.isActive;
+    await this.items.save(item);
+    return this.toDto(item);
+  }
+
+  /** Delete an item. Owned-inventory rows cascade away (FK onDelete CASCADE). */
+  async removeItem(id: string): Promise<void> {
+    const item = await this.items.findOne({ where: { id } });
+    if (!item) throw new NotFoundException('Shop item not found');
+    await this.items.remove(item);
   }
 
   /** The shop catalog as seen by one student: owned/equipped/affordable flags. */
@@ -107,7 +175,7 @@ export class ShopService {
 
       let awardedXp = 0;
       let awardedGems = 0;
-      let equipped = false;
+      const equipped = false;
       let message = '';
 
       if (item.kind === ShopItemKind.COSMETIC) {
@@ -167,6 +235,7 @@ export class ShopService {
     return this.ds.transaction(async (tx) => {
       const invRepo = tx.getRepository(StudentInventory);
       const profRepo = tx.getRepository(StudentProfile);
+      const userRepo = tx.getRepository(User);
 
       const inv = await invRepo.findOne({ where: { userId, itemId }, relations: ['item'] });
       if (!inv) throw new NotFoundException('Bạn chưa sở hữu vật phẩm này.');
@@ -196,7 +265,10 @@ export class ShopService {
       this.applyCosmeticToProfile(profile, item);
       await profRepo.save(profile);
 
-      return this.equipResult(item.code, true, profile);
+      // CHARACTER replaces the user's avatar image everywhere it is rendered.
+      const avatarUrl = await this.syncCharacterAvatar(userRepo, userId, item, true);
+
+      return this.equipResult(item.code, true, profile, avatarUrl);
     });
   }
 
@@ -205,6 +277,7 @@ export class ShopService {
     return this.ds.transaction(async (tx) => {
       const invRepo = tx.getRepository(StudentInventory);
       const profRepo = tx.getRepository(StudentProfile);
+      const userRepo = tx.getRepository(User);
 
       const inv = await invRepo.findOne({ where: { userId, itemId }, relations: ['item'] });
       if (!inv) throw new NotFoundException('Bạn chưa sở hữu vật phẩm này.');
@@ -216,8 +289,31 @@ export class ShopService {
       this.clearCosmeticFromProfile(profile, inv.item.category);
       await profRepo.save(profile);
 
-      return this.equipResult(inv.item.code, false, profile);
+      const avatarUrl = await this.syncCharacterAvatar(userRepo, userId, inv.item, false);
+
+      return this.equipResult(inv.item.code, false, profile, avatarUrl);
     });
+  }
+
+  /**
+   * Keep `User.avatarUrl` in sync with the equipped CHARACTER. Equipping a
+   * character writes its image; unequipping one clears it. For any other
+   * category we leave the avatar untouched and just report the current value.
+   * Returns the user's effective avatar URL after the change.
+   */
+  private async syncCharacterAvatar(
+    userRepo: Repository<User>,
+    userId: string,
+    item: ShopItem,
+    equipping: boolean,
+  ): Promise<string | null> {
+    const user = await userRepo.findOne({ where: { id: userId } });
+    if (!user) return null;
+    if (item.category === ShopItemCategory.CHARACTER) {
+      user.avatarUrl = equipping ? item.imageUrl ?? null : null;
+      await userRepo.save(user);
+    }
+    return user.avatarUrl ?? null;
   }
 
   private applyCosmeticToProfile(profile: StudentProfile, item: ShopItem): void {
@@ -259,7 +355,12 @@ export class ShopService {
     }
   }
 
-  private equipResult(itemCode: string, equipped: boolean, profile: StudentProfile): IEquipResult {
+  private equipResult(
+    itemCode: string,
+    equipped: boolean,
+    profile: StudentProfile,
+    avatarUrl: string | null,
+  ): IEquipResult {
     return {
       itemCode,
       equipped,
@@ -267,6 +368,7 @@ export class ShopService {
       equippedTheme: profile.equippedTheme ?? null,
       nameColor: profile.nameColor ?? null,
       equippedTitle: profile.equippedTitle ?? null,
+      avatarUrl,
     };
   }
 }

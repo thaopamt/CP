@@ -15,8 +15,4 @@ export class UpdateMeDto {
   @IsString()
   @Length(3, 80)
   username?: string | null;
-
-  @IsOptional()
-  @IsString()
-  avatarUrl?: string | null;
 }

@@ -10,9 +10,5 @@ export class UpdateMyStudentDto {
 
   @IsOptional()
   @IsString()
-  avatarUrl?: string | null;
-
-  @IsOptional()
-  @IsString()
   homeAddress?: string | null;
 }

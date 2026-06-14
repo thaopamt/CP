@@ -103,7 +103,6 @@ export class AuthService {
       firstName?: string;
       lastName?: string;
       username?: string | null;
-      avatarUrl?: string | null;
     },
   ): Promise<IUser> {
     const user = await this.users.updateOwnProfile(userId, patch);

@@ -5,20 +5,17 @@ import { ROLE_LABEL } from '@cp/shared';
 
 import { useChangePassword, useMe, useUpdateMe } from '../../api/me.queries';
 import { useAuthStore } from '../../stores/auth.store';
-import { AvatarUpload } from '../../components/AvatarUpload';
 
 type ProfileDraft = {
   firstName: string;
   lastName: string;
   username: string;
-  avatarUrl: string;
 };
 
 const INITIAL_PROFILE: ProfileDraft = {
   firstName: '',
   lastName: '',
   username: '',
-  avatarUrl: '',
 };
 
 function getApiMessage(err: unknown, fallback: string): string {
@@ -60,7 +57,6 @@ export default function AdminMePage() {
       firstName: me.firstName ?? '',
       lastName: me.lastName ?? '',
       username: me.username ?? '',
-      avatarUrl: me.avatarUrl ?? '',
     });
   }, [me]);
 
@@ -76,7 +72,6 @@ export default function AdminMePage() {
         firstName: profile.firstName.trim(),
         lastName: profile.lastName.trim(),
         username: profile.username.trim() || null,
-        avatarUrl: profile.avatarUrl.trim() || null,
       });
       updateStoredUser(updated);
       toast.success(isVi ? 'Đã cập nhật hồ sơ.' : 'Profile updated.');
@@ -131,10 +126,11 @@ export default function AdminMePage() {
       <section className="grid grid-cols-1 gap-md lg:grid-cols-[280px_1fr]">
         <aside className="rounded-xl border border-outline-variant/60 bg-surface-container-lowest p-lg">
           <div className="flex flex-col items-center gap-md">
-            <AvatarUpload
-              currentAvatarUrl={me?.avatarUrl}
-              displayName={displayName}
-              variant="admin"
+            <Avatar
+              size="lg"
+              src={me?.avatarUrl}
+              initials={displayName.charAt(0).toUpperCase()}
+              className="w-28 h-28 border-4 border-surface-container-lowest shadow-elev-1"
             />
             <div className="text-center min-w-0 w-full">
               <h2 className="truncate font-manrope text-headline-md text-on-surface">
