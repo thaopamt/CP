@@ -43,6 +43,10 @@ export class ShopItem extends BaseEntity {
   @Column({ type: 'int', default: 100 })
   price!: number;
 
+  /** Minimum student level required to purchase (0 = no requirement). */
+  @Column({ type: 'int', default: 0, name: 'min_level' })
+  minLevel!: number;
+
   @Column({ type: 'jsonb', nullable: true })
   payload!: IShopItemPayload | null;
 

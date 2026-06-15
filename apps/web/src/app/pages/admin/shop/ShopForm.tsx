@@ -11,6 +11,7 @@ import {
 } from '@cp/shared';
 
 import { useUploadShopImage } from '../../../api/shop.queries';
+import { CHARACTER_GENDERS, charactersByGender } from '../../../lib/characters';
 
 interface ShopFormProps {
   defaultValues?: IShopItem;
@@ -42,6 +43,7 @@ export function ShopForm({ defaultValues, submitLabel, isSubmitting, onSubmit }:
   );
   const [rarity, setRarity] = useState<BadgeRarity>(defaultValues?.rarity ?? BadgeRarity.COMMON);
   const [price, setPrice] = useState(String(defaultValues?.price ?? 100));
+  const [minLevel, setMinLevel] = useState(String(defaultValues?.minLevel ?? 0));
   const [sortOrder, setSortOrder] = useState(String(defaultValues?.sortOrder ?? 0));
   const [isActive, setIsActive] = useState(defaultValues?.isActive ?? true);
 
@@ -106,6 +108,7 @@ export function ShopForm({ defaultValues, submitLabel, isSubmitting, onSubmit }:
         category,
         rarity,
         price: Number(price) || 0,
+        minLevel: Number(minLevel) || 0,
         sortOrder: Number(sortOrder) || 0,
         isActive,
         payload: buildPayload(),
@@ -203,7 +206,10 @@ export function ShopForm({ defaultValues, submitLabel, isSubmitting, onSubmit }:
 
       <aside className="xl:sticky xl:top-20 self-start rounded-lg border border-outline-variant/50 bg-surface-container-lowest p-md space-y-md">
         {/* Image */}
-        <Field label={t('pages.shopAdmin.form.image')}>
+        <div className="flex flex-col gap-1">
+          <span className="text-label-sm font-semibold text-on-surface">
+            {isCharacter ? t('pages.shopAdmin.form.chooseCharacter') : t('pages.shopAdmin.form.image')}
+          </span>
           <div className="flex flex-col gap-sm">
             <div className="h-32 rounded-lg border border-outline-variant bg-surface-container-high grid place-items-center overflow-hidden">
               {imageUrl ? (
@@ -212,45 +218,57 @@ export function ShopForm({ defaultValues, submitLabel, isSubmitting, onSubmit }:
                 <Icon name={icon || 'image'} size={40} className="text-on-surface-variant" />
               )}
             </div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/png,image/jpeg,image/gif,image/webp"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void pickImage(f);
-                e.target.value = '';
-              }}
-            />
-            <div className="flex gap-xs">
-              <Button
-                type="button"
-                variant="ghost"
-                className="flex-1"
-                disabled={uploadImage.isPending}
-                leadingIcon={
-                  <Icon
-                    name={uploadImage.isPending ? 'progress_activity' : 'upload'}
-                    size={16}
-                    className={uploadImage.isPending ? 'animate-spin' : undefined}
-                  />
-                }
-                onClick={() => fileRef.current?.click()}
-              >
-                {uploadImage.isPending ? t('pages.shopAdmin.form.uploading') : t('pages.shopAdmin.form.uploadImage')}
-              </Button>
-              {imageUrl && (
-                <Button type="button" variant="ghost" onClick={() => setImageUrl(null)}>
-                  <Icon name="close" size={16} />
-                </Button>
-              )}
-            </div>
-            {isCharacter && (
-              <p className="text-[11px] text-on-surface-variant">{t('pages.shopAdmin.form.imageHint')}</p>
+
+            {isCharacter ? (
+              <>
+                <CharacterPicker value={imageUrl} onPick={setImageUrl} t={t} />
+                {imageUrl && (
+                  <Button type="button" variant="ghost" onClick={() => setImageUrl(null)}>
+                    <Icon name="close" size={16} /> {t('pages.shopAdmin.form.removeImage')}
+                  </Button>
+                )}
+                <p className="text-[11px] text-on-surface-variant">{t('pages.shopAdmin.form.chooseCharacterHint')}</p>
+              </>
+            ) : (
+              <>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/gif,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void pickImage(f);
+                    e.target.value = '';
+                  }}
+                />
+                <div className="flex gap-xs">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="flex-1"
+                    disabled={uploadImage.isPending}
+                    leadingIcon={
+                      <Icon
+                        name={uploadImage.isPending ? 'progress_activity' : 'upload'}
+                        size={16}
+                        className={uploadImage.isPending ? 'animate-spin' : undefined}
+                      />
+                    }
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    {uploadImage.isPending ? t('pages.shopAdmin.form.uploading') : t('pages.shopAdmin.form.uploadImage')}
+                  </Button>
+                  {imageUrl && (
+                    <Button type="button" variant="ghost" onClick={() => setImageUrl(null)}>
+                      <Icon name="close" size={16} />
+                    </Button>
+                  )}
+                </div>
+              </>
             )}
           </div>
-        </Field>
+        </div>
 
         <Field label={t('pages.shopAdmin.form.icon')}>
           <input
@@ -271,15 +289,25 @@ export function ShopForm({ defaultValues, submitLabel, isSubmitting, onSubmit }:
               className={inputCls}
             />
           </Field>
-          <Field label={t('pages.shopAdmin.form.sortOrder')}>
+          <Field label={t('pages.shopAdmin.form.minLevel')}>
             <input
               type="number"
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
+              min={0}
+              value={minLevel}
+              onChange={(e) => setMinLevel(e.target.value)}
               className={inputCls}
             />
           </Field>
         </div>
+
+        <Field label={t('pages.shopAdmin.form.sortOrder')}>
+          <input
+            type="number"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            className={inputCls}
+          />
+        </Field>
 
         <Field label={t('pages.shopAdmin.form.rarity')}>
           <select
@@ -403,6 +431,48 @@ function PayloadFields({
     default:
       return null;
   }
+}
+
+function CharacterPicker({
+  value,
+  onPick,
+  t,
+}: {
+  value: string | null;
+  onPick: (path: string) => void;
+  t: TFn;
+}) {
+  return (
+    <div className="flex flex-col gap-sm max-h-72 overflow-y-auto pr-1">
+      {CHARACTER_GENDERS.map((gender) => (
+        <div key={gender}>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
+            {t(`pages.shopAdmin.form.${gender}`)}
+          </p>
+          <div className="grid grid-cols-4 gap-2">
+            {charactersByGender(gender).map((c) => {
+              const selected = value === c.path;
+              return (
+                <button
+                  key={c.path}
+                  type="button"
+                  title={c.label}
+                  onClick={() => onPick(c.path)}
+                  className={`aspect-square rounded-lg border-2 p-1 bg-surface-container-high grid place-items-center overflow-hidden transition-colors ${
+                    selected
+                      ? 'border-primary ring-2 ring-primary/40'
+                      : 'border-transparent hover:border-outline-variant'
+                  }`}
+                >
+                  <img src={c.path} alt={c.label} className="w-full h-full object-contain" />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

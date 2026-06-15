@@ -46,11 +46,16 @@ export function AvatarFrame({
   frameKey,
   children,
   className = '',
+  shape = 'circle',
 }: {
   frameKey?: string | null;
   children: ReactNode;
   className?: string;
+  /** Match the wrapped avatar's shape: 'circle' (default) or 'rounded' square. */
+  shape?: 'circle' | 'rounded';
 }) {
+  // Character avatars (rounded) are shown directly — no frame ring/wrapper.
+  if (shape === 'rounded') return <>{children}</>;
   const gradient = frameKey ? FRAME_GRADIENT[frameKey] : undefined;
   if (!gradient) return <>{children}</>;
   return (

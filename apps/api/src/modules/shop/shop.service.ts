@@ -50,6 +50,7 @@ export class ShopService {
       category: i.category,
       rarity: i.rarity,
       price: i.price,
+      minLevel: i.minLevel ?? 0,
       payload: i.payload ?? null,
       sortOrder: i.sortOrder,
       isActive: i.isActive,
@@ -80,6 +81,7 @@ export class ShopService {
       category: dto.category,
       rarity: dto.rarity ?? BadgeRarity.COMMON,
       price: dto.price,
+      minLevel: dto.minLevel ?? 0,
       payload: dto.payload ?? null,
       sortOrder: dto.sortOrder ?? 0,
       isActive: dto.isActive ?? true,
@@ -104,6 +106,7 @@ export class ShopService {
     if (dto.category !== undefined) item.category = dto.category;
     if (dto.rarity !== undefined) item.rarity = dto.rarity;
     if (dto.price !== undefined) item.price = dto.price;
+    if (dto.minLevel !== undefined) item.minLevel = dto.minLevel;
     if (dto.payload !== undefined) item.payload = dto.payload;
     if (dto.sortOrder !== undefined) item.sortOrder = dto.sortOrder;
     if (dto.isActive !== undefined) item.isActive = dto.isActive;
@@ -126,6 +129,7 @@ export class ShopService {
       this.profiles.findOne({ where: { userId } }),
     ]);
     const gems = profile?.gems ?? 0;
+    const level = profile?.level ?? 0;
     const ownedById = new Map(owned.map((o) => [o.itemId, o]));
 
     const entries: IShopCatalogEntry[] = items.map((item) => {
@@ -135,10 +139,11 @@ export class ShopService {
         owned: !!inv,
         equipped: !!inv?.equipped,
         affordable: gems >= item.price,
+        unlocked: level >= item.minLevel,
       };
     });
 
-    return { gems, entries };
+    return { gems, level, entries };
   }
 
   /** List a student's owned cosmetics. */
@@ -149,6 +154,7 @@ export class ShopService {
       owned: true,
       equipped: inv.equipped,
       affordable: true,
+      unlocked: true,
     }));
   }
 
@@ -168,6 +174,10 @@ export class ShopService {
 
       const profile = await profRepo.findOne({ where: { userId } });
       if (!profile) throw new NotFoundException('Student profile not found');
+
+      if (profile.level < item.minLevel) {
+        throw new BadRequestException(`Cần đạt Level ${item.minLevel} để mở khoá vật phẩm này.`);
+      }
 
       if (profile.gems < item.price) {
         throw new BadRequestException('Không đủ đá quý để mua vật phẩm này.');

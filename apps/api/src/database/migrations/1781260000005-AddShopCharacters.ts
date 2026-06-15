@@ -24,6 +24,11 @@ export class AddShopCharacters1781260000005 implements MigrationInterface {
       `ALTER TABLE "shop_items" ADD COLUMN IF NOT EXISTS "image_url" text`,
     );
 
+    // 2b. Level gate — minimum student level required to buy an item.
+    await queryRunner.query(
+      `ALTER TABLE "shop_items" ADD COLUMN IF NOT EXISTS "min_level" integer NOT NULL DEFAULT 0`,
+    );
+
     // 3. Retire uploaded avatars — characters are now the only avatar source.
     await queryRunner.query(
       `UPDATE "users" SET "avatar_url" = NULL WHERE "avatar_url" LIKE '/api/uploads/avatars/%'`,
@@ -32,7 +37,8 @@ export class AddShopCharacters1781260000005 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Postgres cannot drop an enum value, and cleared avatars cannot be
-    // restored, so we only reverse the additive column change.
+    // restored, so we only reverse the additive column changes.
+    await queryRunner.query(`ALTER TABLE "shop_items" DROP COLUMN IF EXISTS "min_level"`);
     await queryRunner.query(`ALTER TABLE "shop_items" DROP COLUMN IF EXISTS "image_url"`);
   }
 }

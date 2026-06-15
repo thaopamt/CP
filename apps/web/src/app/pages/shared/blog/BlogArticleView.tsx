@@ -61,7 +61,35 @@ export function BlogArticleView({ post, showStatus = false }: { post: IBlogPost;
       </header>
 
       <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none prose-headings:text-on-surface prose-p:text-on-surface-variant prose-li:text-on-surface-variant prose-strong:text-on-surface prose-a:text-primary prose-code:text-primary prose-code:bg-surface-container-high prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-surface-container-low prose-pre:border prose-pre:border-outline-variant prose-pre:rounded-lg">
-        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+        <ReactMarkdown
+          remarkPlugins={[remarkMath]}
+          rehypePlugins={[rehypeKatex]}
+          components={{
+            img(props) {
+              const src = typeof props.src === 'string' ? props.src : '';
+              const alt = props.alt ?? '';
+              // Character images render as compact labeled thumbnails so a post
+              // can show the whole roster in level order without giant images.
+              if (src.includes('/character/')) {
+                return (
+                  <span className="m-1 inline-flex w-24 flex-col items-center align-top">
+                    <img
+                      src={src}
+                      alt={alt}
+                      className="!my-0 h-24 w-24 rounded-lg bg-surface-container-high object-contain"
+                    />
+                    {alt && (
+                      <span className="mt-1 text-center text-[11px] font-semibold text-on-surface-variant">
+                        {alt}
+                      </span>
+                    )}
+                  </span>
+                );
+              }
+              return <img src={src} alt={alt} className="rounded-lg" />;
+            },
+          }}
+        >
           {post.content}
         </ReactMarkdown>
       </div>

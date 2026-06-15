@@ -126,7 +126,7 @@ export default function StudentDashboardPage() {
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-lg py-lg">
       <header className="flex flex-col gap-md md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-md">
-          <Avatar size="lg" src={user?.avatarUrl} initials={name.charAt(0).toUpperCase()} />
+          <Avatar size="lg" shape="rounded" src={user?.avatarUrl} initials={name.charAt(0).toUpperCase()} />
           <div>
             <p className="text-label-sm font-semibold uppercase text-primary">
               {tr('pages.student.home.kicker', 'Trang chủ học viên')}

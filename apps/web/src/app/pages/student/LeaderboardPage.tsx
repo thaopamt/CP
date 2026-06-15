@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@cp/ui';
 import { LeaderboardScope, LeaderboardWindow, ILeaderboardRankEntry } from '@cp/shared';
 import { useLeaderboard } from '../../api/gamification.queries';
-import { AvatarFrame } from '../../lib/cosmetics';
 
 type TFn = (key: string, opts?: Record<string, unknown>) => string;
 
@@ -84,11 +83,10 @@ export default function StudentLeaderboardPage() {
           <button
             key={w.key}
             onClick={() => setTimeWindow(w.key)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all duration-200 ${
-              timeWindow === w.key
-                ? 'bg-amber-100 text-amber-800 border border-amber-300 shadow-elev-1 dark:bg-amber-400/15 dark:text-amber-200 dark:border-amber-400/40'
-                : PILL_IDLE
-            }`}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all duration-200 ${timeWindow === w.key
+              ? 'bg-amber-100 text-amber-800 border border-amber-300 shadow-elev-1 dark:bg-amber-400/15 dark:text-amber-200 dark:border-amber-400/40'
+              : PILL_IDLE
+              }`}
           >
             <Icon name={w.icon} size={16} />
             {t(w.labelKey)}
@@ -114,9 +112,8 @@ export default function StudentLeaderboardPage() {
             <button
               key={s.key}
               onClick={() => setScope(s.key)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200 ${
-                scope === s.key ? PILL_ACTIVE : PILL_IDLE
-              }`}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200 ${scope === s.key ? PILL_ACTIVE : PILL_IDLE
+                }`}
             >
               <Icon name={s.icon} size={16} />
               {t(s.labelKey)}
@@ -144,7 +141,7 @@ export default function StudentLeaderboardPage() {
             <div className="flex items-end justify-center gap-3 md:gap-6 mb-8">
               {/* order: 2nd, 1st, 3rd */}
               {[top3[1], top3[0], top3[2]].map((e, idx) =>
-                e ? <PodiumCard key={e.userId} entry={e} place={e.rank} highlighted={isSelf(e)} t={t} /> : <div key={`empty-${idx}`} className="w-24 md:w-32" />,
+                e ? <PodiumCard key={e.userId} entry={e} place={e.rank} highlighted={isSelf(e)} t={t} /> : <div key={`empty-${idx}`} className="w-28 md:w-44" />,
               )}
             </div>
           )}
@@ -196,29 +193,26 @@ function PodiumCard({
         : { medal: 'from-orange-700 to-amber-800 text-orange-100', glow: 'shadow-[0_0_18px_rgba(180,83,9,0.4)]', icon: 'military_tech', height: 'md:h-32', label: 'text-orange-500 dark:text-orange-300' };
 
   return (
-    <div className={`flex flex-col items-center w-24 md:w-32 ${isFirst ? '-mt-4' : ''}`}>
+    <div className={`flex flex-col items-center w-28 md:w-44 ${isFirst ? '-mt-4' : ''}`}>
       {/* Avatar + crown */}
       <div className="relative mb-3">
-        <div className={`absolute -top-5 left-1/2 -translate-x-1/2 ${config.label}`}>
+        {/* <div className={`absolute -top-5 left-1/2 -translate-x-1/2 z-10 ${config.label}`}>
           <Icon name={config.icon} size={isFirst ? 24 : 20} />
-        </div>
-        <AvatarFrame frameKey={entry.frame}>
-          {entry.avatarUrl ? (
-            <img
-              src={entry.avatarUrl}
-              alt={entry.name}
-              className={`rounded-full object-cover border-2 border-outline-variant dark:border-white/10 ${config.glow} ${isFirst ? 'w-20 h-20' : 'w-16 h-16'}`}
-            />
-          ) : (
-            <div
-              className={`rounded-full grid place-items-center font-black bg-gradient-to-br ${config.medal} border-2 border-outline-variant dark:border-white/10 ${config.glow} ${
-                isFirst ? 'w-20 h-20 text-xl' : 'w-16 h-16 text-lg'
+        </div> */}
+        {entry.avatarUrl ? (
+          <img
+            src={entry.avatarUrl}
+            alt={entry.name}
+            className={`object-contain ${isFirst ? 'w-28 h-28 md:w-44 md:h-44' : 'w-24 h-24 md:w-36 md:h-36'}`}
+          />
+        ) : (
+          <div
+            className={`rounded-full grid place-items-center font-black bg-gradient-to-br ${config.medal} border-2 border-outline-variant dark:border-white/10 ${config.glow} ${isFirst ? 'w-28 h-28 md:w-44 md:h-44 text-3xl' : 'w-24 h-24 md:w-36 md:h-36 text-2xl'
               }`}
-            >
-              {initials(entry.name)}
-            </div>
-          )}
-        </AvatarFrame>
+          >
+            {initials(entry.name)}
+          </div>
+        )}
       </div>
 
       <span
@@ -238,9 +232,8 @@ function PodiumCard({
 
       {/* Pedestal */}
       <div
-        className={`w-full rounded-t-xl bg-surface-container-high border-x border-t border-outline-variant flex flex-col items-center justify-center py-3 h-24 dark:bg-gradient-to-b dark:from-white/10 dark:to-white/[0.02] dark:border-white/5 ${config.height} ${
-          highlighted ? 'ring-1 ring-amber-400/50' : ''
-        }`}
+        className={`w-full rounded-t-xl bg-surface-container-high border-x border-t border-outline-variant flex flex-col items-center justify-center py-3 h-24 dark:bg-gradient-to-b dark:from-white/10 dark:to-white/[0.02] dark:border-white/5 ${config.height} ${highlighted ? 'ring-1 ring-amber-400/50' : ''
+          }`}
       >
         <span className={`text-2xl font-black bg-gradient-to-br ${config.medal} bg-clip-text text-transparent`}>#{place}</span>
         <span className="text-sm font-black text-on-surface mt-1">{entry.value.toLocaleString()}</span>
@@ -261,31 +254,27 @@ function RankRow({
 }) {
   return (
     <div
-      className={`flex items-center gap-3 md:gap-4 px-4 py-3 border-b border-outline-variant last:border-b-0 transition-colors dark:border-white/5 ${
-        highlighted
-          ? 'bg-amber-50 ring-1 ring-inset ring-amber-300 dark:bg-amber-400/5 dark:ring-amber-400/40'
-          : 'hover:bg-surface-container-high'
-      }`}
+      className={`flex items-center gap-3 md:gap-4 px-4 py-3 border-b border-outline-variant last:border-b-0 transition-colors dark:border-white/5 ${highlighted
+        ? 'bg-amber-50 ring-1 ring-inset ring-amber-300 dark:bg-amber-400/5 dark:ring-amber-400/40'
+        : 'hover:bg-surface-container-high'
+        }`}
     >
       {/* Rank */}
       <span
-        className={`w-8 text-center text-sm font-black shrink-0 ${
-          highlighted ? 'text-amber-600 dark:text-amber-400' : 'text-on-surface-variant'
-        }`}
+        className={`w-8 text-center text-sm font-black shrink-0 ${highlighted ? 'text-amber-600 dark:text-amber-400' : 'text-on-surface-variant'
+          }`}
       >
         #{entry.rank}
       </span>
 
       {/* Avatar */}
-      <AvatarFrame frameKey={entry.frame} className="shrink-0">
-        {entry.avatarUrl ? (
-          <img src={entry.avatarUrl} alt={entry.name} className="w-9 h-9 rounded-full object-cover border border-outline-variant dark:border-white/10" />
-        ) : (
-          <div className="w-9 h-9 rounded-full grid place-items-center text-xs font-black bg-surface-container-high text-on-surface border border-outline-variant dark:border-white/10">
-            {initials(entry.name)}
-          </div>
-        )}
-      </AvatarFrame>
+      {entry.avatarUrl ? (
+        <img src={entry.avatarUrl} alt={entry.name} className="w-16 h-16 md:w-20 md:h-20 shrink-0 object-contain" />
+      ) : (
+        <div className="w-16 h-16 md:w-20 md:h-20 shrink-0 rounded-full grid place-items-center text-lg font-black bg-surface-container-high text-on-surface border border-outline-variant dark:border-white/10">
+          {initials(entry.name)}
+        </div>
+      )}
 
       {/* Name + title + level/badges */}
       <div className="flex-1 min-w-0">

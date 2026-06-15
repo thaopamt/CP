@@ -8,6 +8,7 @@ export const blogKeys = {
   publishedDetail: (slug: string) => ['blog-posts', 'published', 'detail', slug] as const,
   manageList: (params: BlogListParams) => ['blog-posts', 'manage', 'list', params] as const,
   manageDetail: (id: string) => ['blog-posts', 'manage', 'detail', id] as const,
+  unreadCount: () => ['blog-posts', 'unread-count'] as const,
 };
 
 export function usePublishedBlogPosts(params: BlogListParams) {
@@ -71,6 +72,25 @@ export function useDeleteBlogPost() {
     mutationFn: (id: string) => blogApi.remove(id),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['blog-posts'] });
+    },
+  });
+}
+
+/** Count of published posts the current user hasn't opened — for the nav badge. */
+export function useUnreadBlogCount() {
+  return useQuery({
+    queryKey: blogKeys.unreadCount(),
+    queryFn: () => blogApi.unreadCount(),
+    staleTime: 30_000,
+  });
+}
+
+export function useMarkBlogRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => blogApi.markRead(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: blogKeys.unreadCount() });
     },
   });
 }

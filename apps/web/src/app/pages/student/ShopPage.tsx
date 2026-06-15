@@ -192,21 +192,30 @@ function ShopCard({
   onEquip: () => void;
   t: TFn;
 }) {
-  const { item, owned, equipped } = entry;
+  const { item, owned, equipped, unlocked } = entry;
   const r = RARITY[item.rarity] ?? RARITY.COMMON;
   const isCosmetic = item.kind === ShopItemKind.COSMETIC;
   const canAfford = gems >= item.price;
   const swatch = item.payload?.color;
   const image = item.imageUrl;
+  const locked = !owned && !unlocked;
 
   return (
     <div
       className={`rounded-lg border bg-surface-container-lowest p-4 flex flex-col shadow-elev-1 dark:bg-[#18151f]/95 ${r.border} ${r.glow}`}
     >
       {/* Icon / preview */}
-      <div className="relative mb-3 h-20 rounded-lg bg-surface-container-high grid place-items-center overflow-hidden dark:bg-white/[0.06]">
+      <div
+        className={`relative mb-3 rounded-lg bg-surface-container-high grid place-items-center overflow-hidden dark:bg-white/[0.06] ${
+          image ? 'aspect-square' : 'h-20'
+        }`}
+      >
         {image ? (
-          <img src={image} alt="" className="h-full w-full object-cover" />
+          <img
+            src={image}
+            alt={item.name}
+            className={`h-full w-full object-contain ${locked ? 'opacity-40 grayscale' : ''}`}
+          />
         ) : swatch ? (
           <span className="w-10 h-10 rounded-full border-2 border-outline" style={{ backgroundColor: swatch }} />
         ) : (
@@ -215,6 +224,13 @@ function ShopCard({
         {equipped && (
           <span className="absolute top-1.5 right-1.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full dark:text-emerald-300 dark:bg-emerald-400/15">
             {t('gamif.student.shop.equipped')}
+          </span>
+        )}
+        {locked && (
+          <span className="absolute inset-0 grid place-items-center bg-black/40 text-white">
+            <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider">
+              <Icon name="lock" size={14} /> Lv {item.minLevel}
+            </span>
           </span>
         )}
       </div>
@@ -248,6 +264,10 @@ function ShopCard({
         ) : owned ? (
           <span className="px-3 py-1.5 rounded-lg text-xs font-bold bg-surface-container-high text-on-surface-variant">
             {t('gamif.student.shop.owned')}
+          </span>
+        ) : locked ? (
+          <span className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-surface-container-high text-on-surface-variant">
+            <Icon name="lock" size={13} /> {t('gamif.student.shop.locked', { level: item.minLevel })}
           </span>
         ) : (
           <button

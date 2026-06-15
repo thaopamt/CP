@@ -87,6 +87,11 @@ export class CreateShopItemDto implements ICreateShopItemPayload {
   price!: number;
 
   @IsOptional()
+  @IsInt()
+  @Min(0)
+  minLevel?: number;
+
+  @IsOptional()
   @IsObject()
   @ValidateNested()
   @Type(() => ShopItemPayloadDto)
@@ -141,6 +146,11 @@ export class UpdateShopItemDto implements IUpdateShopItemPayload {
   @IsInt()
   @Min(0)
   price?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  minLevel?: number;
 
   @IsOptional()
   @IsObject()

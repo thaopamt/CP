@@ -10,6 +10,7 @@ import {
 import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
 
 import { BlogPost } from './blog-post.entity';
+import { BlogPostRead } from './blog-post-read.entity';
 import { CreateBlogPostDto, UpdateBlogPostDto } from './dto/blog-post.dto';
 import { User } from '../users/user.entity';
 
@@ -22,7 +23,41 @@ export class BlogService {
   constructor(
     @InjectRepository(BlogPost)
     private readonly posts: Repository<BlogPost>,
+    @InjectRepository(BlogPostRead)
+    private readonly reads: Repository<BlogPostRead>,
   ) {}
+
+  /** Count of published posts the user hasn't opened yet. */
+  async getUnreadCount(userId: string): Promise<number> {
+    return this.posts
+      .createQueryBuilder('post')
+      .where('post.status = :status', { status: PublishStatus.PUBLISHED })
+      .andWhere((qb) => {
+        const sub = qb
+          .subQuery()
+          .select('1')
+          .from(BlogPostRead, 'r')
+          .where('r.post_id = post.id')
+          .andWhere('r.user_id = :userId')
+          .getQuery();
+        return `NOT EXISTS ${sub}`;
+      })
+      .setParameter('userId', userId)
+      .getCount();
+  }
+
+  /** Mark a post as read by a user (idempotent — duplicates are ignored). */
+  async markRead(userId: string, postId: string): Promise<void> {
+    const post = await this.posts.findOne({ where: { id: postId } });
+    if (!post) throw new NotFoundException(`Blog post ${postId} not found`);
+    const existing = await this.reads.findOne({ where: { userId, postId } });
+    if (existing) return;
+    try {
+      await this.reads.save(this.reads.create({ userId, postId }));
+    } catch {
+      // Unique-constraint race — another request already inserted it.
+    }
+  }
 
   async listPublished(params: BlogListParams): Promise<IBlogListResponse> {
     return this.listPosts(params, true);

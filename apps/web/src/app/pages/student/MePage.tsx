@@ -154,12 +154,13 @@ export default function MePage() {
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-tertiary/5 rounded-full blur-3xl -z-10" />
 
         <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
-          <AvatarFrame frameKey={equippedFrame}>
+          <AvatarFrame frameKey={equippedFrame} shape="rounded">
             <Avatar
               size="lg"
+              shape="rounded"
               src={user?.avatarUrl}
               initials={name.charAt(0).toUpperCase()}
-              className="w-28 h-28 shadow-2xl border-4 border-[#121218]"
+              className="w-36 h-36 md:w-44 md:h-44 drop-shadow-2xl"
             />
           </AvatarFrame>
 

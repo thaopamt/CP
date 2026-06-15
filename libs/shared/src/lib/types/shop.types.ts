@@ -63,6 +63,8 @@ export interface IShopItem {
   category: ShopItemCategory;
   rarity: BadgeRarity;
   price: number;
+  /** Minimum student level required to purchase this item (0 = no requirement). */
+  minLevel: number;
   payload: IShopItemPayload | null;
   sortOrder: number;
   isActive: boolean;
@@ -77,11 +79,15 @@ export interface IShopCatalogEntry {
   equipped: boolean;
   /** Can the student currently afford it. */
   affordable: boolean;
+  /** Is the student's level high enough to purchase it (>= item.minLevel). */
+  unlocked: boolean;
 }
 
 export interface IShopCatalogResponse {
   /** The caller's current gem balance. */
   gems: number;
+  /** The caller's current level (drives `unlocked` on entries). */
+  level: number;
   entries: IShopCatalogEntry[];
 }
 
@@ -120,6 +126,7 @@ export interface ICreateShopItemPayload {
   category: ShopItemCategory;
   rarity?: BadgeRarity;
   price: number;
+  minLevel?: number;
   payload?: IShopItemPayload | null;
   sortOrder?: number;
   isActive?: boolean;

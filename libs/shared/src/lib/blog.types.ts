@@ -51,3 +51,8 @@ export interface IBlogListResponse {
   page: number;
   pageCount: number;
 }
+
+/** Number of published posts the current user has not opened yet. */
+export interface IBlogUnreadCount {
+  count: number;
+}

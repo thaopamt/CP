@@ -2,6 +2,7 @@ import {
   BlogListParams,
   IBlogListResponse,
   IBlogPost,
+  IBlogUnreadCount,
   ICreateBlogPostPayload,
   IUpdateBlogPostPayload,
   PublishStatus,
@@ -56,6 +57,15 @@ export const blogApi = {
 
   async remove(id: string): Promise<void> {
     await apiClient.delete(`/blog-posts/${id}`);
+  },
+
+  async unreadCount(): Promise<IBlogUnreadCount> {
+    const { data } = await apiClient.get<IBlogUnreadCount>('/blog-posts/unread-count');
+    return data;
+  },
+
+  async markRead(id: string): Promise<void> {
+    await apiClient.post(`/blog-posts/${id}/read`);
   },
 };
 

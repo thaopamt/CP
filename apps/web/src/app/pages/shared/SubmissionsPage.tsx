@@ -6,7 +6,6 @@ import { SubmissionStatus, UserRole } from '@cp/shared';
 import { useAllSubmissions } from '../../api/submissions.queries';
 import { useAuthStore } from '../../stores/auth.store';
 import { useSubmissionRealtimeFeed } from '../../hooks/useSubmissionRealtimeFeed';
-import { AvatarFrame } from '../../lib/cosmetics';
 
 const PAGE_SIZE = 20;
 
@@ -334,14 +333,13 @@ export default function SubmissionsPage() {
                     >
                       {/* Student */}
                       <div className="flex items-center gap-sm min-w-0 pr-sm text-left">
-                        <AvatarFrame frameKey={sub.user?.equippedFrame} className="shrink-0">
-                          <Avatar
-                            size="sm"
-                            src={sub.user?.avatarUrl}
-                            initials={userInitials(sub.user)}
-                            className={`shrink-0 ${sub.user?.equippedFrame ? '' : 'ring-2 ring-outline'}`}
-                          />
-                        </AvatarFrame>
+                        <Avatar
+                          size="sm"
+                          shape="rounded"
+                          src={sub.user?.avatarUrl}
+                          initials={userInitials(sub.user)}
+                          className="shrink-0"
+                        />
                         <div className="min-w-0">
                           <p
                             className="text-label-sm text-on-surface font-medium truncate"
@@ -419,14 +417,13 @@ export default function SubmissionsPage() {
                 >
                   <div className="flex items-start justify-between gap-sm mb-sm">
                     <div className="flex items-center gap-sm min-w-0 flex-1">
-                      <AvatarFrame frameKey={sub.user?.equippedFrame} className="shrink-0">
-                        <Avatar
-                          size="sm"
-                          src={sub.user?.avatarUrl}
-                          initials={userInitials(sub.user)}
-                          className={`shrink-0 ${sub.user?.equippedFrame ? '' : 'ring-2 ring-outline'}`}
-                        />
-                      </AvatarFrame>
+                      <Avatar
+                        size="sm"
+                        shape="rounded"
+                        src={sub.user?.avatarUrl}
+                        initials={userInitials(sub.user)}
+                        className="shrink-0"
+                      />
                       <div className="min-w-0">
                         <p
                           className="text-label-sm text-on-surface font-medium truncate"
@@ -575,9 +572,7 @@ function SubmissionModal({
           )}
           {sub.user && (
             <div className="flex items-center gap-xs text-label-sm text-on-surface ml-auto">
-              <AvatarFrame frameKey={sub.user.equippedFrame}>
-                <Avatar size="sm" src={sub.user.avatarUrl} initials={userInitials(sub.user)} className={sub.user.equippedFrame ? '' : 'ring-2 ring-outline'} />
-              </AvatarFrame>
+              <Avatar size="sm" shape="rounded" src={sub.user.avatarUrl} initials={userInitials(sub.user)} />
               <span className="font-medium" style={sub.user.nameColor ? { color: sub.user.nameColor } : undefined}>
                 {userName(sub.user)}
               </span>

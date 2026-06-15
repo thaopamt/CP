@@ -58,8 +58,13 @@ export default function ShopListPage() {
               )}
             </div>
             <div className="min-w-0">
-              <div className="font-semibold text-on-surface truncate" title={it.name}>
+              <div className="font-semibold text-on-surface truncate flex items-center gap-1.5" title={it.name}>
                 {it.name}
+                {it.minLevel > 0 && (
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-surface-container-high px-1.5 py-0.5 text-[10px] font-bold text-on-surface-variant">
+                    <Icon name="lock" size={11} /> Lv {it.minLevel}
+                  </span>
+                )}
               </div>
               <div className="font-mono text-[12px] text-on-surface-variant truncate">{it.code}</div>
             </div>

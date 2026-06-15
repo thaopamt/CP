@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/auth.store';
 import { useUIStore } from '../stores/ui.store';
 import { useStudentLivePresence } from '../hooks/useStudentLivePresence';
 import { useStudentDashboard } from '../api/student.queries';
+import { useUnreadBlogCount } from '../api/blog.queries';
 import { GamificationCelebration } from '../components/GamificationCelebration';
 import { LogoutButton, UserMenu } from './_shared';
 
@@ -48,6 +49,8 @@ export default function StudentLayout() {
   const { isSidebarCollapsed, toggleSidebar } = useUIStore();
   const location = useLocation();
   const { data: dashboard } = useStudentDashboard();
+  const { data: unreadBlog } = useUnreadBlogCount();
+  const blogUnread = unreadBlog?.count ?? 0;
 
   const sidebarWidth = isSidebarCollapsed ? 'w-[80px]' : 'w-[240px] lg:w-[280px]';
   const marginLeft = isSidebarCollapsed ? 'md:ml-[80px]' : 'md:ml-[240px] lg:ml-[280px]';
@@ -87,26 +90,37 @@ export default function StudentLayout() {
         </div>
 
         <div className="flex flex-col gap-xs flex-1 mt-sm">
-          {NAV.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              title={isSidebarCollapsed ? t(item.key) : undefined}
-              className={({ isActive }) =>
-                [
-                  'flex items-center py-sm rounded-2xl transition-all text-label-sm overflow-hidden',
-                  isSidebarCollapsed ? 'justify-center px-0' : 'gap-md px-md',
-                  isActive
-                    ? 'bg-primary-container text-on-primary-container font-bold'
-                    : 'text-on-surface-variant hover:bg-surface-container-highest',
-                ].join(' ')
-              }
-            >
-              <span className="material-symbols-outlined shrink-0">{item.icon}</span>
-              {!isSidebarCollapsed && <span className="truncate">{t(item.key)}</span>}
-            </NavLink>
-          ))}
+          {NAV.map((item) => {
+            const showBadge = item.to === '/student/blog' && blogUnread > 0;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                title={isSidebarCollapsed ? t(item.key) : undefined}
+                className={({ isActive }) =>
+                  [
+                    'relative flex items-center py-sm rounded-2xl transition-all text-label-sm overflow-hidden',
+                    isSidebarCollapsed ? 'justify-center px-0' : 'gap-md px-md',
+                    isActive
+                      ? 'bg-primary-container text-on-primary-container font-bold'
+                      : 'text-on-surface-variant hover:bg-surface-container-highest',
+                  ].join(' ')
+                }
+              >
+                <span className="material-symbols-outlined shrink-0">{item.icon}</span>
+                {!isSidebarCollapsed && <span className="truncate">{t(item.key)}</span>}
+                {showBadge &&
+                  (isSidebarCollapsed ? (
+                    <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-error" />
+                  ) : (
+                    <span className="ml-auto min-w-[20px] h-5 px-1.5 grid place-items-center rounded-full bg-error text-white text-[11px] font-bold shrink-0">
+                      {blogUnread > 99 ? '99+' : blogUnread}
+                    </span>
+                  ))}
+              </NavLink>
+            );
+          })}
         </div>
 
         <LogoutButton />
@@ -170,7 +184,7 @@ export default function StudentLayout() {
             aria-label={t(item.key)}
             className={({ isActive }) =>
               [
-                'min-h-[48px] min-w-[48px] grid place-items-center rounded-full transition-all',
+                'relative min-h-[48px] min-w-[48px] grid place-items-center rounded-full transition-all',
                 isActive
                   ? 'bg-tertiary-container text-on-tertiary-container scale-110'
                   : 'text-on-surface-variant hover:bg-surface-container-highest',
@@ -178,6 +192,9 @@ export default function StudentLayout() {
             }
           >
             <span className="material-symbols-outlined">{item.icon}</span>
+            {item.to === '/student/blog' && blogUnread > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-error border-2 border-surface-container-low" />
+            )}
           </NavLink>
         ))}
       </nav>

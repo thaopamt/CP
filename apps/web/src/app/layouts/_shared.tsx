@@ -29,13 +29,13 @@ export function UserAvatar({
   if (!user) return <div className={`${dim} rounded-full bg-surface-container-high`} />;
   const initials = `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase();
   return (
-    <AvatarFrame frameKey={frame}>
+    <AvatarFrame frameKey={frame} shape={user.avatarUrl ? 'rounded' : 'circle'}>
       {user.avatarUrl ? (
         <img
           src={user.avatarUrl}
           alt=""
           title={fullName(user)}
-          className={`${dim} rounded-full object-cover border border-outline-variant/40`}
+          className={`${dim} rounded-xl object-contain`}
         />
       ) : (
         <div

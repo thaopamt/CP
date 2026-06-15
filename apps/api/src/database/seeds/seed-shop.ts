@@ -14,13 +14,67 @@ interface ShopSeed {
   name: string;
   description: string;
   icon: string;
+  imageUrl?: string | null;
   kind: ShopItemKind;
   category: ShopItemCategory;
   rarity: BadgeRarity;
   price: number;
+  minLevel?: number;
   payload?: IShopItemPayload | null;
   sortOrder: number;
 }
+
+// ── Characters ────────────────────────────────────────────────────────────────
+// Avatar characters. Images are static SVGs served by the web app from
+// apps/web/public/character/<gender>/<stem>.svg. Equipping one replaces the
+// student's avatar everywhere. 15 tiers × 2 genders.
+// Tier i (0-based) unlocks at level i*5: Tân thủ Lv0, Đồng Lv5, Sắt Lv10, … Thần thánh Lv70.
+const CHARACTER_TIERS: { stem: string; label: string; rarity: BadgeRarity; price: number }[] = [
+  { stem: '1-new-biew', label: 'Tân thủ', rarity: BadgeRarity.COMMON, price: 100 },
+  { stem: '2-brown', label: 'Đồng', rarity: BadgeRarity.COMMON, price: 150 },
+  { stem: '3-iron', label: 'Sắt', rarity: BadgeRarity.COMMON, price: 200 },
+  { stem: '4-silver', label: 'Bạc', rarity: BadgeRarity.RARE, price: 300 },
+  { stem: '5-gold', label: 'Vàng', rarity: BadgeRarity.RARE, price: 400 },
+  { stem: '6-platinum', label: 'Bạch kim', rarity: BadgeRarity.RARE, price: 500 },
+  { stem: '7-diamond', label: 'Kim cương', rarity: BadgeRarity.EPIC, price: 700 },
+  { stem: '8-emerald', label: 'Ngọc lục bảo', rarity: BadgeRarity.EPIC, price: 800 },
+  { stem: '9-ruby', label: 'Hồng ngọc', rarity: BadgeRarity.EPIC, price: 900 },
+  { stem: '10-turquoise', label: 'Lam ngọc', rarity: BadgeRarity.EPIC, price: 1000 },
+  { stem: '11-amethyst', label: 'Thạch anh tím', rarity: BadgeRarity.EPIC, price: 1100 },
+  { stem: '12-royal', label: 'Hoàng gia', rarity: BadgeRarity.LEGENDARY, price: 1400 },
+  { stem: '13-legend', label: 'Huyền thoại', rarity: BadgeRarity.LEGENDARY, price: 1700 },
+  { stem: '14-myth', label: 'Thần thoại', rarity: BadgeRarity.LEGENDARY, price: 2000 },
+  { stem: '15-divine', label: 'Thần thánh', rarity: BadgeRarity.LEGENDARY, price: 2500 },
+];
+
+const GENDERS: { key: 'male' | 'female'; code: string; label: string }[] = [
+  { key: 'male', code: 'M', label: 'Nam' },
+  { key: 'female', code: 'F', label: 'Nữ' },
+];
+
+const CHARACTER_ITEMS: ShopSeed[] = GENDERS.flatMap((g, gi) =>
+  CHARACTER_TIERS.map((tier, ti) => {
+    const suffix = tier.stem.replace(/^\d+-/, '').replace(/-/g, '_').toUpperCase();
+    const minLevel = ti * 5;
+    return {
+      code: `CHAR_${g.code}_${suffix}`,
+      name: `Nhân vật ${tier.label} (${g.label})`,
+      description:
+        minLevel > 0
+          ? `Nhân vật cấp ${tier.label} — mở khoá ở Level ${minLevel}. Thay ảnh đại diện của bạn.`
+          : `Nhân vật cấp ${tier.label} — thay ảnh đại diện của bạn ở mọi nơi.`,
+      icon: 'person',
+      imageUrl: `/character/${g.key}/${tier.stem}.svg`,
+      kind: ShopItemKind.COSMETIC,
+      category: ShopItemCategory.CHARACTER,
+      rarity: tier.rarity,
+      price: tier.price,
+      minLevel,
+      payload: null,
+      sortOrder: 100 + gi * 100 + ti,
+    };
+  }),
+);
 
 const ITEMS: ShopSeed[] = [
   // ── Name colors ─────────────────────────────────────────────────────────────
@@ -74,6 +128,9 @@ const ITEMS: ShopSeed[] = [
   { code: 'XP_PACK_S', name: 'Gói XP nhỏ', description: 'Nhận ngay +100 XP.', icon: 'bolt', kind: ShopItemKind.CONSUMABLE, category: ShopItemCategory.CONSUMABLE, rarity: BadgeRarity.COMMON, price: 60, payload: { xp: 100 }, sortOrder: 40 },
   { code: 'XP_PACK_L', name: 'Gói XP lớn', description: 'Nhận ngay +500 XP.', icon: 'electric_bolt', kind: ShopItemKind.CONSUMABLE, category: ShopItemCategory.CONSUMABLE, rarity: BadgeRarity.RARE, price: 260, payload: { xp: 500 }, sortOrder: 41 },
   { code: 'GEM_BOX', name: 'Hộp quà đá quý', description: 'Mở ra ngẫu nhiên 20–200 đá quý. Cầu may!', icon: 'card_giftcard', kind: ShopItemKind.CONSUMABLE, category: ShopItemCategory.CONSUMABLE, rarity: BadgeRarity.EPIC, price: 100, payload: { gemsMin: 20, gemsMax: 200 }, sortOrder: 42 },
+
+  // ── Characters (avatars) ───────────────────────────────────────────────────────
+  ...CHARACTER_ITEMS,
 ];
 
 async function run() {
@@ -96,10 +153,12 @@ async function run() {
           name: it.name,
           description: it.description,
           icon: it.icon,
+          imageUrl: it.imageUrl ?? null,
           kind: it.kind,
           category: it.category,
           rarity: it.rarity,
           price: it.price,
+          minLevel: it.minLevel ?? 0,
           payload: it.payload ?? null,
           sortOrder: it.sortOrder,
           isActive: true,
@@ -113,10 +172,12 @@ async function run() {
         name: it.name,
         description: it.description,
         icon: it.icon,
+        imageUrl: it.imageUrl ?? null,
         kind: it.kind,
         category: it.category,
         rarity: it.rarity,
         price: it.price,
+        minLevel: it.minLevel ?? 0,
         payload: it.payload ?? null,
         sortOrder: it.sortOrder,
         isActive: true,

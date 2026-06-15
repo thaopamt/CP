@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -14,6 +16,7 @@ import {
   BlogListParams,
   IBlogListResponse,
   IBlogPost,
+  IBlogUnreadCount,
   JwtPayload,
   PublishStatus,
   UserRole,
@@ -44,6 +47,23 @@ export class BlogController {
   @Get('slug/:slug')
   getPublishedBySlug(@Param('slug') slug: string): Promise<IBlogPost> {
     return this.blog.getPublishedBySlug(slug);
+  }
+
+  /** Published posts the current user hasn't opened — for the nav badge. */
+  @Get('unread-count')
+  async unreadCount(@CurrentUser() user: JwtPayload): Promise<IBlogUnreadCount> {
+    return { count: await this.blog.getUnreadCount(user.sub) };
+  }
+
+  /** Mark a post as read by the current user. */
+  @Post(':id/read')
+  @HttpCode(HttpStatus.OK)
+  async markRead(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<{ success: true }> {
+    await this.blog.markRead(user.sub, id);
+    return { success: true };
   }
 
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
