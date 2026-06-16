@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ICreateQuestPayload, IUpdateQuestPayload } from '@cp/shared';
 import { questsApi } from './quests.api';
+import { queryStaleTime } from './query-cache';
 
 export const questQueryKeys = {
   all: ['quests'] as const,
@@ -14,6 +15,7 @@ export function useQuests(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: questQueryKeys.list(params),
     queryFn: () => questsApi.list(params).then((res) => res.data),
+    staleTime: queryStaleTime.reference,
   });
 }
 
@@ -22,6 +24,7 @@ export function useQuest(id: string) {
     queryKey: questQueryKeys.detail(id),
     queryFn: () => questsApi.get(id).then((res) => res.data),
     enabled: !!id,
+    staleTime: queryStaleTime.reference,
   });
 }
 
@@ -29,6 +32,7 @@ export function useQuestOptions() {
   return useQuery({
     queryKey: questQueryKeys.options(),
     queryFn: () => questsApi.options().then((res) => res.data),
+    staleTime: queryStaleTime.reference,
   });
 }
 
@@ -63,6 +67,7 @@ export function useMyQuests() {
   return useQuery({
     queryKey: questQueryKeys.studentQuests(),
     queryFn: () => questsApi.getMyQuests().then((res) => res.data),
+    staleTime: queryStaleTime.dashboard,
   });
 }
 
@@ -75,6 +80,7 @@ export function useClaimQuestReward() {
       void qc.invalidateQueries({ queryKey: ['students', 'dashboard'] });
       void qc.invalidateQueries({ queryKey: ['student-badges'] });
       void qc.invalidateQueries({ queryKey: ['leaderboard'] });
+      void qc.invalidateQueries({ queryKey: ['shop'] });
     },
   });
 }

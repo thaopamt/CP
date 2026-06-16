@@ -7,6 +7,7 @@ import {
 } from '@cp/shared';
 
 import { financeApi } from './finance.api';
+import { queryStaleTime } from './query-cache';
 
 export const financeKeys = {
   all: ['finance'] as const,
@@ -18,7 +19,7 @@ export function useFinanceMonthlyReport(params: IFinanceMonthlyReportParams) {
     queryKey: financeKeys.monthly(params),
     queryFn: () => financeApi.monthly(params),
     placeholderData: keepPreviousData,
-    staleTime: 15_000,
+    staleTime: queryStaleTime.adminList,
   });
 }
 
@@ -32,7 +33,7 @@ export function useTeacherFinanceMonthlyReport(params: IFinanceMonthlyReportPara
     queryKey: teacherFinanceKeys.monthly(params),
     queryFn: () => financeApi.teacherMonthly(params),
     placeholderData: keepPreviousData,
-    staleTime: 15_000,
+    staleTime: queryStaleTime.adminList,
   });
 }
 
@@ -43,6 +44,7 @@ export function useSetFinanceMonthlyAmountDue() {
       financeApi.setMonthlyAmountDue(studentId, { month, amountDue }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: financeKeys.all });
+      void qc.invalidateQueries({ queryKey: teacherFinanceKeys.all });
     },
   });
 }
@@ -54,6 +56,7 @@ export function useResetFinanceMonthlyAmountDue() {
       financeApi.resetMonthlyAmountDue(studentId, month),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: financeKeys.all });
+      void qc.invalidateQueries({ queryKey: teacherFinanceKeys.all });
     },
   });
 }
@@ -93,6 +96,7 @@ export function useSetFinanceMonthlyStatus() {
     },
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: financeKeys.all });
+      void qc.invalidateQueries({ queryKey: teacherFinanceKeys.all });
     },
   });
 }

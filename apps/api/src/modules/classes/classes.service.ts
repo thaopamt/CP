@@ -8,12 +8,14 @@ import { ClassEntity } from './class.entity';
 import { Enrollment } from './enrollment.entity';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
+import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 @Injectable()
 export class ClassesService extends TypeOrmCrudService<ClassEntity> {
   constructor(
     @InjectRepository(ClassEntity) repo: Repository<ClassEntity>,
     @InjectRepository(Enrollment) private readonly enrollments: Repository<Enrollment>,
+    private readonly cache: SystemCacheService,
   ) {
     super(repo);
   }
@@ -30,7 +32,9 @@ export class ClassesService extends TypeOrmCrudService<ClassEntity> {
       enrolledCount: 0,
       status: dto.status ?? ClassStatus.UPCOMING,
     });
-    return this.repo.save(cls);
+    const saved = await this.repo.save(cls);
+    this.bumpClassTags(saved.id);
+    return saved;
   }
 
   /**
@@ -46,7 +50,9 @@ export class ClassesService extends TypeOrmCrudService<ClassEntity> {
     if (dto.description !== undefined) cls.description = dto.description ?? null;
     if (dto.status !== undefined) cls.status = dto.status;
 
-    return this.repo.save(cls);
+    const saved = await this.repo.save(cls);
+    this.bumpClassTags(id);
+    return saved;
   }
 
   /**
@@ -60,5 +66,18 @@ export class ClassesService extends TypeOrmCrudService<ClassEntity> {
     const next: Partial<ClassEntity> = { enrolledCount: total };
     if (cls.status === ClassStatus.FULL) next.status = ClassStatus.ACTIVE;
     await this.repo.update({ id: classId }, next);
+    this.bumpClassTags(classId);
+  }
+
+  private bumpClassTags(classId: string): void {
+    void this.cache.bumpTags([
+      'classes:catalog',
+      'curriculum:catalog',
+      'attendance:schedule',
+      'finance:monthly',
+      `class:${classId}:meta`,
+      `class:${classId}:courses`,
+      `class:${classId}:leaderboard`,
+    ]);
   }
 }

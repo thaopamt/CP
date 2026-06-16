@@ -9,6 +9,8 @@ import { ICreateStudentSchedulePayload } from '@cp/shared';
 
 import { studentScheduleApi } from './studentSchedule.api';
 import { attendanceKeys } from './attendance.queries';
+import { financeKeys, teacherFinanceKeys } from './finance.queries';
+import { queryStaleTime } from './query-cache';
 
 export const scheduleQueryKeys = {
   schedule: (studentId: string) => ['studentSchedule', studentId] as const,
@@ -19,6 +21,7 @@ export function useStudentSchedule(studentId: string | undefined) {
     queryKey: studentId ? scheduleQueryKeys.schedule(studentId) : ['studentSchedule', 'noop'],
     queryFn: () => studentScheduleApi.getSchedule(studentId as string),
     enabled: !!studentId,
+    staleTime: queryStaleTime.userScoped,
   });
 }
 
@@ -30,6 +33,8 @@ export function useAddCustomSession(studentId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: scheduleQueryKeys.schedule(studentId) });
       void qc.invalidateQueries({ queryKey: attendanceKeys.allCustom() });
+      void qc.invalidateQueries({ queryKey: financeKeys.all });
+      void qc.invalidateQueries({ queryKey: teacherFinanceKeys.all });
     },
   });
 }
@@ -42,6 +47,8 @@ export function useUpdateCustomSession(studentId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: scheduleQueryKeys.schedule(studentId) });
       void qc.invalidateQueries({ queryKey: attendanceKeys.allCustom() });
+      void qc.invalidateQueries({ queryKey: financeKeys.all });
+      void qc.invalidateQueries({ queryKey: teacherFinanceKeys.all });
     },
   });
 }
@@ -54,6 +61,8 @@ export function useDeleteCustomSession(studentId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: scheduleQueryKeys.schedule(studentId) });
       void qc.invalidateQueries({ queryKey: attendanceKeys.allCustom() });
+      void qc.invalidateQueries({ queryKey: financeKeys.all });
+      void qc.invalidateQueries({ queryKey: teacherFinanceKeys.all });
     },
   });
 }
@@ -65,6 +74,8 @@ export function useClearCustomSchedule(studentId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: scheduleQueryKeys.schedule(studentId) });
       void qc.invalidateQueries({ queryKey: attendanceKeys.allCustom() });
+      void qc.invalidateQueries({ queryKey: financeKeys.all });
+      void qc.invalidateQueries({ queryKey: teacherFinanceKeys.all });
     },
   });
 }

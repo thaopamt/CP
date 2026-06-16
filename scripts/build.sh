@@ -30,9 +30,9 @@ fi
 echo "→ Building Docker images (API & Web)..."
 docker compose build api web
 
-echo "→ Restarting services (API & Web)..."
+echo "→ Restarting services (Redis, API & Web)..."
 # docker compose down --remove-orphans
-docker compose up -d api web
+docker compose up -d redis api web
 
 # ── Wait for API readiness ───────────────────────────────────────────
 echo "→ Waiting for API to be ready..."

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { IExamSubmitPayload } from '@cp/shared';
 import { studentExamsApi } from './studentExams.api';
+import { queryStaleTime } from './query-cache';
 
 export const studentExamKeys = {
   all: ['my-exams'] as const,
@@ -13,7 +14,11 @@ export const studentExamKeys = {
 };
 
 export function useMyExams() {
-  return useQuery({ queryKey: studentExamKeys.list(), queryFn: () => studentExamsApi.myExams().then((r) => r.data) });
+  return useQuery({
+    queryKey: studentExamKeys.list(),
+    queryFn: () => studentExamsApi.myExams().then((r) => r.data),
+    staleTime: queryStaleTime.userScoped,
+  });
 }
 
 export function useTakeExam(id: string) {
@@ -21,6 +26,7 @@ export function useTakeExam(id: string) {
     queryKey: studentExamKeys.take(id),
     queryFn: () => studentExamsApi.take(id).then((r) => r.data),
     enabled: !!id,
+    staleTime: queryStaleTime.adminList,
   });
 }
 
@@ -37,6 +43,7 @@ export function useStudentExamProblem(id: string, examProblemId: string | null) 
     queryKey: studentExamKeys.problem(id, examProblemId ?? ''),
     queryFn: () => studentExamsApi.problem(id, examProblemId as string).then((r) => r.data),
     enabled: !!id && !!examProblemId,
+    staleTime: queryStaleTime.adminList,
   });
 }
 
@@ -45,6 +52,7 @@ export function useMyExamSubmissions(id: string) {
     queryKey: studentExamKeys.submissions(id),
     queryFn: () => studentExamsApi.mySubmissions(id).then((r) => r.data),
     enabled: !!id,
+    staleTime: queryStaleTime.realtime,
   });
 }
 
@@ -65,6 +73,7 @@ export function useStudentExamLeaderboard(id: string) {
     queryFn: () => studentExamsApi.leaderboard(id).then((r) => r.data),
     enabled: !!id,
     refetchInterval: 15_000,
+    staleTime: queryStaleTime.realtime,
   });
 }
 
@@ -73,5 +82,6 @@ export function useMyExamResult(id: string) {
     queryKey: studentExamKeys.result(id),
     queryFn: () => studentExamsApi.result(id).then((r) => r.data),
     enabled: !!id,
+    staleTime: queryStaleTime.userScoped,
   });
 }

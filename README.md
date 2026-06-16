@@ -72,6 +72,13 @@ client uses a relative `baseURL` in dev (no CORS preflight headache).
 | Shared | TypeScript 5 · `@cp/shared` types · `@cp/ui` components · `@cp/config` tokens |
 | Tooling | Nx 20 · pnpm · ESLint · Prettier |
 
+## Caching
+
+- The API uses `SystemCacheService` for explicit service-level caching with tag-version invalidation.
+- Docker/prod uses Redis via `REDIS_URL=redis://redis:6379`; local dev falls back to in-memory cache when `REDIS_URL` is empty.
+- Protected API JSON responses send `Cache-Control: no-store`; hashed web assets and uploaded UUID files are browser-cacheable.
+- React Query cache remains in memory only, with no localStorage persistence for API data.
+
 ## Key design decisions
 
 See `~/.claude/plans/vai-tr-b-n-l-stateless-wombat.md` for the full plan with pitfalls.

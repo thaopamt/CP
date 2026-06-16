@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { typeOrmConfig } from '../config/typeorm.config';
 import { envValidationSchema } from '../config/env.validation';
+import { SystemCacheModule } from '../common/cache/system-cache.module';
 import { AuthModule } from '../modules/auth/auth.module';
 import { UsersModule } from '../modules/users/users.module';
 import { ClassesModule } from '../modules/classes/classes.module';
@@ -32,6 +33,7 @@ import { BlogModule } from '../modules/blog/blog.module';
       inject: [ConfigService],
       useFactory: typeOrmConfig,
     }),
+    SystemCacheModule,
     AuthModule,
     UsersModule,
     AssignmentsModule,

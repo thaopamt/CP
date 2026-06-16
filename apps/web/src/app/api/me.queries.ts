@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChangePasswordRequest, UpdateMePayload } from '@cp/shared';
 
 import { meApi } from './me.api';
+import { queryStaleTime } from './query-cache';
 
 export const meQueryKeys = {
   current: () => ['me', 'current'] as const,
@@ -11,6 +12,7 @@ export function useMe() {
   return useQuery({
     queryKey: meQueryKeys.current(),
     queryFn: () => meApi.get(),
+    staleTime: queryStaleTime.userScoped,
   });
 }
 

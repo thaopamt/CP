@@ -19,6 +19,7 @@ import {
   classCoursesApi,
   coursesApi,
 } from './curriculum.api';
+import { queryStaleTime } from './query-cache';
 
 export const curriculumKeys = {
   assignments: {
@@ -44,7 +45,7 @@ export function useAssignmentsList(params: AssignmentsListParams) {
     queryKey: curriculumKeys.assignments.list(params),
     queryFn: () => assignmentsApi.list(params),
     placeholderData: keepPreviousData,
-    staleTime: 15_000,
+    staleTime: queryStaleTime.reference,
   });
 }
 
@@ -53,6 +54,7 @@ export function useAssignment(id: string | undefined) {
     queryKey: id ? curriculumKeys.assignments.detail(id) : ['assignments', 'detail', 'noop'],
     queryFn: () => assignmentsApi.get(id as string),
     enabled: !!id,
+    staleTime: queryStaleTime.reference,
   });
 }
 
@@ -61,6 +63,7 @@ export function useImplicitClasses(id: string | undefined) {
     queryKey: id ? curriculumKeys.assignments.implicitClasses(id) : ['assignments', 'implicit-classes', 'noop'],
     queryFn: () => assignmentsApi.getImplicitClasses(id as string),
     enabled: !!id,
+    staleTime: queryStaleTime.reference,
   });
 }
 
@@ -69,6 +72,7 @@ export function useAssignmentTestcaseManifest(id: string | undefined, enabled = 
     queryKey: id ? curriculumKeys.assignments.testcaseManifest(id) : ['assignments', 'testcases', 'manifest', 'noop'],
     queryFn: () => assignmentsApi.getTestcaseManifest(id as string),
     enabled: !!id && enabled,
+    staleTime: queryStaleTime.reference,
   });
 }
 
@@ -113,7 +117,7 @@ export function useCoursesList(params: CoursesListParams) {
     queryKey: curriculumKeys.courses.list(params),
     queryFn: () => coursesApi.list(params),
     placeholderData: keepPreviousData,
-    staleTime: 15_000,
+    staleTime: queryStaleTime.reference,
   });
 }
 
@@ -122,6 +126,7 @@ export function useCourse(id: string | undefined) {
     queryKey: id ? curriculumKeys.courses.detail(id) : ['courses', 'detail', 'noop'],
     queryFn: () => coursesApi.get(id as string),
     enabled: !!id,
+    staleTime: queryStaleTime.reference,
   });
 }
 
@@ -152,6 +157,7 @@ export function useCourseAssignments(courseId: string | undefined) {
     queryKey: courseId ? curriculumKeys.courses.assignments(courseId) : ['courses', 'assignments', 'noop'],
     queryFn: () => coursesApi.listAssignments(courseId as string),
     enabled: !!courseId,
+    staleTime: queryStaleTime.reference,
   });
 }
 
@@ -195,6 +201,7 @@ export function useClassCourses(classId: string | undefined) {
     queryKey: classId ? curriculumKeys.classCourses(classId) : ['classes', 'courses', 'noop'],
     queryFn: () => classCoursesApi.listForClass(classId as string),
     enabled: !!classId,
+    staleTime: queryStaleTime.reference,
   });
 }
 
@@ -210,7 +217,7 @@ export function useClassCourseProgress(
         : ['classes', 'courses', 'my-progress', 'noop'],
     queryFn: () => classCoursesApi.myProgress(classId as string, courseId as string),
     enabled: !!classId && !!courseId && enabled,
-    staleTime: 15_000,
+    staleTime: queryStaleTime.userScoped,
   });
 }
 

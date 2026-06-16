@@ -15,7 +15,12 @@ function agg(userId: string, over: Partial<ParticipantAggregate> = {}): Particip
 }
 
 // rank() is pure — repos are never touched.
-const svc = new ExamRankingService(null as never, null as never, new ExamScoringService());
+const svc = new ExamRankingService(
+  null as never,
+  null as never,
+  new ExamScoringService(),
+  null as never,
+);
 
 describe('ExamRankingService.rank', () => {
   it('SCORE_THEN_TIME: higher score first, earlier time breaks ties', () => {

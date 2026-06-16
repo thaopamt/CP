@@ -20,6 +20,7 @@ import { Assignment } from '../assignments/assignment.entity';
 import { Submission } from '../submissions/submission.entity';
 import { StudentAssignmentProgress } from '../submissions/student-assignment-progress.entity';
 import { StudentSchedule } from './student-schedule.entity';
+import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 @Injectable()
 export class StudentsService extends TypeOrmCrudService<StudentProfile> {
@@ -28,6 +29,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Guardian) private readonly guardians: Repository<Guardian>,
     private readonly ds: DataSource,
+    private readonly cache: SystemCacheService,
   ) {
     super(repo);
   }
@@ -46,7 +48,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
     }
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
-    return this.ds.transaction(async (tx) => {
+    const created = await this.ds.transaction(async (tx) => {
       const userRepo = tx.getRepository(User);
       const profileRepo = tx.getRepository(StudentProfile);
       const guardianRepo = tx.getRepository(Guardian);
@@ -97,13 +99,22 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       if (!loaded) throw new NotFoundException();
       return loaded;
     });
+    void this.cache.bumpTags([
+      'students:list',
+      'leaderboard:global',
+      'finance:monthly',
+      'attendance:schedule',
+      `student:${created.userId}:profile`,
+      `student:${created.userId}:dashboard`,
+    ]);
+    return created;
   }
 
   async updateStudent(id: string, dto: UpdateStudentDto): Promise<StudentProfile> {
     const profile = await this.repo.findOne({ where: { id }, relations: ['user', 'guardians'] });
     if (!profile) throw new NotFoundException(`Student ${id} not found`);
 
-    return this.ds.transaction(async (tx) => {
+    const updated = await this.ds.transaction(async (tx) => {
       const userRepo = tx.getRepository(User);
       const profileRepo = tx.getRepository(StudentProfile);
       const guardianRepo = tx.getRepository(Guardian);
@@ -161,6 +172,15 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       if (!loaded) throw new NotFoundException();
       return loaded;
     });
+    void this.cache.bumpTags([
+      'students:list',
+      'leaderboard:global',
+      'finance:monthly',
+      'attendance:schedule',
+      `student:${updated.userId}:profile`,
+      `student:${updated.userId}:dashboard`,
+    ]);
+    return updated;
   }
 
   private splitFullName(fullName: string): Pick<User, 'firstName' | 'lastName'> {
@@ -175,10 +195,19 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
   }
 
   async getStudentByUserId(userId: string): Promise<StudentProfile> {
-    const profile = await this.repo.findOne({
-      where: { userId },
-      relations: ['user', 'guardians'],
-    });
+    const profile = await this.cache.remember(
+      {
+        namespace: 'student-profile-by-user',
+        parts: [userId],
+        tags: [`student:${userId}:profile`],
+        ttlMs: 30_000,
+      },
+      () =>
+        this.repo.findOne({
+          where: { userId },
+          relations: ['user', 'guardians'],
+        }),
+    );
     if (!profile) throw new NotFoundException(`Student profile not found for user ${userId}`);
     return profile;
   }
@@ -197,7 +226,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       }
     }
 
-    return this.ds.transaction(async (tx) => {
+    const updated = await this.ds.transaction(async (tx) => {
       const userRepo = tx.getRepository(User);
       const profileRepo = tx.getRepository(StudentProfile);
 
@@ -219,6 +248,8 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       if (!loaded) throw new NotFoundException();
       return loaded;
     });
+    void this.cache.bumpTags([`student:${userId}:profile`, `student:${userId}:dashboard`, 'students:list']);
+    return updated;
   }
 
   async resetPassword(studentId: string, newPassword: string): Promise<void> {
@@ -238,10 +269,23 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
 
     profile.defaultLanguage = lang;
     await this.repo.save(profile);
+    void this.cache.bumpTags([`student:${userId}:dashboard`, `student:${userId}:profile`]);
     return { defaultLanguage: lang };
   }
 
   async getDashboardData(userId: string): Promise<any> {
+    return this.cache.remember(
+      {
+        namespace: 'student-dashboard',
+        parts: [userId],
+        tags: [`student:${userId}:dashboard`, `student:${userId}:profile`, 'leaderboard:global'],
+        ttlMs: 20_000,
+      },
+      () => this.buildDashboardData(userId),
+    );
+  }
+
+  private async buildDashboardData(userId: string): Promise<any> {
     const profile = await this.repo.findOne({ where: { userId }, relations: ['user'] });
     if (!profile) throw new NotFoundException(`Student profile not found for user ${userId}`);
 

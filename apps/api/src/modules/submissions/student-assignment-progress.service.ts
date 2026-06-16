@@ -6,12 +6,14 @@ import { Repository } from 'typeorm';
 
 import { Submission } from './submission.entity';
 import { StudentAssignmentProgress } from './student-assignment-progress.entity';
+import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 @Injectable()
 export class StudentAssignmentProgressService {
   constructor(
     @InjectRepository(StudentAssignmentProgress)
     private readonly progressRepo: Repository<StudentAssignmentProgress>,
+    private readonly cache: SystemCacheService,
   ) {}
 
   async recordSubmissionResult(submission: Submission): Promise<void> {
@@ -87,5 +89,6 @@ export class StudentAssignmentProgressService {
         randomUUID(),
       ],
     );
+    await this.cache.bumpTags([`student:${submission.userId}:dashboard`]);
   }
 }

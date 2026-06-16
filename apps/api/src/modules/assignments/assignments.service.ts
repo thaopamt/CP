@@ -6,19 +6,23 @@ import { Repository, Brackets } from 'typeorm';
 import { Assignment } from './assignment.entity';
 import { CreateAssignmentDto, UpdateAssignmentDto } from './dto/create-assignment.dto';
 import { ITestcaseFilePair, TestcaseStorageService } from '../testcases/testcase-storage.service';
+import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 @Injectable()
 export class AssignmentsService extends TypeOrmCrudService<Assignment> {
   constructor(
     @InjectRepository(Assignment) private readonly assignments: Repository<Assignment>,
     private readonly testcaseStorage: TestcaseStorageService,
+    private readonly cache: SystemCacheService,
   ) {
     super(assignments);
   }
 
   /** Public create — used by the Override('createOneBase') endpoint */
   async createAssignment(dto: CreateAssignmentDto): Promise<Assignment> {
-    return this.assignments.save(this.assignments.create(dto));
+    const assignment = await this.assignments.save(this.assignments.create(dto));
+    await this.bumpAssignmentCaches(assignment.id);
+    return assignment;
   }
 
   async updateAssignment(id: string, dto: UpdateAssignmentDto): Promise<Assignment> {
@@ -28,6 +32,7 @@ export class AssignmentsService extends TypeOrmCrudService<Assignment> {
     if (dto.points !== undefined) {
       await this.refreshCourseTotalsForAssignment(id);
     }
+    await this.bumpAssignmentCaches(id);
     return out;
   }
 
@@ -71,6 +76,7 @@ export class AssignmentsService extends TypeOrmCrudService<Assignment> {
     const assignment = await this.getById(id);
     await this.assignments.delete({ id });
     await this.testcaseStorage.clear(id);
+    await this.bumpAssignmentCaches(id);
     return assignment;
   }
 
@@ -86,7 +92,9 @@ export class AssignmentsService extends TypeOrmCrudService<Assignment> {
     const assignment = await this.getById(id);
     const { count, testcases } = await this.testcaseStorage.replaceFromZip(id, zipBuffer);
     assignment.codingConfig = { ...(assignment.codingConfig ?? {}), hiddenTestCount: count };
-    return { assignment: await this.assignments.save(assignment), testcases };
+    const saved = await this.assignments.save(assignment);
+    await this.bumpAssignmentCaches(id);
+    return { assignment: saved, testcases };
   }
 
   /** Remove all hidden grading test cases for an assignment. */
@@ -94,7 +102,9 @@ export class AssignmentsService extends TypeOrmCrudService<Assignment> {
     const assignment = await this.getById(id);
     await this.testcaseStorage.clear(id);
     assignment.codingConfig = { ...(assignment.codingConfig ?? {}), hiddenTestCount: 0 };
-    return this.assignments.save(assignment);
+    const saved = await this.assignments.save(assignment);
+    await this.bumpAssignmentCaches(id);
+    return saved;
   }
 
   /** Read hidden grading test case contents (admin / allowed viewers only). */
@@ -107,6 +117,21 @@ export class AssignmentsService extends TypeOrmCrudService<Assignment> {
   }
 
   async getAssignmentsForStudent(
+    studentId: string,
+    filters: { page: number; limit: number; search?: string; category?: string; difficulty?: string }
+  ) {
+    return this.cache.remember(
+      {
+        namespace: 'student-assignments',
+        parts: [studentId, filters],
+        tags: ['assignments:catalog', `student:${studentId}:assignments`],
+        ttlMs: 30_000,
+      },
+      () => this.computeAssignmentsForStudent(studentId, filters),
+    );
+  }
+
+  private async computeAssignmentsForStudent(
     studentId: string,
     filters: { page: number; limit: number; search?: string; category?: string; difficulty?: string }
   ) {
@@ -161,15 +186,34 @@ export class AssignmentsService extends TypeOrmCrudService<Assignment> {
   }
 
   async getImplicitClasses(assignmentId: string): Promise<string[]> {
-    const raw = await this.assignments.query(
-      `
-      SELECT DISTINCT cc.class_id as id
-      FROM course_assignments ca
-      JOIN class_courses cc ON cc.course_id = ca.course_id
-      WHERE ca.assignment_id = $1
-      `,
-      [assignmentId]
+    return this.cache.remember(
+      {
+        namespace: 'assignment-implicit-classes',
+        parts: [assignmentId],
+        tags: ['curriculum:catalog', `assignment:${assignmentId}`],
+        ttlMs: 60_000,
+      },
+      async () => {
+        const raw = await this.assignments.query(
+          `
+          SELECT DISTINCT cc.class_id as id
+          FROM course_assignments ca
+          JOIN class_courses cc ON cc.course_id = ca.course_id
+          WHERE ca.assignment_id = $1
+          `,
+          [assignmentId]
+        );
+        return raw.map((r: any) => r.id);
+      },
     );
-    return raw.map((r: any) => r.id);
+  }
+
+  private async bumpAssignmentCaches(assignmentId: string): Promise<void> {
+    await this.cache.bumpTags([
+      'assignments:catalog',
+      'curriculum:catalog',
+      `assignment:${assignmentId}`,
+      'leaderboard:global',
+    ]);
   }
 }

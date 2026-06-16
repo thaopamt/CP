@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { submissionsApi, SubmissionListParams } from './submissions.api';
 import { ICodeExecutionRequest, ISubmitCodePayload } from '@cp/shared';
+import { queryStaleTime } from './query-cache';
 
 export function useRunCode() {
   return useMutation({
@@ -16,6 +17,11 @@ export function useSubmitCode() {
       queryClient.invalidateQueries({ queryKey: ['submissions', variables.assignmentId] });
       queryClient.invalidateQueries({ queryKey: ['submissions-all-my'] });
       queryClient.invalidateQueries({ queryKey: ['submissions-all'] });
+      queryClient.invalidateQueries({ queryKey: ['students', 'dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['student-quests'] });
+      queryClient.invalidateQueries({ queryKey: ['student-badges'] });
+      queryClient.invalidateQueries({ queryKey: ['shop'] });
     },
   });
 }
@@ -25,6 +31,7 @@ export function useSubmissions(assignmentId: string) {
     queryKey: ['submissions', assignmentId],
     queryFn: () => submissionsApi.getSubmissions(assignmentId),
     enabled: !!assignmentId,
+    staleTime: queryStaleTime.realtime,
   });
 }
 
@@ -35,6 +42,7 @@ export function useAllMySubmissions(params: SubmissionListParams = {}, enabled =
     queryFn: () => submissionsApi.getAllMySubmissions(params),
     placeholderData: keepPreviousData,
     enabled,
+    staleTime: queryStaleTime.realtime,
   });
 }
 
@@ -45,5 +53,6 @@ export function useAllSubmissions(params: SubmissionListParams = {}, enabled = t
     queryFn: () => submissionsApi.getAllSubmissions(params),
     placeholderData: keepPreviousData,
     enabled,
+    staleTime: queryStaleTime.realtime,
   });
 }

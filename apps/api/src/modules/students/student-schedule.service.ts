@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 
 import { StudentSchedule } from './student-schedule.entity';
 import { CreateStudentScheduleDto, UpdateStudentScheduleDto } from './dto/student-schedule.dto';
+import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 export interface ScheduleSessionDto {
   id: string;
@@ -27,6 +28,7 @@ export interface StudentScheduleResponse {
 export class StudentScheduleService {
   constructor(
     @InjectRepository(StudentSchedule) private readonly repo: Repository<StudentSchedule>,
+    private readonly cache: SystemCacheService,
   ) {}
 
   private toDto(s: StudentSchedule): ScheduleSessionDto {
@@ -48,27 +50,47 @@ export class StudentScheduleService {
    * Scheduling is explicit at the student level.
    */
   async getSchedule(studentId: string): Promise<StudentScheduleResponse> {
-    const custom = await this.repo.find({
-      where: { studentId },
-      relations: ['class'],
-      order: { dayOfWeek: 'ASC', startTime: 'ASC' },
-    });
-    const isCustom = custom.length > 0;
+    return this.cache.remember(
+      {
+        namespace: 'student-schedule',
+        parts: [studentId],
+        tags: [`student:${studentId}:schedule`, 'attendance:schedule'],
+        ttlMs: 30_000,
+      },
+      async () => {
+        const custom = await this.repo.find({
+          where: { studentId },
+          relations: ['class'],
+          order: { dayOfWeek: 'ASC', startTime: 'ASC' },
+        });
+        const isCustom = custom.length > 0;
 
-    return {
-      studentId,
-      isCustom,
-      sessions: custom.map((s) => this.toDto(s)),
-    };
+        return {
+          studentId,
+          isCustom,
+          sessions: custom.map((s) => this.toDto(s)),
+        };
+      },
+    );
   }
 
   async getCustomSessions(studentId: string): Promise<ScheduleSessionDto[]> {
-    const rows = await this.repo.find({
-      where: { studentId },
-      relations: ['class'],
-      order: { dayOfWeek: 'ASC', startTime: 'ASC' },
-    });
-    return rows.map((s) => this.toDto(s));
+    return this.cache.remember(
+      {
+        namespace: 'student-custom-schedule',
+        parts: [studentId],
+        tags: [`student:${studentId}:schedule`, 'attendance:schedule'],
+        ttlMs: 30_000,
+      },
+      async () => {
+        const rows = await this.repo.find({
+          where: { studentId },
+          relations: ['class'],
+          order: { dayOfWeek: 'ASC', startTime: 'ASC' },
+        });
+        return rows.map((s) => this.toDto(s));
+      },
+    );
   }
 
   async createCustomSession(studentId: string, dto: CreateStudentScheduleDto): Promise<ScheduleSessionDto> {
@@ -83,6 +105,7 @@ export class StudentScheduleService {
     const saved = await this.repo.save(row);
     // Reload to get eager class relation
     const loaded = await this.repo.findOne({ where: { id: saved.id }, relations: ['class'] });
+    await this.bumpScheduleCaches(studentId);
     return this.toDto(loaded!);
   }
 
@@ -99,6 +122,7 @@ export class StudentScheduleService {
 
     await this.repo.save(row);
     const loaded = await this.repo.findOne({ where: { id: sessionId }, relations: ['class'] });
+    await this.bumpScheduleCaches(row.studentId);
     return this.toDto(loaded!);
   }
 
@@ -106,9 +130,21 @@ export class StudentScheduleService {
     const row = await this.repo.findOne({ where: { id: sessionId } });
     if (!row) throw new NotFoundException(`Custom session ${sessionId} not found`);
     await this.repo.remove(row);
+    await this.bumpScheduleCaches(row.studentId);
   }
 
   async clearAllCustom(studentId: string): Promise<void> {
     await this.repo.delete({ studentId });
+    await this.bumpScheduleCaches(studentId);
+  }
+
+  private async bumpScheduleCaches(studentId: string): Promise<void> {
+    await this.cache.bumpTags([
+      `student:${studentId}:schedule`,
+      `student:${studentId}:dashboard`,
+      `attendance:student:${studentId}`,
+      'attendance:schedule',
+      'finance:monthly',
+    ]);
   }
 }

@@ -11,6 +11,7 @@ import { StudentProfile } from '../students/student-profile.entity';
 import { AttendanceEntryDto } from './dto/attendance.dto';
 import { ScheduleSlotAttendanceRecord } from './schedule-slot-attendance.entity';
 import { ScheduleSlotCancellation } from './schedule-slot-cancellation.entity';
+import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 /** Map JS Date.getDay() (0=Sun…6=Sat) → DayOfWeek enum */
 const JS_DOW_TO_ENUM: Record<number, DayOfWeek> = {
@@ -36,6 +37,7 @@ export class AttendanceService {
     private readonly scheduleSlotCancellations: Repository<ScheduleSlotCancellation>,
     @InjectRepository(StudentProfile)
     private readonly studentProfiles: Repository<StudentProfile>,
+    private readonly cache: SystemCacheService,
   ) {}
 
   /**
@@ -91,6 +93,18 @@ export class AttendanceService {
    * on a date.
    */
   async getClassDateAttendance(classId: string, date: string, viewer?: JwtPayload) {
+    return this.cache.remember(
+      {
+        namespace: 'attendance-class-date',
+        parts: [classId, date, this.viewerCacheKey(viewer)],
+        tags: [`attendance:class:${classId}`, `attendance:date:${date}`, 'attendance:schedule'],
+        ttlMs: 15_000,
+      },
+      () => this.computeClassDateAttendance(classId, date, viewer),
+    );
+  }
+
+  private async computeClassDateAttendance(classId: string, date: string, viewer?: JwtPayload) {
     const cls = await this.classes.findOne({ where: { id: classId } });
     if (!cls) throw new NotFoundException(`Class ${classId} not found`);
 
@@ -224,6 +238,7 @@ export class AttendanceService {
 
     // Update enrollment attendance percentages
     await this.recalcEnrollmentAttendance(classId);
+    await this.bumpAttendanceCaches({ classId, date, studentIds: records.map((record) => record.studentId) });
 
     return results;
   }
@@ -232,6 +247,23 @@ export class AttendanceService {
    * Student attendance history for a specific class (or all classes).
    */
   async getStudentHistory(
+    studentId: string,
+    classId?: string,
+    from?: string,
+    to?: string,
+  ) {
+    return this.cache.remember(
+      {
+        namespace: 'attendance-student-history',
+        parts: [studentId, classId ?? null, from ?? null, to ?? null],
+        tags: [`attendance:student:${studentId}`, ...(classId ? [`attendance:class:${classId}`] : [])],
+        ttlMs: 15_000,
+      },
+      () => this.computeStudentHistory(studentId, classId, from, to),
+    );
+  }
+
+  private async computeStudentHistory(
     studentId: string,
     classId?: string,
     from?: string,
@@ -359,6 +391,18 @@ export class AttendanceService {
    * Summary stats for a class across all dates.
    */
   async getClassSummary(classId: string) {
+    return this.cache.remember(
+      {
+        namespace: 'attendance-class-summary',
+        parts: [classId],
+        tags: [`attendance:class:${classId}`],
+        ttlMs: 15_000,
+      },
+      () => this.computeClassSummary(classId),
+    );
+  }
+
+  private async computeClassSummary(classId: string) {
     const cls = await this.classes.findOne({ where: { id: classId } });
     if (!cls) throw new NotFoundException(`Class ${classId} not found`);
 
@@ -416,6 +460,17 @@ export class AttendanceService {
    * calendar grid. Slots may or may not be linked to a class.
    */
   async getAllCustomSchedules() {
+    return this.cache.remember(
+      {
+        namespace: 'attendance-all-custom-schedules',
+        tags: ['attendance:schedule'],
+        ttlMs: 30_000,
+      },
+      () => this.computeAllCustomSchedules(),
+    );
+  }
+
+  private async computeAllCustomSchedules() {
     const rows = await this.studentSchedules.find({
       relations: ['class', 'student'],
       where: { student: { isActive: true } },
@@ -437,6 +492,28 @@ export class AttendanceService {
   }
 
   async getScheduleSlotAttendance(
+    date: string,
+    dayOfWeek: DayOfWeek,
+    startTime: string,
+    endTime: string,
+    viewer?: JwtPayload,
+  ) {
+    return this.cache.remember(
+      {
+        namespace: 'attendance-schedule-slot',
+        parts: [date, dayOfWeek, startTime, endTime, this.viewerCacheKey(viewer)],
+        tags: [
+          'attendance:schedule',
+          `attendance:date:${date}`,
+          `attendance:slot:${this.slotKey(date, dayOfWeek, startTime, endTime)}`,
+        ],
+        ttlMs: 15_000,
+      },
+      () => this.computeScheduleSlotAttendance(date, dayOfWeek, startTime, endTime, viewer),
+    );
+  }
+
+  private async computeScheduleSlotAttendance(
     date: string,
     dayOfWeek: DayOfWeek,
     startTime: string,
@@ -519,9 +596,26 @@ export class AttendanceService {
       row.markedBy = markedBy;
       await this.scheduleSlotAttendance.save(row);
     }
+    await this.bumpAttendanceCaches({
+      date,
+      studentIds: records.map((record) => record.studentId),
+      slot: this.slotKey(date, dayOfWeek, startTime, endTime),
+    });
   }
 
   async getScheduleSlotSummaries(from: string, to: string, viewer?: JwtPayload) {
+    return this.cache.remember(
+      {
+        namespace: 'attendance-schedule-slot-summaries',
+        parts: [from, to, this.viewerCacheKey(viewer)],
+        tags: ['attendance:schedule'],
+        ttlMs: 15_000,
+      },
+      () => this.computeScheduleSlotSummaries(from, to, viewer),
+    );
+  }
+
+  private async computeScheduleSlotSummaries(from: string, to: string, viewer?: JwtPayload) {
     const dates = this.eachDate(from, to);
     if (dates.length === 0) return [];
 
@@ -626,6 +720,7 @@ export class AttendanceService {
 
     if (!cancelled) {
       if (existing) await this.scheduleSlotCancellations.remove(existing);
+      await this.bumpAttendanceCaches({ date, slot: this.slotKey(date, dayOfWeek, startTime, endTime) });
       return { cancelled: false };
     }
 
@@ -640,7 +735,30 @@ export class AttendanceService {
     row.cancelledBy = cancelledBy;
     row.note = note ?? null;
     await this.scheduleSlotCancellations.save(row);
+    await this.bumpAttendanceCaches({ date, slot: this.slotKey(date, dayOfWeek, startTime, endTime) });
     return { cancelled: true };
+  }
+
+  private async bumpAttendanceCaches(opts: {
+    classId?: string;
+    date?: string;
+    slot?: string;
+    studentIds?: string[];
+  }): Promise<void> {
+    await this.cache.bumpTags([
+      'attendance:schedule',
+      'finance:monthly',
+      ...(opts.classId ? [`attendance:class:${opts.classId}`] : []),
+      ...(opts.date ? [`attendance:date:${opts.date}`] : []),
+      ...(opts.slot ? [`attendance:slot:${opts.slot}`] : []),
+      ...[...(opts.studentIds ?? [])].map((studentId) => `attendance:student:${studentId}`),
+      ...[...(opts.studentIds ?? [])].map((studentId) => `student:${studentId}:dashboard`),
+    ]);
+  }
+
+  private viewerCacheKey(viewer?: JwtPayload): string {
+    if (!viewer) return 'anonymous';
+    return `${viewer.role}:${viewer.sub}`;
   }
 
   private slotKey(date: string, dayOfWeek: DayOfWeek, startTime: string, endTime: string) {

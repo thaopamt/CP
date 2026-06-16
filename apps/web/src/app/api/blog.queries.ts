@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { BlogListParams, ICreateBlogPostPayload, IUpdateBlogPostPayload } from '@cp/shared';
 
 import { blogApi } from './blog.api';
+import { queryStaleTime } from './query-cache';
 
 export const blogKeys = {
   publishedList: (params: BlogListParams) => ['blog-posts', 'published', 'list', params] as const,
@@ -16,7 +17,7 @@ export function usePublishedBlogPosts(params: BlogListParams) {
     queryKey: blogKeys.publishedList(params),
     queryFn: () => blogApi.listPublished(params),
     placeholderData: keepPreviousData,
-    staleTime: 15_000,
+    staleTime: queryStaleTime.reference,
   });
 }
 
@@ -25,6 +26,7 @@ export function usePublishedBlogPost(slug: string | undefined) {
     queryKey: slug ? blogKeys.publishedDetail(slug) : ['blog-posts', 'published', 'detail', 'noop'],
     queryFn: () => blogApi.getPublishedBySlug(slug as string),
     enabled: !!slug,
+    staleTime: queryStaleTime.publishedDetail,
   });
 }
 
@@ -33,7 +35,7 @@ export function useManageBlogPosts(params: BlogListParams) {
     queryKey: blogKeys.manageList(params),
     queryFn: () => blogApi.listManage(params),
     placeholderData: keepPreviousData,
-    staleTime: 15_000,
+    staleTime: queryStaleTime.adminList,
   });
 }
 
@@ -42,6 +44,7 @@ export function useManageBlogPost(id: string | undefined) {
     queryKey: id ? blogKeys.manageDetail(id) : ['blog-posts', 'manage', 'detail', 'noop'],
     queryFn: () => blogApi.getManage(id as string),
     enabled: !!id,
+    staleTime: queryStaleTime.adminList,
   });
 }
 
@@ -81,7 +84,7 @@ export function useUnreadBlogCount() {
   return useQuery({
     queryKey: blogKeys.unreadCount(),
     queryFn: () => blogApi.unreadCount(),
-    staleTime: 30_000,
+    staleTime: queryStaleTime.userScoped,
   });
 }
 

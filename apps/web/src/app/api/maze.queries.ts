@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ICreateMazeLevelPayload, IMazeLevel, IStudentMazePath, ISubmitMazePayload } from '@cp/shared';
 import { mazeApi } from './maze.api';
+import { queryStaleTime } from './query-cache';
 
 export const mazeQueryKeys = {
   all: ['maze-levels'] as const,
@@ -18,6 +19,7 @@ export function useMazeLevels() {
   return useQuery({
     queryKey: mazeQueryKeys.all,
     queryFn: () => mazeApi.list().then((res) => res.data),
+    staleTime: queryStaleTime.reference,
   });
 }
 
@@ -26,6 +28,7 @@ export function useMazeLevel(id?: string) {
     queryKey: mazeQueryKeys.detail(id ?? ''),
     queryFn: () => mazeApi.get(id as string).then((res) => res.data),
     enabled: !!id,
+    staleTime: queryStaleTime.reference,
   });
 }
 
@@ -62,6 +65,7 @@ export function useMazeProgress(levelId?: string) {
     queryKey: mazeQueryKeys.progress(levelId ?? ''),
     queryFn: () => mazeApi.progress(levelId as string).then((res) => res.data),
     enabled: !!levelId,
+    staleTime: queryStaleTime.adminList,
   });
 }
 
@@ -69,6 +73,7 @@ export function useMazeProgressSummary() {
   return useQuery({
     queryKey: mazeQueryKeys.progressSummary(),
     queryFn: () => mazeApi.progressSummary().then((res) => res.data),
+    staleTime: queryStaleTime.adminList,
   });
 }
 
@@ -77,6 +82,7 @@ export function useStudentMazeLevels() {
   return useQuery({
     queryKey: mazeQueryKeys.assigned(),
     queryFn: () => mazeApi.getAssigned().then((res) => res.data),
+    staleTime: queryStaleTime.userScoped,
   });
 }
 
@@ -84,6 +90,7 @@ export function useStudentMazePath() {
   return useQuery({
     queryKey: mazeQueryKeys.path(),
     queryFn: () => mazeApi.getPath().then((res) => res.data),
+    staleTime: queryStaleTime.userScoped,
   });
 }
 
@@ -92,6 +99,7 @@ export function useStudentMazeLevel(id?: string) {
     queryKey: mazeQueryKeys.studentLevel(id ?? ''),
     queryFn: () => mazeApi.getForStudent(id as string).then((res) => res.data),
     enabled: !!id,
+    staleTime: queryStaleTime.userScoped,
   });
 }
 
@@ -157,6 +165,10 @@ export function useSubmitMaze() {
       void qc.invalidateQueries({ queryKey: mazeQueryKeys.path() });
       void qc.invalidateQueries({ queryKey: mazeQueryKeys.myResults(vars.levelId) });
       void qc.invalidateQueries({ queryKey: ['students', 'dashboard'] });
+      void qc.invalidateQueries({ queryKey: ['leaderboard'] });
+      void qc.invalidateQueries({ queryKey: ['student-quests'] });
+      void qc.invalidateQueries({ queryKey: ['student-badges'] });
+      void qc.invalidateQueries({ queryKey: ['shop'] });
     },
   });
 }

@@ -46,7 +46,11 @@ function queryBuilder(rows: BlogPost[] = []) {
 }
 
 function serviceWith(repo: Record<string, unknown>) {
-  return new BlogService(repo as never);
+  const cache = {
+    remember: jest.fn((_opts, loader) => loader()),
+    bumpTags: jest.fn(),
+  };
+  return new BlogService(repo as never, {} as never, cache as never);
 }
 
 describe('BlogService', () => {

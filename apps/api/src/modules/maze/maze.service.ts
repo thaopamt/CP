@@ -18,6 +18,7 @@ import { MazeLevel } from './maze-level.entity';
 import { MazeSubmission } from './maze-submission.entity';
 import { CreateMazeLevelDto, UpdateMazeLevelDto } from './dto/maze-level.dto';
 import { SubmitMazeDto } from './dto/submit-maze.dto';
+import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 @Injectable()
 export class MazeService {
@@ -26,33 +27,55 @@ export class MazeService {
     @InjectRepository(MazeLevel) private readonly levels: Repository<MazeLevel>,
     @InjectRepository(MazeSubmission) private readonly submissions: Repository<MazeSubmission>,
     private readonly questsService: QuestsService,
+    private readonly cache: SystemCacheService,
   ) {}
 
   // ── Admin CRUD ──────────────────────────────────────────────────────────
 
   async listLevels(): Promise<MazeLevel[]> {
-    return this.levels.find({ order: { order: 'ASC', createdAt: 'DESC' } });
+    return this.cache.remember(
+      {
+        namespace: 'maze-admin-levels',
+        tags: ['maze:levels'],
+        ttlMs: 60_000,
+      },
+      () => this.levels.find({ order: { order: 'ASC', createdAt: 'DESC' } }),
+    );
   }
 
   async getLevel(id: string): Promise<MazeLevel> {
-    const level = await this.levels.findOne({ where: { id } });
-    if (!level) throw new NotFoundException(`Không tìm thấy bàn chơi ${id}`);
-    return level;
+    return this.cache.remember(
+      {
+        namespace: 'maze-admin-level-detail',
+        parts: [id],
+        tags: ['maze:levels', `maze:level:${id}`],
+        ttlMs: 60_000,
+      },
+      async () => {
+        const level = await this.levels.findOne({ where: { id } });
+        if (!level) throw new NotFoundException(`Không tìm thấy bàn chơi ${id}`);
+        return level;
+      },
+    );
   }
 
   async createLevel(dto: CreateMazeLevelDto): Promise<MazeLevel> {
     this.assertValidGrid(dto.gridConfig);
-    return this.levels.save(this.levels.create(dto));
+    const level = await this.levels.save(this.levels.create(dto));
+    await this.bumpMazeLevelCaches(level.id);
+    return level;
   }
 
   async updateLevel(id: string, dto: UpdateMazeLevelDto): Promise<MazeLevel> {
     if (dto.gridConfig) this.assertValidGrid(dto.gridConfig);
     await this.levels.update({ id }, dto);
+    await this.bumpMazeLevelCaches(id);
     return this.getLevel(id);
   }
 
   async deleteLevel(id: string): Promise<void> {
     await this.levels.delete({ id });
+    await this.bumpMazeLevelCaches(id);
   }
 
   // ── Student-facing ──────────────────────────────────────────────────────
@@ -64,6 +87,18 @@ export class MazeService {
    * is enrolled in.
    */
   async getLevelsForStudent(studentId: string): Promise<IMazeLevel[]> {
+    return this.cache.remember(
+      {
+        namespace: 'maze-student-levels',
+        parts: [studentId],
+        tags: ['maze:levels', `student:${studentId}:maze`],
+        ttlMs: 30_000,
+      },
+      () => this.computeLevelsForStudent(studentId),
+    );
+  }
+
+  private async computeLevelsForStudent(studentId: string): Promise<IMazeLevel[]> {
     const query = this.levels.createQueryBuilder('l');
 
     query
@@ -231,6 +266,7 @@ export class MazeService {
     submission.stepsCount = result.steps.length;
     submission.failReason = result.failReason;
     const saved = await this.submissions.save(submission);
+    await this.bumpStudentMazeCaches(userId, level.id);
 
     if (saved.status === SubmissionStatus.ACCEPTED) {
       await this.questsService.handleMazeAccepted(userId, { mazeLevelId: level.id }).catch((e) => {
@@ -245,53 +281,72 @@ export class MazeService {
 
   /** Per-student best status for one level. */
   async getProgress(levelId: string) {
-    const rows = await this.submissions
-      .createQueryBuilder('s')
-      .innerJoin('s.user', 'u')
-      .select('s.userId', 'userId')
-      .addSelect('u.firstName', 'firstName')
-      .addSelect('u.lastName', 'lastName')
-      .addSelect('BOOL_OR(s.reached_goal)', 'solved')
-      .addSelect('COUNT(s.id)', 'attempts')
-      .addSelect('MIN(s.blocks_used) FILTER (WHERE s.reached_goal)', 'bestBlocks')
-      .where('s.levelId = :levelId', { levelId })
-      .groupBy('s.userId')
-      .addGroupBy('u.firstName')
-      .addGroupBy('u.lastName')
-      .getRawMany();
+    return this.cache.remember(
+      {
+        namespace: 'maze-progress',
+        parts: [levelId],
+        tags: ['maze:progress', `maze:level:${levelId}`],
+        ttlMs: 30_000,
+      },
+      async () => {
+        const rows = await this.submissions
+          .createQueryBuilder('s')
+          .innerJoin('s.user', 'u')
+          .select('s.userId', 'userId')
+          .addSelect('u.firstName', 'firstName')
+          .addSelect('u.lastName', 'lastName')
+          .addSelect('BOOL_OR(s.reached_goal)', 'solved')
+          .addSelect('COUNT(s.id)', 'attempts')
+          .addSelect('MIN(s.blocks_used) FILTER (WHERE s.reached_goal)', 'bestBlocks')
+          .where('s.levelId = :levelId', { levelId })
+          .groupBy('s.userId')
+          .addGroupBy('u.firstName')
+          .addGroupBy('u.lastName')
+          .getRawMany();
 
-    return rows.map((r) => ({
-      userId: r.userId,
-      studentName: `${r.firstName ?? ''} ${r.lastName ?? ''}`.trim(),
-      solved: r.solved === true || r.solved === 'true',
-      attempts: Number(r.attempts),
-      bestBlocks: r.bestBlocks != null ? Number(r.bestBlocks) : null,
-    }));
+        return rows.map((r) => ({
+          userId: r.userId,
+          studentName: `${r.firstName ?? ''} ${r.lastName ?? ''}`.trim(),
+          solved: r.solved === true || r.solved === 'true',
+          attempts: Number(r.attempts),
+          bestBlocks: r.bestBlocks != null ? Number(r.bestBlocks) : null,
+        }));
+      },
+    );
   }
 
   /** One row per level with solved/attempted counts, for the dashboard grid. */
   async getProgressSummary() {
-    const levels = await this.levels.find({ order: { order: 'ASC' } });
-    const rows = await this.submissions
-      .createQueryBuilder('s')
-      .select('s.levelId', 'levelId')
-      .addSelect('COUNT(DISTINCT s.userId)', 'attemptedCount')
-      .addSelect('COUNT(DISTINCT s.userId) FILTER (WHERE s.reached_goal)', 'solvedCount')
-      .groupBy('s.levelId')
-      .getRawMany();
+    return this.cache.remember(
+      {
+        namespace: 'maze-progress-summary',
+        tags: ['maze:levels', 'maze:progress'],
+        ttlMs: 30_000,
+      },
+      async () => {
+        const levels = await this.levels.find({ order: { order: 'ASC' } });
+        const rows = await this.submissions
+          .createQueryBuilder('s')
+          .select('s.levelId', 'levelId')
+          .addSelect('COUNT(DISTINCT s.userId)', 'attemptedCount')
+          .addSelect('COUNT(DISTINCT s.userId) FILTER (WHERE s.reached_goal)', 'solvedCount')
+          .groupBy('s.levelId')
+          .getRawMany();
 
-    const byLevel = new Map(rows.map((r) => [r.levelId, r]));
-    return levels.map((l) => {
-      const r = byLevel.get(l.id);
-      return {
-        levelId: l.id,
-        title: l.title,
-        difficulty: l.difficulty,
-        status: l.status,
-        attemptedCount: r ? Number(r.attemptedCount) : 0,
-        solvedCount: r ? Number(r.solvedCount) : 0,
-      };
-    });
+        const byLevel = new Map(rows.map((r) => [r.levelId, r]));
+        return levels.map((l) => {
+          const r = byLevel.get(l.id);
+          return {
+            levelId: l.id,
+            title: l.title,
+            difficulty: l.difficulty,
+            status: l.status,
+            attemptedCount: r ? Number(r.attemptedCount) : 0,
+            solvedCount: r ? Number(r.solvedCount) : 0,
+          };
+        });
+      },
+    );
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -318,5 +373,18 @@ export class MazeService {
         throw new BadRequestException('Có quái vật di chuyển ra ngoài lưới.');
       }
     }
+  }
+
+  private async bumpMazeLevelCaches(levelId: string): Promise<void> {
+    await this.cache.bumpTags(['maze:levels', 'maze:progress', `maze:level:${levelId}`]);
+  }
+
+  private async bumpStudentMazeCaches(userId: string, levelId: string): Promise<void> {
+    await this.cache.bumpTags([
+      `student:${userId}:maze`,
+      `student:${userId}:dashboard`,
+      'maze:progress',
+      `maze:level:${levelId}`,
+    ]);
   }
 }

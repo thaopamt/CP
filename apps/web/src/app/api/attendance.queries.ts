@@ -5,6 +5,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { IBulkAttendancePayload } from '@cp/shared';
 
 import { attendanceApi } from './attendance.api';
+import { financeKeys, teacherFinanceKeys } from './finance.queries';
+import { queryStaleTime } from './query-cache';
 import type {
   BulkScheduleSlotAttendancePayload,
   ScheduleSlotAttendanceParams,
@@ -26,6 +28,7 @@ export function useClassDateAttendance(classId: string | undefined, date: string
     queryKey: classId ? attendanceKeys.classDate(classId, date) : ['attendance', 'noop'],
     queryFn: () => attendanceApi.getClassDateAttendance(classId as string, date),
     enabled: !!classId,
+    staleTime: queryStaleTime.attendance,
   });
 }
 
@@ -37,6 +40,8 @@ export function useBulkUpsertAttendance(classId: string) {
     onSuccess: (_data, vars) => {
       void qc.invalidateQueries({ queryKey: attendanceKeys.classDate(classId, vars.date) });
       void qc.invalidateQueries({ queryKey: attendanceKeys.classSummary(classId) });
+      void qc.invalidateQueries({ queryKey: financeKeys.all });
+      void qc.invalidateQueries({ queryKey: teacherFinanceKeys.all });
     },
   });
 }
@@ -46,6 +51,7 @@ export function useClassAttendanceSummary(classId: string | undefined) {
     queryKey: classId ? attendanceKeys.classSummary(classId) : ['attendanceSummary', 'noop'],
     queryFn: () => attendanceApi.getClassSummary(classId as string),
     enabled: !!classId,
+    staleTime: queryStaleTime.attendance,
   });
 }
 
@@ -57,6 +63,7 @@ export function useStudentAttendanceHistory(
     queryKey: studentId ? attendanceKeys.studentHistory(studentId, params) : ['attendanceHistory', 'noop'],
     queryFn: () => attendanceApi.getStudentHistory(studentId as string, params),
     enabled: !!studentId,
+    staleTime: queryStaleTime.attendance,
   });
 }
 
@@ -64,6 +71,7 @@ export function useAllCustomSchedules() {
   return useQuery({
     queryKey: attendanceKeys.allCustom(),
     queryFn: () => attendanceApi.getAllCustomSchedules(),
+    staleTime: queryStaleTime.attendance,
   });
 }
 
@@ -72,6 +80,7 @@ export function useScheduleSlotAttendance(params: ScheduleSlotAttendanceParams |
     queryKey: params ? attendanceKeys.scheduleSlot(params) : ['attendanceScheduleSlot', 'noop'],
     queryFn: () => attendanceApi.getScheduleSlotAttendance(params as ScheduleSlotAttendanceParams),
     enabled: !!params,
+    staleTime: queryStaleTime.attendance,
   });
 }
 
@@ -79,6 +88,7 @@ export function useScheduleSlotSummaries(params: { from: string; to: string }) {
   return useQuery({
     queryKey: attendanceKeys.scheduleSlotSummaries(params),
     queryFn: () => attendanceApi.getScheduleSlotSummaries(params),
+    staleTime: queryStaleTime.attendance,
   });
 }
 
@@ -97,6 +107,8 @@ export function useBulkUpsertScheduleSlotAttendance() {
         }),
       });
       void qc.invalidateQueries({ queryKey: ['attendanceScheduleSlotSummaries'] });
+      void qc.invalidateQueries({ queryKey: financeKeys.all });
+      void qc.invalidateQueries({ queryKey: teacherFinanceKeys.all });
     },
   });
 }
@@ -116,6 +128,8 @@ export function useSetScheduleSlotCancellation() {
         }),
       });
       void qc.invalidateQueries({ queryKey: ['attendanceScheduleSlotSummaries'] });
+      void qc.invalidateQueries({ queryKey: financeKeys.all });
+      void qc.invalidateQueries({ queryKey: teacherFinanceKeys.all });
     },
   });
 }

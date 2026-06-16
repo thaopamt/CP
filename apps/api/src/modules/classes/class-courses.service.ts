@@ -5,6 +5,7 @@ import { DataSource, In, Repository } from 'typeorm';
 import { Course } from '../courses/course.entity';
 import { ClassEntity } from './class.entity';
 import { ClassCourse } from './class-course.entity';
+import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 export interface ClassCourseProgressAssignment {
   courseAssignmentId: string;
@@ -65,15 +66,26 @@ export class ClassCoursesService {
     @InjectRepository(ClassEntity) private readonly classes: Repository<ClassEntity>,
     @InjectRepository(Course) private readonly courses: Repository<Course>,
     private readonly ds: DataSource,
+    private readonly cache: SystemCacheService,
   ) {}
 
   async listForClass(classId: string): Promise<ClassCourse[]> {
-    const cls = await this.classes.findOne({ where: { id: classId } });
-    if (!cls) throw new NotFoundException(`Class ${classId} not found`);
-    return this.junction.find({
-      where: { classId },
-      order: { orderIndex: 'ASC' },
-    });
+    return this.cache.remember(
+      {
+        namespace: 'class-courses',
+        parts: [classId],
+        tags: ['curriculum:catalog', `class:${classId}:courses`],
+        ttlMs: 60_000,
+      },
+      async () => {
+        const cls = await this.classes.findOne({ where: { id: classId } });
+        if (!cls) throw new NotFoundException(`Class ${classId} not found`);
+        return this.junction.find({
+          where: { classId },
+          order: { orderIndex: 'ASC' },
+        });
+      },
+    );
   }
 
   async attach(classId: string, courseIds: string[], isRequired = true): Promise<ClassCourse[]> {
@@ -111,6 +123,7 @@ export class ClassCoursesService {
         }),
       );
       const saved = await junctionRepo.save(created);
+      await this.bumpClassCourseCaches(classId);
       return junctionRepo.find({
         where: { classId, courseId: In(courseIds) },
         relations: ['course']
@@ -122,6 +135,7 @@ export class ClassCoursesService {
     const row = await this.junction.findOne({ where: { id: junctionId, classId } });
     if (!row) throw new NotFoundException(`Junction ${junctionId} not found`);
     await this.junction.delete({ id: junctionId });
+    await this.bumpClassCourseCaches(classId);
   }
 
   async reorder(classId: string, ids: string[]): Promise<ClassCourse[]> {
@@ -141,6 +155,7 @@ export class ClassCoursesService {
       for (const row of leftover) row.orderIndex = order++;
 
       await junctionRepo.save(all);
+      await this.bumpClassCourseCaches(classId);
       return junctionRepo.find({ where: { classId }, order: { orderIndex: 'ASC' } });
     });
   }
@@ -401,5 +416,9 @@ export class ClassCoursesService {
       nextAssignmentId: nextAssignment?.assignmentId ?? null,
       assignments: assignmentProgress,
     };
+  }
+
+  private async bumpClassCourseCaches(classId: string): Promise<void> {
+    await this.cache.bumpTags(['curriculum:catalog', `class:${classId}:courses`, `class:${classId}:leaderboard`]);
   }
 }

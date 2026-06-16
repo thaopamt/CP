@@ -10,6 +10,7 @@ import { ICreateStudentPayload, IUpdateStudentPayload } from '@cp/shared';
 
 import { StudentsListParams, UpdateMyStudentPayload, studentsApi } from './students.api';
 import { assignmentsApi } from './curriculum.api';
+import { queryStaleTime } from './query-cache';
 
 export const studentQueryKeys = {
   list: (params: StudentsListParams) => ['students', 'list', params] as const,
@@ -25,7 +26,7 @@ export function useStudentsList(params: StudentsListParams) {
     queryKey: studentQueryKeys.list(params),
     queryFn: () => studentsApi.list(params),
     placeholderData: keepPreviousData,
-    staleTime: 15_000,
+    staleTime: queryStaleTime.adminList,
   });
 }
 
@@ -34,6 +35,7 @@ export function useStudent(id: string | undefined) {
     queryKey: id ? studentQueryKeys.detail(id) : ['students', 'detail', 'noop'],
     queryFn: () => studentsApi.get(id as string),
     enabled: !!id,
+    staleTime: queryStaleTime.userScoped,
   });
 }
 
@@ -41,6 +43,7 @@ export function useCurrentStudent() {
   return useQuery({
     queryKey: studentQueryKeys.me(),
     queryFn: () => studentsApi.getMe(),
+    staleTime: queryStaleTime.userScoped,
   });
 }
 
@@ -98,6 +101,7 @@ export function useMyTasks(params: { page?: number, limit?: number, search?: str
     queryKey: studentQueryKeys.myTasks(params),
     queryFn: () => assignmentsApi.myTasks(params),
     placeholderData: keepPreviousData,
+    staleTime: queryStaleTime.userScoped,
   });
 }
 
@@ -105,6 +109,7 @@ export function useMyFeedback() {
   return useQuery({
     queryKey: studentQueryKeys.myFeedback(),
     queryFn: () => assignmentsApi.myFeedback(),
+    staleTime: queryStaleTime.userScoped,
   });
 }
 
@@ -112,6 +117,7 @@ export function useStudentDashboard() {
   return useQuery({
     queryKey: studentQueryKeys.dashboard(),
     queryFn: () => studentsApi.getDashboard(),
+    staleTime: queryStaleTime.dashboard,
   });
 }
 

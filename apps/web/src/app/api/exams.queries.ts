@@ -8,6 +8,7 @@ import {
   IUpdateExamRewardRulePayload,
 } from '@cp/shared';
 import { examsApi, ExamsListParams } from './exams.api';
+import { queryStaleTime } from './query-cache';
 
 export const examQueryKeys = {
   all: ['exams'] as const,
@@ -26,6 +27,7 @@ export function useExams(params?: ExamsListParams) {
   return useQuery({
     queryKey: examQueryKeys.list(params),
     queryFn: () => examsApi.list(params).then((r) => r.data),
+    staleTime: queryStaleTime.adminList,
   });
 }
 
@@ -34,6 +36,7 @@ export function useExam(id: string) {
     queryKey: examQueryKeys.detail(id),
     queryFn: () => examsApi.get(id).then((r) => r.data),
     enabled: !!id,
+    staleTime: queryStaleTime.adminList,
   });
 }
 
@@ -92,6 +95,7 @@ export function useExamProblems(id: string) {
     queryKey: examQueryKeys.problems(id),
     queryFn: () => examsApi.listProblems(id).then((r) => r.data),
     enabled: !!id,
+    staleTime: queryStaleTime.adminList,
   });
 }
 
@@ -115,6 +119,7 @@ export function useExamParticipants(id: string) {
     queryKey: examQueryKeys.participants(id),
     queryFn: () => examsApi.listParticipants(id).then((r) => r.data),
     enabled: !!id,
+    staleTime: queryStaleTime.adminList,
   });
 }
 
@@ -138,6 +143,7 @@ export function useExamRewardRules(id: string) {
     queryKey: examQueryKeys.rewardRules(id),
     queryFn: () => examsApi.listRewardRules(id).then((r) => r.data),
     enabled: !!id,
+    staleTime: queryStaleTime.adminList,
   });
 }
 
@@ -160,6 +166,7 @@ export function useExamGrants(id: string) {
     queryKey: examQueryKeys.grants(id),
     queryFn: () => examsApi.listGrants(id).then((r) => r.data),
     enabled: !!id,
+    staleTime: queryStaleTime.adminList,
   });
 }
 
@@ -170,6 +177,7 @@ export function useExamLeaderboard(id: string, enabled = true) {
     queryFn: () => examsApi.leaderboard(id).then((r) => r.data),
     enabled: !!id && enabled,
     refetchInterval: 10_000,
+    staleTime: queryStaleTime.realtime,
   });
 }
 
@@ -178,5 +186,6 @@ export function useExamAudit(id: string) {
     queryKey: examQueryKeys.audit(id),
     queryFn: () => examsApi.audit(id).then((r) => r.data),
     enabled: !!id,
+    staleTime: queryStaleTime.adminList,
   });
 }

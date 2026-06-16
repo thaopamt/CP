@@ -12,6 +12,7 @@ import { StudentBadge } from './student-badge.entity';
 import { StudentProfile } from '../students/student-profile.entity';
 import { GamificationGateway } from './gamification.gateway';
 import { applyXpGain } from './period-keys';
+import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 @Injectable()
 export class BadgesService extends TypeOrmCrudService<Badge> {
@@ -21,6 +22,7 @@ export class BadgesService extends TypeOrmCrudService<Badge> {
     @InjectRepository(StudentProfile) private readonly profiles: Repository<StudentProfile>,
     private readonly ds: DataSource,
     private readonly gateway: GamificationGateway,
+    private readonly cache: SystemCacheService,
   ) {
     super(badges);
   }
@@ -101,34 +103,60 @@ export class BadgesService extends TypeOrmCrudService<Badge> {
         at: new Date().toISOString(),
       });
     }
+    if (awarded.length > 0) {
+      await this.cache.bumpTags([
+        `student:${userId}:badges`,
+        `student:${userId}:dashboard`,
+        `student:${userId}:profile`,
+        'leaderboard:global',
+      ]);
+    }
     return awarded;
   }
 
   async getMyBadges(userId: string): Promise<StudentBadge[]> {
-    return this.studentBadges.find({ where: { userId }, order: { earnedAt: 'DESC' } });
+    return this.cache.remember(
+      {
+        namespace: 'student-badges',
+        parts: [userId],
+        tags: [`student:${userId}:badges`, 'badges:catalog'],
+        ttlMs: 30_000,
+      },
+      () => this.studentBadges.find({ where: { userId }, order: { earnedAt: 'DESC' } }),
+    );
   }
 
   /** Full catalog flagged earned/locked with progress for the badge wall. */
   async getCatalogWithProgress(userId: string): Promise<IStudentBadgeProgress[]> {
-    const [active, owned, profile] = await Promise.all([
-      this.badges.find({ where: { isActive: true }, order: { rarity: 'ASC', createdAt: 'ASC' } }),
-      this.studentBadges.find({ where: { userId } }),
-      this.profiles.findOne({ where: { userId } }),
-    ]);
-    const ownedMap = new Map(owned.map((sb) => [sb.badgeId, sb]));
+    return this.cache.remember(
+      {
+        namespace: 'student-badge-catalog',
+        parts: [userId],
+        tags: [`student:${userId}:badges`, `student:${userId}:profile`, 'badges:catalog'],
+        ttlMs: 30_000,
+      },
+      async () => {
+        const [active, owned, profile] = await Promise.all([
+          this.badges.find({ where: { isActive: true }, order: { rarity: 'ASC', createdAt: 'ASC' } }),
+          this.studentBadges.find({ where: { userId } }),
+          this.profiles.findOne({ where: { userId } }),
+        ]);
+        const ownedMap = new Map(owned.map((sb) => [sb.badgeId, sb]));
 
-    return active.map((badge) => {
-      const earnedRow = ownedMap.get(badge.id);
-      const current = profile ? this.statValue(profile, badge.criteria.type) : 0;
-      const threshold = badge.criteria.threshold;
-      return {
-        badge: badge as unknown as IBadge,
-        earned: !!earnedRow,
-        earnedAt: earnedRow ? earnedRow.earnedAt.toISOString() : null,
-        current,
-        threshold,
-        percent: earnedRow ? 100 : Math.min(100, Math.round((current / Math.max(1, threshold)) * 100)),
-      };
-    });
+        return active.map((badge) => {
+          const earnedRow = ownedMap.get(badge.id);
+          const current = profile ? this.statValue(profile, badge.criteria.type) : 0;
+          const threshold = badge.criteria.threshold;
+          return {
+            badge: badge as unknown as IBadge,
+            earned: !!earnedRow,
+            earnedAt: earnedRow ? earnedRow.earnedAt.toISOString() : null,
+            current,
+            threshold,
+            percent: earnedRow ? 100 : Math.min(100, Math.round((current / Math.max(1, threshold)) * 100)),
+          };
+        });
+      },
+    );
   }
 }

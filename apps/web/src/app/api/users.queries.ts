@@ -8,6 +8,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { ICreateUserPayload, IUpdateUserPayload } from '@cp/shared';
 
 import { UsersListParams, usersApi } from './users.api';
+import { queryStaleTime } from './query-cache';
 
 export const userQueryKeys = {
   list: (params: UsersListParams) => ['users', 'list', params] as const,
@@ -18,7 +19,7 @@ export function useUsersList(params: UsersListParams) {
     queryKey: userQueryKeys.list(params),
     queryFn: () => usersApi.list(params),
     placeholderData: keepPreviousData,
-    staleTime: 15_000,
+    staleTime: queryStaleTime.adminList,
   });
 }
 

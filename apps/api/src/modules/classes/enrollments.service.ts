@@ -7,6 +7,7 @@ import { IClassLearningProgress } from '@cp/shared';
 import { Enrollment } from './enrollment.entity';
 import { ClassesService } from './classes.service';
 import { ClassCourse } from './class-course.entity';
+import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 type EnrollmentWithLearningProgress = Enrollment & {
   learningProgress: IClassLearningProgress;
@@ -18,11 +19,24 @@ export class EnrollmentsService extends TypeOrmCrudService<Enrollment> {
     @InjectRepository(Enrollment) repo: Repository<Enrollment>,
     @InjectRepository(ClassCourse) private readonly classCourses: Repository<ClassCourse>,
     private readonly classes: ClassesService,
+    private readonly cache: SystemCacheService,
   ) {
     super(repo);
   }
 
   async listByStudentWithLearningProgress(studentId: string): Promise<EnrollmentWithLearningProgress[]> {
+    return this.cache.remember(
+      {
+        namespace: 'enrollments:student-learning-progress',
+        parts: [studentId],
+        ttlMs: 30_000,
+        tags: [`student:${studentId}:classes`, 'classes:catalog', 'curriculum:catalog'],
+      },
+      () => this.computeStudentLearningProgress(studentId),
+    );
+  }
+
+  private async computeStudentLearningProgress(studentId: string): Promise<EnrollmentWithLearningProgress[]> {
     const enrollments = await this.repo.find({
       where: { studentId },
       relations: ['class'],
@@ -56,6 +70,7 @@ export class EnrollmentsService extends TypeOrmCrudService<Enrollment> {
         // Soft-deleted -> restore it
         await this.repo.restore(existing.id);
         await this.classes.recountEnrollment(classId);
+        this.bumpEnrollmentTags(classId, studentId);
         const reloaded = await this.repo.findOne({ where: { id: existing.id } });
         return reloaded!;
       }
@@ -65,6 +80,7 @@ export class EnrollmentsService extends TypeOrmCrudService<Enrollment> {
     const row = this.repo.create({ classId, studentId });
     const saved = await this.repo.save(row);
     await this.classes.recountEnrollment(classId);
+    this.bumpEnrollmentTags(classId, studentId);
     // Reload to ensure eager relations (like student) are populated for the response
     const reloaded = await this.repo.findOne({ where: { id: saved.id } });
     return reloaded!;
@@ -75,6 +91,21 @@ export class EnrollmentsService extends TypeOrmCrudService<Enrollment> {
     if (!row) return;
     await this.repo.softDelete({ id });
     await this.classes.recountEnrollment(row.classId);
+    this.bumpEnrollmentTags(row.classId, row.studentId);
+  }
+
+  private bumpEnrollmentTags(classId: string, studentId: string): void {
+    void this.cache.bumpTags([
+      'classes:catalog',
+      'curriculum:catalog',
+      'attendance:schedule',
+      'finance:monthly',
+      `class:${classId}:meta`,
+      `class:${classId}:leaderboard`,
+      `student:${studentId}:classes`,
+      `student:${studentId}:dashboard`,
+      `student:${studentId}:schedule`,
+    ]);
   }
 
   private async getLearningProgressByClass(

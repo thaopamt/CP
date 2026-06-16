@@ -13,6 +13,7 @@ import { BlogPost } from './blog-post.entity';
 import { BlogPostRead } from './blog-post-read.entity';
 import { CreateBlogPostDto, UpdateBlogPostDto } from './dto/blog-post.dto';
 import { User } from '../users/user.entity';
+import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -25,25 +26,35 @@ export class BlogService {
     private readonly posts: Repository<BlogPost>,
     @InjectRepository(BlogPostRead)
     private readonly reads: Repository<BlogPostRead>,
+    private readonly cache: SystemCacheService,
   ) {}
 
   /** Count of published posts the user hasn't opened yet. */
   async getUnreadCount(userId: string): Promise<number> {
-    return this.posts
-      .createQueryBuilder('post')
-      .where('post.status = :status', { status: PublishStatus.PUBLISHED })
-      .andWhere((qb) => {
-        const sub = qb
-          .subQuery()
-          .select('1')
-          .from(BlogPostRead, 'r')
-          .where('r.post_id = post.id')
-          .andWhere('r.user_id = :userId')
-          .getQuery();
-        return `NOT EXISTS ${sub}`;
-      })
-      .setParameter('userId', userId)
-      .getCount();
+    return this.cache.remember(
+      {
+        namespace: 'blog-unread-count',
+        parts: [userId],
+        tags: ['blog:published', `blog:user:${userId}:reads`],
+        ttlMs: 30_000,
+      },
+      () =>
+        this.posts
+          .createQueryBuilder('post')
+          .where('post.status = :status', { status: PublishStatus.PUBLISHED })
+          .andWhere((qb) => {
+            const sub = qb
+              .subQuery()
+              .select('1')
+              .from(BlogPostRead, 'r')
+              .where('r.post_id = post.id')
+              .andWhere('r.user_id = :userId')
+              .getQuery();
+            return `NOT EXISTS ${sub}`;
+          })
+          .setParameter('userId', userId)
+          .getCount(),
+    );
   }
 
   /** Mark a post as read by a user (idempotent — duplicates are ignored). */
@@ -57,29 +68,66 @@ export class BlogService {
     } catch {
       // Unique-constraint race — another request already inserted it.
     }
+    await this.cache.bumpTags([`blog:user:${userId}:reads`]);
   }
 
   async listPublished(params: BlogListParams): Promise<IBlogListResponse> {
-    return this.listPosts(params, true);
+    return this.cache.remember(
+      {
+        namespace: 'blog-published-list',
+        parts: [params],
+        tags: ['blog:published'],
+        ttlMs: 120_000,
+      },
+      () => this.listPosts(params, true),
+    );
   }
 
   async listManage(params: BlogListParams): Promise<IBlogListResponse> {
-    return this.listPosts(params, false);
+    return this.cache.remember(
+      {
+        namespace: 'blog-manage-list',
+        parts: [params],
+        tags: ['blog:manage'],
+        ttlMs: 30_000,
+      },
+      () => this.listPosts(params, false),
+    );
   }
 
   async getPublishedBySlug(slug: string): Promise<IBlogPost> {
-    const post = await this.posts.findOne({
-      where: { slug, status: PublishStatus.PUBLISHED },
-      relations: { author: true },
-    });
-    if (!post) throw new NotFoundException(`Blog post ${slug} not found`);
-    return this.toDto(post);
+    return this.cache.remember(
+      {
+        namespace: 'blog-published-detail',
+        parts: [slug],
+        tags: ['blog:published', `blog:slug:${slug}`],
+        ttlMs: 300_000,
+      },
+      async () => {
+        const post = await this.posts.findOne({
+          where: { slug, status: PublishStatus.PUBLISHED },
+          relations: { author: true },
+        });
+        if (!post) throw new NotFoundException(`Blog post ${slug} not found`);
+        return this.toDto(post);
+      },
+    );
   }
 
   async getManageById(id: string): Promise<IBlogPost> {
-    const post = await this.posts.findOne({ where: { id }, relations: { author: true } });
-    if (!post) throw new NotFoundException(`Blog post ${id} not found`);
-    return this.toDto(post);
+    return this.cache.remember(
+      {
+        namespace: 'blog-manage-detail',
+        parts: [id],
+        tags: ['blog:manage', `blog:${id}`],
+        ttlMs: 30_000,
+      },
+      async () => {
+        const post = await this.posts.findOne({ where: { id }, relations: { author: true } });
+        if (!post) throw new NotFoundException(`Blog post ${id} not found`);
+        return this.toDto(post);
+      },
+    );
   }
 
   async createPost(authorId: string, dto: CreateBlogPostDto): Promise<IBlogPost> {
@@ -97,6 +145,7 @@ export class BlogService {
     });
 
     const saved = await this.posts.save(post);
+    await this.bumpBlogCaches();
     return this.getManageById(saved.id);
   }
 
@@ -116,6 +165,7 @@ export class BlogService {
     }
 
     await this.posts.save(post);
+    await this.cache.bumpTags(['blog:published', 'blog:manage', `blog:${id}`, `blog:slug:${post.slug}`]);
     return this.getManageById(id);
   }
 
@@ -123,6 +173,11 @@ export class BlogService {
     const post = await this.posts.findOne({ where: { id } });
     if (!post) throw new NotFoundException(`Blog post ${id} not found`);
     await this.posts.softDelete({ id });
+    await this.cache.bumpTags(['blog:published', 'blog:manage', `blog:${id}`, `blog:slug:${post.slug}`]);
+  }
+
+  private async bumpBlogCaches(): Promise<void> {
+    await this.cache.bumpTags(['blog:published', 'blog:manage']);
   }
 
   private async listPosts(params: BlogListParams, publishedOnly: boolean): Promise<IBlogListResponse> {

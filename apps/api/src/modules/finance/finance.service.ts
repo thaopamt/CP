@@ -24,6 +24,7 @@ import { StudentProfile } from '../students/student-profile.entity';
 import { StudentSchedule } from '../students/student-schedule.entity';
 import { FinanceMonthlyAmountDue } from './finance-monthly-amount-due.entity';
 import { FinanceMonthlyStatus } from './finance-monthly-status.entity';
+import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 const BILLABLE_STATUSES = [AttendanceStatus.PRESENT, AttendanceStatus.LATE];
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -61,9 +62,41 @@ export class FinanceService {
     private readonly amountDueOverrides: Repository<FinanceMonthlyAmountDue>,
     @InjectRepository(FinanceMonthlyStatus)
     private readonly monthlyStatuses: Repository<FinanceMonthlyStatus>,
+    private readonly cache: SystemCacheService,
   ) {}
 
   async getMonthlyReport(
+    params: IFinanceMonthlyReportParams = {},
+    options?: { visibleStudentUserIds?: string[] },
+  ): Promise<IFinanceMonthlyReport> {
+    const month = params.month || new Date().toISOString().slice(0, 7);
+    if (!MONTH_RE.test(month)) {
+      throw new BadRequestException('month must use YYYY-MM format');
+    }
+
+    const normalizedParams: IFinanceMonthlyReportParams = {
+      month,
+      search: params.search?.trim() || undefined,
+      status: this.normalizeCollectionStatus(params.status, true) ?? undefined,
+      page: this.normalizePositiveInt(params.page, 1),
+      limit: Math.min(this.normalizePositiveInt(params.limit, 25), 100),
+    };
+    const visibleStudentUserIds = options?.visibleStudentUserIds
+      ? [...options.visibleStudentUserIds].sort()
+      : null;
+
+    return this.cache.remember(
+      {
+        namespace: 'finance-monthly-report',
+        parts: [normalizedParams, visibleStudentUserIds ?? 'admin'],
+        tags: ['finance:monthly', `finance:month:${month}`, 'attendance:schedule', 'students:list'],
+        ttlMs: 30_000,
+      },
+      () => this.computeMonthlyReport(normalizedParams, options),
+    );
+  }
+
+  private async computeMonthlyReport(
     params: IFinanceMonthlyReportParams = {},
     options?: { visibleStudentUserIds?: string[] },
   ): Promise<IFinanceMonthlyReport> {
@@ -295,6 +328,7 @@ export class FinanceService {
       month,
       amountDue,
     });
+    await this.bumpMonthlyFinanceCaches(month, studentId);
 
     return {
       studentId: saved.studentId,
@@ -309,6 +343,7 @@ export class FinanceService {
   ): Promise<IFinanceMonthlyAmountDueResetResult> {
     const month = this.normalizeMonth(monthValue);
     await this.amountDueOverrides.delete({ studentId, month });
+    await this.bumpMonthlyFinanceCaches(month, studentId);
     return { studentId, month, reset: true };
   }
 
@@ -333,6 +368,7 @@ export class FinanceService {
       month,
       status,
     });
+    await this.bumpMonthlyFinanceCaches(month, studentId);
 
     return {
       studentId: saved.studentId,
@@ -344,6 +380,14 @@ export class FinanceService {
   private normalizePositiveInt(value: unknown, fallback: number): number {
     const n = Number(value);
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+  }
+
+  private async bumpMonthlyFinanceCaches(month: string, studentId: string): Promise<void> {
+    await this.cache.bumpTags([
+      'finance:monthly',
+      `finance:month:${month}`,
+      `student:${studentId}:dashboard`,
+    ]);
   }
 
   private normalizeMonth(month: string | undefined): string {

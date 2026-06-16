@@ -11,6 +11,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { ICreateClassPayload } from '@cp/shared';
 
 import { ClassesListParams, classesApi, enrollmentsApi } from './classes.api';
+import { queryStaleTime } from './query-cache';
 
 export const classQueryKeys = {
   list: (params: ClassesListParams) => ['classes', 'list', params] as const,
@@ -24,7 +25,7 @@ export function useClassesList(params: ClassesListParams) {
     queryKey: classQueryKeys.list(params),
     queryFn: () => classesApi.list(params),
     placeholderData: keepPreviousData,
-    staleTime: 15_000,
+    staleTime: queryStaleTime.reference,
   });
 }
 
@@ -33,6 +34,7 @@ export function useClass(id: string | undefined) {
     queryKey: id ? classQueryKeys.detail(id) : ['classes', 'detail', 'noop'],
     queryFn: () => classesApi.get(id as string),
     enabled: !!id,
+    staleTime: queryStaleTime.reference,
   });
 }
 
@@ -41,6 +43,7 @@ export function useEnrollmentsByClass(classId: string | undefined) {
     queryKey: classId ? classQueryKeys.enrollmentsByClass(classId) : ['enrollments', 'noop'],
     queryFn: () => enrollmentsApi.listByClass(classId as string),
     enabled: !!classId,
+    staleTime: queryStaleTime.adminList,
   });
 }
 
@@ -107,5 +110,6 @@ export function useEnrollmentsByStudent(studentId: string | undefined) {
     queryKey: studentId ? classQueryKeys.enrollmentsByStudent(studentId) : ['enrollments', 'noop'],
     queryFn: () => enrollmentsApi.listByStudent(studentId as string),
     enabled: !!studentId,
+    staleTime: queryStaleTime.userScoped,
   });
 }

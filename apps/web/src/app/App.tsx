@@ -96,7 +96,7 @@ const TeacherFinance = lazy(() => import('./pages/teacher/FinancePage'));
 import { ToastProvider, ConfirmProvider } from '@cp/ui';
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
+  defaultOptions: { queries: { staleTime: 30_000, gcTime: 10 * 60_000, retry: 1 } },
 });
 
 const Loading = () => (

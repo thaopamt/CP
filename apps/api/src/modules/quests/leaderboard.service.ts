@@ -11,6 +11,7 @@ import {
 import { StudentProfile } from '../students/student-profile.entity';
 import { StudentBadge } from './student-badge.entity';
 import { currentMonthlyXp, currentWeeklyXp, monthKey, weekKey } from './period-keys';
+import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 const SCOPE_COLUMN: Record<LeaderboardScope, string> = {
   xp: 'p.xp',
@@ -25,6 +26,7 @@ export class LeaderboardService {
   constructor(
     @InjectRepository(StudentProfile) private readonly profiles: Repository<StudentProfile>,
     @InjectRepository(StudentBadge) private readonly studentBadges: Repository<StudentBadge>,
+    private readonly cache: SystemCacheService,
   ) {}
 
   private scopeValue(p: StudentProfile, scope: LeaderboardScope): number {
@@ -71,6 +73,18 @@ export class LeaderboardService {
   }
 
   async getLeaderboard(params: ILeaderboardParams, currentUserId?: string): Promise<ILeaderboardResponse> {
+    return this.cache.remember(
+      {
+        namespace: 'leaderboard',
+        parts: [params, currentUserId ?? null],
+        tags: ['leaderboard:global', ...(params.classId ? [`class:${params.classId}:leaderboard`] : [])],
+        ttlMs: 10_000,
+      },
+      () => this.buildLeaderboard(params, currentUserId),
+    );
+  }
+
+  private async buildLeaderboard(params: ILeaderboardParams, currentUserId?: string): Promise<ILeaderboardResponse> {
     const scope: LeaderboardScope = params.scope ?? 'xp';
     const window: LeaderboardWindow = params.window ?? 'all_time';
     const limit = Math.min(100, Math.max(1, params.limit ?? 20));

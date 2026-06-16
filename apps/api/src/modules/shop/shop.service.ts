@@ -24,6 +24,7 @@ import { BadgesService } from '../quests/badges.service';
 import { applyXpGain } from '../quests/period-keys';
 import { ShopItem } from './shop-item.entity';
 import { StudentInventory } from './student-inventory.entity';
+import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 const XP_PER_LEVEL = 1000;
 
@@ -36,6 +37,7 @@ export class ShopService {
     @InjectRepository(User) private readonly users: Repository<User>,
     private readonly badges: BadgesService,
     private readonly ds: DataSource,
+    private readonly cache: SystemCacheService,
   ) {}
 
   private toDto(i: ShopItem): IShopItem {
@@ -60,10 +62,19 @@ export class ShopService {
   // ── Admin CRUD ─────────────────────────────────────────────────────────
   /** Every shop item, including inactive ones — for the admin manager. */
   async listAll(): Promise<IShopItem[]> {
-    const rows = await this.items.find({
-      order: { category: 'ASC', sortOrder: 'ASC', price: 'ASC' },
-    });
-    return rows.map((i) => this.toDto(i));
+    return this.cache.remember(
+      {
+        namespace: 'shop-admin-items',
+        tags: ['shop:items'],
+        ttlMs: 120_000,
+      },
+      async () => {
+        const rows = await this.items.find({
+          order: { category: 'ASC', sortOrder: 'ASC', price: 'ASC' },
+        });
+        return rows.map((i) => this.toDto(i));
+      },
+    );
   }
 
   async createItem(dto: ICreateShopItemPayload): Promise<IShopItem> {
@@ -87,6 +98,7 @@ export class ShopService {
       isActive: dto.isActive ?? true,
     });
     await this.items.save(item);
+    await this.bumpShopCatalogCaches();
     return this.toDto(item);
   }
 
@@ -111,6 +123,7 @@ export class ShopService {
     if (dto.sortOrder !== undefined) item.sortOrder = dto.sortOrder;
     if (dto.isActive !== undefined) item.isActive = dto.isActive;
     await this.items.save(item);
+    await this.bumpShopCatalogCaches();
     return this.toDto(item);
   }
 
@@ -119,43 +132,64 @@ export class ShopService {
     const item = await this.items.findOne({ where: { id } });
     if (!item) throw new NotFoundException('Shop item not found');
     await this.items.remove(item);
+    await this.bumpShopCatalogCaches();
   }
 
   /** The shop catalog as seen by one student: owned/equipped/affordable flags. */
   async getCatalog(userId: string): Promise<IShopCatalogResponse> {
-    const [items, owned, profile] = await Promise.all([
-      this.items.find({ where: { isActive: true }, order: { sortOrder: 'ASC', price: 'ASC' } }),
-      this.inventory.find({ where: { userId } }),
-      this.profiles.findOne({ where: { userId } }),
-    ]);
-    const gems = profile?.gems ?? 0;
-    const level = profile?.level ?? 0;
-    const ownedById = new Map(owned.map((o) => [o.itemId, o]));
+    return this.cache.remember(
+      {
+        namespace: 'shop-catalog',
+        parts: [userId],
+        tags: ['shop:items', `student:${userId}:shop`, `student:${userId}:profile`],
+        ttlMs: 30_000,
+      },
+      async () => {
+        const [items, owned, profile] = await Promise.all([
+          this.items.find({ where: { isActive: true }, order: { sortOrder: 'ASC', price: 'ASC' } }),
+          this.inventory.find({ where: { userId } }),
+          this.profiles.findOne({ where: { userId } }),
+        ]);
+        const gems = profile?.gems ?? 0;
+        const level = profile?.level ?? 0;
+        const ownedById = new Map(owned.map((o) => [o.itemId, o]));
 
-    const entries: IShopCatalogEntry[] = items.map((item) => {
-      const inv = ownedById.get(item.id);
-      return {
-        item: this.toDto(item),
-        owned: !!inv,
-        equipped: !!inv?.equipped,
-        affordable: gems >= item.price,
-        unlocked: level >= item.minLevel,
-      };
-    });
+        const entries: IShopCatalogEntry[] = items.map((item) => {
+          const inv = ownedById.get(item.id);
+          return {
+            item: this.toDto(item),
+            owned: !!inv,
+            equipped: !!inv?.equipped,
+            affordable: gems >= item.price,
+            unlocked: level >= item.minLevel,
+          };
+        });
 
-    return { gems, level, entries };
+        return { gems, level, entries };
+      },
+    );
   }
 
   /** List a student's owned cosmetics. */
   async getInventory(userId: string): Promise<IShopCatalogEntry[]> {
-    const rows = await this.inventory.find({ where: { userId }, order: { acquiredAt: 'DESC' } });
-    return rows.map((inv) => ({
-      item: this.toDto(inv.item),
-      owned: true,
-      equipped: inv.equipped,
-      affordable: true,
-      unlocked: true,
-    }));
+    return this.cache.remember(
+      {
+        namespace: 'shop-inventory',
+        parts: [userId],
+        tags: ['shop:items', `student:${userId}:shop`],
+        ttlMs: 30_000,
+      },
+      async () => {
+        const rows = await this.inventory.find({ where: { userId }, order: { acquiredAt: 'DESC' } });
+        return rows.map((inv) => ({
+          item: this.toDto(inv.item),
+          owned: true,
+          equipped: inv.equipped,
+          affordable: true,
+          unlocked: true,
+        }));
+      },
+    );
   }
 
   /**
@@ -229,6 +263,7 @@ export class ShopService {
     if (result.awardedXp > 0) {
       await this.badges.evaluateAndAward(userId);
     }
+    await this.bumpStudentShopCaches(userId);
 
     return {
       itemCode: result.code,
@@ -242,7 +277,7 @@ export class ShopService {
 
   /** Equip an owned cosmetic, unequipping any other item in the same slot. */
   async equip(userId: string, itemId: string): Promise<IEquipResult> {
-    return this.ds.transaction(async (tx) => {
+    const result = await this.ds.transaction(async (tx) => {
       const invRepo = tx.getRepository(StudentInventory);
       const profRepo = tx.getRepository(StudentProfile);
       const userRepo = tx.getRepository(User);
@@ -280,11 +315,13 @@ export class ShopService {
 
       return this.equipResult(item.code, true, profile, avatarUrl);
     });
+    await this.bumpStudentShopCaches(userId);
+    return result;
   }
 
   /** Remove an equipped cosmetic from its slot. */
   async unequip(userId: string, itemId: string): Promise<IEquipResult> {
-    return this.ds.transaction(async (tx) => {
+    const result = await this.ds.transaction(async (tx) => {
       const invRepo = tx.getRepository(StudentInventory);
       const profRepo = tx.getRepository(StudentProfile);
       const userRepo = tx.getRepository(User);
@@ -303,6 +340,8 @@ export class ShopService {
 
       return this.equipResult(inv.item.code, false, profile, avatarUrl);
     });
+    await this.bumpStudentShopCaches(userId);
+    return result;
   }
 
   /**
@@ -380,5 +419,19 @@ export class ShopService {
       equippedTitle: profile.equippedTitle ?? null,
       avatarUrl,
     };
+  }
+
+  private async bumpShopCatalogCaches(): Promise<void> {
+    await this.cache.bumpTags(['shop:items']);
+  }
+
+  private async bumpStudentShopCaches(userId: string): Promise<void> {
+    await this.cache.bumpTags([
+      `student:${userId}:shop`,
+      `student:${userId}:profile`,
+      `student:${userId}:dashboard`,
+      `student:${userId}:badges`,
+      'leaderboard:global',
+    ]);
   }
 }

@@ -7,6 +7,7 @@ import { Assignment } from '../assignments/assignment.entity';
 import { Course } from './course.entity';
 import { CourseAssignment } from './course-assignment.entity';
 import { CreateCourseDto, UpdateCourseDto } from './dto/course.dto';
+import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 @Injectable()
 export class CoursesService extends TypeOrmCrudService<Course> {
@@ -15,30 +16,44 @@ export class CoursesService extends TypeOrmCrudService<Course> {
     @InjectRepository(CourseAssignment) private readonly junction: Repository<CourseAssignment>,
     @InjectRepository(Assignment) private readonly assignments: Repository<Assignment>,
     private readonly ds: DataSource,
+    private readonly cache: SystemCacheService,
   ) {
     super(courses);
   }
 
   /** Public create / update so the controller doesn't need protected `repo` access */
   async createCourse(dto: CreateCourseDto): Promise<Course> {
-    return this.courses.save(this.courses.create(dto));
+    const course = await this.courses.save(this.courses.create(dto));
+    await this.bumpCourseCaches(course.id);
+    return course;
   }
 
   async updateCourse(id: string, dto: UpdateCourseDto): Promise<Course> {
     await this.courses.update({ id }, dto);
     const out = await this.courses.findOne({ where: { id } });
     if (!out) throw new NotFoundException(`Course ${id} not found`);
+    await this.bumpCourseCaches(id);
     return out;
   }
 
   /** Eager-load assignments ordered by `orderIndex` for a course */
   async listAssignments(courseId: string): Promise<CourseAssignment[]> {
-    const course = await this.courses.findOne({ where: { id: courseId } });
-    if (!course) throw new NotFoundException(`Course ${courseId} not found`);
-    return this.junction.find({
-      where: { courseId },
-      order: { orderIndex: 'ASC' },
-    });
+    return this.cache.remember(
+      {
+        namespace: 'course-assignments',
+        parts: [courseId],
+        tags: ['curriculum:catalog', `course:${courseId}`],
+        ttlMs: 60_000,
+      },
+      async () => {
+        const course = await this.courses.findOne({ where: { id: courseId } });
+        if (!course) throw new NotFoundException(`Course ${courseId} not found`);
+        return this.junction.find({
+          where: { courseId },
+          order: { orderIndex: 'ASC' },
+        });
+      },
+    );
   }
 
   /**
@@ -85,6 +100,7 @@ export class CoursesService extends TypeOrmCrudService<Course> {
       );
       const saved = await junctionRepo.save(created);
       await this.recount(courseId, courseRepo, junctionRepo, assignmentRepo);
+      await this.bumpCourseCaches(courseId);
       return junctionRepo.find({ 
         where: { courseId, assignmentId: In(assignmentIds) },
         relations: ['assignment']
@@ -102,6 +118,7 @@ export class CoursesService extends TypeOrmCrudService<Course> {
       if (!row) throw new NotFoundException(`Junction ${junctionId} not found`);
       await junctionRepo.delete({ id: junctionId });
       await this.recount(courseId, courseRepo, junctionRepo, assignmentRepo);
+      await this.bumpCourseCaches(courseId);
     });
   }
 
@@ -127,6 +144,7 @@ export class CoursesService extends TypeOrmCrudService<Course> {
       for (const row of leftover) row.orderIndex = order++;
 
       await junctionRepo.save(all);
+      await this.bumpCourseCaches(courseId);
       return junctionRepo.find({ where: { courseId }, order: { orderIndex: 'ASC' } });
     });
   }
@@ -146,5 +164,9 @@ export class CoursesService extends TypeOrmCrudService<Course> {
       totalPoints = assignments.reduce((acc, a) => acc + a.points, 0);
     }
     await courseRepo.update({ id: courseId }, { assignmentCount: rows.length, totalPoints });
+  }
+
+  private async bumpCourseCaches(courseId: string): Promise<void> {
+    await this.cache.bumpTags(['courses:catalog', 'curriculum:catalog', `course:${courseId}`]);
   }
 }

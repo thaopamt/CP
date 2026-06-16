@@ -48,9 +48,19 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api') && !req.path.startsWith('/api/uploads/')) {
+      res.setHeader('Cache-Control', 'no-store');
+    }
+    next();
+  });
+
   // Serve uploaded avatars at /api/uploads/avatars
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/api/uploads/',
+    setHeaders: (res) => {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    },
   });
   app.useGlobalPipes(
     new ValidationPipe({

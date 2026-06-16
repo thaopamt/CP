@@ -6,6 +6,7 @@ import { UserRole } from '@cp/shared';
 import { User } from '../users/user.entity';
 import { StudentProfile } from './student-profile.entity';
 import { TeacherStudent } from './teacher-student.entity';
+import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 @Injectable()
 export class TeacherAssignmentsService {
@@ -16,6 +17,7 @@ export class TeacherAssignmentsService {
     private readonly students: Repository<StudentProfile>,
     @InjectRepository(User)
     private readonly users: Repository<User>,
+    private readonly cache: SystemCacheService,
   ) {}
 
   // ── Student → teachers ───────────────────────────────────────────────────
@@ -38,6 +40,7 @@ export class TeacherAssignmentsService {
     if (ids.length) {
       await this.links.save(ids.map((teacherId) => this.links.create({ studentId, teacherId })));
     }
+    await this.bumpTeacherVisibilityCaches();
     return this.getTeachersForStudent(studentId);
   }
 
@@ -61,6 +64,7 @@ export class TeacherAssignmentsService {
     if (ids.length) {
       await this.links.save(ids.map((studentId) => this.links.create({ teacherId, studentId })));
     }
+    await this.bumpTeacherVisibilityCaches();
     return this.getStudentsForTeacher(teacherId);
   }
 
@@ -137,5 +141,9 @@ export class TeacherAssignmentsService {
       throw new BadRequestException('One or more student ids are invalid');
     }
     return found.map((s) => s.id);
+  }
+
+  private async bumpTeacherVisibilityCaches(): Promise<void> {
+    await this.cache.bumpTags(['students:list', 'finance:monthly', 'attendance:schedule']);
   }
 }

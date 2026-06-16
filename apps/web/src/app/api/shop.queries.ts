@@ -6,6 +6,7 @@ import {
 } from '@cp/shared';
 import { shopApi } from './shop.api';
 import { useAuthStore } from '../stores/auth.store';
+import { queryStaleTime } from './query-cache';
 
 export const shopQueryKeys = {
   all: ['shop'] as const,
@@ -18,6 +19,7 @@ export function useShopCatalog() {
   return useQuery({
     queryKey: shopQueryKeys.catalog(),
     queryFn: () => shopApi.catalog().then((res) => res.data),
+    staleTime: queryStaleTime.userScoped,
   });
 }
 
@@ -68,6 +70,7 @@ export function useManageShopItems() {
   return useQuery({
     queryKey: shopQueryKeys.adminItems(),
     queryFn: () => shopApi.adminList().then((res) => res.data),
+    staleTime: queryStaleTime.reference,
   });
 }
 

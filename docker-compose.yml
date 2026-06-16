@@ -9,6 +9,10 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+    depends_on:
+      - redis
     user: root
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -51,6 +55,16 @@ services:
       - /piston/jobs:exec,uid=1000,gid=1000
     privileged: true
 
+  # ── Redis Cache ─────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: cp_redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "no", "--save", ""]
+    volumes:
+      - cp_redis_data:/data
+
 volumes:
   piston_packages:
   cp_uploads:
+  cp_redis_data:

@@ -18,36 +18,27 @@ import {
   ScoringProblem,
   ScoringSubmission,
 } from './exam-scoring.service';
-
-interface CacheEntry {
-  at: number;
-  rows: IExamRankingRow[];
-}
+import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 const CACHE_TTL_MS = 4000;
 
 /**
  * Ranking + live leaderboard. Pure rank/tie computation plus an N+1-free DB
  * aggregation (one GROUP-able pass over `submissions`, using the persisted
- * `exam_score`). Freeze is a time cutoff; a short in-memory cache absorbs
+ * `exam_score`). Freeze is a time cutoff; a short distributed cache absorbs
  * leaderboard polling and is invalidated on every new exam submission.
- *
- * NOTE: the cache is single-process only — see plan risk #5.
  */
 @Injectable()
 export class ExamRankingService {
-  private readonly cache = new Map<string, CacheEntry>();
-
   constructor(
     @InjectRepository(Submission) private readonly submissions: Repository<Submission>,
     @InjectRepository(ExamParticipant) private readonly participants: Repository<ExamParticipant>,
     private readonly scoring: ExamScoringService,
+    private readonly cache: SystemCacheService,
   ) {}
 
   invalidate(examId: string): void {
-    for (const key of [...this.cache.keys()]) {
-      if (key.startsWith(`${examId}:`)) this.cache.delete(key);
-    }
+    void this.cache.bumpTags([`exam:${examId}:ranking`]);
   }
 
   // ── Pure ranking ───────────────────────────────────────────────────────────
@@ -234,14 +225,30 @@ export class ExamRankingService {
     problems: ScoringProblem[],
     opts: { asOf?: number | null } = {},
   ): Promise<IExamRankingRow[]> {
-    const key = `${exam.id}:${opts.asOf ?? 'live'}:${exam.rankingRule}:${exam.tieMode}`;
-    const cached = this.cache.get(key);
-    const nowMs = Date.now();
-    if (cached && nowMs - cached.at < CACHE_TTL_MS) return cached.rows;
-
-    const aggregates = await this.computeAggregates(exam, problems, opts);
-    const rows = this.rank(aggregates, exam.rankingRule, exam.tieMode, exam.settings);
-    this.cache.set(key, { at: nowMs, rows });
-    return rows;
+    return this.cache.remember(
+      {
+        namespace: 'exam-ranking-live',
+        parts: [
+          exam.id,
+          opts.asOf ?? 'live',
+          exam.rankingRule,
+          exam.tieMode,
+          exam.settings,
+          problems.map((problem) => ({
+            examProblemId: problem.examProblemId,
+            assignmentId: problem.assignmentId,
+            points: problem.points,
+            scoringMode: problem.scoringMode,
+            subtaskConfig: problem.subtaskConfig,
+          })),
+        ],
+        tags: [`exam:${exam.id}:ranking`],
+        ttlMs: CACHE_TTL_MS,
+      },
+      async () => {
+        const aggregates = await this.computeAggregates(exam, problems, opts);
+        return this.rank(aggregates, exam.rankingRule, exam.tieMode, exam.settings);
+      },
+    );
   }
 }

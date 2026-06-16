@@ -137,6 +137,10 @@ function serviceWith({
   amountDueOverrides?: FinanceMonthlyAmountDue[];
   monthlyStatuses?: FinanceMonthlyStatus[];
 }) {
+  const cache = {
+    remember: jest.fn((_opts, loader) => loader()),
+    bumpTags: jest.fn(),
+  };
   return new FinanceService(
     repo(profiles),
     repo(slots),
@@ -145,6 +149,7 @@ function serviceWith({
     repo(legacyRows),
     repo(amountDueOverrides),
     repo(monthlyStatuses),
+    cache as never,
   );
 }
 

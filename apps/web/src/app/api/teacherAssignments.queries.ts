@@ -4,6 +4,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { teacherAssignmentsApi } from './teacherAssignments.api';
+import { queryStaleTime } from './query-cache';
 
 export const teacherAssignmentKeys = {
   studentTeachers: (studentId: string) => ['teacher-assignments', 'student', studentId] as const,
@@ -17,6 +18,7 @@ export function useStudentTeachers(studentId: string | undefined) {
       : ['teacher-assignments', 'student', 'noop'],
     queryFn: () => teacherAssignmentsApi.getStudentTeachers(studentId as string),
     enabled: !!studentId,
+    staleTime: queryStaleTime.adminList,
   });
 }
 
@@ -39,6 +41,7 @@ export function useTeacherStudents(teacherId: string | undefined) {
       : ['teacher-assignments', 'teacher', 'noop'],
     queryFn: () => teacherAssignmentsApi.getTeacherStudents(teacherId as string),
     enabled: !!teacherId,
+    staleTime: queryStaleTime.adminList,
   });
 }
 

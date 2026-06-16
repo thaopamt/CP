@@ -20,6 +20,7 @@ import { Enrollment } from '../classes/enrollment.entity';
 import { BadgesService } from './badges.service';
 import { GamificationGateway } from './gamification.gateway';
 import { applyXpGain } from './period-keys';
+import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 /** Context emitted by the submission/maze pipelines into the objective engine. */
 export interface QuestEngineEvent {
@@ -43,16 +44,25 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
     private readonly ds: DataSource,
     private readonly badges: BadgesService,
     private readonly gateway: GamificationGateway,
+    private readonly cache: SystemCacheService,
   ) {
     super(repo);
   }
 
   /** Compact list for prerequisite pickers in the admin quest form. */
   async listOptions(): Promise<Pick<Quest, 'id' | 'title' | 'type' | 'icon'>[]> {
-    return this.repo.find({
-      select: ['id', 'title', 'type', 'icon'],
-      order: { sortOrder: 'ASC', createdAt: 'DESC' },
-    });
+    return this.cache.remember(
+      {
+        namespace: 'quest-options',
+        tags: ['quests:catalog'],
+        ttlMs: 120_000,
+      },
+      () =>
+        this.repo.find({
+          select: ['id', 'title', 'type', 'icon'],
+          order: { sortOrder: 'ASC', createdAt: 'DESC' },
+        }),
+    );
   }
 
   // ── Scheduling helpers ─────────────────────────────────────────────────────
@@ -159,15 +169,28 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
     if (staleIds.length > 0) {
       await this.studentQuests.update({ id: In(staleIds) }, { status: StudentQuestStatus.EXPIRED });
     }
+
+    if (toCreate.length > 0 || staleIds.length > 0) {
+      await this.cache.bumpTags([`student:${userId}:quests`, `student:${userId}:dashboard`]);
+    }
   }
 
   async getMyQuests(userId: string): Promise<StudentQuest[]> {
     await this.ensureQuestsAssigned(userId);
-    return this.studentQuests.find({
-      where: { userId, status: Not(StudentQuestStatus.EXPIRED) },
-      relations: ['quest'],
-      order: { quest: { sortOrder: 'ASC' }, createdAt: 'DESC' },
-    });
+    return this.cache.remember(
+      {
+        namespace: 'student-quests',
+        parts: [userId],
+        tags: [`student:${userId}:quests`, 'quests:catalog'],
+        ttlMs: 20_000,
+      },
+      () =>
+        this.studentQuests.find({
+          where: { userId, status: Not(StudentQuestStatus.EXPIRED) },
+          relations: ['quest'],
+          order: { quest: { sortOrder: 'ASC' }, createdAt: 'DESC' },
+        }),
+    );
   }
 
   // ── Claiming / auto-reward ───────────────────────────────────────────────────
@@ -303,6 +326,7 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
     await this.autoClaimAll(userId);
     const profile = await this.profiles.findOne({ where: { userId } });
     await this.badges.evaluateAndAward(userId, profile ?? undefined);
+    await this.bumpStudentGamificationCaches(userId);
 
     return {
       studentQuest: r.sq as unknown as IClaimQuestResult['studentQuest'],
@@ -380,6 +404,7 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
     await this.autoClaimAll(userId);
     const fresh = await this.profiles.findOne({ where: { userId } });
     await this.badges.evaluateAndAward(userId, fresh ?? undefined);
+    await this.bumpStudentGamificationCaches(userId);
   }
 
   /** Returns updated {progress, data} or null if this event doesn't apply. */
@@ -510,5 +535,16 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
       rewardGems: sq.quest.rewardGems,
       at: new Date().toISOString(),
     });
+  }
+
+  private async bumpStudentGamificationCaches(userId: string): Promise<void> {
+    await this.cache.bumpTags([
+      `student:${userId}:quests`,
+      `student:${userId}:badges`,
+      `student:${userId}:dashboard`,
+      `student:${userId}:profile`,
+      `student:${userId}:shop`,
+      'leaderboard:global',
+    ]);
   }
 }
