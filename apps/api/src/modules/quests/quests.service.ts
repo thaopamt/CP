@@ -20,6 +20,7 @@ import { Enrollment } from '../classes/enrollment.entity';
 import { BadgesService } from './badges.service';
 import { GamificationGateway } from './gamification.gateway';
 import { applyXpGain } from './period-keys';
+import { advanceLevel } from '../../common/gamification.constants';
 import { SystemCacheService } from '../../common/cache/system-cache.service';
 
 /** Context emitted by the submission/maze pipelines into the objective engine. */
@@ -32,7 +33,7 @@ export interface QuestEngineEvent {
   mazeLevelId?: string;
 }
 
-const XP_PER_LEVEL = 1000;
+
 
 @Injectable()
 export class QuestsService extends TypeOrmCrudService<Quest> {
@@ -228,9 +229,7 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
         applyXpGain(profile, sq.quest.rewardXp, now);
         profile.gems += sq.quest.rewardGems;
         profile.questsCompleted += 1;
-        // Level N spans [N*1000, (N+1)*1000); advance once xp reaches the next.
-        while (profile.xp >= (profile.level + 1) * XP_PER_LEVEL) profile.level += 1;
-        leveledUp = profile.level > prevLevel;
+        leveledUp = advanceLevel(profile);
         newLevel = profile.level;
 
         if (sq.quest.rewardBadgeId) {
@@ -245,7 +244,7 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
               profile.gems += badge.rewardGems;
               profile.badgesEarned += 1;
               // Re-check level after badge XP
-              while (profile.xp >= (profile.level + 1) * XP_PER_LEVEL) profile.level += 1;
+              advanceLevel(profile);
               badgeAwarded = badge;
             }
           }

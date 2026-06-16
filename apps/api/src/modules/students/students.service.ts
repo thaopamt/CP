@@ -21,6 +21,13 @@ import { Submission } from '../submissions/submission.entity';
 import { StudentAssignmentProgress } from '../submissions/student-assignment-progress.entity';
 import { StudentSchedule } from './student-schedule.entity';
 import { SystemCacheService } from '../../common/cache/system-cache.service';
+import {
+  advanceLevel,
+  DAILY_QUESTS_TARGET,
+  xpThresholdForNextLevel,
+  xpIntoCurrentLevel,
+  xpBucketSize,
+} from '../../common/gamification.constants';
 
 @Injectable()
 export class StudentsService extends TypeOrmCrudService<StudentProfile> {
@@ -291,12 +298,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
 
     // Defensive: recalculate level from XP in case it was not updated
     // (e.g. badge XP rewards previously skipped the level-up check).
-    const XP_PER_LEVEL = 1000;
-    let levelCorrected = false;
-    while (profile.xp >= (profile.level + 1) * XP_PER_LEVEL) {
-      profile.level += 1;
-      levelCorrected = true;
-    }
+    const levelCorrected = advanceLevel(profile);
     if (levelCorrected) {
       await this.repo.update({ id: profile.id }, { level: profile.level });
       void this.cache.bumpTags([`student:${userId}:profile`, `student:${userId}:dashboard`, 'leaderboard:global']);
@@ -314,7 +316,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
     const weeklyAccepted = await this.ds.getRepository(Submission).count({
       where: { userId, status: SubmissionStatus.ACCEPTED, createdAt: MoreThanOrEqual(startOfWeek) },
     });
-    const dailyQuestsTarget = 5;
+    const dailyQuestsTarget = DAILY_QUESTS_TARGET;
 
     const topProfiles = await this.repo.find({
       order: { xp: 'DESC' },
@@ -536,12 +538,9 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       studentName: this.formatFullName(profile.user),
       level: profile.level,
       xp: profile.xp,
-      // Level N spans [N*1000, (N+1)*1000), so the next-level threshold is
-      // (level+1)*1000 and the bar measures progress from this level's floor.
-      // Level 1 starts at 0 XP (it is the wider opening level: [0, 2000)).
-      xpForNext: (profile.level + 1) * 1000,
-      xpIntoLevel: Math.max(0, profile.xp - (profile.level <= 1 ? 0 : profile.level * 1000)),
-      xpPerLevel: (profile.level + 1) * 1000 - (profile.level <= 1 ? 0 : profile.level * 1000),
+      xpForNext: xpThresholdForNextLevel(profile.level),
+      xpIntoLevel: xpIntoCurrentLevel(profile.xp, profile.level),
+      xpPerLevel: xpBucketSize(profile.level),
       streak: profile.streak,
       gems: profile.gems,
       nameColor: profile.nameColor ?? null,

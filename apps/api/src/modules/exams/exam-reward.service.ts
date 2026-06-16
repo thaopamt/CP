@@ -12,8 +12,7 @@ import { Badge } from '../quests/badge.entity';
 import { StudentBadge } from '../quests/student-badge.entity';
 import { GamificationGateway } from '../quests/gamification.gateway';
 import { applyXpGain } from '../quests/period-keys';
-
-const XP_PER_LEVEL = 1000;
+import { advanceLevel } from '../../common/gamification.constants';
 
 interface EvalContext {
   maxTotalScore: number;
@@ -145,7 +144,7 @@ export class ExamRewardService {
           const now = new Date();
           if (xp > 0) applyXpGain(profile, xp, now);
           if (gems > 0) profile.gems += gems;
-          while (profile.xp >= (profile.level + 1) * XP_PER_LEVEL) profile.level += 1;
+          advanceLevel(profile);
           if (badgeId) {
             const owned = await studentBadgeRepo.findOne({ where: { userId, badgeId } });
             if (!owned) {

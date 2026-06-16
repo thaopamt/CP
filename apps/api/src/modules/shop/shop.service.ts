@@ -22,11 +22,10 @@ import { StudentProfile } from '../students/student-profile.entity';
 import { User } from '../users/user.entity';
 import { BadgesService } from '../quests/badges.service';
 import { applyXpGain } from '../quests/period-keys';
+import { advanceLevel } from '../../common/gamification.constants';
 import { ShopItem } from './shop-item.entity';
 import { StudentInventory } from './student-inventory.entity';
 import { SystemCacheService } from '../../common/cache/system-cache.service';
-
-const XP_PER_LEVEL = 1000;
 
 @Injectable()
 export class ShopService {
@@ -236,8 +235,7 @@ export class ShopService {
         if (p.xp && p.xp > 0) {
           const prevLevel = profile.level;
           applyXpGain(profile, p.xp, now);
-          // Level N spans [N*1000, (N+1)*1000); advance once xp reaches the next.
-          while (profile.xp >= (profile.level + 1) * XP_PER_LEVEL) profile.level += 1;
+          advanceLevel(profile);
           awardedXp = p.xp;
           message =
             profile.level > prevLevel
