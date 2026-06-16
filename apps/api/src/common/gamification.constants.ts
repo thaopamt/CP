@@ -14,7 +14,7 @@
  *
  * Exception: Level 1 starts at 0 XP (the "opening" level: `[0, 2000)`).
  */
-export const XP_PER_LEVEL = 3000;
+export const XP_PER_LEVEL = 10000;
 
 // ── Daily goals ─────────────────────────────────────────────────────────────
 
