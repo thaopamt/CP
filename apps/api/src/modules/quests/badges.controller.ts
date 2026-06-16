@@ -1,4 +1,4 @@
-import { Controller, UseGuards } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { Crud, CrudController } from '@dataui/crud';
 import { UserRole } from '@cp/shared';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -26,4 +26,10 @@ import { CreateBadgeDto, UpdateBadgeDto } from './dto/create-badge.dto';
 @Roles(UserRole.ADMIN, UserRole.TEACHER)
 export class BadgesController implements CrudController<Badge> {
   constructor(public service: BadgesService) {}
+
+  /** Aggregate KPI stats for the admin badges list page. */
+  @Get('stats')
+  async getStats() {
+    return this.service.getStats();
+  }
 }

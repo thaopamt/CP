@@ -1865,6 +1865,7 @@ const en = {
         colStatus: 'Status',
         deleteConfirm: 'Delete this badge?',
         students: '{{count}} students',
+        showing: 'Showing {{from}}–{{to}} of {{total}}',
         form: {
           createTitle: 'Create badge',
           editTitle: 'Edit badge',

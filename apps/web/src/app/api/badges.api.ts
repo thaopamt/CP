@@ -15,6 +15,13 @@ interface CrudListResponse<T> {
   pageCount: number;
 }
 
+export interface IBadgeStats {
+  total: number;
+  active: number;
+  totalEarned: number;
+  legendary: number;
+}
+
 export const badgesApi = {
   // ── Admin ──────────────────────────────────────────────────────────────────
   list(params?: Record<string, unknown>) {
@@ -22,6 +29,9 @@ export const badgesApi = {
   },
   get(id: string) {
     return apiClient.get<IBadge>(`/badges/${id}`);
+  },
+  stats() {
+    return apiClient.get<IBadgeStats>('/badges/stats');
   },
   create(payload: ICreateBadgePayload) {
     return apiClient.post<IBadge>('/badges', payload);

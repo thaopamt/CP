@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ICreateBadgePayload, IUpdateBadgePayload } from '@cp/shared';
 import { badgesApi } from './badges.api';
 import { queryStaleTime } from './query-cache';
@@ -7,6 +7,7 @@ export const badgeQueryKeys = {
   all: ['badges'] as const,
   list: (params?: Record<string, unknown>) => ['badges', 'list', params] as const,
   detail: (id: string) => ['badges', 'detail', id] as const,
+  stats: () => ['badges', 'stats'] as const,
   myBadges: () => ['student-badges', 'me'] as const,
   catalog: () => ['student-badges', 'catalog'] as const,
 };
@@ -15,6 +16,15 @@ export function useBadges(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: badgeQueryKeys.list(params),
     queryFn: () => badgesApi.list(params).then((res) => res.data),
+    placeholderData: keepPreviousData,
+    staleTime: queryStaleTime.reference,
+  });
+}
+
+export function useBadgeStats() {
+  return useQuery({
+    queryKey: badgeQueryKeys.stats(),
+    queryFn: () => badgesApi.stats().then((res) => res.data),
     staleTime: queryStaleTime.reference,
   });
 }

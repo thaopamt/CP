@@ -28,6 +28,32 @@ export class BadgesService extends TypeOrmCrudService<Badge> {
     super(badges);
   }
 
+  /** Aggregate KPI stats for the admin badges list page. */
+  async getStats(): Promise<{ total: number; active: number; totalEarned: number; legendary: number }> {
+    return this.cache.remember(
+      {
+        namespace: 'badge-stats',
+        tags: ['badges:catalog'],
+        ttlMs: 30_000,
+      },
+      async () => {
+        const raw = await this.badges
+          .createQueryBuilder('b')
+          .select('COUNT(*)::int', 'total')
+          .addSelect('COUNT(*) FILTER (WHERE b.is_active = true)::int', 'active')
+          .addSelect('COALESCE(SUM(b.earned_count), 0)::int', 'totalEarned')
+          .addSelect("COUNT(*) FILTER (WHERE b.rarity = 'LEGENDARY')::int", 'legendary')
+          .getRawOne();
+        return {
+          total: raw.total,
+          active: raw.active,
+          totalEarned: raw.totalEarned,
+          legendary: raw.legendary,
+        };
+      },
+    );
+  }
+
   private statValue(profile: StudentProfile, type: BadgeCriteriaType): number {
     switch (type) {
       case BadgeCriteriaType.QUESTS_COMPLETED:

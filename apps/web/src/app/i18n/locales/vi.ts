@@ -1870,6 +1870,7 @@ const vi: AppResources = {
         colStatus: 'Trạng thái',
         deleteConfirm: 'Xóa huy hiệu này?',
         students: '{{count}} học sinh',
+        showing: 'Hiển thị {{from}}–{{to}} trên {{total}}',
         form: {
           createTitle: 'Tạo huy hiệu',
           editTitle: 'Sửa huy hiệu',

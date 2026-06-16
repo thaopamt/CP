@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Button, Icon, PageHeader, DataTable, StatusBadge, TabPills, useConfirm } from '@cp/ui';
+import { Button, Icon, PageHeader, DataTable, StatusBadge, TabPills, Pagination, useConfirm } from '@cp/ui';
 import { IBadge, BadgeRarity } from '@cp/shared';
-import { useBadges, useDeleteBadge } from '../../../api/badges.queries';
+import { useBadges, useDeleteBadge, useBadgeStats } from '../../../api/badges.queries';
 import { usePortalBase } from '../../../hooks/usePortalBase';
+
+const PAGE_SIZE = 25;
 
 type BadgeTab = 'all' | BadgeRarity;
 
@@ -39,13 +41,24 @@ export default function BadgesListPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const base = usePortalBase();
-  const { data: badges, isLoading } = useBadges();
-  const deleteMutation = useDeleteBadge();
+  const [page, setPage] = useState(1);
   const [tab, setTab] = useState<BadgeTab>('all');
   const [search, setSearch] = useState('');
   const confirm = useConfirm();
 
+  const { data: badges, isLoading, isPlaceholderData } = useBadges({ page, limit: PAGE_SIZE });
+  const deleteMutation = useDeleteBadge();
+
   const badgeList: IBadge[] = badges?.data ?? [];
+  const total = badges?.total ?? 0;
+  const pageCount = badges?.pageCount ?? 1;
+
+  function resetPage<T>(setter: (v: T) => void) {
+    return (v: T) => {
+      setter(v);
+      setPage(1);
+    };
+  }
 
   const filtered = useMemo(() => {
     let result = badgeList;
@@ -62,11 +75,15 @@ export default function BadgesListPage() {
     return result;
   }, [badgeList, tab, search]);
 
-  // KPI stats
-  const totalBadges = badgeList.length;
-  const activeBadges = badgeList.filter((b) => b.isActive).length;
-  const totalEarned = badgeList.reduce((sum, b) => sum + (b.earnedCount ?? 0), 0);
-  const legendaryCount = badgeList.filter((b) => b.rarity === BadgeRarity.LEGENDARY).length;
+  const showingFrom = badgeList.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const showingTo = (page - 1) * PAGE_SIZE + badgeList.length;
+
+  // KPI stats from server
+  const { data: stats } = useBadgeStats();
+  const totalBadges = stats?.total ?? 0;
+  const activeBadges = stats?.active ?? 0;
+  const totalEarned = stats?.totalEarned ?? 0;
+  const legendaryCount = stats?.legendary ?? 0;
 
   const columns = [
     {
@@ -189,11 +206,14 @@ export default function BadgesListPage() {
       </div>
 
       {/* Filter bar */}
-      <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl shadow-sm overflow-hidden relative">
+        {isPlaceholderData && (
+          <div className="absolute top-0 inset-x-0 h-0.5 bg-primary/50 animate-pulse z-10" aria-hidden />
+        )}
         <div className="px-md pt-md flex flex-col sm:flex-row sm:items-center gap-md border-b border-outline-variant/30 pb-md">
           <TabPills
             value={tab}
-            onChange={setTab}
+            onChange={resetPage(setTab)}
             options={[
               { value: 'all', label: t('common.all') },
               ...(Object.values(BadgeRarity) as BadgeRarity[]).map((r) => ({
@@ -207,7 +227,7 @@ export default function BadgesListPage() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => resetPage(setSearch)(e.target.value)}
               placeholder={t('gamif.admin.badges.search')}
               className="pl-9 pr-4 py-2 bg-surface-container-highest border-none rounded-lg text-label-sm focus:ring-2 focus:ring-primary w-full sm:w-[260px] outline-none"
             />
@@ -226,6 +246,17 @@ export default function BadgesListPage() {
         ) : (
           <DataTable columns={columns} rows={filtered} rowKey={(b: IBadge) => b.id} />
         )}
+
+        <footer className="flex flex-col sm:flex-row items-center justify-between gap-sm p-md border-t border-outline-variant/30">
+          <div className="text-label-sm text-on-surface-variant">
+            {t('gamif.admin.badges.showing', {
+              from: showingFrom,
+              to: showingTo,
+              total,
+            })}
+          </div>
+          <Pagination page={page} pageCount={pageCount} onChange={setPage} />
+        </footer>
       </div>
     </div>
   );
