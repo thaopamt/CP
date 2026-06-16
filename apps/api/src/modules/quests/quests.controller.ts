@@ -27,6 +27,12 @@ import { CreateQuestDto, UpdateQuestDto } from './dto/create-quest.dto';
 export class QuestsController implements CrudController<Quest> {
   constructor(public service: QuestsService) {}
 
+  /** Aggregate KPI stats for the admin quest list page. */
+  @Get('stats')
+  async getStats() {
+    return this.service.getStats();
+  }
+
   /** Lightweight option list for prerequisite/badge pickers in the admin form. */
   @Get('options/all')
   async listOptions() {

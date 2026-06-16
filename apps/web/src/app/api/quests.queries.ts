@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ICreateQuestPayload, IUpdateQuestPayload } from '@cp/shared';
 import { questsApi } from './quests.api';
 import { queryStaleTime } from './query-cache';
@@ -8,6 +8,7 @@ export const questQueryKeys = {
   list: (params?: Record<string, unknown>) => ['quests', 'list', params] as const,
   detail: (id: string) => ['quests', 'detail', id] as const,
   options: () => ['quests', 'options'] as const,
+  stats: () => ['quests', 'stats'] as const,
   studentQuests: () => ['student-quests'] as const,
 };
 
@@ -15,6 +16,15 @@ export function useQuests(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: questQueryKeys.list(params),
     queryFn: () => questsApi.list(params).then((res) => res.data),
+    placeholderData: keepPreviousData,
+    staleTime: queryStaleTime.reference,
+  });
+}
+
+export function useQuestStats() {
+  return useQuery({
+    queryKey: questQueryKeys.stats(),
+    queryFn: () => questsApi.stats().then((res) => res.data),
     staleTime: queryStaleTime.reference,
   });
 }

@@ -1780,6 +1780,7 @@ const en = {
         kpiActive: 'Active',
         kpiXp: 'XP pool',
         kpiGems: 'Gem pool',
+        showing: 'Showing {{from}}–{{to}} of {{total}}',
       },
       form: {
         createTitle: 'Create quest',

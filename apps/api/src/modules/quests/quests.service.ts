@@ -66,6 +66,32 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
     );
   }
 
+  /** Aggregate KPI stats for the admin quest list page. */
+  async getStats(): Promise<{ total: number; active: number; totalXp: number; totalGems: number }> {
+    return this.cache.remember(
+      {
+        namespace: 'quest-stats',
+        tags: ['quests:catalog'],
+        ttlMs: 30_000,
+      },
+      async () => {
+        const raw = await this.repo
+          .createQueryBuilder('q')
+          .select('COUNT(*)::int', 'total')
+          .addSelect('COUNT(*) FILTER (WHERE q.isActive = true)::int', 'active')
+          .addSelect('COALESCE(SUM(q.rewardXp), 0)::int', 'totalXp')
+          .addSelect('COALESCE(SUM(q.rewardGems), 0)::int', 'totalGems')
+          .getRawOne();
+        return {
+          total: raw.total,
+          active: raw.active,
+          totalXp: raw.totalXp,
+          totalGems: raw.totalGems,
+        };
+      },
+    );
+  }
+
   // ── Scheduling helpers ─────────────────────────────────────────────────────
 
   private periodKeyFor(quest: Quest, now: Date): string {

@@ -23,6 +23,13 @@ export interface IQuestOption {
   icon: string;
 }
 
+export interface IQuestStats {
+  total: number;
+  active: number;
+  totalXp: number;
+  totalGems: number;
+}
+
 export const questsApi = {
   // ── Admin ──────────────────────────────────────────────────────────────────
   list(params?: Record<string, unknown>) {
@@ -30,6 +37,9 @@ export const questsApi = {
   },
   get(id: string) {
     return apiClient.get<IQuest>(`/quests/${id}`);
+  },
+  stats() {
+    return apiClient.get<IQuestStats>('/quests/stats');
   },
   options() {
     return apiClient.get<IQuestOption[]>('/quests/options/all');

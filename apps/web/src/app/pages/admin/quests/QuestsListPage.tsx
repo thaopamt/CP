@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Button, Icon, PageHeader, DataTable, StatusBadge, TabPills, useConfirm } from '@cp/ui';
+import { Button, Icon, PageHeader, DataTable, StatusBadge, TabPills, Pagination, useConfirm } from '@cp/ui';
 import { QuestType, QuestStatus, QuestRecurrence, IQuest, QUEST_OBJECTIVE_META } from '@cp/shared';
-import { useQuests, useDeleteQuest } from '../../../api/quests.queries';
+import { useQuests, useDeleteQuest, useQuestStats } from '../../../api/quests.queries';
 import { usePortalBase } from '../../../hooks/usePortalBase';
+
+const PAGE_SIZE = 25;
 
 type QuestTab = 'all' | QuestType;
 
@@ -33,13 +35,24 @@ export default function QuestsListPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const base = usePortalBase();
-  const { data: quests, isLoading } = useQuests();
-  const deleteMutation = useDeleteQuest();
+  const [page, setPage] = useState(1);
   const [tab, setTab] = useState<QuestTab>('all');
   const [search, setSearch] = useState('');
   const confirm = useConfirm();
 
+  const { data: quests, isLoading, isPlaceholderData } = useQuests({ page, limit: PAGE_SIZE });
+  const deleteMutation = useDeleteQuest();
+
   const questList: IQuest[] = quests?.data ?? [];
+  const total = quests?.total ?? 0;
+  const pageCount = quests?.pageCount ?? 1;
+
+  function resetPage<T>(setter: (v: T) => void) {
+    return (v: T) => {
+      setter(v);
+      setPage(1);
+    };
+  }
 
   const filtered = useMemo(() => {
     let result = questList;
@@ -53,10 +66,14 @@ export default function QuestsListPage() {
     return result;
   }, [questList, tab, search]);
 
-  const totalQuests = questList.length;
-  const activeQuests = questList.filter((q) => q.isActive).length;
-  const totalXp = questList.reduce((sum, q) => sum + q.rewardXp, 0);
-  const totalGems = questList.reduce((sum, q) => sum + q.rewardGems, 0);
+  const showingFrom = questList.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const showingTo = (page - 1) * PAGE_SIZE + questList.length;
+
+  const { data: stats } = useQuestStats();
+  const totalQuests = stats?.total ?? 0;
+  const activeQuests = stats?.active ?? 0;
+  const totalXp = stats?.totalXp ?? 0;
+  const totalGems = stats?.totalGems ?? 0;
 
   const columns = [
     {
@@ -214,11 +231,14 @@ export default function QuestsListPage() {
       </div>
 
       {/* Filter bar */}
-      <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl shadow-sm overflow-hidden relative">
+        {isPlaceholderData && (
+          <div className="absolute top-0 inset-x-0 h-0.5 bg-primary/50 animate-pulse z-10" aria-hidden />
+        )}
         <div className="px-md pt-md flex flex-col sm:flex-row sm:items-center gap-md border-b border-outline-variant/30 pb-md">
           <TabPills
             value={tab}
-            onChange={setTab}
+            onChange={resetPage(setTab)}
             options={[
               { value: 'all', label: t('common.all') },
               { value: QuestType.DAILY, label: t('gamif.questType.DAILY') },
@@ -233,7 +253,7 @@ export default function QuestsListPage() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => resetPage(setSearch)(e.target.value)}
               placeholder={t('gamif.admin.quests.search')}
               className="pl-9 pr-4 py-2 bg-surface-container-highest border-none rounded-lg text-label-sm focus:ring-2 focus:ring-primary w-full sm:w-[260px] outline-none"
             />
@@ -252,6 +272,17 @@ export default function QuestsListPage() {
         ) : (
           <DataTable columns={columns} rows={filtered} rowKey={(q: IQuest) => q.id} />
         )}
+
+        <footer className="flex flex-col sm:flex-row items-center justify-between gap-sm p-md border-t border-outline-variant/30">
+          <div className="text-label-sm text-on-surface-variant">
+            {t('gamif.admin.quests.showing', {
+              from: showingFrom,
+              to: showingTo,
+              total,
+            })}
+          </div>
+          <Pagination page={page} pageCount={pageCount} onChange={setPage} />
+        </footer>
       </div>
     </div>
   );

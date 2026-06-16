@@ -1785,6 +1785,7 @@ const vi: AppResources = {
         kpiActive: 'Đang bật',
         kpiXp: 'Quỹ XP',
         kpiGems: 'Quỹ đá quý',
+        showing: 'Hiển thị {{from}}–{{to}} trên {{total}}',
       },
       form: {
         createTitle: 'Tạo nhiệm vụ',
