@@ -121,6 +121,7 @@ export class SubmissionsController implements OnModuleInit {
   ) {
     return this.queryPaginated({
       viewerRole: req.user.role,
+      viewerId: req.user.sub,
       page: this.toInt(pageStr, 1),
       limit: this.toInt(limitStr, 20),
       search,
@@ -141,6 +142,7 @@ export class SubmissionsController implements OnModuleInit {
    */
   private async queryPaginated(opts: {
     userId?: string;
+    viewerId?: string;
     viewerRole?: UserRole;
     page: number;
     limit: number;
@@ -213,6 +215,17 @@ export class SubmissionsController implements OnModuleInit {
           (r.user as any).equippedTitle = c?.equippedTitle ?? null;
           (r.user as any).equippedFrame = c?.equippedFrame ?? null;
           (r.user as any).nameColor = c?.nameColor ?? null;
+        }
+      }
+
+      // Students must not see source code or test details of other users' submissions.
+      if (opts.viewerRole === UserRole.STUDENT && opts.userId == null) {
+        const viewerId = opts.viewerId;
+        for (const r of rows) {
+          if (r.userId !== viewerId) {
+            r.code = '';
+            (r as any).testResults = [];
+          }
         }
       }
     }

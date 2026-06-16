@@ -212,6 +212,21 @@ export default function SubmissionsPage() {
 
   const portalPrefix = location.pathname.startsWith('/admin') ? '/admin' : location.pathname.startsWith('/teacher') ? '/teacher' : '/student';
 
+  /** Students may only view their own submission details. */
+  const canViewDetail = useCallback(
+    (sub: any) => isAdminOrTeacher || sub.userId === user?.id,
+    [isAdminOrTeacher, user?.id],
+  );
+
+  const handleRowClick = useCallback(
+    (sub: any) => {
+      if (canViewDetail(sub)) {
+        setSelectedSubId(sub.id);
+      }
+    },
+    [canViewDetail],
+  );
+
   return (
     <div className="max-w-[1400px] mx-auto py-lg space-y-lg">
       {/* ── Header ───────────────────────────────────────────────── */}
@@ -328,8 +343,9 @@ export default function SubmissionsPage() {
                   return (
                     <div
                       key={sub.id}
-                      onClick={() => setSelectedSubId(sub.id)}
-                      className="grid grid-cols-[180px_1fr_80px_100px_80px_70px_100px] gap-0 px-md py-sm items-center cursor-pointer hover:bg-surface-container-highest/50 transition-colors group text-center"
+                      onClick={() => handleRowClick(sub)}
+                      className={`grid grid-cols-[180px_1fr_80px_100px_80px_70px_100px] gap-0 px-md py-sm items-center transition-colors group text-center ${canViewDetail(sub) ? 'cursor-pointer hover:bg-surface-container-highest/50' : 'cursor-not-allowed opacity-70'}`}
+                      title={!canViewDetail(sub) ? t('pages.submissions.cannotViewOther', 'Bạn chỉ có thể xem chi tiết bài nộp của mình') : undefined}
                     >
                       {/* Student */}
                       <div className="flex items-center gap-sm min-w-0 pr-sm text-left">
@@ -412,8 +428,9 @@ export default function SubmissionsPage() {
               return (
                 <div
                   key={sub.id}
-                  onClick={() => setSelectedSubId(sub.id)}
-                  className="p-md cursor-pointer hover:bg-surface-container-highest/50 transition-colors active:bg-surface-container-highest"
+                  onClick={() => handleRowClick(sub)}
+                  className={`p-md transition-colors ${canViewDetail(sub) ? 'cursor-pointer hover:bg-surface-container-highest/50 active:bg-surface-container-highest' : 'cursor-not-allowed opacity-70'}`}
+                  title={!canViewDetail(sub) ? t('pages.submissions.cannotViewOther', 'Bạn chỉ có thể xem chi tiết bài nộp của mình') : undefined}
                 >
                   <div className="flex items-start justify-between gap-sm mb-sm">
                     <div className="flex items-center gap-sm min-w-0 flex-1">
