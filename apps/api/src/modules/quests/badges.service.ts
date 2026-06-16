@@ -76,6 +76,7 @@ export class BadgesService extends TypeOrmCrudService<Badge> {
       if (!fresh) return;
       const now = new Date();
 
+      const XP_PER_LEVEL = 1000;
       for (const badge of eligible) {
         // Guard against races: skip if already owned.
         const exists = await sbRepo.findOne({ where: { userId, badgeId: badge.id } });
@@ -86,6 +87,8 @@ export class BadgesService extends TypeOrmCrudService<Badge> {
         applyXpGain(fresh, badge.rewardXp, now);
         fresh.gems += badge.rewardGems;
         fresh.badgesEarned += 1;
+        // Level-up after badge XP
+        while (fresh.xp >= (fresh.level + 1) * XP_PER_LEVEL) fresh.level += 1;
         awarded.push(badge);
       }
       if (awarded.length > 0) await profRepo.save(fresh);

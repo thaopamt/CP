@@ -244,6 +244,8 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
               applyXpGain(profile, badge.rewardXp, now);
               profile.gems += badge.rewardGems;
               profile.badgesEarned += 1;
+              // Re-check level after badge XP
+              while (profile.xp >= (profile.level + 1) * XP_PER_LEVEL) profile.level += 1;
               badgeAwarded = badge;
             }
           }

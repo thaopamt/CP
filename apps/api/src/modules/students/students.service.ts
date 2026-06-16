@@ -289,6 +289,19 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
     const profile = await this.repo.findOne({ where: { userId }, relations: ['user'] });
     if (!profile) throw new NotFoundException(`Student profile not found for user ${userId}`);
 
+    // Defensive: recalculate level from XP in case it was not updated
+    // (e.g. badge XP rewards previously skipped the level-up check).
+    const XP_PER_LEVEL = 1000;
+    let levelCorrected = false;
+    while (profile.xp >= (profile.level + 1) * XP_PER_LEVEL) {
+      profile.level += 1;
+      levelCorrected = true;
+    }
+    if (levelCorrected) {
+      await this.repo.update({ id: profile.id }, { level: profile.level });
+      void this.cache.bumpTags([`student:${userId}:profile`, `student:${userId}:dashboard`, 'leaderboard:global']);
+    }
+
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
     const startOfWeek = new Date(startOfDay);
