@@ -16,7 +16,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Crud, CrudController, Override } from '@dataui/crud';
-import { UserRole } from '@cp/shared';
+import { IAssignmentEditorial, UserRole } from '@cp/shared';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -59,7 +59,11 @@ export class AssignmentsController implements CrudController<Assignment> {
     const page = pageStr ? parseInt(pageStr, 10) : 1;
     const limit = limitStr ? parseInt(limitStr, 10) : 10;
     return this.service.getAssignmentsForStudent(user.sub, {
-      page, limit, search, category, difficulty
+      page,
+      limit,
+      search,
+      category,
+      difficulty,
     });
   }
 
@@ -88,6 +92,23 @@ export class AssignmentsController implements CrudController<Assignment> {
   @Get(':id/implicit-classes')
   async getImplicitClasses(@Param('id', new ParseUUIDPipe()) id: string): Promise<string[]> {
     return this.service.getImplicitClasses(id);
+  }
+
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @Get(':id/editorial')
+  async getEditorial(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<{ editorial: IAssignmentEditorial | null }> {
+    return { editorial: await this.service.getEditorial(id) };
+  }
+
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @Patch(':id/editorial')
+  async updateEditorial(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() body: { editorial: IAssignmentEditorial | null },
+  ): Promise<{ editorial: IAssignmentEditorial | null }> {
+    return { editorial: await this.service.updateEditorial(id, body.editorial ?? null) };
   }
 
   @Override('createOneBase')
@@ -133,9 +154,7 @@ export class AssignmentsController implements CrudController<Assignment> {
 
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Delete(':id/testcases')
-  async clearTestcases(
-    @Param('id', new ParseUUIDPipe()) id: string,
-  ): Promise<{ hiddenTestCount: number }> {
+  async clearTestcases(@Param('id', new ParseUUIDPipe()) id: string): Promise<{ hiddenTestCount: number }> {
     await this.service.clearHiddenTestcases(id);
     return { hiddenTestCount: 0 };
   }
@@ -153,10 +172,7 @@ export class AssignmentsController implements CrudController<Assignment> {
    * when the assignment explicitly allows viewing hidden test cases.
    */
   @Get(':id/testcases')
-  async getTestcases(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async getTestcases(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() user: JwtPayload) {
     if (user.role !== UserRole.ADMIN) {
       const assignment = await this.service.getById(id);
       if (!assignment.codingConfig?.allowViewHiddenTestCases) {

@@ -10,7 +10,7 @@
  *   ['classes', 'courses', classId]        — sequenced courses for a class
  */
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ICreateAssignmentDefPayload, ICreateCoursePayload } from '@cp/shared';
+import { IAssignmentEditorial, ICreateAssignmentDefPayload, ICreateCoursePayload } from '@cp/shared';
 
 import {
   AssignmentsListParams,
@@ -25,6 +25,7 @@ export const curriculumKeys = {
   assignments: {
     list: (params: AssignmentsListParams) => ['assignments', 'list', params] as const,
     detail: (id: string) => ['assignments', 'detail', id] as const,
+    editorial: (id: string) => ['assignments', 'editorial', id] as const,
     implicitClasses: (id: string) => ['assignments', 'implicit-classes', id] as const,
     testcaseManifest: (id: string) => ['assignments', 'testcases', 'manifest', id] as const,
   },
@@ -58,9 +59,20 @@ export function useAssignment(id: string | undefined) {
   });
 }
 
+export function useAssignmentEditorial(id: string | undefined) {
+  return useQuery({
+    queryKey: id ? curriculumKeys.assignments.editorial(id) : ['assignments', 'editorial', 'noop'],
+    queryFn: () => assignmentsApi.getEditorial(id as string),
+    enabled: !!id,
+    staleTime: queryStaleTime.reference,
+  });
+}
+
 export function useImplicitClasses(id: string | undefined) {
   return useQuery({
-    queryKey: id ? curriculumKeys.assignments.implicitClasses(id) : ['assignments', 'implicit-classes', 'noop'],
+    queryKey: id
+      ? curriculumKeys.assignments.implicitClasses(id)
+      : ['assignments', 'implicit-classes', 'noop'],
     queryFn: () => assignmentsApi.getImplicitClasses(id as string),
     enabled: !!id,
     staleTime: queryStaleTime.reference,
@@ -69,7 +81,9 @@ export function useImplicitClasses(id: string | undefined) {
 
 export function useAssignmentTestcaseManifest(id: string | undefined, enabled = true) {
   return useQuery({
-    queryKey: id ? curriculumKeys.assignments.testcaseManifest(id) : ['assignments', 'testcases', 'manifest', 'noop'],
+    queryKey: id
+      ? curriculumKeys.assignments.testcaseManifest(id)
+      : ['assignments', 'testcases', 'manifest', 'noop'],
     queryFn: () => assignmentsApi.getTestcaseManifest(id as string),
     enabled: !!id && enabled,
     staleTime: queryStaleTime.reference,
@@ -96,6 +110,16 @@ export function useUpdateAssignment(id: string) {
       void qc.invalidateQueries({ queryKey: ['assignments', 'list'] });
       void qc.invalidateQueries({ queryKey: ['courses'] });
       void qc.invalidateQueries({ queryKey: ['classes', 'courses'] });
+    },
+  });
+}
+
+export function useUpdateAssignmentEditorial(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (editorial: IAssignmentEditorial | null) => assignmentsApi.updateEditorial(id, editorial),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: curriculumKeys.assignments.editorial(id) });
     },
   });
 }

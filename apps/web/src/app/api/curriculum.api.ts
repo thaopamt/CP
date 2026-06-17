@@ -10,6 +10,7 @@
 import {
   CourseContentKind,
   IAssignmentDef,
+  IAssignmentEditorial,
   ICodingConfig,
   IClassCourseLink,
   ICourse,
@@ -48,6 +49,7 @@ interface ApiAssignment {
   tags?: string[];
   classIds?: string[] | null;
   codingConfig?: ICodingConfig | null;
+  editorial?: IAssignmentEditorial | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -122,6 +124,7 @@ function toAssignment(a: ApiAssignment): IAssignmentDef {
     tags: a.tags ?? [],
     classIds: a.classIds ?? null,
     codingConfig: a.codingConfig ?? undefined,
+    editorial: a.editorial ?? undefined,
     createdAt: a.createdAt,
     updatedAt: a.updatedAt,
   };
@@ -260,6 +263,24 @@ export const assignmentsApi = {
     return toAssignment(data);
   },
 
+  async getEditorial(id: string): Promise<IAssignmentEditorial | null> {
+    const { data } = await apiClient.get<{ editorial: IAssignmentEditorial | null }>(
+      `/assignments/${id}/editorial`,
+    );
+    return data.editorial;
+  },
+
+  async updateEditorial(
+    id: string,
+    editorial: IAssignmentEditorial | null,
+  ): Promise<IAssignmentEditorial | null> {
+    const { data } = await apiClient.patch<{ editorial: IAssignmentEditorial | null }>(
+      `/assignments/${id}/editorial`,
+      { editorial },
+    );
+    return data.editorial;
+  },
+
   async remove(id: string): Promise<void> {
     await apiClient.delete(`/assignments/${id}`);
   },
@@ -280,25 +301,19 @@ export const assignmentsApi = {
 
   /** Remove all hidden grading test cases for an assignment. */
   async clearTestcases(id: string): Promise<{ hiddenTestCount: number }> {
-    const { data } = await apiClient.delete<{ hiddenTestCount: number }>(
-      `/assignments/${id}/testcases`,
-    );
+    const { data } = await apiClient.delete<{ hiddenTestCount: number }>(`/assignments/${id}/testcases`);
     return data;
   },
 
   /** Read hidden grading test case contents (admin / allowed viewers only). */
   async getTestcases(id: string): Promise<{ input: string; output: string }[]> {
-    const { data } = await apiClient.get<{ input: string; output: string }[]>(
-      `/assignments/${id}/testcases`,
-    );
+    const { data } = await apiClient.get<{ input: string; output: string }[]>(`/assignments/${id}/testcases`);
     return data;
   },
 
   /** Read hidden grading test case file names for admin display. */
   async getTestcaseManifest(id: string): Promise<IHiddenTestcaseFilePair[]> {
-    const { data } = await apiClient.get<IHiddenTestcaseFilePair[]>(
-      `/assignments/${id}/testcases/manifest`,
-    );
+    const { data } = await apiClient.get<IHiddenTestcaseFilePair[]>(`/assignments/${id}/testcases/manifest`);
     return data;
   },
 
@@ -307,19 +322,33 @@ export const assignmentsApi = {
     return data;
   },
 
-  async myTasks(params: { page?: number, limit?: number, search?: string, category?: string, difficulty?: string, status?: string } = {}) {
+  async myTasks(
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      category?: string;
+      difficulty?: string;
+      status?: string;
+    } = {},
+  ) {
     const query: Record<string, any> = { page: params.page ?? 1, limit: params.limit ?? 10 };
     if (params.search?.trim()) query.search = params.search.trim();
     if (params.category && params.category !== 'all') query.category = params.category;
     if (params.difficulty && params.difficulty !== 'all') query.difficulty = params.difficulty;
     if (params.status && params.status !== 'all') query.status = params.status;
 
-    const { data } = await apiClient.get<{data: ApiAssignment[], total: number, page: number, pageCount: number}>('/assignments/me/tasks', { params: query });
+    const { data } = await apiClient.get<{
+      data: ApiAssignment[];
+      total: number;
+      page: number;
+      pageCount: number;
+    }>('/assignments/me/tasks', { params: query });
     return {
       items: data.data.map(toStudentAssignment),
       total: data.total,
       page: data.page,
-      pageCount: data.pageCount
+      pageCount: data.pageCount,
     };
   },
 
@@ -415,10 +444,7 @@ export const classCoursesApi = {
 
   async reorder(classId: string, ids: string[]): Promise<IClassCourseLink[]> {
     const payload: IReorderPayload = { ids };
-    const { data } = await apiClient.patch<ApiClassCourse[]>(
-      `/classes/${classId}/courses/reorder`,
-      payload,
-    );
+    const { data } = await apiClient.patch<ApiClassCourse[]>(`/classes/${classId}/courses/reorder`, payload);
     return data.map(toClassCourseLink);
   },
 };

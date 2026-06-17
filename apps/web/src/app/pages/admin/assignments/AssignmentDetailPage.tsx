@@ -6,7 +6,12 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-import { useAssignment, useAssignmentTestcaseManifest, useDeleteAssignment } from '../../../api/curriculum.queries';
+import {
+  useAssignment,
+  useAssignmentEditorial,
+  useAssignmentTestcaseManifest,
+  useDeleteAssignment,
+} from '../../../api/curriculum.queries';
 import { usePortalBase } from '../../../hooks/usePortalBase';
 import { useToast, useConfirm } from '@cp/ui';
 
@@ -24,6 +29,7 @@ export default function AssignmentDetailPage() {
   const { t } = useTranslation();
 
   const { data: assignment, isLoading, isError, error } = useAssignment(id);
+  const { data: editorial } = useAssignmentEditorial(id);
   const hiddenTestCount = assignment?.codingConfig?.hiddenTestCount || 0;
   const { data: hiddenTestcaseFiles = [] } = useAssignmentTestcaseManifest(id, hiddenTestCount > 0);
   const deleteAssignment = useDeleteAssignment();
@@ -33,7 +39,7 @@ export default function AssignmentDetailPage() {
     const ok = await confirm({
       title: t('common.confirmDelete', 'Confirm'),
       message: 'Are you sure you want to delete this assignment?',
-      intent: 'danger'
+      intent: 'danger',
     });
     if (ok) {
       try {
@@ -75,7 +81,10 @@ export default function AssignmentDetailPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-md mb-xl">
           <div>
             <div className="flex items-center gap-sm mb-xs">
-              <Link to={`${base}/assignments`} className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors">
+              <Link
+                to={`${base}/assignments`}
+                className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors"
+              >
                 Assignments
               </Link>
               <span className="material-symbols-outlined text-outline-variant text-sm">chevron_right</span>
@@ -89,7 +98,7 @@ export default function AssignmentDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-md">
-            <button 
+            <button
               onClick={handleDelete}
               className="px-md py-sm rounded-lg border border-error text-error hover:bg-error-container transition-colors font-label-sm text-label-sm flex items-center gap-xs"
             >
@@ -115,10 +124,7 @@ export default function AssignmentDetailPage() {
               </h3>
               <div className="prose prose-sm max-w-none text-on-surface">
                 {assignment.description ? (
-                  <ReactMarkdown
-                    remarkPlugins={[remarkMath]}
-                    rehypePlugins={[rehypeKatex]}
-                  >
+                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
                     {assignment.description}
                   </ReactMarkdown>
                 ) : (
@@ -134,36 +140,83 @@ export default function AssignmentDetailPage() {
                   Sample Test Cases
                 </h3>
                 <div className="space-y-md">
-                  {assignment.codingConfig.testCases.filter(t => !t.isHidden).map((tc, idx) => (
-                    <div key={idx} className="bg-surface-container-low border border-outline-variant rounded-lg p-md">
-                      <div className="flex justify-between items-center mb-sm">
-                        <span className="font-label-sm font-bold text-on-surface">Sample {idx + 1}</span>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-md mb-xs">
-                        <div>
-                          <p className="font-label-sm text-xs text-on-surface-variant mb-xs">Input</p>
-                          <pre className="bg-surface-container-lowest border border-outline-variant rounded p-sm text-sm font-mono overflow-auto text-on-surface">{tc.input}</pre>
+                  {assignment.codingConfig.testCases
+                    .filter((t) => !t.isHidden)
+                    .map((tc, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-surface-container-low border border-outline-variant rounded-lg p-md"
+                      >
+                        <div className="flex justify-between items-center mb-sm">
+                          <span className="font-label-sm font-bold text-on-surface">Sample {idx + 1}</span>
                         </div>
-                        <div>
-                          <p className="font-label-sm text-xs text-on-surface-variant mb-xs">Output</p>
-                          <pre className="bg-surface-container-lowest border border-outline-variant rounded p-sm text-sm font-mono overflow-auto text-on-surface">{tc.output}</pre>
-                        </div>
-                      </div>
-                      {tc.explanation && (
-                        <div className="mt-sm pt-sm border-t border-outline-variant/50">
-                          <p className="font-label-sm text-xs text-on-surface-variant mb-xs">Explanation</p>
-                          <div className="prose prose-sm max-w-none text-on-surface-variant">
-                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                              {tc.explanation}
-                            </ReactMarkdown>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-md mb-xs">
+                          <div>
+                            <p className="font-label-sm text-xs text-on-surface-variant mb-xs">Input</p>
+                            <pre className="bg-surface-container-lowest border border-outline-variant rounded p-sm text-sm font-mono overflow-auto text-on-surface">
+                              {tc.input}
+                            </pre>
+                          </div>
+                          <div>
+                            <p className="font-label-sm text-xs text-on-surface-variant mb-xs">Output</p>
+                            <pre className="bg-surface-container-lowest border border-outline-variant rounded p-sm text-sm font-mono overflow-auto text-on-surface">
+                              {tc.output}
+                            </pre>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  ))}
-                  {assignment.codingConfig.testCases.filter(t => !t.isHidden).length === 0 && (
+                        {tc.explanation && (
+                          <div className="mt-sm pt-sm border-t border-outline-variant/50">
+                            <p className="font-label-sm text-xs text-on-surface-variant mb-xs">Explanation</p>
+                            <div className="prose prose-sm max-w-none text-on-surface-variant">
+                              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                                {tc.explanation}
+                              </ReactMarkdown>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  {assignment.codingConfig.testCases.filter((t) => !t.isHidden).length === 0 && (
                     <p className="text-sm text-on-surface-variant italic">No visible sample test cases.</p>
                   )}
+                </div>
+              </section>
+            )}
+
+            {editorial && (
+              <section className="bg-surface-container-lowest rounded-xl border border-outline-variant p-lg shadow-sm">
+                <h3 className="font-student-card-title text-student-card-title text-on-surface mb-md pb-sm border-b border-outline-variant/50">
+                  Editorial
+                </h3>
+                <div className="space-y-md">
+                  <div>
+                    <p className="font-label-sm text-xs text-on-surface-variant mb-xs">Solution Idea</p>
+                    <div className="prose prose-sm max-w-none text-on-surface">
+                      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                        {editorial.solutionIdea}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
+                    <div className="bg-surface-container-low p-sm rounded-lg border border-outline-variant/50">
+                      <span className="block text-xs text-on-surface-variant mb-1">Time Complexity</span>
+                      <span className="block font-mono text-sm text-on-surface">
+                        {editorial.timeComplexity}
+                      </span>
+                    </div>
+                    <div className="bg-surface-container-low p-sm rounded-lg border border-outline-variant/50">
+                      <span className="block text-xs text-on-surface-variant mb-1">Memory Complexity</span>
+                      <span className="block font-mono text-sm text-on-surface">
+                        {editorial.memoryComplexity}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-label-sm text-xs text-on-surface-variant mb-xs">Sample Code C++17</p>
+                    <pre className="bg-surface-container-low border border-outline-variant rounded-lg p-md text-sm font-mono overflow-auto text-on-surface max-h-[560px]">
+                      <code>{editorial.sampleCode}</code>
+                    </pre>
+                  </div>
                 </div>
               </section>
             )}
@@ -177,9 +230,8 @@ export default function AssignmentDetailPage() {
                 <Icon name="info" className="text-primary" />
                 Properties
               </h3>
-              
-              <div className="space-y-sm">
 
+              <div className="space-y-sm">
                 {assignment.slug && (
                   <div className="flex justify-between py-xs border-b border-outline-variant/30">
                     <span className="text-sm text-on-surface-variant">Slug</span>
@@ -191,7 +243,10 @@ export default function AssignmentDetailPage() {
                     <span className="text-sm text-on-surface-variant block mb-xs">Tags</span>
                     <div className="flex flex-wrap gap-xs">
                       {assignment.tags.map((tag, idx) => (
-                        <span key={idx} className="inline-flex items-center px-sm py-xs bg-secondary-container text-on-secondary-container rounded-md font-label-sm text-[12px]">
+                        <span
+                          key={idx}
+                          className="inline-flex items-center px-sm py-xs bg-secondary-container text-on-secondary-container rounded-md font-label-sm text-[12px]"
+                        >
                           {tag}
                         </span>
                       ))}
@@ -208,23 +263,33 @@ export default function AssignmentDetailPage() {
                   <Icon name="speed" className="text-primary" />
                   Execution Limits
                 </h3>
-                
+
                 <div className="grid grid-cols-2 gap-sm">
                   <div className="bg-surface-container-low p-sm rounded-lg border border-outline-variant/50">
                     <span className="block text-xs text-on-surface-variant mb-1">Time Limit</span>
-                    <span className="block font-mono text-sm text-on-surface">{assignment.codingConfig.timeLimit || 1.0}s</span>
+                    <span className="block font-mono text-sm text-on-surface">
+                      {assignment.codingConfig.timeLimit || 1.0}s
+                    </span>
                   </div>
                   <div className="bg-surface-container-low p-sm rounded-lg border border-outline-variant/50">
                     <span className="block text-xs text-on-surface-variant mb-1">Memory Limit</span>
-                    <span className="block font-mono text-sm text-on-surface">{assignment.codingConfig.memoryLimit || 256} MB</span>
+                    <span className="block font-mono text-sm text-on-surface">
+                      {assignment.codingConfig.memoryLimit || 256} MB
+                    </span>
                   </div>
                   <div className="bg-surface-container-low p-sm rounded-lg border border-outline-variant/50">
                     <span className="block text-xs text-on-surface-variant mb-1">Output Limit</span>
-                    <span className="block font-mono text-sm text-on-surface">{assignment.codingConfig.outputLimit || 10} MB</span>
+                    <span className="block font-mono text-sm text-on-surface">
+                      {assignment.codingConfig.outputLimit || 10} MB
+                    </span>
                   </div>
                   <div className="bg-surface-container-low p-sm rounded-lg border border-outline-variant/50">
                     <span className="block text-xs text-on-surface-variant mb-1">Hidden Tests</span>
-                    <span className="block font-mono text-sm text-on-surface">{(assignment.codingConfig.testCases?.filter(t => t.isHidden).length || 0) + hiddenTestCount} files</span>
+                    <span className="block font-mono text-sm text-on-surface">
+                      {(assignment.codingConfig.testCases?.filter((t) => t.isHidden).length || 0) +
+                        hiddenTestCount}{' '}
+                      files
+                    </span>
                   </div>
                 </div>
               </section>
@@ -251,7 +316,9 @@ export default function AssignmentDetailPage() {
                       {hiddenTestcaseFiles.map((tc, idx) => (
                         <tr key={`${tc.inputFile}-${idx}`}>
                           <td className="px-md py-sm font-mono text-xs text-on-surface">{tc.inputFile}</td>
-                          <td className="px-md py-sm font-mono text-xs text-on-surface">{tc.outputFile || '-'}</td>
+                          <td className="px-md py-sm font-mono text-xs text-on-surface">
+                            {tc.outputFile || '-'}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -267,11 +334,13 @@ export default function AssignmentDetailPage() {
                   <Icon name="settings_applications" className="text-primary" />
                   Advanced Config
                 </h3>
-                
+
                 <div className="space-y-sm">
                   <div>
                     <span className="block text-xs text-on-surface-variant">Checker Type</span>
-                    <p className="text-sm font-medium text-on-surface capitalize">{assignment.codingConfig.checkerType || 'standard'}</p>
+                    <p className="text-sm font-medium text-on-surface capitalize">
+                      {assignment.codingConfig.checkerType || 'standard'}
+                    </p>
                   </div>
                   <div className="pt-sm border-t border-outline-variant/30">
                     <span className="block text-xs text-on-surface-variant mb-xs">I/O Mode</span>
@@ -282,8 +351,18 @@ export default function AssignmentDetailPage() {
                           File I/O
                         </span>
                         <div className="mt-xs flex items-center gap-sm text-xs font-mono text-on-surface-variant">
-                          <span>Input: <strong className="text-on-surface">{assignment.codingConfig.inputFileName}</strong></span>
-                          <span>Output: <strong className="text-on-surface">{assignment.codingConfig.outputFileName}</strong></span>
+                          <span>
+                            Input:{' '}
+                            <strong className="text-on-surface">
+                              {assignment.codingConfig.inputFileName}
+                            </strong>
+                          </span>
+                          <span>
+                            Output:{' '}
+                            <strong className="text-on-surface">
+                              {assignment.codingConfig.outputFileName}
+                            </strong>
+                          </span>
                         </div>
                       </div>
                     ) : (
@@ -296,12 +375,16 @@ export default function AssignmentDetailPage() {
                   <div className="pt-sm border-t border-outline-variant/30">
                     <span className="block text-xs text-on-surface-variant mb-xs">Allowed Languages</span>
                     <div className="flex flex-wrap gap-xs">
-                      {assignment.codingConfig.allowedLanguages?.map(lang => (
-                        <span key={lang} className="text-xs px-2 py-1 bg-surface-container-high rounded text-on-surface-variant font-mono">
+                      {assignment.codingConfig.allowedLanguages?.map((lang) => (
+                        <span
+                          key={lang}
+                          className="text-xs px-2 py-1 bg-surface-container-high rounded text-on-surface-variant font-mono"
+                        >
                           {lang}
                         </span>
                       ))}
-                      {(!assignment.codingConfig.allowedLanguages || assignment.codingConfig.allowedLanguages.length === 0) && (
+                      {(!assignment.codingConfig.allowedLanguages ||
+                        assignment.codingConfig.allowedLanguages.length === 0) && (
                         <span className="text-sm text-on-surface-variant italic">All supported</span>
                       )}
                     </div>

@@ -1,5 +1,5 @@
 import { Column, Entity, Index } from 'typeorm';
-import { ICodingConfig, PublishStatus } from '@cp/shared';
+import { IAssignmentEditorial, ICodingConfig, PublishStatus } from '@cp/shared';
 
 import { BaseEntity } from '../../common/entities/base.entity';
 
@@ -30,6 +30,9 @@ export class Assignment extends BaseEntity {
 
   @Column({ type: 'jsonb', nullable: true, name: 'coding_config' })
   codingConfig!: ICodingConfig | null;
+
+  @Column({ type: 'jsonb', nullable: true, select: false })
+  editorial!: IAssignmentEditorial | null;
 
   @Index()
   @Column({ type: 'enum', enum: PublishStatus, default: PublishStatus.DRAFT })

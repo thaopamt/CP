@@ -13,7 +13,6 @@
  * canonical, persisted entities.
  */
 
-
 export enum PublishStatus {
   DRAFT = 'DRAFT',
   PUBLISHED = 'PUBLISHED',
@@ -73,6 +72,13 @@ export interface ICodingConfig {
   allowViewHiddenTestCases?: boolean;
 }
 
+export interface IAssignmentEditorial {
+  solutionIdea: string;
+  timeComplexity: string;
+  memoryComplexity: string;
+  sampleCodeLanguage: 'cpp17';
+  sampleCode: string;
+}
 
 // ── Assignment definition (admin-managed library entry) ──────────────────
 //
@@ -92,6 +98,7 @@ export interface IAssignmentDef {
   tags?: string[];
   codingConfig?: ICodingConfig | null;
   classIds?: string[] | null;
+  editorial?: IAssignmentEditorial | null;
   status: PublishStatus;
   createdAt: string;
   updatedAt: string;
@@ -106,6 +113,7 @@ export interface ICreateAssignmentDefPayload {
   slug?: string;
   tags?: string[];
   codingConfig?: ICodingConfig;
+  editorial?: IAssignmentEditorial | null;
   classIds?: string[] | null;
   status?: PublishStatus;
 }
@@ -115,7 +123,7 @@ export interface ICreateAssignmentDefPayload {
 /** Reusable course unit — distinct from a Class (which is a scheduled offering). */
 export interface ICourse {
   id: string;
-  code: string;            // e.g. "MATH-301A"
+  code: string; // e.g. "MATH-301A"
   title: string;
   description?: string | null;
   coverUrl?: string | null;
@@ -142,7 +150,7 @@ export interface ICreateCoursePayload {
  * junction-row order and any per-course overrides.
  */
 export interface ICourseAssignment {
-  id: string;             // junction row id
+  id: string; // junction row id
   courseId: string;
   order: number;
   /** When set, this assignment unlocks only after the named one is complete */
@@ -157,7 +165,7 @@ export interface ICourseAssignment {
  * sequencing on the Class Curriculum management page.
  */
 export interface IClassCourseLink {
-  id: string;             // junction row id
+  id: string; // junction row id
   classId: string;
   order: number;
   isRequired: boolean;

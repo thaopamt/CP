@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TypeOrmCrudService } from '@dataui/crud-typeorm';
 import { Repository, Brackets } from 'typeorm';
+import { IAssignmentEditorial } from '@cp/shared';
 
 import { Assignment } from './assignment.entity';
 import { CreateAssignmentDto, UpdateAssignmentDto } from './dto/create-assignment.dto';
@@ -71,6 +72,32 @@ export class AssignmentsService extends TypeOrmCrudService<Assignment> {
     return out;
   }
 
+  async getEditorial(id: string): Promise<IAssignmentEditorial | null> {
+    const assignment = await this.assignments
+      .createQueryBuilder('assignment')
+      .addSelect('assignment.editorial')
+      .where('assignment.id = :id', { id })
+      .getOne();
+    if (!assignment) throw new NotFoundException(`Assignment ${id} not found`);
+    return assignment.editorial ?? null;
+  }
+
+  async updateEditorial(
+    id: string,
+    editorial: IAssignmentEditorial | null,
+  ): Promise<IAssignmentEditorial | null> {
+    const assignment = await this.assignments
+      .createQueryBuilder('assignment')
+      .addSelect('assignment.editorial')
+      .where('assignment.id = :id', { id })
+      .getOne();
+    if (!assignment) throw new NotFoundException(`Assignment ${id} not found`);
+    assignment.editorial = editorial;
+    await this.assignments.save(assignment);
+    await this.bumpAssignmentCaches(id);
+    return assignment.editorial ?? null;
+  }
+
   /** Delete an assignment and remove its disk-backed test cases. */
   async deleteAssignment(id: string): Promise<Assignment> {
     const assignment = await this.getById(id);
@@ -118,7 +145,7 @@ export class AssignmentsService extends TypeOrmCrudService<Assignment> {
 
   async getAssignmentsForStudent(
     studentId: string,
-    filters: { page: number; limit: number; search?: string; category?: string; difficulty?: string }
+    filters: { page: number; limit: number; search?: string; category?: string; difficulty?: string },
   ) {
     return this.cache.remember(
       {
@@ -133,21 +160,20 @@ export class AssignmentsService extends TypeOrmCrudService<Assignment> {
 
   private async computeAssignmentsForStudent(
     studentId: string,
-    filters: { page: number; limit: number; search?: string; category?: string; difficulty?: string }
+    filters: { page: number; limit: number; search?: string; category?: string; difficulty?: string },
   ) {
     const query = this.assignments.createQueryBuilder('a');
 
-    query.andWhere(new Brackets(qb => {
-      qb.where('a.class_ids IS NULL')
-        .orWhere('CARDINALITY(a.class_ids) = 0')
-        .orWhere(`
+    query
+      .andWhere(
+        new Brackets((qb) => {
+          qb.where('a.class_ids IS NULL').orWhere('CARDINALITY(a.class_ids) = 0').orWhere(`
           EXISTS (
             SELECT 1 FROM enrollments e
             WHERE e.student_id = :studentId
             AND e.class_id = ANY(a.class_ids)
           )
-        `)
-        .orWhere(`
+        `).orWhere(`
           EXISTS (
             SELECT 1 FROM course_assignments ca
             JOIN class_courses cc ON cc.course_id = ca.course_id
@@ -156,15 +182,20 @@ export class AssignmentsService extends TypeOrmCrudService<Assignment> {
             AND e.student_id = :studentId
           )
         `);
-    })).setParameter('studentId', studentId);
+        }),
+      )
+      .setParameter('studentId', studentId);
 
     if (filters.search) {
-      query.andWhere(new Brackets(qb => {
-        qb.where('a.title ILIKE :search', { search: `%${filters.search}%` })
-          .orWhere('a.description ILIKE :search', { search: `%${filters.search}%` });
-      }));
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('a.title ILIKE :search', { search: `%${filters.search}%` }).orWhere(
+            'a.description ILIKE :search',
+            { search: `%${filters.search}%` },
+          );
+        }),
+      );
     }
-
 
     if (filters.difficulty) {
       query.andWhere('a.difficulty = :difficulty', { difficulty: filters.difficulty });
@@ -201,7 +232,7 @@ export class AssignmentsService extends TypeOrmCrudService<Assignment> {
           JOIN class_courses cc ON cc.course_id = ca.course_id
           WHERE ca.assignment_id = $1
           `,
-          [assignmentId]
+          [assignmentId],
         );
         return raw.map((r: any) => r.id);
       },
