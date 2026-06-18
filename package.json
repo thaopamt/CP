@@ -11,10 +11,8 @@
     "lint": "nx run-many --target=lint --all",
     "test": "nx run-many --target=test --all",
     "seed": "nx run api:seed",
-    "seed:quests": "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-quests.ts",
-    "seed:shop": "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-shop.ts",
-    "seed:blog": "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-blog.ts",
-    "seed:maze": "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-maze.ts",
+    "seed:basic-a": "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-basic-a.ts",
+    "seed:basic-b": "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-basic-b.ts",
     "typeorm:generate": "nx run api:typeorm-generate",
     "typeorm:run": "nx run api:typeorm-run"
   },
