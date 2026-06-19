@@ -214,10 +214,13 @@ export class ExecutionService {
 
       // Check for TLE via Piston signal or status
       const isTLE = this.isTimeLimitExceeded(res, timeLimitMs);
+      const isOutputLimitExceeded = this.isOutputLimitExceeded(res);
 
       let status: SubmissionStatus;
       if (isTLE) {
         status = SubmissionStatus.TIME_LIMIT_EXCEEDED;
+      } else if (isOutputLimitExceeded) {
+        status = SubmissionStatus.RUNTIME_ERROR;
       } else if (hasError) {
         status = SubmissionStatus.RUNTIME_ERROR;
       } else {
@@ -231,7 +234,9 @@ export class ExecutionService {
         input: '',
         expectedOutput: '(no test cases)',
         actualOutput: res.run.stdout || res.run.stderr || '',
-        errorMessage: res.compile?.stderr || res.run.stderr || null,
+        errorMessage: isOutputLimitExceeded
+          ? this.getOutputLimitErrorMessage(res)
+          : res.compile?.stderr || res.run.stderr || null,
         executionTimeMs: wallTimeMs,
         memoryBytes: res.run.memory ?? 0,
       };
@@ -295,12 +300,19 @@ export class ExecutionService {
 
       // Check for TLE first — takes priority over other errors
       const isTLE = this.isTimeLimitExceeded(res, timeLimitMs);
+      const isOutputLimitExceeded = this.isOutputLimitExceeded(res);
 
       if (isTLE) {
         status = SubmissionStatus.TIME_LIMIT_EXCEEDED;
         errorMsg = `Time Limit Exceeded: execution took ${wallTimeMs}ms (limit: ${timeLimitMs}ms)`;
         if (finalStatus === SubmissionStatus.ACCEPTED) {
           finalStatus = SubmissionStatus.TIME_LIMIT_EXCEEDED;
+        }
+      } else if (isOutputLimitExceeded) {
+        status = SubmissionStatus.RUNTIME_ERROR;
+        errorMsg = this.getOutputLimitErrorMessage(res);
+        if (finalStatus === SubmissionStatus.ACCEPTED) {
+          finalStatus = SubmissionStatus.RUNTIME_ERROR;
         }
       } else if (res.compile && res.compile.code !== 0) {
         status = SubmissionStatus.COMPILATION_ERROR;
@@ -387,6 +399,26 @@ export class ExecutionService {
     }
 
     return false;
+  }
+
+  private isOutputLimitExceeded(res: ICodeExecutionResponse): boolean {
+    const run = res.run;
+    const message = `${run.message ?? ''}\n${run.stderr ?? ''}`.toLowerCase();
+    return (
+      run.status === 'OL' ||
+      run.status === 'EL' ||
+      message.includes('stdout length exceeded') ||
+      message.includes('stderr length exceeded')
+    );
+  }
+
+  private getOutputLimitErrorMessage(res: ICodeExecutionResponse): string {
+    const stream =
+      res.run.status === 'EL' || res.run.message?.toLowerCase().includes('stderr')
+        ? 'stderr'
+        : 'stdout';
+    const reason = res.run.message || `${stream} length exceeded`;
+    return `Output Limit Exceeded: program produced more ${stream} than the judge allows (${reason})`;
   }
 
   private resolveTimeLimitMs(timeLimit?: number, assignmentId?: string): number {
