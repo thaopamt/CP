@@ -194,7 +194,7 @@ export default function StudentWorkspacePage() {
   const [terminalHistory, setTerminalHistory] = useState<{ stdin: string; result?: ICodeExecutionResponse; error?: string }[]>([]);
   const [terminalMultiline, setTerminalMultiline] = useState(false);
   const [running, setRunning] = useState(false);
-  const [runResults, setRunResults] = useState<RunResultsState | null>(null);
+  const [manualRunResults, setManualRunResults] = useState<RunResultsState | null>(null);
   const [activeResultIdx, setActiveResultIdx] = useState(0);
   const [submittedSubmissionId, setSubmittedSubmissionId] = useState<string | null>(null);
   const acceptedPromptedSubmissionIdRef = useRef<string | null>(null);
@@ -331,6 +331,11 @@ export default function StudentWorkspacePage() {
       : null,
     [submittedSubmissionId, submissions],
   );
+  const liveSubmissionRunResults = useMemo(
+    () => submittedSubmission ? buildSubmissionRunResults(submittedSubmission, assignment) : null,
+    [assignment, submittedSubmission],
+  );
+  const runResults = liveSubmissionRunResults ?? manualRunResults;
 
   useEffect(() => {
     if (!submittedSubmissionId) return;
@@ -351,15 +356,13 @@ export default function StudentWorkspacePage() {
   }, [refetchSubmissions, realtimeConnected, submittedSubmission?.status, submittedSubmissionId]);
 
   useEffect(() => {
-    if (!submittedSubmission) return;
+    if (!submittedSubmission || !liveSubmissionRunResults) return;
 
-    const nextResults = buildSubmissionRunResults(submittedSubmission, assignment);
-    setRunResults(nextResults);
     setActiveResultIdx((current) => {
-      const nextIndex = getActiveRunResultIndex(nextResults);
+      const nextIndex = getActiveRunResultIndex(liveSubmissionRunResults);
       return current === nextIndex ? current : nextIndex;
     });
-    setBottomTab('result');
+    setBottomTab((current) => current === 'result' ? current : 'result');
 
     if (submittedSubmission.status === SubmissionStatus.PENDING) return;
 
@@ -401,7 +404,7 @@ export default function StudentWorkspacePage() {
         navigate('/student/assignments');
       }
     })();
-  }, [assignment, confirm, navigate, nextAssignmentTarget, submittedSubmission]);
+  }, [confirm, liveSubmissionRunResults, navigate, nextAssignmentTarget, submittedSubmission]);
 
   // Cursor tracking
   const [cursorOffset, setCursorOffset] = useState(0);
@@ -416,7 +419,7 @@ export default function StudentWorkspacePage() {
     setBottomTab('testcase');
     setActiveTestIdx(0);
     setActiveResultIdx(0);
-    setRunResults(null);
+    setManualRunResults(null);
     setSubmittedSubmissionId(null);
     acceptedPromptedSubmissionIdRef.current = null;
     setCustomInput('');
@@ -627,6 +630,7 @@ export default function StudentWorkspacePage() {
     setRunning(true);
     setBottomTab('result');
     setActiveResultIdx(0);
+    setSubmittedSubmissionId(null);
     try {
       const cases: { status: 'accepted' | 'wrong' | 'error'; input: string; stdout: string; expected: string }[] = [];
       const testInputs = visibleTestCases.length > 0
@@ -681,12 +685,12 @@ export default function StudentWorkspacePage() {
 
       const allAccepted = cases.every(c => c.status === 'accepted');
       const hasError = cases.some(c => c.status === 'error');
-      setRunResults({
+      setManualRunResults({
         overall: allAccepted ? 'accepted' : hasError ? 'error' : 'wrong',
         cases,
       });
     } catch (err: any) {
-      setRunResults({
+      setManualRunResults({
         overall: 'error',
         cases: [{ status: 'error', input: customInput, stdout: err.message || 'Execution failed', expected: '' }],
       });
@@ -714,10 +718,11 @@ export default function StudentWorkspacePage() {
       const nextResults = buildSubmissionRunResults(sub, assignment);
 
       setSubmittedSubmissionId(sub.id);
-      setRunResults(nextResults);
+      setManualRunResults(nextResults);
       setActiveResultIdx(getActiveRunResultIndex(nextResults));
     } catch (err: any) {
-      setRunResults({
+      setSubmittedSubmissionId(null);
+      setManualRunResults({
         overall: 'error',
         cases: [{ status: 'error', input: '', stdout: err.message || 'Submission failed', expected: '' }],
       });
@@ -733,7 +738,7 @@ export default function StudentWorkspacePage() {
     setLanguage(sub.language);
 
     const nextResults = buildSubmissionRunResults(sub, assignment);
-    setRunResults(nextResults);
+    setManualRunResults(nextResults);
     setActiveResultIdx(getActiveRunResultIndex(nextResults));
     setBottomTab('result');
   };
