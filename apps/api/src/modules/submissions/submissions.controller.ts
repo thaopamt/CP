@@ -1,4 +1,17 @@
-import { Controller, Post, Get, Body, UseGuards, Req, Param, Query, NotFoundException, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  ConflictException,
+  Controller,
+  Post,
+  Get,
+  Body,
+  UseGuards,
+  Req,
+  Param,
+  Query,
+  NotFoundException,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, LessThan, MoreThanOrEqual, Repository } from 'typeorm';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -26,6 +39,10 @@ import {
 
 /** Submissions stuck in PENDING longer than this are considered orphaned. */
 const STALE_PENDING_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
+
+interface EnqueueSubmissionOptions {
+  rejudge?: boolean;
+}
 
 @Controller('submissions')
 @UseGuards(JwtAuthGuard)
@@ -338,15 +355,73 @@ export class SubmissionsController implements OnModuleInit {
     };
   }
 
-  private enqueueSubmissionForJudging(submissionId: string): void {
+  @Post(':id/rejudge')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  async rejudgeSubmission(@Req() req: any, @Param('id') submissionId: string) {
+    const submission = await this.submissionRepo.findOne({
+      where: { id: submissionId },
+      relations: ['assignment', 'user'],
+    });
+
+    if (!submission) {
+      throw new NotFoundException('Submission not found');
+    }
+
+    if (submission.examId) {
+      throw new ConflictException('Exam submissions must be rejudged from the exam page.');
+    }
+
+    const assignment =
+      submission.assignment ??
+      await this.assignmentRepo.findOne({ where: { id: submission.assignmentId } });
+
+    if (!assignment) {
+      throw new NotFoundException('Assignment not found');
+    }
+
+    const totalCount = this.getAssignmentTotalCount(assignment);
+    await this.testResultRepo.delete({ submissionId: submission.id });
+
+    submission.status = SubmissionStatus.PENDING;
+    submission.passedCount = 0;
+    submission.totalCount = totalCount;
+    submission.totalExecutionTimeMs = null;
+    submission.maxMemoryBytes = null;
+    submission.examScore = null;
+    submission.testResults = [];
+    await this.submissionRepo.save(submission);
+
+    const liveSubmission = await this.findSubmissionForRealtime(submission.id);
+    this.emitRealtimeEvent('created', liveSubmission, {
+      phase: 'queued',
+      currentTestCaseIndex: null,
+      completedCount: 0,
+      passedCount: 0,
+      totalCount,
+      status: SubmissionStatus.PENDING,
+      message: 'Submission rejudge queued',
+      updatedAt: new Date().toISOString(),
+    }, []);
+
+    this.enqueueSubmissionForJudging(submission.id, { rejudge: true });
+
+    this.redactHiddenTestResultsForViewer(liveSubmission, req.user.role, assignment);
+    return {
+      submission: liveSubmission,
+      message: 'Submission rejudge queued',
+    };
+  }
+
+  private enqueueSubmissionForJudging(submissionId: string, options: EnqueueSubmissionOptions = {}): void {
     this.judgeQueue.enqueue({
       id: submissionId,
-      name: `submission:${submissionId}`,
-      run: () => this.processQueuedSubmission(submissionId),
+      name: options.rejudge ? `submission:${submissionId}:rejudge` : `submission:${submissionId}`,
+      run: () => this.processQueuedSubmission(submissionId, options),
     });
   }
 
-  private async processQueuedSubmission(submissionId: string): Promise<void> {
+  private async processQueuedSubmission(submissionId: string, options: EnqueueSubmissionOptions = {}): Promise<void> {
     const submission = await this.submissionRepo.findOne({
       where: { id: submissionId },
       relations: ['assignment', 'user'],
@@ -370,6 +445,9 @@ export class SubmissionsController implements OnModuleInit {
 
     if (!assignment) {
       await this.failQueuedSubmission(submission, 'Assignment not found', liveTestResults, totalCount);
+      if (options.rejudge) {
+        await this.assignmentProgress.recomputeStudentAssignmentProgress(submission.userId, submission.assignmentId);
+      }
       return;
     }
 
@@ -419,6 +497,8 @@ export class SubmissionsController implements OnModuleInit {
       submission.totalCount = gradeResult.totalCount;
       submission.totalExecutionTimeMs = gradeResult.totalTime;
       submission.maxMemoryBytes = gradeResult.maxMemory;
+      await this.testResultRepo.delete({ submissionId: submission.id });
+
       submission.testResults = gradeResult.testResults.map(tr => {
         const trEntity = new SubmissionTestResult();
         trEntity.testCaseIndex = tr.testCaseIndex;
@@ -433,7 +513,11 @@ export class SubmissionsController implements OnModuleInit {
       });
 
       await this.submissionRepo.save(submission);
-      await this.assignmentProgress.recordSubmissionResult(submission);
+      if (options.rejudge) {
+        await this.assignmentProgress.recomputeStudentAssignmentProgress(submission.userId, submission.assignmentId);
+      } else {
+        await this.assignmentProgress.recordSubmissionResult(submission);
+      }
       const completedSubmission = await this.findSubmissionForRealtime(submission.id);
 
       this.emitRealtimeEvent('completed', completedSubmission, {
@@ -466,6 +550,9 @@ export class SubmissionsController implements OnModuleInit {
         liveTestResults,
         totalCount,
       );
+      if (options.rejudge) {
+        await this.assignmentProgress.recomputeStudentAssignmentProgress(submission.userId, submission.assignmentId);
+      }
     }
   }
 

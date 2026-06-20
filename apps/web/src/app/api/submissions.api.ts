@@ -44,4 +44,10 @@ export const submissionsApi = {
     const { data } = await apiClient.get('/submissions/all', { params });
     return data;
   },
+
+  /** Admin/Teacher: queue an existing submission for judging again */
+  rejudgeSubmission: async (submissionId: string): Promise<ISubmitCodeResponse> => {
+    const { data } = await apiClient.post(`/submissions/${submissionId}/rejudge`);
+    return data;
+  },
 };

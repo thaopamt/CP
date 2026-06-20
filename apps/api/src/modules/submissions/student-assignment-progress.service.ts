@@ -13,6 +13,8 @@ export class StudentAssignmentProgressService {
   constructor(
     @InjectRepository(StudentAssignmentProgress)
     private readonly progressRepo: Repository<StudentAssignmentProgress>,
+    @InjectRepository(Submission)
+    private readonly submissionRepo: Repository<Submission>,
     private readonly cache: SystemCacheService,
   ) {}
 
@@ -90,5 +92,42 @@ export class StudentAssignmentProgressService {
       ],
     );
     await this.cache.bumpTags([`student:${submission.userId}:dashboard`]);
+  }
+
+  async recomputeStudentAssignmentProgress(userId: string, assignmentId: string): Promise<void> {
+    const submissions = await this.submissionRepo.find({
+      where: { userId, assignmentId },
+      order: { createdAt: 'ASC' },
+    });
+    const judgedSubmissions = submissions.filter(
+      (submission) =>
+        submission.status !== SubmissionStatus.PENDING &&
+        submission.status !== SubmissionStatus.INTERNAL_ERROR,
+    );
+
+    if (judgedSubmissions.length === 0) {
+      await this.progressRepo.delete({ studentId: userId, assignmentId });
+      await this.cache.bumpTags([`student:${userId}:dashboard`]);
+      return;
+    }
+
+    const acceptedSubmission = judgedSubmissions.find((submission) => submission.status === SubmissionStatus.ACCEPTED);
+    const lastSubmission = judgedSubmissions[judgedSubmissions.length - 1];
+    const progress =
+      (await this.progressRepo.findOne({ where: { studentId: userId, assignmentId } })) ??
+      this.progressRepo.create({ studentId: userId, assignmentId });
+
+    progress.completed = !!acceptedSubmission;
+    progress.completedAt = acceptedSubmission?.createdAt ?? null;
+    progress.bestSubmissionId = acceptedSubmission?.id ?? null;
+    progress.lastSubmissionId = lastSubmission.id;
+    progress.lastSubmittedAt = lastSubmission.createdAt;
+    progress.attemptCount = judgedSubmissions.length;
+    progress.passedCount = lastSubmission.passedCount ?? 0;
+    progress.totalCount = lastSubmission.totalCount ?? 0;
+    progress.lastStatus = lastSubmission.status;
+
+    await this.progressRepo.save(progress);
+    await this.cache.bumpTags([`student:${userId}:dashboard`]);
   }
 }

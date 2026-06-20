@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Icon, Pagination, Avatar } from '@cp/ui';
+import { Icon, Pagination, Avatar, useConfirm, useToast } from '@cp/ui';
 import { SubmissionStatus, UserRole } from '@cp/shared';
-import { useAllSubmissions } from '../../api/submissions.queries';
+import { useAllSubmissions, useRejudgeSubmission } from '../../api/submissions.queries';
 import { useAuthStore } from '../../stores/auth.store';
 import { useSubmissionRealtimeFeed } from '../../hooks/useSubmissionRealtimeFeed';
 
@@ -494,6 +494,7 @@ export default function SubmissionsPage() {
           sub={selectedSub}
           portalPrefix={portalPrefix}
           canViewHiddenByRole={isAdminOrTeacher}
+          canRejudge={isAdminOrTeacher}
           onClose={() => setSelectedSubId(null)}
           onNavigate={(assignmentId: string, submissionCode?: string, submissionLang?: string) => navigate(`${portalPrefix}/assignments/${assignmentId}`, { state: { submissionCode, submissionLang } })}
         />
@@ -506,19 +507,26 @@ function SubmissionModal({
   sub,
   portalPrefix,
   canViewHiddenByRole,
+  canRejudge,
   onClose,
   onNavigate,
 }: {
   sub: any;
   portalPrefix: string;
   canViewHiddenByRole: boolean;
+  canRejudge: boolean;
   onClose: () => void;
   onNavigate: (assignmentId: string, code?: string, lang?: string) => void;
 }) {
+  const confirm = useConfirm();
+  const toast = useToast();
+  const rejudgeMutation = useRejudgeSubmission();
   const sc = STATUS_CONFIG[sub.status] || STATUS_CONFIG[SubmissionStatus.INTERNAL_ERROR];
   const testResults: any[] = getDisplayTestResults(sub);
   const progressText = getJudgeProgressText(sub);
   const judging = isJudging(sub);
+  const canRejudgeSubmission = canRejudge && !sub.examId;
+  const rejudgeDisabled = judging || rejudgeMutation.isPending;
   const [expandedTests, setExpandedTests] = useState<Set<number>>(new Set());
 
   const toggleTest = (idx: number) => {
@@ -528,6 +536,26 @@ function SubmissionModal({
       else next.add(idx);
       return next;
     });
+  };
+
+  const handleRejudge = async () => {
+    if (!canRejudgeSubmission || rejudgeDisabled) return;
+
+    const ok = await confirm({
+      title: 'Chấm lại submission?',
+      message: 'Kết quả test hiện tại sẽ được xóa và bài nộp này sẽ được đưa vào hàng đợi chấm lại.',
+      confirmLabel: 'Chấm lại',
+      cancelLabel: 'Hủy',
+      intent: 'warning',
+    });
+    if (!ok) return;
+
+    try {
+      await rejudgeMutation.mutateAsync(sub.id);
+      toast.success('Đã đưa submission vào hàng đợi chấm lại.');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Không thể chấm lại submission.');
+    }
   };
 
   return (
@@ -754,20 +782,38 @@ function SubmissionModal({
         </div>
 
         {/* Footer with action */}
-        <div className="flex items-center justify-between px-lg py-sm border-t border-outline-variant shrink-0 bg-surface-container-lowest">
+        <div className="flex flex-wrap items-center justify-between gap-sm px-lg py-sm border-t border-outline-variant shrink-0 bg-surface-container-lowest">
           <button
             onClick={onClose}
             className="px-md py-xs rounded-xl text-label-sm text-on-surface-variant hover:bg-surface-container-highest transition-colors"
           >
             Close
           </button>
-          <button
-            onClick={() => onNavigate(sub.assignmentId, sub.code, sub.language)}
-            className="flex items-center gap-xs px-md py-xs rounded-xl text-label-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
-          >
-            <span className="material-symbols-outlined text-[16px]">open_in_new</span>
-            View Problem
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-sm">
+            {canRejudgeSubmission && (
+              <button
+                onClick={handleRejudge}
+                disabled={rejudgeDisabled}
+                className={`flex items-center gap-xs px-md py-xs rounded-xl text-label-sm font-semibold transition-colors ${
+                  rejudgeDisabled
+                    ? 'cursor-not-allowed opacity-50 text-on-surface-variant'
+                    : 'text-amber-700 dark:text-amber-300 hover:bg-amber-500/10'
+                }`}
+              >
+                <span className={`material-symbols-outlined text-[16px] ${rejudgeMutation.isPending ? 'animate-spin' : ''}`}>
+                  refresh
+                </span>
+                {rejudgeMutation.isPending ? 'Đang gửi...' : judging ? 'Đang chấm' : 'Chấm lại'}
+              </button>
+            )}
+            <button
+              onClick={() => onNavigate(sub.assignmentId, sub.code, sub.language)}
+              className="flex items-center gap-xs px-md py-xs rounded-xl text-label-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+              View Problem
+            </button>
+          </div>
         </div>
       </div>
     </div>

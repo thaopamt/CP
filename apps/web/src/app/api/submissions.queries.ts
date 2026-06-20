@@ -26,6 +26,23 @@ export function useSubmitCode() {
   });
 }
 
+export function useRejudgeSubmission() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (submissionId: string) => submissionsApi.rejudgeSubmission(submissionId),
+    onSuccess: (result) => {
+      const assignmentId = result.submission?.assignmentId;
+      if (assignmentId) {
+        queryClient.invalidateQueries({ queryKey: ['submissions', assignmentId] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['submissions-all-my'] });
+      queryClient.invalidateQueries({ queryKey: ['submissions-all'] });
+      queryClient.invalidateQueries({ queryKey: ['students', 'dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+    },
+  });
+}
+
 export function useSubmissions(assignmentId: string) {
   return useQuery({
     queryKey: ['submissions', assignmentId],

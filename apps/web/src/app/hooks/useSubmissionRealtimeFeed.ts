@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { type QueryClient, useQueryClient } from '@tanstack/react-query';
 import { io } from 'socket.io-client';
-import { IRealtimeSubmission, ISubmissionRealtimeEvent } from '@cp/shared';
+import { IRealtimeSubmission, ISubmissionRealtimeEvent, SubmissionStatus } from '@cp/shared';
 
 import { resolveSocketNamespace } from '../lib/socket-url';
 import { useAuthStore } from '../stores/auth.store';
@@ -97,7 +97,13 @@ function mergeSubmissionList(old: unknown, incoming: SubmissionRow) {
 }
 
 function mergeSubmission(existing: SubmissionRow | undefined, incoming: SubmissionRow): SubmissionRow {
-  const mergedTestResults = mergeTestResults(existing?.testResults ?? [], incoming.testResults ?? []);
+  const shouldReplaceTestResults =
+    Array.isArray(incoming.testResults) &&
+    incoming.status === SubmissionStatus.PENDING &&
+    incoming.judgeProgress?.completedCount === 0;
+  const mergedTestResults = shouldReplaceTestResults
+    ? incoming.testResults
+    : mergeTestResults(existing?.testResults ?? [], incoming.testResults ?? []);
 
   return {
     ...existing,
