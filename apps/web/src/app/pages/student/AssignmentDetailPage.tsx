@@ -27,6 +27,7 @@ import { useRunCode, useSubmissions, useSubmitCode } from '../../api/submissions
 import RemoteCursors from '../../components/RemoteCursors';
 import { useInteractiveExec } from '../../hooks/useInteractiveExec';
 import { useLiveCodingSync } from '../../hooks/useLiveCodingSync';
+import { useSubmissionRealtimeFeed } from '../../hooks/useSubmissionRealtimeFeed';
 
 /* ── Language config ──────────────────────────────────────────────── */
 const LANG_OPTIONS: { value: string; label: string; template: string }[] = [
@@ -43,6 +44,8 @@ type LeftTab = 'description' | 'submissions';
 type BottomTab = 'testcase' | 'terminal' | 'result';
 
 export default function StudentAssignmentDetailPage() {
+  useSubmissionRealtimeFeed();
+
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -116,6 +119,12 @@ export default function StudentAssignmentDetailPage() {
   const [activeResultIdx, setActiveResultIdx] = useState(0);
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedSubmission?.id) return;
+    const fresh = submissions.find((sub: any) => sub.id === selectedSubmission.id);
+    if (fresh) setSelectedSubmission(fresh);
+  }, [selectedSubmission?.id, submissions]);
 
   const handleCopy = (text: string, fieldId: string) => {
     navigator.clipboard.writeText(text);

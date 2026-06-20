@@ -28,6 +28,7 @@ import { useAllMySubmissions, useRunCode, useSubmitCode, useSubmissions } from '
 import { useMyTasks, useStudentDashboard, useUpdateDefaultLanguage } from '../../api/student.queries';
 import { useLiveCodingSync } from '../../hooks/useLiveCodingSync';
 import { useInteractiveExec } from '../../hooks/useInteractiveExec';
+import { useSubmissionRealtimeFeed } from '../../hooks/useSubmissionRealtimeFeed';
 import RemoteCursors from '../../components/RemoteCursors';
 
 /* ── Language config ──────────────────────────────────────────────── */
@@ -113,6 +114,8 @@ function CourseProgressDots({
 }
 
 export default function StudentWorkspacePage() {
+  useSubmissionRealtimeFeed();
+
   const { problemId } = useParams<{ problemId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
@@ -610,6 +613,7 @@ export default function StudentWorkspacePage() {
         code,
       });
       const sub = result.submission;
+      const isQueued = sub.status === 'PENDING';
       const overallStatus = sub.status === 'ACCEPTED' ? 'accepted' as const : sub.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const;
 
       const cases = sub.testResults && sub.testResults.length > 0
@@ -630,7 +634,9 @@ export default function StudentWorkspacePage() {
         : [{
           status: overallStatus,
           input: '',
-          stdout: `Passed: ${sub.passedCount} / ${sub.totalCount}`,
+          stdout: isQueued
+            ? 'Submission queued. Judging will continue in the background.'
+            : `Passed: ${sub.passedCount} / ${sub.totalCount}`,
           expected: '',
         }];
 

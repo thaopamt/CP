@@ -6,6 +6,7 @@ import { SubmissionsController } from './submissions.controller';
 import { ExecutionService } from './execution.service';
 import { InteractiveExecGateway } from './interactive-exec.gateway';
 import { SubmissionEventsGateway } from './submission-events.gateway';
+import { SubmissionJudgeQueueService } from './submission-judge-queue.service';
 import { Submission, SubmissionTestResult } from './submission.entity';
 import { StudentAssignmentProgress } from './student-assignment-progress.entity';
 import { StudentAssignmentProgressService } from './student-assignment-progress.service';
@@ -31,7 +32,13 @@ import { UsersModule } from '../users/users.module';
     }),
   ],
   controllers: [SubmissionsController],
-  providers: [ExecutionService, InteractiveExecGateway, SubmissionEventsGateway, StudentAssignmentProgressService],
+  providers: [
+    ExecutionService,
+    InteractiveExecGateway,
+    SubmissionEventsGateway,
+    SubmissionJudgeQueueService,
+    StudentAssignmentProgressService,
+  ],
   exports: [ExecutionService, StudentAssignmentProgressService],
 })
 export class SubmissionsModule {}

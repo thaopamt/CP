@@ -1,12 +1,13 @@
 import { Controller, Post, Get, Body, UseGuards, Req, Param, Query, NotFoundException, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, In, LessThan, Repository } from 'typeorm';
+import { Brackets, In, LessThan, MoreThanOrEqual, Repository } from 'typeorm';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { ExecutionService } from './execution.service';
 import { Submission, SubmissionTestResult } from './submission.entity';
 import { SubmissionEventsGateway } from './submission-events.gateway';
+import { SubmissionJudgeQueueService } from './submission-judge-queue.service';
 import { StudentAssignmentProgressService } from './student-assignment-progress.service';
 import { Assignment } from '../assignments/assignment.entity';
 import { StudentProfile } from '../students/student-profile.entity';
@@ -42,6 +43,7 @@ export class SubmissionsController implements OnModuleInit {
     private readonly studentProfileRepo: Repository<StudentProfile>,
     private readonly questsService: QuestsService,
     private readonly submissionEvents: SubmissionEventsGateway,
+    private readonly judgeQueue: SubmissionJudgeQueueService,
     private readonly testcaseStorage: TestcaseStorageService,
     private readonly assignmentProgress: StudentAssignmentProgressService,
   ) {}
@@ -63,16 +65,30 @@ export class SubmissionsController implements OnModuleInit {
       },
     });
 
-    if (staleSubmissions.length === 0) return;
+    if (staleSubmissions.length > 0) {
+      this.logger.warn(
+        `Found ${staleSubmissions.length} stale PENDING submission(s). Marking as INTERNAL_ERROR.`,
+      );
 
-    this.logger.warn(
-      `Found ${staleSubmissions.length} stale PENDING submission(s). Marking as INTERNAL_ERROR.`,
-    );
+      for (const sub of staleSubmissions) {
+        sub.status = SubmissionStatus.INTERNAL_ERROR;
+        await this.submissionRepo.save(sub);
+        this.logger.warn(`  → Submission ${sub.id} (created ${sub.createdAt.toISOString()}) marked INTERNAL_ERROR`);
+      }
+    }
 
-    for (const sub of staleSubmissions) {
-      sub.status = SubmissionStatus.INTERNAL_ERROR;
-      await this.submissionRepo.save(sub);
-      this.logger.warn(`  → Submission ${sub.id} (created ${sub.createdAt.toISOString()}) marked INTERNAL_ERROR`);
+    const resumableSubmissions = await this.submissionRepo.find({
+      where: {
+        status: SubmissionStatus.PENDING,
+        createdAt: MoreThanOrEqual(cutoff),
+      },
+    });
+
+    if (resumableSubmissions.length > 0) {
+      this.logger.warn(`Resuming ${resumableSubmissions.length} recent PENDING submission(s).`);
+      for (const sub of resumableSubmissions) {
+        this.enqueueSubmissionForJudging(sub.id);
+      }
     }
   }
 
@@ -313,12 +329,57 @@ export class SubmissionsController implements OnModuleInit {
       updatedAt: new Date().toISOString(),
     }, liveTestResults);
 
+    this.enqueueSubmissionForJudging(submission.id);
+
+    this.redactHiddenTestResultsForViewer(liveSubmission, req.user.role, assignment);
+    return {
+      submission: liveSubmission,
+      message: 'Submission queued',
+    };
+  }
+
+  private enqueueSubmissionForJudging(submissionId: string): void {
+    this.judgeQueue.enqueue({
+      id: submissionId,
+      name: `submission:${submissionId}`,
+      run: () => this.processQueuedSubmission(submissionId),
+    });
+  }
+
+  private async processQueuedSubmission(submissionId: string): Promise<void> {
+    const submission = await this.submissionRepo.findOne({
+      where: { id: submissionId },
+      relations: ['assignment', 'user'],
+    });
+
+    if (!submission) {
+      this.logger.warn(`Queued submission ${submissionId} no longer exists.`);
+      return;
+    }
+
+    if (submission.status !== SubmissionStatus.PENDING) {
+      this.logger.debug(`Skipping submission ${submission.id}; status is already ${submission.status}.`);
+      return;
+    }
+
+    const assignment =
+      submission.assignment ??
+      await this.assignmentRepo.findOne({ where: { id: submission.assignmentId } });
+    const totalCount = assignment ? this.getAssignmentTotalCount(assignment) : (submission.totalCount || 1);
+    const liveTestResults: ISubmissionRealtimeTestResult[] = [];
+
+    if (!assignment) {
+      await this.failQueuedSubmission(submission, 'Assignment not found', liveTestResults, totalCount);
+      return;
+    }
+
+    const liveSubmission = await this.findSubmissionForRealtime(submission.id);
+
     try {
-      // Grade the submission
       const gradeResult = await this.executionService.gradeSubmission(
         assignment,
-        payload.language,
-        payload.code,
+        submission.language,
+        submission.code,
         {
           onTestCaseStart: ({ testCaseIndex, totalCount }) => {
             this.emitRealtimeEvent('testcase_started', liveSubmission, {
@@ -353,7 +414,6 @@ export class SubmissionsController implements OnModuleInit {
         },
       );
 
-      // Update submission with results
       submission.status = gradeResult.status;
       submission.passedCount = gradeResult.passedCount;
       submission.totalCount = gradeResult.totalCount;
@@ -388,9 +448,8 @@ export class SubmissionsController implements OnModuleInit {
       });
 
       if (submission.status === SubmissionStatus.ACCEPTED) {
-        // Trigger quest + badge progress with full objective context.
         await this.questsService
-          .handleCodingAccepted(userId, {
+          .handleCodingAccepted(submission.userId, {
             assignmentId: submission.assignmentId,
             difficulty: assignment.difficulty,
             tags: assignment.tags ?? [],
@@ -400,28 +459,36 @@ export class SubmissionsController implements OnModuleInit {
             console.error('Failed to update quest progress:', e);
           });
       }
-
-      this.redactHiddenTestResultsForViewer(submission, req.user.role, assignment);
-      return {
-        submission,
-        message: 'Submission graded successfully',
-      };
     } catch (error: any) {
-      submission.status = SubmissionStatus.INTERNAL_ERROR;
-      await this.submissionRepo.save(submission);
-      const failedSubmission = await this.findSubmissionForRealtime(submission.id);
-      this.emitRealtimeEvent('failed', failedSubmission, {
-        phase: 'failed',
-        currentTestCaseIndex: null,
-        completedCount: liveTestResults.length,
-        passedCount: liveTestResults.filter((tr) => tr.status === SubmissionStatus.ACCEPTED).length,
+      await this.failQueuedSubmission(
+        submission,
+        error?.message || 'Submission failed',
+        liveTestResults,
         totalCount,
-        status: SubmissionStatus.INTERNAL_ERROR,
-        message: error?.message || 'Submission failed',
-        updatedAt: new Date().toISOString(),
-      }, liveTestResults);
-      throw error;
+      );
     }
+  }
+
+  private async failQueuedSubmission(
+    submission: Submission,
+    message: string,
+    liveTestResults: ISubmissionRealtimeTestResult[],
+    totalCount: number,
+  ): Promise<void> {
+    this.logger.error(`Submission ${submission.id} failed while judging: ${message}`);
+    submission.status = SubmissionStatus.INTERNAL_ERROR;
+    await this.submissionRepo.save(submission);
+    const failedSubmission = await this.findSubmissionForRealtime(submission.id);
+    this.emitRealtimeEvent('failed', failedSubmission, {
+      phase: 'failed',
+      currentTestCaseIndex: null,
+      completedCount: liveTestResults.length,
+      passedCount: liveTestResults.filter((tr) => tr.status === SubmissionStatus.ACCEPTED).length,
+      totalCount,
+      status: SubmissionStatus.INTERNAL_ERROR,
+      message,
+      updatedAt: new Date().toISOString(),
+    }, liveTestResults);
   }
 
   private async findSubmissionForRealtime(submissionId: string): Promise<Submission> {
