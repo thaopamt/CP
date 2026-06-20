@@ -1488,7 +1488,7 @@ export default function StudentWorkspacePage() {
                         )}
                       </div>
 
-                      {runResults.progress?.phase === 'running' && (
+                      {/* {runResults.progress?.phase === 'running' && (
                         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2 text-xs text-blue-200">
                           <Icon name="progress_activity" size={14} className="animate-spin text-blue-300" />
                           <span className="font-semibold">
@@ -1500,7 +1500,7 @@ export default function StudentWorkspacePage() {
                             {runResults.progress.completedCount} / {runResults.progress.totalCount} done
                           </span>
                         </div>
-                      )}
+                      )} */}
 
                       {/* Per-case pills */}
                       {runResults.cases.length > 1 && (
