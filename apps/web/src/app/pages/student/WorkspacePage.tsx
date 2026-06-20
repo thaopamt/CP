@@ -119,7 +119,7 @@ function CourseProgressDots({
 }
 
 export default function StudentWorkspacePage() {
-  useSubmissionRealtimeFeed();
+  const { isConnected: realtimeConnected } = useSubmissionRealtimeFeed();
 
   const routeParams = useParams<{ problemId?: string; id?: string }>();
   const problemId = routeParams.problemId ?? routeParams.id;
@@ -334,21 +334,31 @@ export default function StudentWorkspacePage() {
 
   useEffect(() => {
     if (!submittedSubmissionId) return;
+    if (realtimeConnected) return;
     if (submittedSubmission?.status && submittedSubmission.status !== SubmissionStatus.PENDING) return;
 
-    const timer = window.setInterval(() => {
+    const initialTimer = window.setTimeout(() => {
       void refetchSubmissions();
-    }, 1500);
+    }, 4000);
+    const interval = window.setInterval(() => {
+      void refetchSubmissions();
+    }, 6000);
 
-    return () => window.clearInterval(timer);
-  }, [refetchSubmissions, submittedSubmission?.status, submittedSubmissionId]);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(interval);
+    };
+  }, [refetchSubmissions, realtimeConnected, submittedSubmission?.status, submittedSubmissionId]);
 
   useEffect(() => {
     if (!submittedSubmission) return;
 
     const nextResults = buildSubmissionRunResults(submittedSubmission, assignment);
     setRunResults(nextResults);
-    setActiveResultIdx(getActiveRunResultIndex(nextResults));
+    setActiveResultIdx((current) => {
+      const nextIndex = getActiveRunResultIndex(nextResults);
+      return current === nextIndex ? current : nextIndex;
+    });
     setBottomTab('result');
 
     if (submittedSubmission.status === SubmissionStatus.PENDING) return;
