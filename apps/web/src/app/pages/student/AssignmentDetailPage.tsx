@@ -6,6 +6,7 @@ import { DifficultyBadge, Icon } from '@cp/ui';
 import 'katex/dist/katex.min.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import rehypeKatex from 'rehype-katex';
 import remarkMath from 'remark-math';
@@ -45,6 +46,7 @@ type BottomTab = 'testcase' | 'terminal' | 'result';
 
 export default function StudentAssignmentDetailPage() {
   useSubmissionRealtimeFeed();
+  const { t } = useTranslation();
 
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -448,7 +450,7 @@ export default function StudentAssignmentDetailPage() {
       <div className="fixed inset-0 z-50 grid place-items-center bg-[#1a1a2e]">
         <div className="flex flex-col items-center gap-3">
           <Icon name="progress_activity" size={36} className="animate-spin text-emerald-400" />
-          <span className="text-sm text-gray-400">Loading problem…</span>
+          <span className="text-sm text-gray-400">{t('pages.student.assignmentWorkspace.loadingProblem')}</span>
         </div>
       </div>
     );
@@ -458,9 +460,9 @@ export default function StudentAssignmentDetailPage() {
       <div className="fixed inset-0 z-50 grid place-items-center bg-[#1a1a2e]">
         <div className="flex flex-col items-center gap-4 text-center">
           <Icon name="error" size={40} className="text-red-400" />
-          <h2 className="text-lg font-semibold text-white">Problem not found</h2>
+          <h2 className="text-lg font-semibold text-white">{t('pages.student.assignmentWorkspace.problemNotFound')}</h2>
           <button onClick={() => navigate('/student/assignments')} className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-500 transition-colors">
-            Back to Problems
+            {t('pages.student.assignmentWorkspace.backToProblems')}
           </button>
         </div>
       </div>
@@ -475,7 +477,7 @@ export default function StudentAssignmentDetailPage() {
         <div className="flex items-center gap-3">
           <Link to="/student/assignments" className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm">
             <Icon name="arrow_back" size={18} />
-            <span className="hidden sm:inline">Problems</span>
+            <span className="hidden sm:inline">{t('pages.student.assignmentWorkspace.problems')}</span>
           </Link>
           <div className="w-px h-5 bg-white/10" />
           <div className="flex items-center gap-2 min-w-0">
@@ -501,7 +503,7 @@ export default function StudentAssignmentDetailPage() {
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2a2a4a] hover:bg-[#353560] border border-white/10 rounded-md text-xs text-gray-300 transition-colors disabled:opacity-50"
           >
             <Icon name="play_arrow" size={14} className="text-emerald-400" />
-            Run
+            {t('pages.student.assignmentWorkspace.run')}
           </button>
           <button
             onClick={handleRunTerminal}
@@ -509,7 +511,7 @@ export default function StudentAssignmentDetailPage() {
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2a2a4a] hover:bg-[#353560] border border-white/10 rounded-md text-xs text-gray-300 transition-colors disabled:opacity-50"
           >
             <Icon name="terminal" size={14} className="text-cyan-400" />
-            Terminal
+            {t('pages.student.assignmentWorkspace.terminal')}
           </button>
           <button
             onClick={handleSubmit}
@@ -517,7 +519,7 @@ export default function StudentAssignmentDetailPage() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 transition-colors text-xs font-semibold"
           >
             <Icon name="cloud_upload" size={14} />
-            Submit
+            {t('pages.student.assignmentWorkspace.submit')}
           </button>
         </div>
       </header>
@@ -536,9 +538,9 @@ export default function StudentAssignmentDetailPage() {
                   ${leftTab === tab ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
               >
                 {tab === 'description' ? (
-                  <span className="flex items-center gap-1.5"><Icon name="description" size={14} />Description</span>
+                  <span className="flex items-center gap-1.5"><Icon name="description" size={14} />{t('pages.student.assignmentWorkspace.description')}</span>
                 ) : (
-                  <span className="flex items-center gap-1.5"><Icon name="history" size={14} />Submissions</span>
+                  <span className="flex items-center gap-1.5"><Icon name="history" size={14} />{t('pages.student.assignmentWorkspace.submissions')}</span>
                 )}
                 {leftTab === tab && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 rounded-t" />}
               </button>
@@ -555,7 +557,7 @@ export default function StudentAssignmentDetailPage() {
                   <DifficultyBadge difficulty={assignment.difficulty as DifficultyLevel} />
 
                   <span className="inline-flex items-center gap-1 text-xs text-amber-400 font-semibold">
-                    <Icon name="bolt" size={13} />{assignment.points} pts
+                    <Icon name="bolt" size={13} />{assignment.points} {t('pages.student.assignmentWorkspace.pts')}
                   </span>
                   {assignment.codingConfig?.timeLimit && (
                     <span className="inline-flex items-center gap-1 text-xs text-gray-400">
@@ -569,7 +571,7 @@ export default function StudentAssignmentDetailPage() {
                   )}
                   {assignment.codingConfig?.ioMode === 'file' && (
                     <span className="inline-flex items-center gap-1 text-xs text-cyan-400 font-medium bg-cyan-500/10 px-1.5 py-0.5 rounded">
-                      <Icon name="draft" size={13} />File I/O
+                      <Icon name="draft" size={13} />{t('pages.student.assignmentWorkspace.fileIOBadge')}
                     </span>
                   )}
                 </div>
@@ -599,7 +601,7 @@ export default function StudentAssignmentDetailPage() {
                       {assignment.description}
                     </ReactMarkdown>
                   ) : (
-                    <p className="italic text-gray-500">No description provided.</p>
+                    <p className="italic text-gray-500">{t('pages.student.assignmentWorkspace.noDescription')}</p>
                   )}
                 </div>
 
@@ -608,35 +610,35 @@ export default function StudentAssignmentDetailPage() {
                   <div className="mt-6 space-y-4">
                     {visibleTestCases.map((tc, idx) => (
                       <div key={idx}>
-                        <h4 className="text-sm font-semibold text-white mb-2">Example {idx + 1}:</h4>
+                        <h4 className="text-sm font-semibold text-white mb-2">{t('pages.student.assignmentWorkspace.exampleN', { n: idx + 1 })}</h4>
                         <div className="bg-[#0d0d1a] rounded-lg border border-white/5 p-3 space-y-2">
                           <div>
-                            <span className="text-[11px] text-gray-500 font-semibold uppercase">Input:</span>
+                            <span className="text-[11px] text-gray-500 font-semibold uppercase">{t('pages.student.assignmentWorkspace.inputLabel')}</span>
                             <div className="relative mt-1">
-                              <pre className="text-sm font-mono text-gray-300 whitespace-pre-wrap pr-12">{tc.input || '(empty)'}</pre>
+                              <pre className="text-sm font-mono text-gray-300 whitespace-pre-wrap pr-12">{tc.input || t('pages.student.assignmentWorkspace.emptyValue')}</pre>
                               <button
                                 onClick={() => handleCopy(tc.input || '', `ex-input-${idx}`)}
                                 className={`absolute top-0 right-0 text-[10px] px-1.5 py-0.5 rounded transition-colors ${copiedField === `ex-input-${idx}` ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
                               >
-                                {copiedField === `ex-input-${idx}` ? 'Copied!' : 'Copy'}
+                                {copiedField === `ex-input-${idx}` ? t('pages.student.assignmentWorkspace.copied') : t('pages.student.assignmentWorkspace.copy')}
                               </button>
                             </div>
                           </div>
                           <div>
-                            <span className="text-[11px] text-gray-500 font-semibold uppercase">Output:</span>
+                            <span className="text-[11px] text-gray-500 font-semibold uppercase">{t('pages.student.assignmentWorkspace.outputLabel')}</span>
                             <div className="relative mt-1">
-                              <pre className="text-sm font-mono text-gray-300 whitespace-pre-wrap pr-12">{tc.output || '(empty)'}</pre>
+                              <pre className="text-sm font-mono text-gray-300 whitespace-pre-wrap pr-12">{tc.output || t('pages.student.assignmentWorkspace.emptyValue')}</pre>
                               <button
                                 onClick={() => handleCopy(tc.output || '', `ex-output-${idx}`)}
                                 className={`absolute top-0 right-0 text-[10px] px-1.5 py-0.5 rounded transition-colors ${copiedField === `ex-output-${idx}` ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
                               >
-                                {copiedField === `ex-output-${idx}` ? 'Copied!' : 'Copy'}
+                                {copiedField === `ex-output-${idx}` ? t('pages.student.assignmentWorkspace.copied') : t('pages.student.assignmentWorkspace.copy')}
                               </button>
                             </div>
                           </div>
                           {tc.explanation && (
                             <div>
-                              <span className="text-[11px] text-gray-500 font-semibold uppercase">Explanation:</span>
+                              <span className="text-[11px] text-gray-500 font-semibold uppercase">{t('pages.student.assignmentWorkspace.explanationLabel')}</span>
                               <div className="prose prose-sm dark:prose-invert max-w-none text-gray-400 mt-1 prose-p:m-0 prose-code:bg-black/20 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
                                 <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
                                   {tc.explanation}
@@ -653,18 +655,20 @@ export default function StudentAssignmentDetailPage() {
                 {/* Constraints / limits */}
                 {assignment.codingConfig && (
                   <div className="mt-6">
-                    <h4 className="text-sm font-semibold text-white mb-2">Constraints:</h4>
+                    <h4 className="text-sm font-semibold text-white mb-2">{t('pages.student.assignmentWorkspace.constraintsTitle')}</h4>
                     <ul className="list-disc list-inside text-sm text-gray-400 space-y-1">
-                      <li>Time limit: {assignment.codingConfig.timeLimit ?? 1}s per test</li>
-                      <li>Memory limit: {assignment.codingConfig.memoryLimit ?? 256} MB</li>
+                      <li>{t('pages.student.assignmentWorkspace.timeLimit', { limit: assignment.codingConfig.timeLimit ?? 1 })}</li>
+                      <li>{t('pages.student.assignmentWorkspace.memoryLimit', { limit: assignment.codingConfig.memoryLimit ?? 256 })}</li>
                       {assignment.codingConfig.ioMode === 'file' && (
                         <li>
-                          File I/O: input from <code className="text-cyan-300 bg-white/5 px-1.5 py-0.5 rounded text-[13px]">{assignment.codingConfig.inputFileName}</code>,
-                          output to <code className="text-cyan-300 bg-white/5 px-1.5 py-0.5 rounded text-[13px]">{assignment.codingConfig.outputFileName}</code>
+                          {t('pages.student.assignmentWorkspace.fileIOConstraint', {
+                            input: assignment.codingConfig.inputFileName,
+                            output: assignment.codingConfig.outputFileName,
+                          })}
                         </li>
                       )}
                       {assignment.codingConfig.allowedLanguages && (
-                        <li>Languages: {assignment.codingConfig.allowedLanguages.join(', ')}</li>
+                        <li>{t('pages.student.assignmentWorkspace.languagesAllowed', { list: assignment.codingConfig.allowedLanguages.join(', ') })}</li>
                       )}
                     </ul>
                   </div>
@@ -679,7 +683,7 @@ export default function StudentAssignmentDetailPage() {
                   className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors mb-2"
                 >
                   <Icon name="arrow_back" size={14} />
-                  Back to submissions
+                  {t('pages.student.assignmentWorkspace.backToSubmissions')}
                 </button>
 
                 {/* Submission header */}
@@ -694,14 +698,7 @@ export default function StudentAssignmentDetailPage() {
                                 selectedSubmission.status === 'COMPILATION_ERROR' ? 'bg-purple-500/10 text-purple-400' :
                                   'bg-yellow-500/10 text-yellow-400'
                         }`}>
-                        {selectedSubmission.status === 'ACCEPTED' ? 'Accepted' :
-                          selectedSubmission.status === 'WRONG_ANSWER' ? 'Wrong Answer' :
-                            selectedSubmission.status === 'PENDING' ? 'Pending' :
-                              selectedSubmission.status === 'TIME_LIMIT_EXCEEDED' ? 'Time Limit Exceeded' :
-                                selectedSubmission.status === 'MEMORY_LIMIT_EXCEEDED' ? 'Memory Limit Exceeded' :
-                                  selectedSubmission.status === 'COMPILATION_ERROR' ? 'Compilation Error' :
-                                    selectedSubmission.status === 'RUNTIME_ERROR' ? 'Runtime Error' :
-                                      'Error'}
+                        {String(t(`pages.student.assignmentWorkspace.status.${selectedSubmission.status}`, selectedSubmission.status))}
                       </span>
                       <span className="text-[11px] text-gray-500 font-mono">{selectedSubmission.language}</span>
                     </div>
@@ -712,7 +709,7 @@ export default function StudentAssignmentDetailPage() {
                   <div className="flex items-center gap-4 text-xs text-gray-400">
                     <div className="flex items-center gap-1">
                       <Icon name="check_circle" size={12} className="text-emerald-500" />
-                      {selectedSubmission.passedCount} / {selectedSubmission.totalCount} passed
+                      {t('pages.student.assignmentWorkspace.passedOf', { passed: selectedSubmission.passedCount, total: selectedSubmission.totalCount })}
                     </div>
                     {selectedSubmission.totalExecutionTimeMs != null && (
                       <div className="flex items-center gap-1">
@@ -733,7 +730,7 @@ export default function StudentAssignmentDetailPage() {
                 <div>
                   <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <Icon name="code" size={13} className="text-emerald-400" />
-                    Source Code
+                    {t('pages.student.assignmentWorkspace.sourceCode')}
                   </h4>
                   <div className="bg-[#0d0d1a] rounded-lg border border-white/5 overflow-hidden">
                     <div className="max-h-[300px] overflow-auto">
@@ -755,7 +752,7 @@ export default function StudentAssignmentDetailPage() {
                 <div>
                   <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <Icon name="science" size={13} className="text-cyan-400" />
-                    Test Cases ({selectedSubmission.passedCount}/{selectedSubmission.totalCount})
+                    {t('pages.student.assignmentWorkspace.testCasesOf', { passed: selectedSubmission.passedCount, total: selectedSubmission.totalCount })}
                   </h4>
                   <div className="space-y-2">
                     {selectedSubmission.testResults && selectedSubmission.testResults.length > 0 ? (
@@ -783,10 +780,10 @@ export default function StudentAssignmentDetailPage() {
                               <div className="flex items-center gap-2">
                                 <Icon name={statusIcon} size={15} className={statusColor} />
                                 <span className="text-xs font-semibold text-gray-300">
-                                  {hideDetails ? `Test #${tr.testCaseIndex + 1} (Hidden)` : `Test #${tr.testCaseIndex + 1}`}
+                                  {hideDetails ? t('pages.student.assignmentWorkspace.testNHidden', { n: tr.testCaseIndex + 1 }) : t('pages.student.assignmentWorkspace.testN', { n: tr.testCaseIndex + 1 })}
                                 </span>
                                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isAccepted ? 'bg-emerald-500/10 text-emerald-400' : isWrong ? 'bg-red-500/10 text-red-400' : isTLE ? 'bg-amber-500/10 text-amber-400' : isCE ? 'bg-purple-500/10 text-purple-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                                  {statusLabel}
+                                  {String(t(`pages.student.assignmentWorkspace.status.${tr.status}`, statusLabel))}
                                 </span>
                               </div>
                               {tr.executionTimeMs != null && (
@@ -801,25 +798,25 @@ export default function StudentAssignmentDetailPage() {
                               <div className="mt-2 space-y-2">
                                 {(tr.input || tc?.input) && (
                                   <div>
-                                    <span className="text-[10px] text-gray-500 font-semibold uppercase">Input:</span>
+                                    <span className="text-[10px] text-gray-500 font-semibold uppercase">{t('pages.student.assignmentWorkspace.inputLabel')}</span>
                                     <pre className="text-[11px] font-mono text-gray-400 mt-0.5 whitespace-pre-wrap bg-[#0d0d1a] rounded px-2 py-1 max-h-[80px] overflow-auto">{tr.input || tc?.input}</pre>
                                   </div>
                                 )}
                                 {tr.expectedOutput && (
                                   <div>
-                                    <span className="text-[10px] text-gray-500 font-semibold uppercase">Expected:</span>
+                                    <span className="text-[10px] text-gray-500 font-semibold uppercase">{t('pages.student.assignmentWorkspace.expectedOutput')}</span>
                                     <pre className="text-[11px] font-mono text-gray-400 mt-0.5 whitespace-pre-wrap bg-[#0d0d1a] rounded px-2 py-1 max-h-[80px] overflow-auto">{tr.expectedOutput}</pre>
                                   </div>
                                 )}
                                 {tr.actualOutput && (
                                   <div>
-                                    <span className="text-[10px] text-gray-500 font-semibold uppercase">Your Output:</span>
+                                    <span className="text-[10px] text-gray-500 font-semibold uppercase">{t('pages.student.assignmentWorkspace.yourOutput')}</span>
                                     <pre className="text-[11px] font-mono text-gray-400 mt-0.5 whitespace-pre-wrap bg-[#0d0d1a] rounded px-2 py-1 max-h-[80px] overflow-auto">{tr.actualOutput}</pre>
                                   </div>
                                 )}
                                 {tr.errorMessage && (
                                   <div>
-                                    <span className="text-[10px] text-red-400 font-semibold uppercase">Error:</span>
+                                    <span className="text-[10px] text-red-400 font-semibold uppercase">{t('pages.student.assignmentWorkspace.errorLabel')}</span>
                                     <pre className="text-[11px] font-mono text-red-300 mt-0.5 whitespace-pre-wrap bg-red-500/5 rounded px-2 py-1 max-h-[80px] overflow-auto">{tr.errorMessage}</pre>
                                   </div>
                                 )}
@@ -830,7 +827,7 @@ export default function StudentAssignmentDetailPage() {
                       })
                     ) : (
                       <div className="bg-[#1a1a2e] border border-white/5 rounded-lg p-3 text-xs text-gray-500">
-                        No test result details available.
+                        {t('pages.student.assignmentWorkspace.noTestDetails')}
                       </div>
                     )}
                   </div>
@@ -853,13 +850,7 @@ export default function StudentAssignmentDetailPage() {
                               sub.status === 'PENDING' ? 'bg-blue-500/10 text-blue-400' :
                                 'bg-yellow-500/10 text-yellow-400'
                             }`}>
-                            {sub.status === 'ACCEPTED' ? 'Accepted' :
-                              sub.status === 'WRONG_ANSWER' ? 'Wrong Answer' :
-                                sub.status === 'PENDING' ? 'Pending' :
-                                  sub.status === 'TIME_LIMIT_EXCEEDED' ? 'Time Limit' :
-                                    sub.status === 'MEMORY_LIMIT_EXCEEDED' ? 'Memory Limit' :
-                                      sub.status === 'COMPILATION_ERROR' ? 'Compilation Error' :
-                                        'Error'}
+                            {String(t(`pages.student.assignmentWorkspace.status.${sub.status}`, sub.status))}
                           </span>
                           <span className="text-[11px] text-gray-500 font-mono">{sub.language}</span>
                         </div>
@@ -870,7 +861,7 @@ export default function StudentAssignmentDetailPage() {
                       <div className="flex items-center gap-4 text-xs text-gray-400">
                         <div className="flex items-center gap-1">
                           <Icon name="check_circle" size={12} className="text-emerald-500" />
-                          {sub.passedCount} / {sub.totalCount} passed
+                          {t('pages.student.assignmentWorkspace.passedOf', { passed: sub.passedCount, total: sub.totalCount })}
                         </div>
                         {sub.totalExecutionTimeMs != null && (
                           <div className="flex items-center gap-1">
@@ -890,8 +881,8 @@ export default function StudentAssignmentDetailPage() {
                 ) : (
                   <div className="p-5 text-center text-gray-500">
                     <Icon name="history" size={48} className="mx-auto mb-3 text-gray-600" />
-                    <p className="text-sm">No submissions yet.</p>
-                    <p className="text-xs text-gray-600 mt-1">Your submission history will appear here.</p>
+                    <p className="text-sm">{t('pages.student.assignmentWorkspace.noSubmissions')}</p>
+                    <p className="text-xs text-gray-600 mt-1">{t('pages.student.assignmentWorkspace.noSubmissionsHint')}</p>
                   </div>
                 )}
               </div>
@@ -917,10 +908,10 @@ export default function StudentAssignmentDetailPage() {
             <div className="flex items-center justify-between px-3 py-1.5 bg-[#1e1e3a] border-b border-white/5 shrink-0">
               <div className="flex items-center gap-2">
                 <Icon name="code" size={14} className="text-emerald-400" />
-                <span className="text-xs text-gray-400">Code</span>
+                <span className="text-xs text-gray-400">{t('pages.student.assignmentWorkspace.codeLabel')}</span>
               </div>
               <button onClick={() => { const tpl = LANG_OPTIONS.find(l => l.value === language)?.template ?? ''; setCode(tpl); }} className="text-xs text-gray-500 hover:text-gray-300 flex items-center gap-1 transition-colors">
-                <Icon name="refresh" size={12} />Reset
+                <Icon name="refresh" size={12} />{t('pages.student.assignmentWorkspace.reset')}
               </button>
             </div>
             {/* Editor Body */}
@@ -1016,16 +1007,16 @@ export default function StudentAssignmentDetailPage() {
                     ${bottomTab === tab ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
                 >
                   {tab === 'testcase' ? (
-                    <span className="flex items-center gap-1.5"><Icon name="science" size={13} />Testcase</span>
+                    <span className="flex items-center gap-1.5"><Icon name="science" size={13} />{t('pages.student.assignmentWorkspace.testcaseTab')}</span>
                   ) : tab === 'terminal' ? (
                     <span className="flex items-center gap-1.5">
                       <Icon name="terminal" size={13} className={terminalResult ? getTerminalStatus(terminalResult).iconClass : 'text-cyan-400'} />
-                      Terminal
+                      {t('pages.student.assignmentWorkspace.terminal')}
                     </span>
                   ) : (
                     <span className="flex items-center gap-1.5">
                       <Icon name={runResults ? (runResults.overall === 'accepted' ? 'check_circle' : 'cancel') : 'terminal'} size={13} className={runResults?.overall === 'accepted' ? 'text-emerald-400' : runResults?.overall === 'wrong' ? 'text-red-400' : ''} />
-                      Result
+                      {t('pages.student.assignmentWorkspace.resultTab')}
                     </span>
                   )}
                   {bottomTab === tab && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 rounded-t" />}
@@ -1046,39 +1037,39 @@ export default function StudentAssignmentDetailPage() {
                         className={`px-2.5 py-1 rounded text-xs font-medium transition-colors
                           ${activeTestIdx === i ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
                       >
-                        Case {i + 1}
+                        {t('pages.student.assignmentWorkspace.caseN', { n: i + 1 })}
                       </button>
                     ))}
                   </div>
                   {/* Input / Expected / Explanation */}
                   <div className="space-y-3">
                     <div>
-                      <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">Input</label>
+                      <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">{t('pages.student.assignmentWorkspace.inputMetaLabel')}</label>
                       <div className="relative">
                         <pre className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 pr-14 text-sm font-mono text-gray-300 whitespace-pre-wrap min-h-[40px]">{customInput.trim()}</pre>
                         <button
                           onClick={() => handleCopy(customInput.trim(), 'tc-input')}
                           className={`absolute top-2 right-2 text-[10px] px-1.5 py-0.5 rounded transition-colors ${copiedField === 'tc-input' ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
                         >
-                          {copiedField === 'tc-input' ? 'Copied!' : 'Copy'}
+                          {copiedField === 'tc-input' ? t('pages.student.assignmentWorkspace.copied') : t('pages.student.assignmentWorkspace.copy')}
                         </button>
                       </div>
                     </div>
                     <div>
-                      <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">Expected Output</label>
+                      <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">{t('pages.student.assignmentWorkspace.expectedOutput')}</label>
                       <div className="relative">
-                        <pre className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 pr-14 text-sm font-mono text-gray-400 whitespace-pre-wrap min-h-[40px]">{customOutput.trim() || '(empty)'}</pre>
+                        <pre className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 pr-14 text-sm font-mono text-gray-400 whitespace-pre-wrap min-h-[40px]">{customOutput.trim() || t('pages.student.assignmentWorkspace.emptyValue')}</pre>
                         <button
                           onClick={() => handleCopy(customOutput.trim(), 'tc-output')}
                           className={`absolute top-2 right-2 text-[10px] px-1.5 py-0.5 rounded transition-colors ${copiedField === 'tc-output' ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
                         >
-                          {copiedField === 'tc-output' ? 'Copied!' : 'Copy'}
+                          {copiedField === 'tc-output' ? t('pages.student.assignmentWorkspace.copied') : t('pages.student.assignmentWorkspace.copy')}
                         </button>
                       </div>
                     </div>
                     {visibleTestCases[activeTestIdx]?.explanation && (
                       <div>
-                        <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">Explanation</label>
+                        <label className="text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 block">{t('pages.student.assignmentWorkspace.explanationLabel')}</label>
                         <div className="bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm text-gray-400 leading-relaxed
                           prose prose-sm prose-invert max-w-none
                           prose-p:text-gray-400 prose-p:my-1
@@ -1114,7 +1105,7 @@ export default function StudentAssignmentDetailPage() {
                             style={{ background: '#d32f2f', color: '#fff' }}
                           >
                             <Icon name="stop" size={12} />
-                            Stop
+                            {t('pages.student.assignmentWorkspace.stop')}
                           </button>
                         ) : (
                           <button
@@ -1124,7 +1115,7 @@ export default function StudentAssignmentDetailPage() {
                             style={{ background: '#2ea043', color: '#fff' }}
                           >
                             <Icon name="play_arrow" size={12} />
-                            Run
+                            {t('pages.student.assignmentWorkspace.run')}
                           </button>
                         )}
                         <button
@@ -1134,13 +1125,13 @@ export default function StudentAssignmentDetailPage() {
                           onMouseEnter={e => (e.currentTarget.style.color = '#ccc')}
                           onMouseLeave={e => (e.currentTarget.style.color = '#888')}
                         >
-                          Clear
+                          {t('pages.student.assignmentWorkspace.clear')}
                         </button>
                       </div>
                     </div>
                     {/* Input mode toggle */}
                     <div className="flex items-center gap-3">
-                      <span className="text-[10px] uppercase tracking-wider" style={{ color: '#666' }}>stdin:</span>
+                      <span className="text-[10px] uppercase tracking-wider" style={{ color: '#666' }}>{t('pages.student.assignmentWorkspace.stdinLabel')}</span>
                       <label className="flex items-center gap-1 cursor-pointer">
                         <input
                           type="radio"
@@ -1150,7 +1141,7 @@ export default function StudentAssignmentDetailPage() {
                           className="accent-green-500"
                           style={{ width: 12, height: 12 }}
                         />
-                        <span className="text-[11px]" style={{ color: !terminalMultiline ? '#ccc' : '#666' }}>Interactive</span>
+                        <span className="text-[11px]" style={{ color: !terminalMultiline ? '#ccc' : '#666' }}>{t('pages.student.assignmentWorkspace.interactiveMode')}</span>
                       </label>
                       <label className="flex items-center gap-1 cursor-pointer">
                         <input
@@ -1161,7 +1152,7 @@ export default function StudentAssignmentDetailPage() {
                           className="accent-green-500"
                           style={{ width: 12, height: 12 }}
                         />
-                        <span className="text-[11px]" style={{ color: terminalMultiline ? '#ccc' : '#666' }}>Text</span>
+                        <span className="text-[11px]" style={{ color: terminalMultiline ? '#ccc' : '#666' }}>{t('pages.student.assignmentWorkspace.textMode')}</span>
                       </label>
                     </div>
                   </div>
@@ -1170,7 +1161,7 @@ export default function StudentAssignmentDetailPage() {
                   {terminalMultiline && (
                     <div style={{ background: '#111', borderBottom: '1px solid #333' }}>
                       <div className="flex items-center justify-between px-3 py-1">
-                        <span className="text-[10px] uppercase tracking-wider" style={{ color: '#555' }}>Standard Input</span>
+                        <span className="text-[10px] uppercase tracking-wider" style={{ color: '#555' }}>{t('pages.student.assignmentWorkspace.stdInputLabel')}</span>
                         <span className="text-[10px]" style={{ color: '#444' }}>
                           {terminalInput.split('\n').length} lines · {terminalInput.length} chars
                         </span>
@@ -1198,7 +1189,7 @@ export default function StudentAssignmentDetailPage() {
                       interactiveExec.lines.length === 0 && !interactiveExec.running ? (
                         <div style={{ color: '#555' }}>
                           <div className="mt-1" style={{ color: '#555', fontSize: 12 }}>
-                            Bấm Run để chạy. Khi chương trình cần nhập (cin, scanf, input), gõ trực tiếp ở dưới rồi bấm Enter.
+                            {t('pages.student.assignmentWorkspace.runPrompt')}
                           </div>
                         </div>
                       ) : (
@@ -1223,7 +1214,7 @@ export default function StudentAssignmentDetailPage() {
                         {terminalHistory.length === 0 && !terminalRunning && (
                           <div style={{ color: '#555' }}>
                             <div className="mt-1" style={{ color: '#555', fontSize: 12 }}>
-                              Nhập stdin ở trên rồi bấm Run để chạy code.
+                              {t('pages.student.assignmentWorkspace.batchPrompt')}
                             </div>
                           </div>
                         )}
@@ -1255,7 +1246,7 @@ export default function StudentAssignmentDetailPage() {
                         {terminalRunning && (
                           <div className="flex items-center gap-2" style={{ color: '#888', fontSize: 12 }}>
                             <Icon name="progress_activity" size={13} className="animate-spin" />
-                            Compiling and executing...
+                            {t('pages.student.assignmentWorkspace.compilingAndRunning')}
                           </div>
                         )}
                       </>
@@ -1311,18 +1302,18 @@ export default function StudentAssignmentDetailPage() {
                   {running ? (
                     <div className="flex items-center gap-2 text-gray-400 text-sm py-4">
                       <Icon name="progress_activity" size={16} className="animate-spin" />
-                      Running…
+                      {t('pages.student.assignmentWorkspace.running')}
                     </div>
                   ) : runResults ? (
                     <div>
                       {/* Overall verdict */}
                       <div className="flex items-center gap-3 mb-3">
                         <span className={`text-lg font-bold ${runResults.overall === 'accepted' ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {runResults.overall === 'accepted' ? '✓ Accepted' : runResults.overall === 'wrong' ? '✗ Wrong Answer' : '✗ Error'}
+                          {runResults.overall === 'accepted' ? t('pages.student.assignmentWorkspace.acceptedVerdict') : runResults.overall === 'wrong' ? t('pages.student.assignmentWorkspace.wrongVerdict') : t('pages.student.assignmentWorkspace.errorVerdict')}
                         </span>
                         {runResults.cases.length > 1 && (
                           <span className="text-xs text-gray-400">
-                            {runResults.cases.filter(c => c.status === 'accepted').length} / {runResults.cases.length} passed
+                            {t('pages.student.assignmentWorkspace.passedOf', { passed: runResults.cases.filter(c => c.status === 'accepted').length, total: runResults.cases.length })}
                           </span>
                         )}
                       </div>
@@ -1342,7 +1333,7 @@ export default function StudentAssignmentDetailPage() {
                                 size={12}
                                 className={c.status === 'accepted' ? 'text-emerald-400' : 'text-red-400'}
                               />
-                              Case {i + 1}
+                              {t('pages.student.assignmentWorkspace.caseN', { n: i + 1 })}
                             </button>
                           ))}
                         </div>
@@ -1353,12 +1344,12 @@ export default function StudentAssignmentDetailPage() {
                         <div className="space-y-3">
                           {runResults.cases[activeResultIdx].input && (
                             <div>
-                              <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">Input</span>
+                              <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">{t('pages.student.assignmentWorkspace.inputMetaLabel')}</span>
                               <pre className="mt-1 bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm font-mono text-gray-300 whitespace-pre-wrap">{runResults.cases[activeResultIdx].input}</pre>
                             </div>
                           )}
                           <div>
-                            <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">Output</span>
+                            <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">{t('pages.student.assignmentWorkspace.outputMetaLabel')}</span>
                             <pre className={`mt-1 bg-[#1a1a2e] border rounded-lg p-2.5 text-sm font-mono whitespace-pre-wrap ${runResults.cases[activeResultIdx].status === 'accepted' ? 'border-emerald-500/20 text-emerald-300' :
                               runResults.cases[activeResultIdx].status === 'wrong' ? 'border-red-500/20 text-red-300' :
                                 'border-white/5 text-gray-300'
@@ -1366,7 +1357,7 @@ export default function StudentAssignmentDetailPage() {
                           </div>
                           {runResults.cases[activeResultIdx].expected && (
                             <div>
-                              <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">Expected</span>
+                              <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">{t('pages.student.assignmentWorkspace.expectedOutput')}</span>
                               <pre className="mt-1 bg-[#1a1a2e] border border-white/5 rounded-lg p-2.5 text-sm font-mono text-gray-300 whitespace-pre-wrap">{runResults.cases[activeResultIdx].expected}</pre>
                             </div>
                           )}
@@ -1375,7 +1366,7 @@ export default function StudentAssignmentDetailPage() {
                     </div>
                   ) : (
                     <div className="text-sm text-gray-500 py-4 text-center">
-                      Click <strong className="text-gray-300">Run</strong> to execute your code against the test cases.
+                      {t('pages.student.assignmentWorkspace.runToSeeResults')}
                     </div>
                   )}
                 </div>
@@ -1389,6 +1380,7 @@ export default function StudentAssignmentDetailPage() {
 }
 
 function TerminalOutput({ result }: { result: ICodeExecutionResponse }) {
+  const { t } = useTranslation();
   const status = getTerminalStatus(result);
   const compile = result.compile;
   const run = result.run;
@@ -1406,7 +1398,7 @@ function TerminalOutput({ result }: { result: ICodeExecutionResponse }) {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <span className={`h-2 w-2 rounded-full ${status.dotClass}`} />
-        <span className={status.textClass}>{status.label}</span>
+        <span className={status.textClass}>{t(`pages.student.assignmentWorkspace.${status.labelKey}`)}</span>
       </div>
 
       {compile && (
@@ -1414,7 +1406,9 @@ function TerminalOutput({ result }: { result: ICodeExecutionResponse }) {
           <div className="mb-1 text-gray-500">$ compile {result.language}</div>
           <pre className={`whitespace-pre-wrap rounded-lg border p-2 ${compileFailed ? 'border-red-500/20 bg-red-500/5 text-red-200' : 'border-emerald-500/20 bg-emerald-500/5 text-emerald-200'
             }`}>
-            {compileFailed ? `Compilation failed with exit code ${compile.code}` : 'Compilation succeeded'}
+            {compileFailed
+              ? t('pages.student.assignmentWorkspace.compileFailed', { code: compile.code })
+              : t('pages.student.assignmentWorkspace.compileSucceeded')}
           </pre>
           {compile.stdout && <TerminalBlock title="compiler stdout" tone="muted" value={compile.stdout} />}
           {compile.stderr && <TerminalBlock title="compiler stderr" tone="error" value={compile.stderr} />}
@@ -1428,7 +1422,7 @@ function TerminalOutput({ result }: { result: ICodeExecutionResponse }) {
         <div>
           <div className="mb-1 text-gray-500">$ run</div>
           <pre className="whitespace-pre-wrap rounded-lg border border-white/10 bg-white/[0.03] p-2 text-gray-400">
-            {runMeta.join(' · ') || 'process finished'}
+            {runMeta.join(' · ') || t('pages.student.assignmentWorkspace.noOutput')}
           </pre>
           {run.stdout && <TerminalBlock title="stdout" tone="success" value={run.stdout} />}
           {run.stderr && <TerminalBlock title="stderr" tone="error" value={run.stderr} />}
@@ -1436,7 +1430,7 @@ function TerminalOutput({ result }: { result: ICodeExecutionResponse }) {
           {run.output && !run.stdout && !run.stderr && <TerminalBlock title="output" tone={status.kind === 'success' ? 'success' : 'error'} value={run.output} />}
           {!run.stdout && !run.stderr && !run.output && !run.message && (
             <pre className="mt-2 whitespace-pre-wrap rounded-lg border border-white/10 bg-white/[0.03] p-2 text-gray-500">
-              No output
+              {t('pages.student.assignmentWorkspace.noOutput')}
             </pre>
           )}
         </div>
@@ -1473,7 +1467,7 @@ function getTerminalStatus(result: ICodeExecutionResponse) {
   if (result.compile && result.compile.code !== 0) {
     return {
       kind: 'error',
-      label: 'Compilation Error',
+      labelKey: 'terminalCompilationError',
       iconClass: 'text-red-400',
       badgeClass: 'bg-red-500/10 text-red-300',
       textClass: 'font-semibold text-red-300',
@@ -1484,7 +1478,7 @@ function getTerminalStatus(result: ICodeExecutionResponse) {
   if (result.run.status === 'TO' || result.run.signal) {
     return {
       kind: 'error',
-      label: 'Runtime Error',
+      labelKey: 'terminalRuntimeError',
       iconClass: 'text-amber-400',
       badgeClass: 'bg-amber-500/10 text-amber-300',
       textClass: 'font-semibold text-amber-300',
@@ -1495,7 +1489,7 @@ function getTerminalStatus(result: ICodeExecutionResponse) {
   if (result.run.code !== 0) {
     return {
       kind: 'error',
-      label: 'Runtime Error',
+      labelKey: 'terminalRuntimeError',
       iconClass: 'text-red-400',
       badgeClass: 'bg-red-500/10 text-red-300',
       textClass: 'font-semibold text-red-300',
@@ -1505,7 +1499,7 @@ function getTerminalStatus(result: ICodeExecutionResponse) {
 
   return {
     kind: 'success',
-    label: 'Finished',
+    labelKey: 'terminalFinished',
     iconClass: 'text-emerald-400',
     badgeClass: 'bg-emerald-500/10 text-emerald-300',
     textClass: 'font-semibold text-emerald-300',

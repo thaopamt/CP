@@ -13,6 +13,7 @@
     "seed": "nx run api:seed",
     "seed:basic-a": "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-basic-a.ts",
     "seed:basic-b": "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-basic-b.ts",
+    "seed:medium": "tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-medium.ts",
     "typeorm:generate": "nx run api:typeorm-generate",
     "typeorm:run": "nx run api:typeorm-run"
   },

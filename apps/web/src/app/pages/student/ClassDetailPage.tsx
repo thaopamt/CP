@@ -40,12 +40,12 @@ export default function StudentClassDetailPage() {
       <div className="grid place-items-center min-h-[50vh] text-center">
         <div>
           <Icon name="error" size={48} className="text-error mb-md" />
-          <p className="text-body-md text-on-surface mb-md">Class not found</p>
+          <p className="text-body-md text-on-surface mb-md">{t('pages.student.classDetail.notFound')}</p>
           <button
             onClick={() => navigate('/student/classes')}
             className="text-primary font-medium hover:underline"
           >
-            ← Back to My Classes
+            {t('pages.student.classDetail.backToClasses')}
           </button>
         </div>
       </div>
@@ -69,7 +69,7 @@ export default function StudentClassDetailPage() {
         className="flex items-center gap-xs text-label-sm text-on-surface-variant hover:text-primary transition-colors self-start group"
       >
         <Icon name="arrow_back" size={18} className="group-hover:-translate-x-0.5 transition-transform" />
-        My Classes
+        {t('pages.student.classDetail.myClasses')}
       </button>
 
       {/* ── Hero header card ────────────────────────────────────────── */}
@@ -116,7 +116,7 @@ export default function StudentClassDetailPage() {
                 <div className="text-label-sm font-semibold text-on-primary-container leading-tight">
                   {cls.instructor.fullName}
                 </div>
-                <div className="text-[11px] text-on-primary-container/70">Instructor</div>
+                <div className="text-[11px] text-on-primary-container/70">{t('pages.student.classDetail.instructor')}</div>
               </div>
             </div>
           )}
@@ -127,12 +127,12 @@ export default function StudentClassDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
         <StatCard
           icon="groups"
-          label="Students"
+          label={t('pages.student.classDetail.studentsLabel')}
           value={`${cls.enrolledCount}`}
         />
         <StatCard
           icon="menu_book"
-          label="Courses"
+          label={t('pages.student.classDetail.coursesLabel')}
           value={`${coursesQuery.data?.length ?? 0}`}
         />
       </div>
@@ -141,23 +141,23 @@ export default function StudentClassDetailPage() {
       <div className="flex gap-xs bg-surface-container-low rounded-2xl p-xs">
         {(
           [
-            { key: 'overview', icon: 'info', label: 'Overview' },
-            { key: 'courses', icon: 'menu_book', label: 'Courses' },
-            { key: 'classmates', icon: 'groups', label: 'Classmates' },
+            { key: 'overview', icon: 'info', label: t('pages.student.classDetail.tabs.overview') },
+            { key: 'courses', icon: 'menu_book', label: t('pages.student.classDetail.tabs.courses') },
+            { key: 'classmates', icon: 'groups', label: t('pages.student.classDetail.tabs.classmates') },
           ] as const
-        ).map((t) => (
+        ).map((tabItem) => (
           <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
+            key={tabItem.key}
+            onClick={() => setTab(tabItem.key)}
             className={[
               'flex items-center gap-xs px-md py-sm rounded-xl text-label-sm transition-all flex-1 justify-center',
-              tab === t.key
+              tab === tabItem.key
                 ? 'bg-primary-container text-on-primary-container font-bold shadow-sm'
                 : 'text-on-surface-variant hover:bg-surface-container-high',
             ].join(' ')}
           >
-            <Icon name={t.icon} size={18} />
-            {t.label}
+            <Icon name={tabItem.icon} size={18} />
+            {tabItem.label}
           </button>
         ))}
       </div>
@@ -170,10 +170,10 @@ export default function StudentClassDetailPage() {
             <section>
               <h2 className="font-manrope text-headline-md text-on-surface font-bold mb-sm flex items-center gap-sm">
                 <Icon name="description" size={22} className="text-primary" />
-                About this Class
+                {t('pages.student.classDetail.aboutClass')}
               </h2>
               <p className="text-body-md text-on-surface-variant leading-relaxed">
-                {cls.description || 'No description available for this class.'}
+                {cls.description || t('pages.student.classDetail.noDescription')}
               </p>
             </section>
 
@@ -181,7 +181,7 @@ export default function StudentClassDetailPage() {
             {cls.instructor && (
               <section>
                 <h3 className="text-label-sm text-on-surface-variant uppercase tracking-wider mb-sm">
-                  Instructor
+                  {t('pages.student.classDetail.instructor')}
                 </h3>
                 <div className="flex items-center gap-md bg-surface-container-low rounded-xl p-md">
                   <div className="w-12 h-12 rounded-full bg-primary-container text-on-primary-container grid place-items-center font-bold text-body-lg">
@@ -201,7 +201,7 @@ export default function StudentClassDetailPage() {
                   <a
                     href={`mailto:${cls.instructor.email}`}
                     className="p-2 rounded-full text-primary hover:bg-primary-container/30 transition-colors"
-                    title="Send email"
+                    title={t('pages.student.classDetail.sendEmail')}
                   >
                     <Icon name="mail" size={20} />
                   </a>
@@ -216,11 +216,11 @@ export default function StudentClassDetailPage() {
             <div className="flex items-center justify-between mb-lg">
               <h3 className="font-manrope text-headline-md text-on-surface font-bold flex items-center gap-sm">
                 <Icon name="menu_book" size={22} className="text-primary" />
-                Courses in this Class
+                {t('pages.student.classDetail.coursesInClass')}
               </h3>
               {coursesQuery.data && (
                 <span className="text-label-sm text-on-surface-variant bg-surface-container-high px-md py-xs rounded-full">
-                  {coursesQuery.data.length} course{coursesQuery.data.length !== 1 ? 's' : ''}
+                  {t('pages.student.classDetail.courses_other', { count: coursesQuery.data.length })}
                 </span>
               )}
             </div>
@@ -235,7 +235,7 @@ export default function StudentClassDetailPage() {
                   <Icon name="menu_book" size={32} />
                 </div>
                 <p className="text-body-md text-on-surface-variant">
-                  No courses have been added to this class yet.
+                  {t('pages.student.classDetail.noCourses')}
                 </p>
               </div>
             ) : (
@@ -259,18 +259,18 @@ export default function StudentClassDetailPage() {
             <div className="flex items-center justify-between mb-md">
               <h3 className="font-manrope text-headline-md text-on-surface font-bold flex items-center gap-sm">
                 <Icon name="groups" size={22} className="text-primary" />
-                Classmates
+                {t('pages.student.classDetail.classmates')}
               </h3>
               <span className="text-label-sm text-on-surface-variant bg-surface-container-high px-md py-xs rounded-full">
-                {cls.enrolledCount} students
+                {t('pages.student.classDetail.students', { count: cls.enrolledCount })}
               </span>
             </div>
             <p className="text-body-md text-on-surface-variant text-center py-xl">
               <Icon name="lock" size={36} className="text-outline mx-auto mb-sm block" />
-              Classmate list will be available once the backend is connected.
+              {t('pages.student.classDetail.classmatesPlaceholder')}
               <br />
               <span className="text-label-sm text-on-surface-variant/60 mt-xs block">
-                {cls.enrolledCount} student{cls.enrolledCount !== 1 ? 's' : ''} enrolled
+                {t('pages.student.classDetail.enrolledLabel', { count: cls.enrolledCount })}
               </span>
             </p>
           </div>
@@ -344,7 +344,7 @@ function StudentCourseCard({
           <StatusBadge tone={statusColor}>{t(`enums.publishStatus.${course.status}`)}</StatusBadge>
           {link.isRequired && (
             <span className="text-[10px] font-semibold uppercase tracking-wider text-error bg-error-container/30 px-1.5 py-0.5 rounded">
-              Required
+              {t('pages.student.classDetail.requiredLabel')}
             </span>
           )}
         </div>
@@ -365,7 +365,7 @@ function StudentCourseCard({
           {!isMazeCourse && (
             <span className="inline-flex items-center gap-xs text-[11px] text-on-surface-variant bg-surface-container-high px-2 py-1 rounded-md">
               <Icon name="stars" size={14} />
-              {course.totalPoints} pts
+              {course.totalPoints} {t('pages.student.classDetail.pts')}
             </span>
           )}
         </div>
@@ -380,12 +380,12 @@ function StudentCourseCard({
             <div className="flex items-center justify-between gap-sm">
               <span className="inline-flex items-center gap-xs text-[11px] font-semibold text-on-surface-variant">
                 <Icon name="query_stats" size={14} className="text-primary" />
-                Progress
+                {t('pages.student.classDetail.progressLabel')}
               </span>
               {progressQuery.isLoading ? (
                 <span className="h-4 w-24 rounded-full bg-surface-container-high animate-pulse" />
               ) : progressQuery.isError ? (
-                <span className="text-[11px] text-error">Progress unavailable</span>
+                <span className="text-[11px] text-error">{t('pages.student.classDetail.progressUnavailable')}</span>
               ) : (
                 <span className="text-[11px] font-semibold text-on-surface">
                   {percentage}%

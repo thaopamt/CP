@@ -28,8 +28,8 @@ export default function StudentClassesPage() {
 
   const handleDrop = async (enrollmentId: string) => {
     const ok = await confirm({
-      title: t('common.confirmDelete', 'Confirm'),
-      message: t('Are you sure you want to drop this class?'),
+      title: t('common.confirmDelete'),
+      message: t('pages.student.classes.confirmDrop'),
       intent: 'danger',
     });
     if (ok) {
@@ -38,10 +38,10 @@ export default function StudentClassesPage() {
   };
 
   const handleJoinClass = async () => {
-    const code = window.prompt(t('Enter class code to join:'));
+    const code = window.prompt(t('pages.student.classes.joinPrompt'));
     if (code) {
       await alert({
-        title: t('common.notice', 'Notice'),
+        title: t('common.notice'),
         message: `Backend integration needed to join class via code: ${code}`,
         intent: 'primary',
       });
@@ -52,13 +52,13 @@ export default function StudentClassesPage() {
     <div className="flex flex-col gap-lg pt-md">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-md mb-md">
         <div>
-          <h1 className="font-manrope text-headline-md text-on-surface">My Classes</h1>
+          <h1 className="font-manrope text-headline-md text-on-surface">{t('pages.student.classes.pageTitle')}</h1>
           <p className="text-body-md text-on-surface-variant mt-xs">
-            Manage your class enrollments and progress
+            {t('pages.student.classes.pageSubtitle')}
           </p>
         </div>
         <Button variant="student" leadingIcon={<Icon name="add" size={18} />} onClick={handleJoinClass}>
-          Join a Class
+          {t('pages.student.classes.joinClass')}
         </Button>
       </header>
 
@@ -70,7 +70,7 @@ export default function StudentClassesPage() {
         <div className="grid h-64 place-items-center text-error">
           <div className="text-center">
             <Icon name="error" size={36} className="mb-2" />
-            <p>Failed to load classes.</p>
+            <p>{t('pages.student.classes.failedToLoad')}</p>
           </div>
         </div>
       ) : !enrollments || enrollments.length === 0 ? (
@@ -78,12 +78,12 @@ export default function StudentClassesPage() {
           <div className="w-16 h-16 rounded-full bg-primary-container/30 text-primary mx-auto grid place-items-center mb-md">
             <Icon name="school" size={32} />
           </div>
-          <h3 className="font-manrope text-title-lg text-on-surface mb-xs">No Classes Yet</h3>
+          <h3 className="font-manrope text-title-lg text-on-surface mb-xs">{t('pages.student.classes.noClassesTitle')}</h3>
           <p className="text-body-md text-on-surface-variant max-w-sm mx-auto mb-lg">
-            You are not currently enrolled in any classes. Join a class using a code provided by your teacher.
+            {t('pages.student.classes.noClassesDesc')}
           </p>
           <Button variant="outline" onClick={handleJoinClass}>
-            Enter Class Code
+            {t('pages.student.classes.enterClassCode')}
           </Button>
         </div>
       ) : (
@@ -117,7 +117,7 @@ export default function StudentClassesPage() {
 
               <div className="mt-auto pt-md border-t border-outline-variant flex items-center justify-between">
                 <span className="text-label-sm text-on-surface-variant">
-                  {enrollment.attendancePercentage}% Attendance
+                  {t('pages.student.classes.attendancePct', { pct: enrollment.attendancePercentage })}
                 </span>
 
                 {enrollment.status === 'ACTIVE' && (
@@ -128,7 +128,7 @@ export default function StudentClassesPage() {
                     }}
                     className="text-label-sm text-error hover:text-error/80 font-medium transition-colors"
                   >
-                    Drop Class
+                    {t('pages.student.classes.dropClass')}
                   </button>
                 )}
               </div>

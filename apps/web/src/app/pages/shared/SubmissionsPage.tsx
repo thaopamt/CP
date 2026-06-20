@@ -46,10 +46,10 @@ function userInitials(u: { username?: string | null; firstName?: string; email?:
 }
 
 /** Display name for a submission's author — username (no `@`) or full name. */
-function userName(u: { username?: string | null; firstName?: string; lastName?: string } | undefined): string {
-  if (!u) return 'Unknown';
+function userName(u: { username?: string | null; firstName?: string; lastName?: string } | undefined, unknown = 'Unknown'): string {
+  if (!u) return unknown;
   if (u.username) return u.username;
-  return `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Unknown';
+  return `${u.firstName || ''} ${u.lastName || ''}`.trim() || unknown;
 }
 
 function formatDate(dateStr: string) {
@@ -243,10 +243,10 @@ export default function SubmissionsPage() {
 
       {/* ── Stats cards ──────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-md">
-        <StatCard icon="description" label="Total" value={stats.total} color="text-primary" bg="bg-primary-container" />
-        <StatCard icon="check_circle" label="Accepted" value={stats.accepted} color="text-emerald-500" bg="bg-emerald-500/10" />
-        <StatCard icon="cancel" label="Wrong Answer" value={stats.wrong} color="text-red-400" bg="bg-red-500/10" />
-        <StatCard icon="warning" label="Other" value={stats.other} color="text-amber-400" bg="bg-amber-500/10" />
+        <StatCard icon="description" label={t('pages.shared.submissions.statTotal')} value={stats.total} color="text-primary" bg="bg-primary-container" />
+        <StatCard icon="check_circle" label={t('pages.shared.submissions.statAccepted')} value={stats.accepted} color="text-emerald-500" bg="bg-emerald-500/10" />
+        <StatCard icon="cancel" label={t('pages.shared.submissions.statWrongAnswer')} value={stats.wrong} color="text-red-400" bg="bg-red-500/10" />
+        <StatCard icon="warning" label={t('pages.shared.submissions.statOther')} value={stats.other} color="text-amber-400" bg="bg-amber-500/10" />
       </div>
 
       {/* ── Filters ──────────────────────────────────────────────── */}
@@ -295,11 +295,11 @@ export default function SubmissionsPage() {
         <div className="flex items-center gap-sm justify-between sm:justify-end sm:ml-auto">
           <span className={`inline-flex items-center gap-1 text-label-sm ${realtimeConnected ? 'text-emerald-600 dark:text-emerald-400' : 'text-on-surface-variant'}`}>
             <span className="material-symbols-outlined text-[15px]">{realtimeConnected ? 'sensors' : 'sensors_off'}</span>
-            {realtimeConnected ? 'Realtime' : 'Offline'}
+            {realtimeConnected ? t('pages.shared.submissions.realtime') : t('pages.shared.submissions.offline')}
           </span>
 
           <span className="text-label-sm text-on-surface-variant">
-            {total} {t('pages.submissions.results', 'results')}
+            {t('pages.shared.submissions.results', { total })}
           </span>
         </div>
       </div>
@@ -325,13 +325,13 @@ export default function SubmissionsPage() {
             <div className="min-w-[800px]">
               {/* Table header */}
               <div className="grid grid-cols-[180px_1fr_80px_100px_80px_70px_100px] gap-0 px-md py-sm border-b border-outline-variant bg-surface-container-lowest text-center">
-                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider text-left">Student</span>
-                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider text-left">Problem</span>
-                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Language</span>
-                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Status</span>
-                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Passed</span>
-                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Time</span>
-                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">Submitted</span>
+                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider text-left">{t('pages.shared.submissions.columns.student')}</span>
+                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider text-left">{t('pages.shared.submissions.columns.problem')}</span>
+                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">{t('pages.shared.submissions.columns.language')}</span>
+                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">{t('pages.shared.submissions.columns.status')}</span>
+                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">{t('pages.shared.submissions.columns.passed')}</span>
+                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">{t('pages.shared.submissions.columns.time')}</span>
+                <span className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider">{t('pages.shared.submissions.columns.submitted')}</span>
               </div>
 
               {/* Table rows */}
@@ -361,7 +361,7 @@ export default function SubmissionsPage() {
                             className="text-label-sm text-on-surface font-medium truncate"
                             style={sub.user?.nameColor ? { color: sub.user.nameColor } : undefined}
                           >
-                            {userName(sub.user)}
+                            {userName(sub.user, t('pages.shared.submissions.unknown'))}
                           </p>
                           {sub.user?.equippedTitle && (
                             <p className="text-[11px] font-semibold text-fuchsia-600 dark:text-fuchsia-300 truncate">
@@ -375,7 +375,7 @@ export default function SubmissionsPage() {
                       <div className="flex items-center gap-xs min-w-0 pr-sm text-left">
                         <span className="material-symbols-outlined text-[16px] text-on-surface-variant/70 shrink-0">description</span>
                         <p className="text-label-sm text-on-surface font-medium truncate group-hover:text-primary transition-colors">
-                          {sub.assignment?.title || 'Unknown'}
+                          {sub.assignment?.title || t('pages.shared.submissions.unknown')}
                         </p>
                       </div>
 
@@ -446,7 +446,7 @@ export default function SubmissionsPage() {
                           className="text-label-sm text-on-surface font-medium truncate"
                           style={sub.user?.nameColor ? { color: sub.user.nameColor } : undefined}
                         >
-                          {userName(sub.user)}
+                          {userName(sub.user, t('pages.shared.submissions.unknown'))}
                         </p>
                         {sub.user?.equippedTitle && (
                           <p className="text-[11px] font-semibold text-fuchsia-600 dark:text-fuchsia-300 truncate">
@@ -463,7 +463,7 @@ export default function SubmissionsPage() {
                     </span>
                   </div>
                   <p className="text-body-md text-on-surface font-medium truncate mb-sm">
-                    {sub.assignment?.title || 'Unknown'}
+                    {sub.assignment?.title || t('pages.shared.submissions.unknown')}
                   </p>
                   <div className="flex items-center gap-md text-[12px] text-on-surface-variant">
                     <LangBadge language={sub.language} />
@@ -518,6 +518,7 @@ function SubmissionModal({
   onClose: () => void;
   onNavigate: (assignmentId: string, code?: string, lang?: string) => void;
 }) {
+  const { t } = useTranslation();
   const confirm = useConfirm();
   const toast = useToast();
   const rejudgeMutation = useRejudgeSubmission();
@@ -601,7 +602,7 @@ function SubmissionModal({
           <div className="flex items-center gap-xs text-label-sm">
             <span className="material-symbols-outlined text-[15px] text-emerald-400">check_circle</span>
             <span className="text-on-surface font-semibold">{sub.passedCount}</span>
-            <span className="text-on-surface-variant">/ {sub.totalCount} passed</span>
+            <span className="text-on-surface-variant">/ {sub.totalCount} {t('pages.shared.submissions.columns.passed').toLowerCase()}</span>
           </div>
           {sub.totalExecutionTimeMs != null && (
             <div className="flex items-center gap-xs text-label-sm text-on-surface-variant">
@@ -628,7 +629,7 @@ function SubmissionModal({
         {judging && (
           <div className="flex items-center gap-sm px-lg py-sm border-b border-outline-variant/50 bg-primary/5 text-primary shrink-0">
             <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
-            <span className="text-label-sm font-semibold">{progressText || 'Judging submission'}</span>
+            <span className="text-label-sm font-semibold">{progressText || t('pages.shared.submissions.judgingSubmission')}</span>
             {sub.judgeProgress?.completedCount != null && (
               <span className="text-label-sm text-on-surface-variant ml-auto tabular-nums">
                 {sub.judgeProgress.completedCount} / {sub.judgeProgress.totalCount} done
@@ -642,7 +643,7 @@ function SubmissionModal({
           <div className="mb-md">
             <h4 className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider mb-sm flex items-center gap-xs">
               <span className="material-symbols-outlined text-[15px] text-primary">code</span>
-              Source Code
+              {t('pages.shared.submissions.sourceCode')}
             </h4>
             <pre className="text-[11px] font-mono text-on-surface bg-surface-container-lowest rounded-xl border border-outline-variant px-sm py-sm max-h-[220px] overflow-auto whitespace-pre-wrap break-all">
               {sub.code || '(empty)'}
@@ -651,7 +652,7 @@ function SubmissionModal({
 
           <h4 className="text-label-sm font-semibold text-on-surface-variant uppercase tracking-wider mb-sm flex items-center gap-xs">
             <span className="material-symbols-outlined text-[15px] text-primary">science</span>
-            Test Cases
+            {t('pages.shared.submissions.testCases')}
           </h4>
 
           {testResults.length > 0 ? (
@@ -691,7 +692,7 @@ function SubmissionModal({
 
                       {/* Test info */}
                       <span className="text-label-sm text-on-surface font-medium flex-1">
-                        Test #{tr.testCaseIndex + 1}{hideDetails ? ' (Hidden)' : ''}
+                        {hideDetails ? t('pages.shared.submissions.testNHidden', { n: tr.testCaseIndex + 1 }) : t('pages.shared.submissions.testN', { n: tr.testCaseIndex + 1 })}
                       </span>
 
                       {/* Status badge */}
@@ -717,12 +718,12 @@ function SubmissionModal({
                       <div className="px-sm py-sm space-y-sm bg-surface-container-lowest border-t border-outline-variant/30">
                         {hideDetails && (
                           <div className="rounded-lg bg-surface-container-highest px-sm py-sm text-[11px] text-on-surface-variant">
-                            Hidden testcase details are not viewable for this assignment.
+                            {t('pages.shared.submissions.hiddenTestcaseNote')}
                           </div>
                         )}
                         {/* Input */}
                         {!hideDetails && <div>
-                          <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Input</span>
+                          <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">{t('pages.shared.submissions.inputLabel')}</span>
                           <pre className="mt-0.5 text-[11px] font-mono text-on-surface bg-surface-container-highest rounded-lg px-sm py-xs max-h-[100px] overflow-auto whitespace-pre-wrap break-all">
                             {inputPv.text || '(empty)'}{inputPv.truncated && <span className="text-on-surface-variant"> … (đã rút gọn)</span>}
                           </pre>
@@ -730,7 +731,7 @@ function SubmissionModal({
 
                         {/* Expected Output */}
                         {!hideDetails && <div>
-                          <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Expected Output</span>
+                          <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">{t('pages.shared.submissions.expectedOutput')}</span>
                           <pre className="mt-0.5 text-[11px] font-mono text-on-surface bg-surface-container-highest rounded-lg px-sm py-xs max-h-[100px] overflow-auto whitespace-pre-wrap break-all">
                             {expectedPv.text || '(empty)'}{expectedPv.truncated && <span className="text-on-surface-variant"> … (đã rút gọn)</span>}
                           </pre>
@@ -738,7 +739,7 @@ function SubmissionModal({
 
                         {/* Actual Output */}
                         {!hideDetails && <div>
-                          <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Your Output</span>
+                          <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">{t('pages.shared.submissions.yourOutput')}</span>
                           <pre className={`mt-0.5 text-[11px] font-mono rounded-lg px-sm py-xs max-h-[100px] overflow-auto whitespace-pre-wrap break-all ${runningTest || tr.isPlaceholder
                               ? 'text-on-surface-variant bg-surface-container-highest'
                               : tr.status === SubmissionStatus.ACCEPTED
@@ -746,9 +747,9 @@ function SubmissionModal({
                                 : 'text-red-500 bg-red-500/5'
                             }`}>
                             {runningTest
-                              ? '(running...)'
+                              ? t('pages.shared.submissions.runningStatus')
                               : tr.isPlaceholder
-                                ? '(pending)'
+                                ? t('pages.shared.submissions.pendingStatus')
                                 : (
                                   <>
                                     {actualPv.text || '(empty)'}
@@ -776,7 +777,7 @@ function SubmissionModal({
           ) : (
             <div className="flex flex-col items-center justify-center py-lg text-center">
               <span className="material-symbols-outlined text-[40px] text-on-surface-variant/30 mb-sm">quiz</span>
-              <p className="text-label-sm text-on-surface-variant">No test result details available.</p>
+              <p className="text-label-sm text-on-surface-variant">{t('pages.shared.submissions.noTestResults')}</p>
             </div>
           )}
         </div>
@@ -787,7 +788,7 @@ function SubmissionModal({
             onClick={onClose}
             className="px-md py-xs rounded-xl text-label-sm text-on-surface-variant hover:bg-surface-container-highest transition-colors"
           >
-            Close
+            {t('pages.shared.submissions.close')}
           </button>
           <div className="flex flex-wrap items-center justify-end gap-sm">
             {canRejudgeSubmission && (
@@ -811,7 +812,7 @@ function SubmissionModal({
               className="flex items-center gap-xs px-md py-xs rounded-xl text-label-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
             >
               <span className="material-symbols-outlined text-[16px]">open_in_new</span>
-              View Problem
+              {t('pages.shared.submissions.viewProblem')}
             </button>
           </div>
         </div>

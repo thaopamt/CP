@@ -19,11 +19,6 @@ const DIFFICULTY_TONE: Record<string, 'success' | 'warning' | 'error'> = {
   HARD: 'error',
 };
 
-const DIFFICULTY_LABEL: Record<string, string> = {
-  EASY: 'Easy',
-  MEDIUM: 'Medium',
-  HARD: 'Hard',
-};
 
 /**
  * Student Course Detail Page — shows course info + ordered list of assignments.
@@ -74,12 +69,12 @@ export default function StudentCourseDetailPage() {
       <div className="grid place-items-center min-h-[50vh] text-center">
         <div>
           <Icon name="error" size={48} className="text-error mb-md" />
-          <p className="text-body-md text-on-surface mb-md">Course not found</p>
+          <p className="text-body-md text-on-surface mb-md">{t('pages.student.courseDetail.notFound')}</p>
           <button
             onClick={() => navigate(`/student/classes/${classId}`)}
             className="text-primary font-medium hover:underline"
           >
-            ← Back to Class
+            {t('pages.student.courseDetail.backButton')}
           </button>
         </div>
       </div>
@@ -115,7 +110,7 @@ export default function StudentCourseDetailPage() {
           size={18}
           className="group-hover:-translate-x-0.5 transition-transform"
         />
-        Back to Class
+        {t('pages.student.courseDetail.backButton')}
       </button>
 
       {/* ── Course hero ──────────────────────────────────────── */}
@@ -153,10 +148,10 @@ export default function StudentCourseDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
         <MiniStat
           icon="assignment"
-          label="Assignments"
+          label={t('pages.student.courseDetail.stats.assignments')}
           value={`${course.assignmentCount}`}
         />
-        <MiniStat icon="stars" label="Total Points" value={`${course.totalPoints}`} />
+        <MiniStat icon="stars" label={t('pages.student.courseDetail.stats.totalPoints')} value={`${course.totalPoints}`} />
 
       </div>
 
@@ -165,10 +160,10 @@ export default function StudentCourseDetailPage() {
         <div className="flex items-center justify-between mb-sm">
           <span className="text-label-sm text-on-surface-variant flex items-center gap-xs">
             <Icon name="trending_up" size={16} className="text-primary" />
-            Your Progress
+            {t('pages.student.courseDetail.yourProgress')}
           </span>
           <span className="text-label-sm font-bold text-on-surface">
-            {completedAssignments} / {totalAssignments} completed
+            {completedAssignments} / {totalAssignments} {t('pages.student.courseDetail.completed')}
           </span>
         </div>
         <div className="h-2.5 rounded-full bg-surface-container-highest overflow-hidden">
@@ -187,11 +182,11 @@ export default function StudentCourseDetailPage() {
         <div className="flex items-center justify-between mb-md">
           <h2 className="font-manrope text-headline-md text-on-surface font-bold flex items-center gap-sm">
             <Icon name="assignment" size={22} className="text-primary" />
-            Assignments
+            {t('pages.student.courseDetail.assignmentsTitle')}
           </h2>
           {assignments.length > 0 && (
             <span className="text-label-sm text-on-surface-variant bg-surface-container-high px-md py-xs rounded-full">
-              {assignments.length} assignment{assignments.length !== 1 ? 's' : ''}
+              {t('pages.student.courseDetail.assignments_other', { count: assignments.length })}
             </span>
           )}
         </div>
@@ -206,7 +201,7 @@ export default function StudentCourseDetailPage() {
               <Icon name="assignment" size={32} />
             </div>
             <p className="text-body-md text-on-surface-variant">
-              No assignments in this course yet.
+              {t('pages.student.courseDetail.noAssignments')}
             </p>
           </div>
         ) : (
@@ -249,7 +244,7 @@ export default function StudentCourseDetailPage() {
                         {a.title}
                       </h4>
                       <StatusBadge tone={diffTone}>
-                        {DIFFICULTY_LABEL[a.difficulty] ?? a.difficulty}
+                        {t(`pages.student.courseDetail.difficulty.${a.difficulty}`, a.difficulty)}
                       </StatusBadge>
                     </div>
                     {a.description && (
@@ -263,12 +258,12 @@ export default function StudentCourseDetailPage() {
 
                       <span className="flex items-center gap-xs">
                         <Icon name="stars" size={12} />
-                        {a.points} pts
+                        {a.points} {t('pages.student.courseDetail.pts')}
                       </span>
                       {a.estimatedMinutes && (
                         <span className="flex items-center gap-xs">
                           <Icon name="schedule" size={12} />
-                          ~{a.estimatedMinutes} min
+                          ~{a.estimatedMinutes} {t('pages.student.courseDetail.min')}
                         </span>
                       )}
                       {a.tags && a.tags.length > 0 && (
@@ -283,12 +278,12 @@ export default function StudentCourseDetailPage() {
                   {/* Pill badge */}
                   {isAccepted && (
                     <div className="hidden sm:flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold uppercase tracking-wider shrink-0">
-                      <Icon name="verified" size={14} /> Done
+                      <Icon name="verified" size={14} /> {t('pages.student.courseDetail.done')}
                     </div>
                   )}
                   {isAttempted && (
                     <div className="hidden sm:flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[11px] font-bold uppercase tracking-wider shrink-0">
-                      <Icon name="model_training" size={14} /> Try Again
+                      <Icon name="model_training" size={14} /> {t('pages.student.courseDetail.tryAgain')}
                     </div>
                   )}
 
