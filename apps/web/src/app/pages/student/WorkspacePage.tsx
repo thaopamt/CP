@@ -4,9 +4,7 @@ import { DifficultyBadge, Icon, useConfirm } from '@cp/ui';
 import {
   DifficultyLevel,
   ICodeExecutionResponse,
-  IAssignmentDef,
   ISubmission,
-  ISubmissionJudgeProgress,
   SubmissionStatus,
 } from '@cp/shared';
 import ReactMarkdown from 'react-markdown';
@@ -32,6 +30,11 @@ import { useLiveCodingSync } from '../../hooks/useLiveCodingSync';
 import { useInteractiveExec } from '../../hooks/useInteractiveExec';
 import { useSubmissionRealtimeFeed } from '../../hooks/useSubmissionRealtimeFeed';
 import RemoteCursors from '../../components/RemoteCursors';
+import {
+  buildSubmissionRunResults,
+  getActiveRunResultIndex,
+  RunResultsState,
+} from './submission-result.helpers';
 
 /* ── Language config ──────────────────────────────────────────────── */
 const LANG_OPTIONS: { value: string; label: string; template: string }[] = [
@@ -48,21 +51,12 @@ type WorkspaceRouteState = { classId?: string; courseId?: string } | null;
 type NextAssignmentTarget = { title: string; path: string; state?: WorkspaceRouteState };
 type WorkspaceDraft = { language: string; code: string };
 type CourseProgressStatus = 'accepted' | 'partial' | 'wrong' | 'idle';
-type ResultStatus = 'accepted' | 'wrong' | 'error' | 'pending';
-type ResultCase = { status: ResultStatus; input: string; stdout: string; expected: string };
-type RunResultsState = {
-  overall: ResultStatus;
-  cases: ResultCase[];
-  progress?: ISubmissionJudgeProgress;
-};
 type CourseProgressItem = {
   id: string;
   title: string;
   isCoding: boolean;
   status: CourseProgressStatus;
 };
-
-const QUEUED_SUBMISSION_MESSAGE = 'Submission queued. Judging will continue in the background.';
 
 function getCourseProgressStatus(submissions: ISubmission[] | undefined): CourseProgressStatus {
   if (!submissions?.length) return 'idle';
@@ -78,105 +72,6 @@ function getCourseProgressStatus(submissions: ISubmission[] | undefined): Course
   }
 
   return 'wrong';
-}
-
-function toResultStatus(status: SubmissionStatus): ResultStatus {
-  if (status === SubmissionStatus.ACCEPTED) return 'accepted';
-  if (status === SubmissionStatus.WRONG_ANSWER) return 'wrong';
-  if (status === SubmissionStatus.PENDING) return 'pending';
-  return 'error';
-}
-
-function getFirstNonAcceptedCaseIndex(cases: ResultCase[]): number {
-  const index = cases.findIndex((testCase) => testCase.status !== 'accepted');
-  return index >= 0 ? index : 0;
-}
-
-function getActiveRunResultIndex(results: RunResultsState): number {
-  const currentIndex = results.progress?.currentTestCaseIndex;
-  if (typeof currentIndex === 'number' && currentIndex >= 0 && currentIndex < results.cases.length) {
-    return currentIndex;
-  }
-
-  return getFirstNonAcceptedCaseIndex(results.cases);
-}
-
-function buildSubmissionRunResults(
-  sub: ISubmission & { judgeProgress?: ISubmissionJudgeProgress },
-  assignment?: Pick<IAssignmentDef, 'codingConfig'> | null,
-): RunResultsState {
-  const overall = toResultStatus(sub.status);
-  const inlineCases = assignment?.codingConfig?.testCases ?? [];
-  const allowViewHidden = !!assignment?.codingConfig?.allowViewHiddenTestCases;
-  const progress = sub.judgeProgress;
-  const currentTestCaseIndex = progress?.currentTestCaseIndex;
-  const totalCount = Math.max(
-    sub.totalCount ?? 0,
-    progress?.totalCount ?? 0,
-    sub.testResults?.length ?? 0,
-    inlineCases.length + (assignment?.codingConfig?.hiddenTestCount ?? 0),
-  );
-
-  const toPendingCase = (testCaseIndex: number): ResultCase => {
-    const tc = inlineCases[testCaseIndex];
-    const isHidden = testCaseIndex >= inlineCases.length || !!tc?.isHidden;
-    const hideDetails = isHidden && !allowViewHidden;
-    const isCurrent = currentTestCaseIndex === testCaseIndex;
-
-    return {
-      status: 'pending',
-      input: hideDetails ? 'Hidden Test Case' : tc?.input || (isHidden ? 'Hidden Test Case' : ''),
-      stdout: isCurrent
-        ? `Judging testcase #${testCaseIndex + 1}...`
-        : 'Waiting for judge result...',
-      expected: hideDetails ? '(Hidden Expected)' : tc?.output || '',
-    };
-  };
-
-  if (sub.status === SubmissionStatus.PENDING && totalCount > 0) {
-    const resultByIndex = new Map((sub.testResults ?? []).map((tr) => [tr.testCaseIndex, tr]));
-    const cases: ResultCase[] = Array.from({ length: totalCount }, (_, testCaseIndex) => {
-      const tr = resultByIndex.get(testCaseIndex);
-      if (!tr) return toPendingCase(testCaseIndex);
-
-      const tc = inlineCases[tr.testCaseIndex];
-      const isHidden = tr.testCaseIndex >= inlineCases.length || !!tc?.isHidden;
-      const hideDetails = isHidden && !allowViewHidden;
-
-      return {
-        status: toResultStatus(tr.status),
-        input: hideDetails ? 'Hidden Test Case' : tr.input || tc?.input || 'Hidden Test Case',
-        stdout: hideDetails ? '(Output hidden)' : tr.errorMessage || tr.actualOutput || 'No output',
-        expected: hideDetails ? '(Hidden Expected)' : tr.expectedOutput || '',
-      };
-    });
-
-    return { overall, cases, progress };
-  }
-
-  const cases = sub.testResults && sub.testResults.length > 0
-    ? sub.testResults.map((tr) => {
-      const tc = inlineCases[tr.testCaseIndex];
-      const isHidden = tr.testCaseIndex >= inlineCases.length || !!tc?.isHidden;
-      const hideDetails = isHidden && !allowViewHidden;
-
-      return {
-        status: toResultStatus(tr.status),
-        input: hideDetails ? 'Hidden Test Case' : tr.input || tc?.input || 'Hidden Test Case',
-        stdout: hideDetails ? '(Output hidden)' : tr.errorMessage || tr.actualOutput || 'No output',
-        expected: hideDetails ? '(Hidden Expected)' : tr.expectedOutput || '',
-      };
-    })
-    : [{
-      status: overall,
-      input: '',
-      stdout: sub.status === SubmissionStatus.PENDING
-        ? sub.judgeProgress?.message || QUEUED_SUBMISSION_MESSAGE
-        : `Passed: ${sub.passedCount} / ${sub.totalCount}`,
-      expected: '',
-    }];
-
-  return { overall, cases, progress };
 }
 
 function CourseProgressDots({
@@ -226,10 +121,12 @@ function CourseProgressDots({
 export default function StudentWorkspacePage() {
   useSubmissionRealtimeFeed();
 
-  const { problemId } = useParams<{ problemId: string }>();
+  const routeParams = useParams<{ problemId?: string; id?: string }>();
+  const problemId = routeParams.problemId ?? routeParams.id;
   const location = useLocation();
   const navigate = useNavigate();
   const confirm = useConfirm();
+  const isStandaloneAssignmentRoute = location.pathname.startsWith('/student/assignments/');
   const routeState = location.state as WorkspaceRouteState;
   const classIdFromState = routeState?.classId;
   const courseIdFromState = routeState?.courseId;
@@ -249,7 +146,7 @@ export default function StudentWorkspacePage() {
   const [leftTab, setLeftTab] = useState<LeftTab>('description');
   const [bottomTab, setBottomTab] = useState<BottomTab>('testcase');
   // ── LocalStorage draft key ──
-  const draftKey = `code-draft-workspace-${problemId}`;
+  const draftKey = `code-draft-workspace-${problemId ?? 'new'}`;
 
   const savedLang = localStorage.getItem('cp_default_language');
   const defaultLangOption = LANG_OPTIONS.find(l => l.value === savedLang) || LANG_OPTIONS[0];
@@ -311,13 +208,20 @@ export default function StudentWorkspacePage() {
 
   const classIdForBack = classIdFromState ?? assignment?.classIds?.[0];
   const handleBack = useCallback(() => {
+    if (isStandaloneAssignmentRoute) {
+      navigate('/student/assignments');
+      return;
+    }
+
     if (classIdForBack && courseIdFromState) {
       navigate(`/student/classes/${classIdForBack}/courses/${courseIdFromState}`);
       return;
     }
 
     navigate(classIdForBack ? `/student/classes/${classIdForBack}` : '/student/classes');
-  }, [classIdForBack, courseIdFromState, navigate]);
+  }, [classIdForBack, courseIdFromState, isStandaloneAssignmentRoute, navigate]);
+  const backLabel = isStandaloneAssignmentRoute ? 'Problems' : 'Back';
+  const errorBackLabel = isStandaloneAssignmentRoute ? 'Back to Problems' : 'Back to Course';
 
   // Interactive execution (WebSocket)
   const interactiveExec = useInteractiveExec();
@@ -786,8 +690,13 @@ export default function StudentWorkspacePage() {
     setLeftTab('submissions');
     setBottomTab('result');
     try {
+      const assignmentId = assignment?.id ?? problemId;
+      if (!assignmentId) {
+        throw new Error('Assignment not found');
+      }
+
       const result = await submitMutation.mutateAsync({
-        assignmentId: assignment?.id || problemId!,
+        assignmentId,
         language,
         code,
       });
@@ -837,7 +746,7 @@ export default function StudentWorkspacePage() {
           <Icon name="error" size={40} className="text-red-400" />
           <h2 className="text-lg font-semibold text-white">Problem not found</h2>
           <button onClick={handleBack} className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-500 transition-colors">
-            Back to Course
+            {errorBackLabel}
           </button>
         </div>
       </div>
@@ -852,7 +761,7 @@ export default function StudentWorkspacePage() {
         <div className="flex items-center gap-3">
           <button onClick={handleBack} className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm">
             <Icon name="arrow_back" size={18} />
-            <span className="hidden sm:inline">Back</span>
+            <span className="hidden sm:inline">{backLabel}</span>
           </button>
           <div className="w-px h-5 bg-white/10" />
           <div className="flex items-center gap-2 min-w-0">
