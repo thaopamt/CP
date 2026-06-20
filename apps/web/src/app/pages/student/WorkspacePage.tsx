@@ -6,6 +6,7 @@ import {
   ICodeExecutionResponse,
   IAssignmentDef,
   ISubmission,
+  ISubmissionJudgeProgress,
   SubmissionStatus,
 } from '@cp/shared';
 import ReactMarkdown from 'react-markdown';
@@ -52,6 +53,7 @@ type ResultCase = { status: ResultStatus; input: string; stdout: string; expecte
 type RunResultsState = {
   overall: ResultStatus;
   cases: ResultCase[];
+  progress?: ISubmissionJudgeProgress;
 };
 type CourseProgressItem = {
   id: string;
@@ -90,13 +92,67 @@ function getFirstNonAcceptedCaseIndex(cases: ResultCase[]): number {
   return index >= 0 ? index : 0;
 }
 
+function getActiveRunResultIndex(results: RunResultsState): number {
+  const currentIndex = results.progress?.currentTestCaseIndex;
+  if (typeof currentIndex === 'number' && currentIndex >= 0 && currentIndex < results.cases.length) {
+    return currentIndex;
+  }
+
+  return getFirstNonAcceptedCaseIndex(results.cases);
+}
+
 function buildSubmissionRunResults(
-  sub: ISubmission & { judgeProgress?: { message?: string; completedCount?: number; totalCount?: number } },
+  sub: ISubmission & { judgeProgress?: ISubmissionJudgeProgress },
   assignment?: Pick<IAssignmentDef, 'codingConfig'> | null,
 ): RunResultsState {
   const overall = toResultStatus(sub.status);
   const inlineCases = assignment?.codingConfig?.testCases ?? [];
   const allowViewHidden = !!assignment?.codingConfig?.allowViewHiddenTestCases;
+  const progress = sub.judgeProgress;
+  const currentTestCaseIndex = progress?.currentTestCaseIndex;
+  const totalCount = Math.max(
+    sub.totalCount ?? 0,
+    progress?.totalCount ?? 0,
+    sub.testResults?.length ?? 0,
+    inlineCases.length + (assignment?.codingConfig?.hiddenTestCount ?? 0),
+  );
+
+  const toPendingCase = (testCaseIndex: number): ResultCase => {
+    const tc = inlineCases[testCaseIndex];
+    const isHidden = testCaseIndex >= inlineCases.length || !!tc?.isHidden;
+    const hideDetails = isHidden && !allowViewHidden;
+    const isCurrent = currentTestCaseIndex === testCaseIndex;
+
+    return {
+      status: 'pending',
+      input: hideDetails ? 'Hidden Test Case' : tc?.input || (isHidden ? 'Hidden Test Case' : ''),
+      stdout: isCurrent
+        ? `Judging testcase #${testCaseIndex + 1}...`
+        : 'Waiting for judge result...',
+      expected: hideDetails ? '(Hidden Expected)' : tc?.output || '',
+    };
+  };
+
+  if (sub.status === SubmissionStatus.PENDING && totalCount > 0) {
+    const resultByIndex = new Map((sub.testResults ?? []).map((tr) => [tr.testCaseIndex, tr]));
+    const cases: ResultCase[] = Array.from({ length: totalCount }, (_, testCaseIndex) => {
+      const tr = resultByIndex.get(testCaseIndex);
+      if (!tr) return toPendingCase(testCaseIndex);
+
+      const tc = inlineCases[tr.testCaseIndex];
+      const isHidden = tr.testCaseIndex >= inlineCases.length || !!tc?.isHidden;
+      const hideDetails = isHidden && !allowViewHidden;
+
+      return {
+        status: toResultStatus(tr.status),
+        input: hideDetails ? 'Hidden Test Case' : tr.input || tc?.input || 'Hidden Test Case',
+        stdout: hideDetails ? '(Output hidden)' : tr.errorMessage || tr.actualOutput || 'No output',
+        expected: hideDetails ? '(Hidden Expected)' : tr.expectedOutput || '',
+      };
+    });
+
+    return { overall, cases, progress };
+  }
 
   const cases = sub.testResults && sub.testResults.length > 0
     ? sub.testResults.map((tr) => {
@@ -120,7 +176,7 @@ function buildSubmissionRunResults(
       expected: '',
     }];
 
-  return { overall, cases };
+  return { overall, cases, progress };
 }
 
 function CourseProgressDots({
@@ -388,7 +444,7 @@ export default function StudentWorkspacePage() {
 
     const nextResults = buildSubmissionRunResults(submittedSubmission, assignment);
     setRunResults(nextResults);
-    setActiveResultIdx(getFirstNonAcceptedCaseIndex(nextResults.cases));
+    setActiveResultIdx(getActiveRunResultIndex(nextResults));
     setBottomTab('result');
 
     if (submittedSubmission.status === SubmissionStatus.PENDING) return;
@@ -740,7 +796,7 @@ export default function StudentWorkspacePage() {
 
       setSubmittedSubmissionId(sub.id);
       setRunResults(nextResults);
-      setActiveResultIdx(getFirstNonAcceptedCaseIndex(nextResults.cases));
+      setActiveResultIdx(getActiveRunResultIndex(nextResults));
     } catch (err: any) {
       setRunResults({
         overall: 'error',
@@ -759,7 +815,7 @@ export default function StudentWorkspacePage() {
 
     const nextResults = buildSubmissionRunResults(sub, assignment);
     setRunResults(nextResults);
-    setActiveResultIdx(getFirstNonAcceptedCaseIndex(nextResults.cases));
+    setActiveResultIdx(getActiveRunResultIndex(nextResults));
     setBottomTab('result');
   };
 
@@ -1507,6 +1563,20 @@ export default function StudentWorkspacePage() {
                           </span>
                         )}
                       </div>
+
+                      {runResults.progress?.phase === 'running' && (
+                        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2 text-xs text-blue-200">
+                          <Icon name="progress_activity" size={14} className="animate-spin text-blue-300" />
+                          <span className="font-semibold">
+                            {typeof runResults.progress.currentTestCaseIndex === 'number'
+                              ? `Judging testcase #${runResults.progress.currentTestCaseIndex + 1}`
+                              : runResults.progress.message || 'Judging submission'}
+                          </span>
+                          <span className="text-blue-200/70">
+                            {runResults.progress.completedCount} / {runResults.progress.totalCount} done
+                          </span>
+                        </div>
+                      )}
 
                       {/* Per-case pills */}
                       {runResults.cases.length > 1 && (
