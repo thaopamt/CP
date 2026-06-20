@@ -4,6 +4,7 @@ import { DifficultyBadge, Icon, useConfirm } from '@cp/ui';
 import {
   DifficultyLevel,
   ICodeExecutionResponse,
+  IAssignmentDef,
   ISubmission,
   SubmissionStatus,
 } from '@cp/shared';
@@ -46,12 +47,20 @@ type WorkspaceRouteState = { classId?: string; courseId?: string } | null;
 type NextAssignmentTarget = { title: string; path: string; state?: WorkspaceRouteState };
 type WorkspaceDraft = { language: string; code: string };
 type CourseProgressStatus = 'accepted' | 'partial' | 'wrong' | 'idle';
+type ResultStatus = 'accepted' | 'wrong' | 'error' | 'pending';
+type ResultCase = { status: ResultStatus; input: string; stdout: string; expected: string };
+type RunResultsState = {
+  overall: ResultStatus;
+  cases: ResultCase[];
+};
 type CourseProgressItem = {
   id: string;
   title: string;
   isCoding: boolean;
   status: CourseProgressStatus;
 };
+
+const QUEUED_SUBMISSION_MESSAGE = 'Submission queued. Judging will continue in the background.';
 
 function getCourseProgressStatus(submissions: ISubmission[] | undefined): CourseProgressStatus {
   if (!submissions?.length) return 'idle';
@@ -67,6 +76,51 @@ function getCourseProgressStatus(submissions: ISubmission[] | undefined): Course
   }
 
   return 'wrong';
+}
+
+function toResultStatus(status: SubmissionStatus): ResultStatus {
+  if (status === SubmissionStatus.ACCEPTED) return 'accepted';
+  if (status === SubmissionStatus.WRONG_ANSWER) return 'wrong';
+  if (status === SubmissionStatus.PENDING) return 'pending';
+  return 'error';
+}
+
+function getFirstNonAcceptedCaseIndex(cases: ResultCase[]): number {
+  const index = cases.findIndex((testCase) => testCase.status !== 'accepted');
+  return index >= 0 ? index : 0;
+}
+
+function buildSubmissionRunResults(
+  sub: ISubmission & { judgeProgress?: { message?: string; completedCount?: number; totalCount?: number } },
+  assignment?: Pick<IAssignmentDef, 'codingConfig'> | null,
+): RunResultsState {
+  const overall = toResultStatus(sub.status);
+  const inlineCases = assignment?.codingConfig?.testCases ?? [];
+  const allowViewHidden = !!assignment?.codingConfig?.allowViewHiddenTestCases;
+
+  const cases = sub.testResults && sub.testResults.length > 0
+    ? sub.testResults.map((tr) => {
+      const tc = inlineCases[tr.testCaseIndex];
+      const isHidden = tr.testCaseIndex >= inlineCases.length || !!tc?.isHidden;
+      const hideDetails = isHidden && !allowViewHidden;
+
+      return {
+        status: toResultStatus(tr.status),
+        input: hideDetails ? 'Hidden Test Case' : tr.input || tc?.input || 'Hidden Test Case',
+        stdout: hideDetails ? '(Output hidden)' : tr.errorMessage || tr.actualOutput || 'No output',
+        expected: hideDetails ? '(Hidden Expected)' : tr.expectedOutput || '',
+      };
+    })
+    : [{
+      status: overall,
+      input: '',
+      stdout: sub.status === SubmissionStatus.PENDING
+        ? sub.judgeProgress?.message || QUEUED_SUBMISSION_MESSAGE
+        : `Passed: ${sub.passedCount} / ${sub.totalCount}`,
+      expected: '',
+    }];
+
+  return { overall, cases };
 }
 
 function CourseProgressDots({
@@ -130,7 +184,7 @@ export default function StudentWorkspacePage() {
   const allMySubmissionsParams = useMemo(() => ({ limit: 500 }), []);
   const { data: myTasksData } = useMyTasks(myTasksParams);
   const { data: allMySubmissionsData } = useAllMySubmissions(allMySubmissionsParams, !!courseIdFromState);
-  const { data: submissions = [] } = useSubmissions(assignment?.id || '');
+  const { data: submissions = [], refetch: refetchSubmissions } = useSubmissions(assignment?.id || '');
   const runMutation = useRunCode();
   const submitMutation = useSubmitCode();
   const { data: dashboardData } = useStudentDashboard();
@@ -187,11 +241,10 @@ export default function StudentWorkspacePage() {
   const [terminalHistory, setTerminalHistory] = useState<{ stdin: string; result?: ICodeExecutionResponse; error?: string }[]>([]);
   const [terminalMultiline, setTerminalMultiline] = useState(false);
   const [running, setRunning] = useState(false);
-  const [runResults, setRunResults] = useState<null | {
-    overall: 'accepted' | 'wrong' | 'error';
-    cases: { status: 'accepted' | 'wrong' | 'error'; input: string; stdout: string; expected: string }[];
-  }>(null);
+  const [runResults, setRunResults] = useState<RunResultsState | null>(null);
   const [activeResultIdx, setActiveResultIdx] = useState(0);
+  const [submittedSubmissionId, setSubmittedSubmissionId] = useState<string | null>(null);
+  const acceptedPromptedSubmissionIdRef = useRef<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const handleCopy = (text: string, fieldId: string) => {
@@ -312,6 +365,74 @@ export default function StudentWorkspacePage() {
     };
   }, [myTasksData?.items, orderedCourseAssignments, problemId, routeState]);
 
+  const submittedSubmission = useMemo(
+    () => submittedSubmissionId
+      ? submissions.find((submission: any) => submission.id === submittedSubmissionId) ?? null
+      : null,
+    [submittedSubmissionId, submissions],
+  );
+
+  useEffect(() => {
+    if (!submittedSubmissionId) return;
+    if (submittedSubmission?.status && submittedSubmission.status !== SubmissionStatus.PENDING) return;
+
+    const timer = window.setInterval(() => {
+      void refetchSubmissions();
+    }, 1500);
+
+    return () => window.clearInterval(timer);
+  }, [refetchSubmissions, submittedSubmission?.status, submittedSubmissionId]);
+
+  useEffect(() => {
+    if (!submittedSubmission) return;
+
+    const nextResults = buildSubmissionRunResults(submittedSubmission, assignment);
+    setRunResults(nextResults);
+    setActiveResultIdx(getFirstNonAcceptedCaseIndex(nextResults.cases));
+    setBottomTab('result');
+
+    if (submittedSubmission.status === SubmissionStatus.PENDING) return;
+
+    setRunning(false);
+
+    if (
+      submittedSubmission.status !== SubmissionStatus.ACCEPTED ||
+      acceptedPromptedSubmissionIdRef.current === submittedSubmission.id
+    ) {
+      return;
+    }
+
+    acceptedPromptedSubmissionIdRef.current = submittedSubmission.id;
+    void (async () => {
+      const shouldMoveNext = await confirm({
+        title: 'Hoàn thành bài!',
+        message: nextAssignmentTarget ? (
+          <span>
+            Em đã làm đúng tất cả test. Bài tiếp theo là{' '}
+            <span className="font-semibold text-on-surface">{nextAssignmentTarget.title}</span>.
+          </span>
+        ) : (
+          'Em đã làm đúng tất cả test. Hiện chưa có bài tiếp theo trong danh sách đang giao.'
+        ),
+        confirmLabel: nextAssignmentTarget ? 'Làm bài tiếp theo' : 'Về danh sách bài',
+        cancelLabel: 'Ở lại',
+        intent: 'primary',
+      });
+
+      if (!shouldMoveNext) return;
+
+      if (nextAssignmentTarget) {
+        if (nextAssignmentTarget.state) {
+          navigate(nextAssignmentTarget.path, { state: nextAssignmentTarget.state });
+        } else {
+          navigate(nextAssignmentTarget.path);
+        }
+      } else {
+        navigate('/student/assignments');
+      }
+    })();
+  }, [assignment, confirm, navigate, nextAssignmentTarget, submittedSubmission]);
+
   // Cursor tracking
   const [cursorOffset, setCursorOffset] = useState(0);
   const editorWrapRef = useRef<HTMLDivElement>(null);
@@ -326,6 +447,8 @@ export default function StudentWorkspacePage() {
     setActiveTestIdx(0);
     setActiveResultIdx(0);
     setRunResults(null);
+    setSubmittedSubmissionId(null);
+    acceptedPromptedSubmissionIdRef.current = null;
     setCustomInput('');
     setCustomOutput('');
     setTerminalInput('');
@@ -613,67 +736,11 @@ export default function StudentWorkspacePage() {
         code,
       });
       const sub = result.submission;
-      const isQueued = sub.status === 'PENDING';
-      const overallStatus = sub.status === 'ACCEPTED' ? 'accepted' as const : sub.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const;
+      const nextResults = buildSubmissionRunResults(sub, assignment);
 
-      const cases = sub.testResults && sub.testResults.length > 0
-        ? sub.testResults.map((tr) => {
-          const tc = assignment?.codingConfig?.testCases?.[tr.testCaseIndex];
-          // Indices beyond the inline samples are disk-backed hidden grading tests.
-          const isHidden = tr.testCaseIndex >= (assignment?.codingConfig?.testCases?.length ?? 0) || !!tc?.isHidden;
-          const allowView = assignment?.codingConfig?.allowViewHiddenTestCases;
-          const hideDetails = isHidden && !allowView;
-
-          return {
-            status: tr.status === 'ACCEPTED' ? 'accepted' as const : tr.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const,
-            input: hideDetails ? 'Hidden Test Case' : tr.input || tc?.input || 'Hidden Test Case',
-            stdout: hideDetails ? '(Output hidden)' : tr.errorMessage || tr.actualOutput || 'No output',
-            expected: hideDetails ? '(Hidden Expected)' : tr.expectedOutput || '',
-          };
-        })
-        : [{
-          status: overallStatus,
-          input: '',
-          stdout: isQueued
-            ? 'Submission queued. Judging will continue in the background.'
-            : `Passed: ${sub.passedCount} / ${sub.totalCount}`,
-          expected: '',
-        }];
-
-      setRunResults({
-        overall: overallStatus,
-        cases,
-      });
-      setActiveResultIdx(0);
-
-      if (overallStatus === 'accepted') {
-        const shouldMoveNext = await confirm({
-          title: 'Hoàn thành bài!',
-          message: nextAssignmentTarget ? (
-            <span>
-              Em đã làm đúng tất cả test. Bài tiếp theo là{' '}
-              <span className="font-semibold text-on-surface">{nextAssignmentTarget.title}</span>.
-            </span>
-          ) : (
-            'Em đã làm đúng tất cả test. Hiện chưa có bài tiếp theo trong danh sách đang giao.'
-          ),
-          confirmLabel: nextAssignmentTarget ? 'Làm bài tiếp theo' : 'Về danh sách bài',
-          cancelLabel: 'Ở lại',
-          intent: 'primary',
-        });
-
-        if (shouldMoveNext) {
-          if (nextAssignmentTarget) {
-            if (nextAssignmentTarget.state) {
-              navigate(nextAssignmentTarget.path, { state: nextAssignmentTarget.state });
-            } else {
-              navigate(nextAssignmentTarget.path);
-            }
-          } else {
-            navigate('/student/assignments');
-          }
-        }
-      }
+      setSubmittedSubmissionId(sub.id);
+      setRunResults(nextResults);
+      setActiveResultIdx(getFirstNonAcceptedCaseIndex(nextResults.cases));
     } catch (err: any) {
       setRunResults({
         overall: 'error',
@@ -686,37 +753,13 @@ export default function StudentWorkspacePage() {
   };
 
   const handleViewSubmission = (sub: any) => {
+    setSubmittedSubmissionId(null);
     setCode(sub.code);
     setLanguage(sub.language);
 
-    const overallStatus = sub.status === 'ACCEPTED' ? 'accepted' as const : sub.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const;
-
-    const cases = sub.testResults && sub.testResults.length > 0
-      ? sub.testResults.map((tr: any) => {
-        const tc = assignment?.codingConfig?.testCases?.[tr.testCaseIndex];
-        const isHidden = tr.testCaseIndex >= (assignment?.codingConfig?.testCases?.length ?? 0) || !!tc?.isHidden;
-        const allowView = assignment?.codingConfig?.allowViewHiddenTestCases;
-        const hideDetails = isHidden && !allowView;
-
-        return {
-          status: tr.status === 'ACCEPTED' ? 'accepted' as const : tr.status === 'WRONG_ANSWER' ? 'wrong' as const : 'error' as const,
-          input: hideDetails ? 'Hidden Test Case' : tr.input || tc?.input || 'Hidden Test Case',
-          stdout: hideDetails ? '(Output hidden)' : tr.errorMessage || tr.actualOutput || 'No output',
-          expected: hideDetails ? '(Hidden Expected)' : tr.expectedOutput || '',
-        };
-      })
-      : [{
-        status: overallStatus,
-        input: '',
-        stdout: `Passed: ${sub.passedCount} / ${sub.totalCount}`,
-        expected: '',
-      }];
-
-    setRunResults({
-      overall: overallStatus,
-      cases,
-    });
-    setActiveResultIdx(0);
+    const nextResults = buildSubmissionRunResults(sub, assignment);
+    setRunResults(nextResults);
+    setActiveResultIdx(getFirstNonAcceptedCaseIndex(nextResults.cases));
     setBottomTab('result');
   };
 
@@ -1443,8 +1486,20 @@ export default function StudentWorkspacePage() {
                     <div>
                       {/* Overall verdict */}
                       <div className="flex items-center gap-3 mb-3">
-                        <span className={`text-lg font-bold ${runResults.overall === 'accepted' ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {runResults.overall === 'accepted' ? '✓ Accepted' : runResults.overall === 'wrong' ? '✗ Wrong Answer' : '✗ Error'}
+                        <span className={`text-lg font-bold ${
+                          runResults.overall === 'accepted'
+                            ? 'text-emerald-400'
+                            : runResults.overall === 'pending'
+                              ? 'text-blue-400'
+                              : 'text-red-400'
+                        }`}>
+                          {runResults.overall === 'accepted'
+                            ? '✓ Accepted'
+                            : runResults.overall === 'wrong'
+                              ? '✗ Wrong Answer'
+                              : runResults.overall === 'pending'
+                                ? 'Judging...'
+                                : '✗ Error'}
                         </span>
                         {runResults.cases.length > 1 && (
                           <span className="text-xs text-gray-400">
@@ -1464,9 +1519,15 @@ export default function StudentWorkspacePage() {
                                 ${activeResultIdx === i ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
                             >
                               <Icon
-                                name={c.status === 'accepted' ? 'check_circle' : 'cancel'}
+                                name={c.status === 'accepted' ? 'check_circle' : c.status === 'pending' ? 'progress_activity' : 'cancel'}
                                 size={12}
-                                className={c.status === 'accepted' ? 'text-emerald-400' : 'text-red-400'}
+                                className={
+                                  c.status === 'accepted'
+                                    ? 'text-emerald-400'
+                                    : c.status === 'pending'
+                                      ? 'text-blue-400 animate-spin'
+                                      : 'text-red-400'
+                                }
                               />
                               Case {i + 1}
                             </button>
@@ -1486,6 +1547,7 @@ export default function StudentWorkspacePage() {
                           <div>
                             <span className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">Output</span>
                             <pre className={`mt-1 bg-[#1a1a2e] border rounded-lg p-2.5 text-sm font-mono whitespace-pre-wrap ${runResults.cases[activeResultIdx].status === 'accepted' ? 'border-emerald-500/20 text-emerald-300' :
+                                runResults.cases[activeResultIdx].status === 'pending' ? 'border-blue-500/20 text-blue-300' :
                                 runResults.cases[activeResultIdx].status === 'wrong' ? 'border-red-500/20 text-red-300' :
                                   'border-white/5 text-gray-300'
                               }`}>{runResults.cases[activeResultIdx].stdout}</pre>
