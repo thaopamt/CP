@@ -31,6 +31,8 @@ export interface QuestEngineEvent {
   tags?: string[];
   points?: number;
   mazeLevelId?: string;
+  /** True when the student had already cleared this problem/maze before — re-solves don't count. */
+  alreadySolved?: boolean;
 }
 
 
@@ -385,12 +387,21 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
   /** Convenience wrappers used by the submission & maze pipelines. */
   async handleCodingAccepted(
     userId: string,
-    ctx: { assignmentId: string; difficulty?: QuestDifficulty; tags?: string[]; points?: number },
+    ctx: {
+      assignmentId: string;
+      difficulty?: QuestDifficulty;
+      tags?: string[];
+      points?: number;
+      alreadySolved?: boolean;
+    },
   ): Promise<void> {
     await this.handleEvent(userId, { kind: 'CODING_ACCEPTED', ...ctx });
   }
 
-  async handleMazeAccepted(userId: string, ctx: { mazeLevelId: string }): Promise<void> {
+  async handleMazeAccepted(
+    userId: string,
+    ctx: { mazeLevelId: string; alreadySolved?: boolean },
+  ): Promise<void> {
     await this.handleEvent(userId, { kind: 'MAZE_ACCEPTED', ...ctx });
   }
 
@@ -448,6 +459,10 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
     const isCoding = event.kind === 'CODING_ACCEPTED';
     const isMaze = event.kind === 'MAZE_ACCEPTED';
     const resourceId = event.assignmentId ?? event.mazeLevelId;
+
+    // Re-solving a problem/maze the student already cleared before never advances
+    // a quest — only genuinely new solves count.
+    if (event.alreadySolved) return null;
 
     const countDistinct = (): { progress: number; data: IStudentQuestProgressData } | null => {
       if (!resourceId) {
@@ -537,6 +552,10 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
   private async updateProfileCounters(userId: string, event: QuestEngineEvent): Promise<StudentProfile | null> {
     const profile = await this.profiles.findOne({ where: { userId } });
     if (!profile) return null;
+
+    // Re-clearing an already-solved item is not progress: it bumps neither the
+    // streak nor the lifetime solve counters.
+    if (event.alreadySolved) return profile;
 
     const today = this.dayKey(new Date());
     if (profile.streakLastDate !== today) {

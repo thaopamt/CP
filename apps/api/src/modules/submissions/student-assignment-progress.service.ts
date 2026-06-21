@@ -18,6 +18,15 @@ export class StudentAssignmentProgressService {
     private readonly cache: SystemCacheService,
   ) {}
 
+  /** Whether the student has already solved (accepted) this assignment before. */
+  async hasCompleted(userId: string, assignmentId: string): Promise<boolean> {
+    const progress = await this.progressRepo.findOne({
+      where: { studentId: userId, assignmentId },
+      select: ['completed'],
+    });
+    return progress?.completed ?? false;
+  }
+
   async recordSubmissionResult(submission: Submission): Promise<void> {
     const isAccepted = submission.status === SubmissionStatus.ACCEPTED;
 

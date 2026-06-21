@@ -453,6 +453,13 @@ export class SubmissionsController implements OnModuleInit {
 
     const liveSubmission = await this.findSubmissionForRealtime(submission.id);
 
+    // Capture this before recordSubmissionResult marks the assignment completed:
+    // re-solving an already-solved problem must not advance quests.
+    const alreadySolved = await this.assignmentProgress.hasCompleted(
+      submission.userId,
+      submission.assignmentId,
+    );
+
     try {
       const gradeResult = await this.executionService.gradeSubmission(
         assignment,
@@ -538,6 +545,7 @@ export class SubmissionsController implements OnModuleInit {
             difficulty: assignment.difficulty,
             tags: assignment.tags ?? [],
             points: assignment.points,
+            alreadySolved,
           })
           .catch((e) => {
             console.error('Failed to update quest progress:', e);

@@ -265,13 +265,22 @@ export class MazeService {
     submission.blocksUsed = result.blocksUsed;
     submission.stepsCount = result.steps.length;
     submission.failReason = result.failReason;
+
+    // Captured before saving so the current submission is excluded: re-clearing a
+    // maze level already cleared before must not advance quests or counters.
+    const alreadySolved =
+      result.reachedGoal &&
+      (await this.submissions.count({ where: { userId, levelId: level.id, reachedGoal: true } })) > 0;
+
     const saved = await this.submissions.save(submission);
     await this.bumpStudentMazeCaches(userId, level.id);
 
     if (saved.status === SubmissionStatus.ACCEPTED) {
-      await this.questsService.handleMazeAccepted(userId, { mazeLevelId: level.id }).catch((e) => {
-        console.error('Failed to update quest progress:', e);
-      });
+      await this.questsService
+        .handleMazeAccepted(userId, { mazeLevelId: level.id, alreadySolved })
+        .catch((e) => {
+          console.error('Failed to update quest progress:', e);
+        });
     }
 
     return { submission: saved, reachedGoal: result.reachedGoal, failReason: result.failReason, errors: [] };
