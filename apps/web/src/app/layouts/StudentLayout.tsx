@@ -7,30 +7,61 @@ import { useStudentDashboard } from '../api/student.queries';
 import { useUnreadBlogCount } from '../api/blog.queries';
 import { GamificationCelebration } from '../components/GamificationCelebration';
 import { LogoutButton, UserMenu } from './_shared';
+import { SidebarNav, type SidebarNavEntry, type SidebarNavItem } from './SidebarNav';
 
-const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
-  { to: '/student', icon: 'home', key: 'nav.student.home', end: true },
-  { to: '/student/classes', icon: 'school', key: 'nav.student.classes' },
-  { to: '/student/assignments', icon: 'assignment', key: 'nav.student.assignments' },
-  { to: '/student/blog', icon: 'article', key: 'nav.student.blog' },
-  { to: '/student/maze', icon: 'extension', key: 'nav.student.maze' },
-  { to: '/student/submissions', icon: 'history', key: 'nav.student.submissions' },
-  { to: '/student/quests', icon: 'rocket_launch', key: 'nav.student.quests' },
-  { to: '/student/badges', icon: 'workspace_premium', key: 'nav.student.badges' },
-  { to: '/student/leaderboard', icon: 'leaderboard', key: 'nav.student.leaderboard' },
-  { to: '/student/shop', icon: 'storefront', key: 'nav.student.shop' },
-  { to: '/student/exams', icon: 'emoji_events', key: 'nav.student.exams' },
+const STUDENT_HOME: SidebarNavItem = { to: '/student', icon: 'home', key: 'nav.student.home', end: true };
+const STUDENT_CLASSES: SidebarNavItem = { to: '/student/classes', icon: 'school', key: 'nav.student.classes' };
+const STUDENT_ASSIGNMENTS: SidebarNavItem = {
+  to: '/student/assignments',
+  icon: 'assignment',
+  key: 'nav.student.assignments',
+};
+const STUDENT_BLOG: SidebarNavItem = { to: '/student/blog', icon: 'article', key: 'nav.student.blog' };
+const STUDENT_QUESTS: SidebarNavItem = {
+  to: '/student/quests',
+  icon: 'rocket_launch',
+  key: 'nav.student.quests',
+};
+const STUDENT_BADGES: SidebarNavItem = {
+  to: '/student/badges',
+  icon: 'workspace_premium',
+  key: 'nav.student.badges',
+};
 
+const NAV: SidebarNavEntry[] = [
+  STUDENT_HOME,
+  {
+    icon: 'school',
+    key: 'nav.groups.learning',
+    items: [
+      STUDENT_CLASSES,
+      STUDENT_ASSIGNMENTS,
+      { to: '/student/exams', icon: 'emoji_events', key: 'nav.student.exams' },
+      { to: '/student/submissions', icon: 'history', key: 'nav.student.submissions' },
+      STUDENT_BLOG,
+    ],
+  },
+  {
+    icon: 'social_leaderboard',
+    key: 'nav.groups.challenges',
+    items: [
+      { to: '/student/maze', icon: 'extension', key: 'nav.student.maze' },
+      STUDENT_QUESTS,
+      STUDENT_BADGES,
+      { to: '/student/leaderboard', icon: 'leaderboard', key: 'nav.student.leaderboard' },
+      { to: '/student/shop', icon: 'storefront', key: 'nav.student.shop' },
+    ],
+  },
 ];
 
 /** Only show 5 most important items in the mobile floating nav to prevent overflow.
  *  Profile ("Me") now lives in the avatar dropdown in the top bar. */
 const MOBILE_NAV = [
-  NAV[0], // home
-  NAV[2], // assignments
-  NAV[3], // blog
-  NAV[6], // quests
-  NAV[7], // badges
+  STUDENT_HOME,
+  STUDENT_ASSIGNMENTS,
+  STUDENT_BLOG,
+  STUDENT_QUESTS,
+  STUDENT_BADGES,
 ];
 
 /**
@@ -89,39 +120,23 @@ export default function StudentLayout() {
           )}
         </div>
 
-        <div className="flex flex-col gap-xs flex-1 mt-sm">
-          {NAV.map((item) => {
-            const showBadge = item.to === '/student/blog' && blogUnread > 0;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                title={isSidebarCollapsed ? t(item.key) : undefined}
-                className={({ isActive }) =>
-                  [
-                    'relative flex items-center py-sm rounded-2xl transition-all text-label-sm overflow-hidden',
-                    isSidebarCollapsed ? 'justify-center px-0' : 'gap-md px-md',
-                    isActive
-                      ? 'bg-primary-container text-on-primary-container font-bold'
-                      : 'text-on-surface-variant hover:bg-surface-container-highest',
-                  ].join(' ')
-                }
-              >
-                <span className="material-symbols-outlined shrink-0">{item.icon}</span>
-                {!isSidebarCollapsed && <span className="truncate">{t(item.key)}</span>}
-                {showBadge &&
-                  (isSidebarCollapsed ? (
-                    <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-error" />
-                  ) : (
-                    <span className="ml-auto min-w-[20px] h-5 px-1.5 grid place-items-center rounded-full bg-error text-white text-[11px] font-bold shrink-0">
-                      {blogUnread > 99 ? '99+' : blogUnread}
-                    </span>
-                  ))}
-              </NavLink>
+        <SidebarNav
+          entries={NAV}
+          collapsed={isSidebarCollapsed}
+          roundedClassName="rounded-2xl"
+          className="flex flex-col gap-xs flex-1 mt-sm overflow-y-auto"
+          renderBadge={(item, { collapsed }) => {
+            if (item.to !== '/student/blog' || blogUnread <= 0) return null;
+
+            return collapsed ? (
+              <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-error" />
+            ) : (
+              <span className="ml-auto min-w-[20px] h-5 px-1.5 grid place-items-center rounded-full bg-error text-white text-[11px] font-bold shrink-0">
+                {blogUnread > 99 ? '99+' : blogUnread}
+              </span>
             );
-          })}
-        </div>
+          }}
+        />
 
         <LogoutButton />
       </nav>

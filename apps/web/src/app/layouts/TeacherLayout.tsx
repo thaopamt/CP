@@ -4,28 +4,57 @@ import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
 import { useUIStore } from '../stores/ui.store';
 import { LogoutButton, UserAvatar, ThemeToggle } from './_shared';
+import { SidebarNav, type SidebarNavEntry, type SidebarNavItem } from './SidebarNav';
 
 // Mirrors the Admin sidebar minus the Dashboard, Users and
 // Quest-analytics tabs. Finance has its own read-only teacher page.
-const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
+const MOBILE_NAV: SidebarNavItem[] = [
   { to: '/teacher/students', icon: 'groups', key: 'nav.teacher.students' },
   { to: '/teacher/classes', icon: 'class', key: 'nav.teacher.classes' },
   { to: '/teacher/courses', icon: 'menu_book', key: 'nav.teacher.courses' },
   { to: '/teacher/blog', icon: 'article', key: 'nav.teacher.blog' },
-  { to: '/teacher/quests', icon: 'swords', key: 'nav.teacher.quests' },
-  { to: '/teacher/badges', icon: 'workspace_premium', key: 'nav.teacher.badges' },
-  { to: '/teacher/assignments', icon: 'assignment', key: 'nav.teacher.assignments' },
-  { to: '/teacher/maze', icon: 'extension', key: 'nav.teacher.maze' },
-  { to: '/teacher/exams', icon: 'emoji_events', key: 'nav.teacher.exams' },
-  { to: '/teacher/schedule', icon: 'calendar_month', key: 'nav.teacher.schedule' },
-  { to: '/teacher/finance', icon: 'account_balance', key: 'nav.teacher.finance' },
-  { to: '/teacher/monitor', icon: 'screen_share', key: 'nav.teacher.monitor' },
-
-  { to: '/teacher/submissions', icon: 'history', key: 'nav.teacher.submissions' },
-  { to: '/teacher/me', icon: 'account_circle', key: 'nav.teacher.me' },
 ];
 
-const MOBILE_NAV = NAV.slice(0, 4);
+const NAV: SidebarNavEntry[] = [
+  {
+    icon: 'school',
+    key: 'nav.groups.classroom',
+    items: [
+      MOBILE_NAV[0],
+      MOBILE_NAV[1],
+      MOBILE_NAV[2],
+      { to: '/teacher/schedule', icon: 'calendar_month', key: 'nav.teacher.schedule' },
+    ],
+  },
+  {
+    icon: 'assignment',
+    key: 'nav.groups.coursework',
+    items: [
+      { to: '/teacher/assignments', icon: 'assignment', key: 'nav.teacher.assignments' },
+      { to: '/teacher/exams', icon: 'emoji_events', key: 'nav.teacher.exams' },
+      { to: '/teacher/submissions', icon: 'history', key: 'nav.teacher.submissions' },
+      { to: '/teacher/maze', icon: 'extension', key: 'nav.teacher.maze' },
+    ],
+  },
+  {
+    icon: 'social_leaderboard',
+    key: 'nav.groups.gamification',
+    items: [
+      MOBILE_NAV[3],
+      { to: '/teacher/quests', icon: 'swords', key: 'nav.teacher.quests' },
+      { to: '/teacher/badges', icon: 'workspace_premium', key: 'nav.teacher.badges' },
+    ],
+  },
+  {
+    icon: 'admin_panel_settings',
+    key: 'nav.groups.operations',
+    items: [
+      { to: '/teacher/finance', icon: 'account_balance', key: 'nav.teacher.finance' },
+      { to: '/teacher/monitor', icon: 'screen_share', key: 'nav.teacher.monitor' },
+      { to: '/teacher/me', icon: 'account_circle', key: 'nav.teacher.me' },
+    ],
+  },
+];
 
 /**
  * Teacher Portal — warm/modern, standard density.
@@ -70,28 +99,11 @@ export default function TeacherLayout() {
             </div>
           )}
         </div>
-        <div className="flex flex-col gap-xs mt-sm flex-1">
-          {NAV.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              title={isSidebarCollapsed ? t(item.key) : undefined}
-              className={({ isActive }) =>
-                [
-                  'flex items-center py-sm rounded-lg transition-all text-label-sm overflow-hidden',
-                  isSidebarCollapsed ? 'justify-center px-0' : 'gap-md px-md',
-                  isActive
-                    ? 'bg-primary-container text-on-primary-container font-bold'
-                    : 'text-on-surface-variant hover:bg-surface-container-highest',
-                ].join(' ')
-              }
-            >
-              <span className="material-symbols-outlined shrink-0">{item.icon}</span>
-              {!isSidebarCollapsed && <span className="truncate">{t(item.key)}</span>}
-            </NavLink>
-          ))}
-        </div>
+        <SidebarNav
+          entries={NAV}
+          collapsed={isSidebarCollapsed}
+          className="flex flex-col gap-xs mt-sm flex-1 overflow-y-auto"
+        />
         <LogoutButton />
       </nav>
 

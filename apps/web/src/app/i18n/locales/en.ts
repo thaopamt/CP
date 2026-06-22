@@ -59,6 +59,15 @@ const en = {
   },
 
   nav: {
+    groups: {
+      learningManagement: 'Learning',
+      classroom: 'Classroom',
+      learning: 'Learning',
+      coursework: 'Coursework',
+      gamification: 'Rewards',
+      challenges: 'Challenges',
+      operations: 'Operations',
+    },
     admin: {
       dashboard: 'Dashboard',
       students: 'Students',

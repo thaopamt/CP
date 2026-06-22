@@ -1,32 +1,57 @@
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo } from 'react';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
 import { useUIStore } from '../stores/ui.store';
 import { LogoutButton, UserAvatar, ThemeToggle } from './_shared';
+import { SidebarNav, getActiveNavItem, flattenNavEntries, type SidebarNavEntry } from './SidebarNav';
 
-const NAV: { to: string; icon: string; key: string; end?: boolean }[] = [
+const NAV: SidebarNavEntry[] = [
   { to: '/admin', icon: 'dashboard', key: 'nav.admin.dashboard', end: true },
-  { to: '/admin/students', icon: 'groups', key: 'nav.admin.students' },
-  { to: '/admin/classes', icon: 'class', key: 'nav.admin.classes' },
-  { to: '/admin/courses', icon: 'menu_book', key: 'nav.admin.courses' },
-  { to: '/admin/blog', icon: 'article', key: 'nav.admin.blog' },
-  { to: '/admin/shop', icon: 'storefront', key: 'nav.admin.shop' },
-  { to: '/admin/quests', icon: 'swords', key: 'nav.admin.quests' },
-  { to: '/admin/badges', icon: 'workspace_premium', key: 'nav.admin.badges' },
-  { to: '/admin/quests/analytics', icon: 'insights', key: 'nav.admin.questAnalytics' },
-  { to: '/admin/assignments', icon: 'assignment', key: 'nav.admin.assignments' },
-  { to: '/admin/maze', icon: 'extension', key: 'nav.admin.maze' },
-  { to: '/admin/exams', icon: 'emoji_events', key: 'nav.admin.exams' },
-  { to: '/admin/schedule', icon: 'calendar_month', key: 'nav.admin.schedule' },
-  { to: '/admin/finance', icon: 'payments', key: 'nav.admin.finance' },
-  { to: '/admin/users', icon: 'group', key: 'nav.admin.users' },
-  { to: '/admin/monitor', icon: 'screen_share', key: 'nav.admin.monitor' },
-
-  { to: '/admin/submissions', icon: 'history', key: 'nav.admin.submissions' },
-  { to: '/admin/me', icon: 'account_circle', key: 'nav.admin.me' },
+  {
+    icon: 'school',
+    key: 'nav.groups.learningManagement',
+    items: [
+      { to: '/admin/students', icon: 'groups', key: 'nav.admin.students' },
+      { to: '/admin/classes', icon: 'class', key: 'nav.admin.classes' },
+      { to: '/admin/courses', icon: 'menu_book', key: 'nav.admin.courses' },
+      { to: '/admin/schedule', icon: 'calendar_month', key: 'nav.admin.schedule' },
+    ],
+  },
+  {
+    icon: 'assignment',
+    key: 'nav.groups.coursework',
+    items: [
+      { to: '/admin/assignments', icon: 'assignment', key: 'nav.admin.assignments' },
+      { to: '/admin/exams', icon: 'emoji_events', key: 'nav.admin.exams' },
+      { to: '/admin/submissions', icon: 'history', key: 'nav.admin.submissions' },
+      { to: '/admin/maze', icon: 'extension', key: 'nav.admin.maze' },
+      { to: '/admin/blog', icon: 'article', key: 'nav.admin.blog' },
+    ],
+  },
+  {
+    icon: 'social_leaderboard',
+    key: 'nav.groups.gamification',
+    items: [
+      { to: '/admin/quests', icon: 'swords', key: 'nav.admin.quests' },
+      { to: '/admin/badges', icon: 'workspace_premium', key: 'nav.admin.badges' },
+      { to: '/admin/quests/analytics', icon: 'insights', key: 'nav.admin.questAnalytics' },
+      { to: '/admin/shop', icon: 'storefront', key: 'nav.admin.shop' },
+    ],
+  },
+  {
+    icon: 'admin_panel_settings',
+    key: 'nav.groups.operations',
+    items: [
+      { to: '/admin/finance', icon: 'payments', key: 'nav.admin.finance' },
+      { to: '/admin/users', icon: 'group', key: 'nav.admin.users' },
+      { to: '/admin/monitor', icon: 'screen_share', key: 'nav.admin.monitor' },
+      { to: '/admin/me', icon: 'account_circle', key: 'nav.admin.me' },
+    ],
+  },
 ];
+const NAV_ITEMS = flattenNavEntries(NAV);
 
 /**
  * Admin Portal layout — minimalist/corporate.
@@ -39,21 +64,13 @@ export default function AdminLayout() {
   const { isSidebarCollapsed, toggleSidebar } = useUIStore();
   const { pathname } = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // The most specific (longest matching) entry wins, so a nested route such as
-  // /admin/quests/analytics highlights only its own tab — not /admin/quests —
-  // while /admin/quests/new and /admin/quests/:id/edit still light up Quests.
   const activeTo = useMemo(() => {
-    let best: string | null = null;
-    for (const item of NAV) {
-      const matches = item.end
-        ? pathname === item.to
-        : pathname === item.to || pathname.startsWith(`${item.to}/`);
-      if (matches && (best === null || item.to.length > best.length)) best = item.to;
-    }
-    if (best === null && pathname.startsWith('/admin/settings')) best = '/admin/me';
-    return best;
+    const activeItem = getActiveNavItem(NAV, pathname);
+    if (activeItem) return activeItem.to;
+    if (pathname.startsWith('/admin/settings')) return '/admin/me';
+    return null;
   }, [pathname]);
-  const current = NAV.find((item) => item.to === activeTo);
+  const current = NAV_ITEMS.find((item) => item.to === activeTo);
   const currentLabel = current ? t(current.key) : t('nav.admin.dashboard');
 
   // Close mobile menu on route change
@@ -110,27 +127,11 @@ export default function AdminLayout() {
           </button>
         </div>
 
-        <div className="flex flex-col gap-xs mt-sm flex-1 overflow-y-auto">
-          {NAV.map((item) => {
-            const isActive = item.to === activeTo;
-            return (
-            <Link
-              key={item.to}
-              to={item.to}
-              aria-current={isActive ? 'page' : undefined}
-              className={[
-                'flex items-center gap-md px-md py-sm rounded-lg transition-all text-label-sm overflow-hidden min-h-[44px]',
-                isActive
-                  ? 'bg-primary-container text-on-primary-container font-bold'
-                  : 'text-on-surface-variant hover:bg-surface-container-highest',
-              ].join(' ')}
-            >
-              <span className="material-symbols-outlined shrink-0">{item.icon}</span>
-              <span className="truncate">{t(item.key)}</span>
-            </Link>
-            );
-          })}
-        </div>
+        <SidebarNav
+          entries={NAV}
+          activeTo={activeTo}
+          className="flex flex-col gap-xs mt-sm flex-1 overflow-y-auto"
+        />
 
         <LogoutButton />
       </nav>
@@ -162,29 +163,13 @@ export default function AdminLayout() {
           )}
         </div>
 
-        <div className="flex flex-col gap-xs mt-sm flex-1 overflow-y-auto">
-          {NAV.map((item) => {
-            const isActive = item.to === activeTo;
-            return (
-            <Link
-              key={item.to}
-              to={item.to}
-              aria-current={isActive ? 'page' : undefined}
-              title={isSidebarCollapsed ? t(item.key) : undefined}
-              className={[
-                'flex items-center py-sm rounded-lg transition-all text-label-sm overflow-hidden',
-                isSidebarCollapsed ? 'justify-center px-0' : 'gap-md px-md',
-                isActive
-                  ? 'bg-primary-container text-on-primary-container font-bold'
-                  : 'text-on-surface-variant hover:bg-surface-container-highest hover:translate-x-1 duration-200',
-              ].join(' ')}
-            >
-              <span className="material-symbols-outlined shrink-0">{item.icon}</span>
-              {!isSidebarCollapsed && <span className="truncate">{t(item.key)}</span>}
-            </Link>
-            );
-          })}
-        </div>
+        <SidebarNav
+          entries={NAV}
+          collapsed={isSidebarCollapsed}
+          activeTo={activeTo}
+          className="flex flex-col gap-xs mt-sm flex-1 overflow-y-auto"
+          inactiveClassName="text-on-surface-variant hover:bg-surface-container-highest hover:translate-x-1 duration-200"
+        />
 
         <LogoutButton />
       </nav>

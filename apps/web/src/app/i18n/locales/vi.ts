@@ -57,6 +57,15 @@ const vi: AppResources = {
   },
 
   nav: {
+    groups: {
+      learningManagement: 'Quản lý học tập',
+      classroom: 'Lớp học',
+      learning: 'Học tập',
+      coursework: 'Bài & thi',
+      gamification: 'Game hóa',
+      challenges: 'Thử thách',
+      operations: 'Vận hành',
+    },
     admin: {
       dashboard: 'Tổng quan',
       students: 'Học sinh',
