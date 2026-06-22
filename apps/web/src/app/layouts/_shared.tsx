@@ -5,7 +5,6 @@ import { fullName, IUser } from '@cp/shared';
 
 import { useAuthStore } from '../stores/auth.store';
 
-import { useUIStore } from '../stores/ui.store';
 import { AvatarFrame } from '../lib/cosmetics';
 
 /**
@@ -50,27 +49,6 @@ export function UserAvatar({
   );
 }
 
-export function LogoutButton() {
-  const { t } = useTranslation();
-  const clear = useAuthStore((s) => s.clear);
-  const { isSidebarCollapsed } = useUIStore();
-  
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        clear();
-        window.location.assign('/login');
-      }}
-      className={`flex items-center ${isSidebarCollapsed ? 'justify-center px-0' : 'gap-sm px-md'} py-sm text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors text-label-sm overflow-hidden`}
-      title={isSidebarCollapsed ? t('common.signOut') : undefined}
-    >
-      <span className="material-symbols-outlined text-[20px] shrink-0">logout</span>
-      {!isSidebarCollapsed && <span className="truncate">{t('common.signOut')}</span>}
-    </button>
-  );
-}
-
 import { useThemeStore } from '../stores/theme.store';
 
 export function ThemeToggle() {
@@ -101,12 +79,16 @@ export function UserMenu({
   nameColor,
   title,
   profilePath = '/student/me',
+  profileLabelKey = 'nav.student.me',
+  showPreferences = true,
 }: {
   user: IUser | null;
   frame?: string | null;
   nameColor?: string | null;
   title?: string | null;
   profilePath?: string;
+  profileLabelKey?: string;
+  showPreferences?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -142,7 +124,7 @@ export function UserMenu({
         className="rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 hover:opacity-90"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={t('nav.student.me')}
+        aria-label={t(profileLabelKey)}
       >
         <UserAvatar user={user} size="sm" frame={frame} nameColor={nameColor} />
       </button>
@@ -181,42 +163,45 @@ export function UserMenu({
             }}
           >
             <span className="material-symbols-outlined text-[20px]">account_circle</span>
-            <span className="truncate">{t('nav.student.me')}</span>
+            <span className="truncate">{t(profileLabelKey)}</span>
           </button>
 
-          <button type="button" role="menuitem" className={itemCls} onClick={toggleDark}>
-            <span className="material-symbols-outlined text-[20px]">{isDark ? 'light_mode' : 'dark_mode'}</span>
-            <span className="truncate">
-              {isDark
-                ? i18n.language === 'vi'
-                  ? 'Giao diện sáng'
-                  : 'Light mode'
-                : i18n.language === 'vi'
-                  ? 'Giao diện tối'
-                  : 'Dark mode'}
-            </span>
-          </button>
+          {showPreferences && (
+            <>
+              <button type="button" role="menuitem" className={itemCls} onClick={toggleDark}>
+                <span className="material-symbols-outlined text-[20px]">{isDark ? 'light_mode' : 'dark_mode'}</span>
+                <span className="truncate">
+                  {isDark
+                    ? i18n.language === 'vi'
+                      ? 'Giao diện sáng'
+                      : 'Light mode'
+                    : i18n.language === 'vi'
+                      ? 'Giao diện tối'
+                      : 'Dark mode'}
+                </span>
+              </button>
 
-          {/* Language toggle */}
-          <div className="flex items-center gap-2 px-3 py-2">
-            <span className="material-symbols-outlined text-[20px] text-on-surface-variant">language</span>
-            <div className="flex gap-1">
-              {(['vi', 'en'] as const).map((lng) => (
-                <button
-                  key={lng}
-                  type="button"
-                  onClick={() => void i18n.changeLanguage(lng)}
-                  className={`rounded-md px-2 py-1 text-[11px] font-bold transition-colors ${
-                    i18n.language === lng
-                      ? 'bg-primary text-on-primary'
-                      : 'bg-surface-container-high text-on-surface-variant hover:text-on-surface'
-                  }`}
-                >
-                  {lng.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
+              <div className="flex items-center gap-2 px-3 py-2">
+                <span className="material-symbols-outlined text-[20px] text-on-surface-variant">language</span>
+                <div className="flex gap-1">
+                  {(['vi', 'en'] as const).map((lng) => (
+                    <button
+                      key={lng}
+                      type="button"
+                      onClick={() => void i18n.changeLanguage(lng)}
+                      className={`rounded-md px-2 py-1 text-[11px] font-bold transition-colors ${
+                        i18n.language === lng
+                          ? 'bg-primary text-on-primary'
+                          : 'bg-surface-container-high text-on-surface-variant hover:text-on-surface'
+                      }`}
+                    >
+                      {lng.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="my-1 h-px bg-outline-variant" />
 
@@ -237,5 +222,3 @@ export function UserMenu({
     </div>
   );
 }
-
-

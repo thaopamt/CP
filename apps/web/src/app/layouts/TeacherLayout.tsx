@@ -2,8 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
-import { useUIStore } from '../stores/ui.store';
-import { LogoutButton, UserAvatar, ThemeToggle } from './_shared';
+import { UserMenu, ThemeToggle } from './_shared';
 import { SidebarNav, type SidebarNavEntry, type SidebarNavItem } from './SidebarNav';
 
 // Mirrors the Admin sidebar minus the Dashboard, Users and
@@ -61,50 +60,29 @@ const NAV: SidebarNavEntry[] = [
  * 280px sidebar on desktop; mobile uses top app bar + bottom-nav.
  *
  * Top-bar utility cluster (notifications · language · avatar) is
- * mirrored across all 3 portals; sign-out lives in the sidebar bottom.
+ * mirrored across all 3 portals; sign-out lives in the avatar menu.
  */
 export default function TeacherLayout() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
-  const { isSidebarCollapsed, toggleSidebar } = useUIStore();
-
-  const sidebarWidth = isSidebarCollapsed ? 'w-[80px]' : 'w-[280px]';
-  const marginLeft = isSidebarCollapsed ? 'md:ml-[80px]' : 'md:ml-[280px]';
+  const marginLeft = 'md:ml-[200px]';
 
   return (
     <div className="min-h-screen bg-surface text-on-surface font-inter">
 
-      <nav className={`hidden md:flex flex-col ${sidebarWidth} h-screen fixed top-0 left-0 p-md gap-sm bg-surface-container-low border-r border-outline-variant z-50 transition-all duration-300`}>
-        {/* Collapse toggle button */}
-        <button 
-          onClick={toggleSidebar}
-          className="absolute -right-3 top-8 w-6 h-6 bg-surface-container-high border border-outline-variant rounded-full grid place-items-center text-on-surface-variant hover:text-primary hover:bg-surface-container-highest z-50 transition-colors shadow-sm"
-          aria-label="Toggle Sidebar"
-        >
-          <span className="material-symbols-outlined text-[16px]">
-            {isSidebarCollapsed ? 'chevron_right' : 'chevron_left'}
-          </span>
-        </button>
-
-        <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-md px-sm'} py-lg relative`}>
-          <img src="/logo.png" alt="Zenith" className="w-10 h-10 rounded-lg object-contain shrink-0" />
-          {!isSidebarCollapsed && (
-            <div className="overflow-hidden">
-              <h1 className="text-label-sm font-extrabold text-primary leading-tight truncate">
-                {t('brand.teacherPortal')}
-              </h1>
-              <p className="text-[12px] text-on-surface-variant opacity-80 truncate">
-                {t('brand.portalSubtitleTeacher')}
-              </p>
-            </div>
-          )}
+      <nav className="hidden md:flex flex-col w-[200px] h-screen fixed top-0 left-0 p-sm gap-xs bg-surface-container-low border-r border-outline-variant z-50 transition-all duration-300">
+        <div className="flex flex-col items-center gap-xs px-xs py-md text-center relative">
+          <img src="/logo.png" alt="Zenith" className="w-9 h-9 rounded-lg object-contain shrink-0" />
+          <h1 className="text-[11px] font-extrabold text-primary leading-tight truncate max-w-full">
+            {t('brand.teacherPortal')}
+          </h1>
         </div>
+
         <SidebarNav
           entries={NAV}
-          collapsed={isSidebarCollapsed}
-          className="flex flex-col gap-xs mt-sm flex-1 overflow-y-auto"
+          compact
+          className="flex flex-col gap-xs mt-xs flex-1 overflow-y-auto"
         />
-        <LogoutButton />
       </nav>
 
       {/* Mobile top bar — same utility cluster as Admin/Student top bars */}
@@ -118,7 +96,7 @@ export default function TeacherLayout() {
           </button>
           <ThemeToggle />
           <LanguageSwitcher />
-          <UserAvatar user={user} size="sm" />
+          <UserMenu user={user} profilePath="/teacher/me" profileLabelKey="nav.teacher.me" showPreferences={false} />
         </div>
       </header>
 
@@ -130,7 +108,7 @@ export default function TeacherLayout() {
         </button>
         <ThemeToggle />
         <LanguageSwitcher />
-        <UserAvatar user={user} size="sm" />
+        <UserMenu user={user} profilePath="/teacher/me" profileLabelKey="nav.teacher.me" showPreferences={false} />
       </header>
 
       <div className={`${marginLeft} pt-16 md:pt-0 pb-24 md:pb-0 transition-all duration-300`}>

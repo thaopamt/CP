@@ -1,12 +1,11 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/auth.store';
-import { useUIStore } from '../stores/ui.store';
 import { useStudentLivePresence } from '../hooks/useStudentLivePresence';
 import { useStudentDashboard } from '../api/student.queries';
 import { useUnreadBlogCount } from '../api/blog.queries';
 import { GamificationCelebration } from '../components/GamificationCelebration';
-import { LogoutButton, UserMenu } from './_shared';
+import { UserMenu } from './_shared';
 import { SidebarNav, type SidebarNavEntry, type SidebarNavItem } from './SidebarNav';
 
 const STUDENT_HOME: SidebarNavItem = { to: '/student', icon: 'home', key: 'nav.student.home', end: true };
@@ -70,21 +69,20 @@ const MOBILE_NAV = [
  * glassmorphism effect.
  *
  * Structural parity with Admin/Teacher:
- *   - sidebar (full height) = brand block + nav + LogoutButton
+ *   - sidebar (full height) = brand block + nav
  *   - top bar (right of sidebar on desktop, full-width on mobile)
  *     = optional search · notifications · LanguageSwitcher · avatar
  */
 export default function StudentLayout() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
-  const { isSidebarCollapsed, toggleSidebar } = useUIStore();
   const location = useLocation();
   const { data: dashboard } = useStudentDashboard();
   const { data: unreadBlog } = useUnreadBlogCount();
   const blogUnread = unreadBlog?.count ?? 0;
 
-  const sidebarWidth = isSidebarCollapsed ? 'w-[80px]' : 'w-[240px] lg:w-[280px]';
-  const marginLeft = isSidebarCollapsed ? 'md:ml-[80px]' : 'md:ml-[240px] lg:ml-[280px]';
+  const sidebarWidth = 'w-[200px]';
+  const marginLeft = 'md:ml-[200px]';
 
   useStudentLivePresence(location.pathname);
 
@@ -93,38 +91,20 @@ export default function StudentLayout() {
 
       <GamificationCelebration />
       {/* Sidebar — full height on desktop */}
-      <nav className={`hidden md:flex flex-col ${sidebarWidth} fixed top-0 bottom-0 left-0 p-md gap-sm bg-surface-container-lowest border-r border-outline-variant z-50 transition-all duration-300`}>
-        {/* Collapse toggle button */}
-        <button 
-          onClick={toggleSidebar}
-          className="absolute -right-3 top-8 w-6 h-6 bg-surface-container-high border border-outline-variant rounded-full grid place-items-center text-on-surface-variant hover:text-primary hover:bg-surface-container-highest z-50 transition-colors shadow-sm"
-          aria-label="Toggle Sidebar"
-        >
-          <span className="material-symbols-outlined text-[16px]">
-            {isSidebarCollapsed ? 'chevron_right' : 'chevron_left'}
-          </span>
-        </button>
-
+      <nav className={`hidden md:flex flex-col ${sidebarWidth} fixed top-0 bottom-0 left-0 p-sm gap-xs bg-surface-container-lowest border-r border-outline-variant z-50 transition-all duration-300`}>
         {/* Brand block — parity with Admin/Teacher */}
-        <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-md px-sm'} py-lg relative`}>
-          <img src="/logo.png" alt="Zenith" className="w-10 h-10 rounded-2xl object-contain shrink-0" />
-          {!isSidebarCollapsed && (
-            <div className="overflow-hidden">
-              <h1 className="text-label-sm font-extrabold text-primary leading-tight truncate">
-                {t('brand.studentPortal')}
-              </h1>
-              <p className="text-[12px] text-on-surface-variant opacity-80 truncate">
-                {t('brand.portalSubtitleStudent')}
-              </p>
-            </div>
-          )}
+        <div className="flex flex-col items-center gap-xs px-xs py-md text-center relative">
+          <img src="/logo.png" alt="Zenith" className="w-9 h-9 rounded-2xl object-contain shrink-0" />
+          <h1 className="text-[11px] font-extrabold text-primary leading-tight truncate max-w-full">
+            {t('brand.studentPortal')}
+          </h1>
         </div>
 
         <SidebarNav
           entries={NAV}
-          collapsed={isSidebarCollapsed}
+          compact
           roundedClassName="rounded-2xl"
-          className="flex flex-col gap-xs flex-1 mt-sm overflow-y-auto"
+          className="flex flex-col gap-xs flex-1 mt-xs overflow-y-auto"
           renderBadge={(item, { collapsed }) => {
             if (item.to !== '/student/blog' || blogUnread <= 0) return null;
 
@@ -137,8 +117,6 @@ export default function StudentLayout() {
             );
           }}
         />
-
-        <LogoutButton />
       </nav>
 
       {/* Mobile top bar — full width */}

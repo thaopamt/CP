@@ -21,6 +21,7 @@ export type SidebarNavEntry = SidebarNavItem | SidebarNavGroup;
 type SidebarNavProps = {
   entries: SidebarNavEntry[];
   collapsed?: boolean;
+  compact?: boolean;
   activeTo?: string | null;
   roundedClassName?: string;
   className?: string;
@@ -58,6 +59,7 @@ export function getActiveNavItem(entries: SidebarNavEntry[], pathname: string): 
 export function SidebarNav({
   entries,
   collapsed = false,
+  compact = false,
   activeTo,
   roundedClassName = 'rounded-lg',
   className = 'flex flex-col gap-xs',
@@ -102,6 +104,15 @@ export function SidebarNav({
 
   const renderLink = (item: SidebarNavItem, nested = false) => {
     const isActive = item.to === resolvedActiveTo;
+    const spacingClass = collapsed
+      ? 'justify-center px-0'
+      : compact
+        ? nested
+          ? 'gap-xs pl-6 pr-sm'
+          : 'gap-sm px-sm'
+        : nested
+          ? 'gap-sm pl-10 pr-md'
+          : 'gap-md px-md';
 
     return (
       <Link
@@ -112,15 +123,17 @@ export function SidebarNav({
         className={[
           'relative flex items-center py-sm transition-all text-label-sm overflow-hidden',
           roundedClassName,
-          collapsed ? 'justify-center px-0' : nested ? 'gap-sm pl-10 pr-md' : 'gap-md px-md',
-          nested ? 'min-h-[36px]' : 'min-h-[40px]',
+          spacingClass,
+          compact ? (nested ? 'min-h-[34px]' : 'min-h-[38px]') : nested ? 'min-h-[36px]' : 'min-h-[40px]',
           isActive ? activeClassName : inactiveClassName,
         ].join(' ')}
       >
         <span className={`material-symbols-outlined shrink-0 ${nested ? 'text-[18px]' : ''}`}>
           {item.icon}
         </span>
-        {!collapsed && <span className="truncate">{t(item.key)}</span>}
+        {!collapsed && (
+          <span className={compact ? 'min-w-0 text-left leading-tight' : 'truncate'}>{t(item.key)}</span>
+        )}
         {renderBadge?.(item, { collapsed })}
       </Link>
     );
@@ -147,13 +160,14 @@ export function SidebarNav({
               aria-controls={panelId}
               onClick={() => setOpenGroups((current) => ({ ...current, [entry.key]: !isOpen }))}
               className={[
-                'flex w-full items-center gap-md px-md py-sm min-h-[40px] transition-all text-label-sm overflow-hidden',
+                'flex w-full items-center py-sm transition-all text-label-sm overflow-hidden',
+                compact ? 'gap-sm px-sm min-h-[38px]' : 'gap-md px-md min-h-[40px]',
                 roundedClassName,
                 isActiveGroup ? groupActiveClassName : groupInactiveClassName,
               ].join(' ')}
             >
               <span className="material-symbols-outlined shrink-0">{entry.icon}</span>
-              <span className="truncate">{t(entry.key)}</span>
+              <span className={compact ? 'min-w-0 text-left leading-tight' : 'truncate'}>{t(entry.key)}</span>
               <span
                 className={[
                   'material-symbols-outlined ml-auto text-[18px] shrink-0 transition-transform',

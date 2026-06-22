@@ -3,8 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo } from 'react';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
-import { useUIStore } from '../stores/ui.store';
-import { LogoutButton, UserAvatar, ThemeToggle } from './_shared';
+import { UserMenu, ThemeToggle } from './_shared';
 import { SidebarNav, getActiveNavItem, flattenNavEntries, type SidebarNavEntry } from './SidebarNav';
 
 const NAV: SidebarNavEntry[] = [
@@ -61,7 +60,6 @@ const NAV_ITEMS = flattenNavEntries(NAV);
 export default function AdminLayout() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
-  const { isSidebarCollapsed, toggleSidebar } = useUIStore();
   const { pathname } = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const activeTo = useMemo(() => {
@@ -132,46 +130,24 @@ export default function AdminLayout() {
           activeTo={activeTo}
           className="flex flex-col gap-xs mt-sm flex-1 overflow-y-auto"
         />
-
-        <LogoutButton />
       </nav>
 
       {/* ── Desktop Sidebar ── */}
-      <nav className={`hidden lg:flex flex-col ${isSidebarCollapsed ? 'w-[80px]' : 'w-[280px]'} h-screen p-md gap-sm bg-surface-container-low border-r border-outline-variant shrink-0 z-50 transition-all duration-300 relative`}>
-        {/* Collapse toggle button */}
-        <button 
-          onClick={toggleSidebar}
-          className="absolute -right-3 top-8 w-6 h-6 bg-surface-container-high border border-outline-variant rounded-full grid place-items-center text-on-surface-variant hover:text-primary hover:bg-surface-container-highest z-50 transition-colors shadow-sm"
-          aria-label="Toggle Sidebar"
-        >
-          <span className="material-symbols-outlined text-[16px]">
-            {isSidebarCollapsed ? 'chevron_right' : 'chevron_left'}
-          </span>
-        </button>
-
-        <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-md px-sm'} py-lg relative`}>
-          <img src="/logo.png" alt="Zenith" className="w-10 h-10 rounded-lg object-contain shrink-0" />
-          {!isSidebarCollapsed && (
-            <div className="overflow-hidden">
-              <h1 className="text-label-sm font-extrabold text-primary leading-tight truncate">
-                {t('brand.adminPortal')}
-              </h1>
-              <p className="text-[12px] text-on-surface-variant opacity-80 truncate">
-                {t('brand.portalSubtitleAdmin')}
-              </p>
-            </div>
-          )}
+      <nav className="hidden lg:flex flex-col w-[200px] h-screen p-sm gap-xs bg-surface-container-low border-r border-outline-variant shrink-0 z-50 transition-all duration-300 relative">
+        <div className="flex flex-col items-center gap-xs px-xs py-md text-center relative">
+          <img src="/logo.png" alt="Zenith" className="w-9 h-9 rounded-lg object-contain shrink-0" />
+          <h1 className="text-[11px] font-extrabold text-primary leading-tight truncate max-w-full">
+            {t('brand.adminPortal')}
+          </h1>
         </div>
 
         <SidebarNav
           entries={NAV}
-          collapsed={isSidebarCollapsed}
           activeTo={activeTo}
-          className="flex flex-col gap-xs mt-sm flex-1 overflow-y-auto"
-          inactiveClassName="text-on-surface-variant hover:bg-surface-container-highest hover:translate-x-1 duration-200"
+          compact
+          className="flex flex-col gap-xs mt-xs flex-1 overflow-y-auto"
+          inactiveClassName="text-on-surface-variant hover:bg-surface-container-highest"
         />
-
-        <LogoutButton />
       </nav>
 
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
@@ -210,7 +186,7 @@ export default function AdminLayout() {
             </button>
             <ThemeToggle />
             <LanguageSwitcher />
-            <UserAvatar user={user} size="sm" />
+            <UserMenu user={user} profilePath="/admin/me" profileLabelKey="nav.admin.me" showPreferences={false} />
           </div>
         </header>
 
