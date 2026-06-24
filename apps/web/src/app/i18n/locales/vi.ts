@@ -500,7 +500,6 @@ const vi: AppResources = {
         payload: 'Hiệu ứng',
         color: 'Màu tên (hex)',
         themeKey: 'Theme key',
-        frameKey: 'Frame key',
         titleText: 'Nội dung danh hiệu',
         xp: 'XP nhận được',
         gemsMin: 'Đá quý tối thiểu',
@@ -508,7 +507,6 @@ const vi: AppResources = {
       },
       cat: {
         all: 'Tất cả',
-        AVATAR_FRAME: 'Khung avatar',
         PROFILE_THEME: 'Theme',
         NAME_COLOR: 'Màu tên',
         TITLE: 'Danh hiệu',
@@ -2201,7 +2199,6 @@ const vi: AppResources = {
         unequipDone: 'Đã tháo.',
         cat: {
           all: 'Tất cả',
-          AVATAR_FRAME: 'Khung avatar',
           PROFILE_THEME: 'Theme hồ sơ',
           NAME_COLOR: 'Màu tên',
           TITLE: 'Danh hiệu',

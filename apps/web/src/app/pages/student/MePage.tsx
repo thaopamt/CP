@@ -10,8 +10,7 @@ import {
   useUpdateDefaultLanguage,
 } from '../../api/student.queries';
 import { useChangePassword } from '../../api/me.queries';
-import { AvatarFrame, themeGradientClass } from '../../lib/cosmetics';
-
+import { themeGradientClass } from '../../lib/cosmetics';
 type TabType = 'profile' | 'stats' | 'preferences' | 'security';
 
 // Shared input styling (light + dark via semantic tokens).
@@ -144,8 +143,6 @@ export default function MePage() {
     'bg-gradient-to-r from-emerald-500/10 via-cyan-500/5 to-purple-500/10';
   const nameColor = dashboard?.nameColor;
   const equippedTitle = dashboard?.equippedTitle;
-  const equippedFrame = dashboard?.equippedFrame;
-
   return (
     <div className="mx-auto w-full max-w-6xl py-lg text-on-surface">
       {/* ── Header Hero Banner ── */}
@@ -154,15 +151,13 @@ export default function MePage() {
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-tertiary/5 rounded-full blur-3xl -z-10" />
 
         <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
-          <AvatarFrame frameKey={equippedFrame} shape="rounded">
-            <Avatar
-              size="lg"
-              shape="rounded"
-              src={user?.avatarUrl}
-              initials={name.charAt(0).toUpperCase()}
-              className="w-36 h-36 md:w-44 md:h-44 drop-shadow-2xl"
-            />
-          </AvatarFrame>
+          <Avatar
+            size="lg"
+            shape="rounded"
+            src={user?.avatarUrl}
+            initials={name.charAt(0).toUpperCase()}
+            className="w-36 h-36 md:w-44 md:h-44 drop-shadow-2xl"
+          />
 
           <div className="flex-1 text-center md:text-left min-w-0">
             <div className="flex flex-col md:flex-row md:items-center gap-3 justify-center md:justify-start">

@@ -51,7 +51,6 @@ export function ShopForm({ defaultValues, submitLabel, isSubmitting, onSubmit }:
   const p = defaultValues?.payload ?? {};
   const [color, setColor] = useState(p.color ?? '#f97316');
   const [themeKey, setThemeKey] = useState(p.themeKey ?? '');
-  const [frameKey, setFrameKey] = useState(p.frameKey ?? '');
   const [titleText, setTitleText] = useState(p.title ?? '');
   const [xp, setXp] = useState(String(p.xp ?? ''));
   const [gemsMin, setGemsMin] = useState(String(p.gemsMin ?? ''));
@@ -67,9 +66,6 @@ export function ShopForm({ defaultValues, submitLabel, isSubmitting, onSubmit }:
         break;
       case ShopItemCategory.PROFILE_THEME:
         if (themeKey) out.themeKey = themeKey.trim();
-        break;
-      case ShopItemCategory.AVATAR_FRAME:
-        if (frameKey) out.frameKey = frameKey.trim();
         break;
       case ShopItemCategory.TITLE:
         if (titleText) out.title = titleText.trim();
@@ -190,8 +186,6 @@ export function ShopForm({ defaultValues, submitLabel, isSubmitting, onSubmit }:
             setColor={setColor}
             themeKey={themeKey}
             setThemeKey={setThemeKey}
-            frameKey={frameKey}
-            setFrameKey={setFrameKey}
             titleText={titleText}
             setTitleText={setTitleText}
             xp={xp}
@@ -361,8 +355,6 @@ function PayloadFields({
   setColor,
   themeKey,
   setThemeKey,
-  frameKey,
-  setFrameKey,
   titleText,
   setTitleText,
   xp,
@@ -378,8 +370,6 @@ function PayloadFields({
   setColor: (v: string) => void;
   themeKey: string;
   setThemeKey: (v: string) => void;
-  frameKey: string;
-  setFrameKey: (v: string) => void;
   titleText: string;
   setTitleText: (v: string) => void;
   xp: string;
@@ -400,12 +390,6 @@ function PayloadFields({
       return (
         <Field label={t('pages.shopAdmin.form.themeKey')}>
           <input value={themeKey} onChange={(e) => setThemeKey(e.target.value)} placeholder="sunset" className={`${inputCls} font-mono`} />
-        </Field>
-      );
-    case ShopItemCategory.AVATAR_FRAME:
-      return (
-        <Field label={t('pages.shopAdmin.form.frameKey')}>
-          <input value={frameKey} onChange={(e) => setFrameKey(e.target.value)} placeholder="gold" className={`${inputCls} font-mono`} />
         </Field>
       );
     case ShopItemCategory.TITLE:

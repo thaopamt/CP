@@ -133,7 +133,6 @@ export default function StudentLayout() {
           </button>
           <UserMenu
             user={user}
-            frame={dashboard?.equippedFrame}
             nameColor={dashboard?.nameColor}
             title={dashboard?.equippedTitle}
             profilePath="/student/me"
@@ -161,7 +160,6 @@ export default function StudentLayout() {
           </button>
           <UserMenu
             user={user}
-            frame={dashboard?.equippedFrame}
             nameColor={dashboard?.nameColor}
             title={dashboard?.equippedTitle}
             profilePath="/student/me"

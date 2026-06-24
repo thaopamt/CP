@@ -19,7 +19,6 @@ type TFn = (key: string, opts?: Record<string, unknown>) => string;
 const CATEGORIES: (ShopItemCategory | 'all')[] = [
   'all',
   ShopItemCategory.CHARACTER,
-  ShopItemCategory.AVATAR_FRAME,
   ShopItemCategory.PROFILE_THEME,
   ShopItemCategory.NAME_COLOR,
   ShopItemCategory.TITLE,

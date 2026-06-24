@@ -33,7 +33,7 @@ export class ShopItem extends BaseEntity {
   kind!: ShopItemKind;
 
   @Index()
-  @Column({ type: 'enum', enum: ShopItemCategory, default: ShopItemCategory.AVATAR_FRAME })
+  @Column({ type: 'enum', enum: ShopItemCategory, default: ShopItemCategory.CHARACTER })
   category!: ShopItemCategory;
 
   @Column({ type: 'enum', enum: BadgeRarity, default: BadgeRarity.COMMON })

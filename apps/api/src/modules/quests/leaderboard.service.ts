@@ -149,7 +149,6 @@ export class LeaderboardService {
       value: this.windowValue(p, scope, window, now),
       nameColor: p.nameColor ?? null,
       title: p.equippedTitle ?? null,
-      frame: p.equippedFrame ?? null,
       isMe: currentUserId ? p.userId === currentUserId : false,
     });
 

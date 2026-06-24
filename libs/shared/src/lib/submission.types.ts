@@ -115,7 +115,6 @@ export interface IRealtimeSubmission extends Omit<ISubmission, 'testResults'> {
     avatarUrl?: string | null;
     /** Equipped cosmetics from the gem shop. */
     equippedTitle?: string | null;
-    equippedFrame?: string | null;
     nameColor?: string | null;
   };
   testResults?: ISubmissionRealtimeTestResult[];

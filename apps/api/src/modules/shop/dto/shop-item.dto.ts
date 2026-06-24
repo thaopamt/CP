@@ -29,9 +29,6 @@ export class ShopItemPayloadDto implements IShopItemPayload {
   @IsString()
   themeKey?: string;
 
-  @IsOptional()
-  @IsString()
-  frameKey?: string;
 
   @IsOptional()
   @IsString()

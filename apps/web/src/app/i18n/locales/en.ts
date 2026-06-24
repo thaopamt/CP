@@ -502,7 +502,6 @@ const en = {
         payload: 'Effect',
         color: 'Name color (hex)',
         themeKey: 'Theme key',
-        frameKey: 'Frame key',
         titleText: 'Title text',
         xp: 'XP granted',
         gemsMin: 'Gems min',
@@ -510,7 +509,6 @@ const en = {
       },
       cat: {
         all: 'All',
-        AVATAR_FRAME: 'Frame',
         PROFILE_THEME: 'Theme',
         NAME_COLOR: 'Name color',
         TITLE: 'Title',
@@ -2196,7 +2194,6 @@ const en = {
         unequipDone: 'Unequipped.',
         cat: {
           all: 'All',
-          AVATAR_FRAME: 'Frames',
           PROFILE_THEME: 'Themes',
           NAME_COLOR: 'Name colors',
           TITLE: 'Titles',

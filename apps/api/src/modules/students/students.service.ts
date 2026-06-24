@@ -545,7 +545,6 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       gems: profile.gems,
       nameColor: profile.nameColor ?? null,
       equippedTitle: profile.equippedTitle ?? null,
-      equippedFrame: profile.equippedFrame ?? null,
       equippedTheme: profile.equippedTheme ?? null,
       dailyQuestsCompleted,
       dailyQuestsTarget,

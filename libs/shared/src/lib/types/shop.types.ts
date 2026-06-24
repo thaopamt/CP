@@ -18,7 +18,6 @@ export enum ShopItemKind {
  * a new frame unequips the old one). CONSUMABLE is its own catch-all category.
  */
 export enum ShopItemCategory {
-  AVATAR_FRAME = 'AVATAR_FRAME',
   PROFILE_THEME = 'PROFILE_THEME',
   NAME_COLOR = 'NAME_COLOR',
   TITLE = 'TITLE',
@@ -40,8 +39,6 @@ export interface IShopItemPayload {
   color?: string;
   /** PROFILE_THEME: theme key the frontend maps to a gradient/skin. */
   themeKey?: string;
-  /** AVATAR_FRAME: frame key the frontend maps to a ring style. */
-  frameKey?: string;
   /** TITLE: the cosmetic title text shown next to the name. */
   title?: string;
   /** CONSUMABLE: flat XP granted on purchase. */
@@ -108,7 +105,6 @@ export interface IPurchaseResult {
 export interface IEquipResult {
   itemCode: string;
   equipped: boolean;
-  equippedFrame: string | null;
   equippedTheme: string | null;
   nameColor: string | null;
   equippedTitle: string | null;

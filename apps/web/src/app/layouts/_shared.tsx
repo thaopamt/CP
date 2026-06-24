@@ -5,7 +5,6 @@ import { fullName, IUser } from '@cp/shared';
 
 import { useAuthStore } from '../stores/auth.store';
 
-import { AvatarFrame } from '../lib/cosmetics';
 
 /**
  * Avatar shared by all three portal top bars. Shows the user's equipped
@@ -16,19 +15,17 @@ import { AvatarFrame } from '../lib/cosmetics';
 export function UserAvatar({
   user,
   size = 'md',
-  frame,
   nameColor,
 }: {
   user: IUser | null;
   size?: 'sm' | 'md';
-  frame?: string | null;
   nameColor?: string | null;
 }) {
   const dim = size === 'sm' ? 'w-8 h-8 text-[12px]' : 'w-10 h-10 text-label-sm';
   if (!user) return <div className={`${dim} rounded-full bg-surface-container-high`} />;
   const initials = `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase();
   return (
-    <AvatarFrame frameKey={frame} shape={user.avatarUrl ? 'rounded' : 'circle'}>
+    <>
       {user.avatarUrl ? (
         <img
           src={user.avatarUrl}
@@ -45,7 +42,7 @@ export function UserAvatar({
           {initials || '·'}
         </div>
       )}
-    </AvatarFrame>
+    </>
   );
 }
 
@@ -75,7 +72,6 @@ export function ThemeToggle() {
  */
 export function UserMenu({
   user,
-  frame,
   nameColor,
   title,
   profilePath = '/student/me',
@@ -87,7 +83,6 @@ export function UserMenu({
   showPreferences = true,
 }: {
   user: IUser | null;
-  frame?: string | null;
   nameColor?: string | null;
   title?: string | null;
   profilePath?: string;
@@ -134,7 +129,7 @@ export function UserMenu({
         aria-expanded={open}
         aria-label={t(profileLabelKey)}
       >
-        <UserAvatar user={user} size="sm" frame={frame} nameColor={nameColor} />
+        <UserAvatar user={user} size="sm" nameColor={nameColor} />
       </button>
 
       {open && (
@@ -144,7 +139,7 @@ export function UserMenu({
         >
           {/* Identity header */}
           <div className="flex items-center gap-3 px-2 py-2">
-            <UserAvatar user={user} size="md" frame={frame} nameColor={nameColor} />
+            <UserAvatar user={user} size="md" nameColor={nameColor} />
             <div className="min-w-0">
               <p
                 className="text-label-sm font-bold text-on-surface truncate"

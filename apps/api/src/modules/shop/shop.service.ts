@@ -366,9 +366,6 @@ export class ShopService {
   private applyCosmeticToProfile(profile: StudentProfile, item: ShopItem): void {
     const p = item.payload ?? {};
     switch (item.category) {
-      case ShopItemCategory.AVATAR_FRAME:
-        profile.equippedFrame = p.frameKey ?? item.code;
-        break;
       case ShopItemCategory.PROFILE_THEME:
         profile.equippedTheme = p.themeKey ?? item.code;
         break;
@@ -385,9 +382,6 @@ export class ShopService {
 
   private clearCosmeticFromProfile(profile: StudentProfile, category: ShopItemCategory): void {
     switch (category) {
-      case ShopItemCategory.AVATAR_FRAME:
-        profile.equippedFrame = null;
-        break;
       case ShopItemCategory.PROFILE_THEME:
         profile.equippedTheme = null;
         break;
@@ -411,7 +405,6 @@ export class ShopService {
     return {
       itemCode,
       equipped,
-      equippedFrame: profile.equippedFrame ?? null,
       equippedTheme: profile.equippedTheme ?? null,
       nameColor: profile.nameColor ?? null,
       equippedTitle: profile.equippedTitle ?? null,

@@ -89,9 +89,6 @@ export class StudentProfile extends BaseEntity {
   gems!: number;
 
   // ── Equipped cosmetics (bought in the gem shop) ──────────────────────
-  /** Code of the equipped avatar-frame shop item, or null. */
-  @Column({ type: 'varchar', length: 80, nullable: true, name: 'equipped_frame' })
-  equippedFrame!: string | null;
 
   /** Code of the equipped profile theme, or null. */
   @Column({ type: 'varchar', length: 80, nullable: true, name: 'equipped_theme' })

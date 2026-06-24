@@ -239,14 +239,13 @@ export class SubmissionsController implements OnModuleInit {
       if (userIds.length) {
         const profiles = await this.studentProfileRepo.find({
           where: { userId: In(userIds) },
-          select: ['userId', 'equippedTitle', 'equippedFrame', 'nameColor'],
+          select: ['userId', 'equippedTitle', 'nameColor'],
         });
         const cosmeticByUser = new Map(profiles.map((p) => [p.userId, p]));
         for (const r of rows) {
           if (!r.user) continue;
           const c = cosmeticByUser.get(r.user.id);
           (r.user as any).equippedTitle = c?.equippedTitle ?? null;
-          (r.user as any).equippedFrame = c?.equippedFrame ?? null;
           (r.user as any).nameColor = c?.nameColor ?? null;
         }
       }
