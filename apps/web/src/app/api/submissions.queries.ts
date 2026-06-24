@@ -13,10 +13,7 @@ export function useSubmitCode() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: ISubmitCodePayload) => submissionsApi.submitCode(payload),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['submissions', variables.assignmentId] });
-      queryClient.invalidateQueries({ queryKey: ['submissions-all-my'] });
-      queryClient.invalidateQueries({ queryKey: ['submissions-all'] });
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['students', 'dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
       queryClient.invalidateQueries({ queryKey: ['student-quests'] });
@@ -31,12 +28,6 @@ export function useRejudgeSubmission() {
   return useMutation({
     mutationFn: (submissionId: string) => submissionsApi.rejudgeSubmission(submissionId),
     onSuccess: (result) => {
-      const assignmentId = result.submission?.assignmentId;
-      if (assignmentId) {
-        queryClient.invalidateQueries({ queryKey: ['submissions', assignmentId] });
-      }
-      queryClient.invalidateQueries({ queryKey: ['submissions-all-my'] });
-      queryClient.invalidateQueries({ queryKey: ['submissions-all'] });
       queryClient.invalidateQueries({ queryKey: ['students', 'dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
     },
