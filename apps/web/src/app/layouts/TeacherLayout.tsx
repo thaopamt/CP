@@ -41,7 +41,6 @@ const NAV: SidebarNavEntry[] = [
     items: [
       MOBILE_NAV[3],
       { to: '/teacher/quests', icon: 'swords', key: 'nav.teacher.quests' },
-      { to: '/teacher/badges', icon: 'workspace_premium', key: 'nav.teacher.badges' },
     ],
   },
   {
@@ -96,7 +95,7 @@ export default function TeacherLayout() {
           </button>
           <ThemeToggle />
           <LanguageSwitcher />
-          <UserMenu user={user} profilePath="/teacher/me" profileLabelKey="nav.teacher.me" showPreferences={false} />
+          <UserMenu user={user} profilePath="/teacher/me" profileLabelKey="nav.teacher.me" badgesPath="/teacher/badges" badgesLabelKey="nav.teacher.badges" showPreferences={false} />
         </div>
       </header>
 
@@ -108,7 +107,7 @@ export default function TeacherLayout() {
         </button>
         <ThemeToggle />
         <LanguageSwitcher />
-        <UserMenu user={user} profilePath="/teacher/me" profileLabelKey="nav.teacher.me" showPreferences={false} />
+        <UserMenu user={user} profilePath="/teacher/me" profileLabelKey="nav.teacher.me" badgesPath="/teacher/badges" badgesLabelKey="nav.teacher.badges" showPreferences={false} />
       </header>
 
       <div className={`${marginLeft} pt-16 md:pt-0 pb-24 md:pb-0 transition-all duration-300`}>

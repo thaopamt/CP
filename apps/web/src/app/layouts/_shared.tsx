@@ -80,6 +80,10 @@ export function UserMenu({
   title,
   profilePath = '/student/me',
   profileLabelKey = 'nav.student.me',
+  shopPath,
+  shopLabelKey = 'nav.student.shop',
+  badgesPath,
+  badgesLabelKey = 'nav.student.badges',
   showPreferences = true,
 }: {
   user: IUser | null;
@@ -88,6 +92,10 @@ export function UserMenu({
   title?: string | null;
   profilePath?: string;
   profileLabelKey?: string;
+  shopPath?: string;
+  shopLabelKey?: string;
+  badgesPath?: string;
+  badgesLabelKey?: string;
   showPreferences?: boolean;
 }) {
   const { t, i18n } = useTranslation();
@@ -166,8 +174,39 @@ export function UserMenu({
             <span className="truncate">{t(profileLabelKey)}</span>
           </button>
 
+          {badgesPath && (
+            <button
+              type="button"
+              role="menuitem"
+              className={itemCls}
+              onClick={() => {
+                setOpen(false);
+                navigate(badgesPath);
+              }}
+            >
+              <span className="material-symbols-outlined text-[20px]">workspace_premium</span>
+              <span className="truncate">{t(badgesLabelKey)}</span>
+            </button>
+          )}
+
+          {shopPath && (
+            <button
+              type="button"
+              role="menuitem"
+              className={itemCls}
+              onClick={() => {
+                setOpen(false);
+                navigate(shopPath);
+              }}
+            >
+              <span className="material-symbols-outlined text-[20px]">storefront</span>
+              <span className="truncate">{t(shopLabelKey)}</span>
+            </button>
+          )}
+
           {showPreferences && (
             <>
+              <div className="my-1 h-px bg-outline-variant" />
               <button type="button" role="menuitem" className={itemCls} onClick={toggleDark}>
                 <span className="material-symbols-outlined text-[20px]">{isDark ? 'light_mode' : 'dark_mode'}</span>
                 <span className="truncate">
@@ -181,25 +220,17 @@ export function UserMenu({
                 </span>
               </button>
 
-              <div className="flex items-center gap-2 px-3 py-2">
-                <span className="material-symbols-outlined text-[20px] text-on-surface-variant">language</span>
-                <div className="flex gap-1">
-                  {(['vi', 'en'] as const).map((lng) => (
-                    <button
-                      key={lng}
-                      type="button"
-                      onClick={() => void i18n.changeLanguage(lng)}
-                      className={`rounded-md px-2 py-1 text-[11px] font-bold transition-colors ${
-                        i18n.language === lng
-                          ? 'bg-primary text-on-primary'
-                          : 'bg-surface-container-high text-on-surface-variant hover:text-on-surface'
-                      }`}
-                    >
-                      {lng.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <button 
+                type="button" 
+                role="menuitem" 
+                className={itemCls} 
+                onClick={() => void i18n.changeLanguage(i18n.language === 'vi' ? 'en' : 'vi')}
+              >
+                <span className="material-symbols-outlined text-[20px]">language</span>
+                <span className="truncate">
+                  {i18n.language === 'vi' ? 'English' : 'Tiếng Việt'}
+                </span>
+              </button>
             </>
           )}
 

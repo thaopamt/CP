@@ -34,9 +34,7 @@ const NAV: SidebarNavEntry[] = [
     key: 'nav.groups.gamification',
     items: [
       { to: '/admin/quests', icon: 'swords', key: 'nav.admin.quests' },
-      { to: '/admin/badges', icon: 'workspace_premium', key: 'nav.admin.badges' },
       { to: '/admin/quests/analytics', icon: 'insights', key: 'nav.admin.questAnalytics' },
-      { to: '/admin/shop', icon: 'storefront', key: 'nav.admin.shop' },
     ],
   },
   {
@@ -186,7 +184,7 @@ export default function AdminLayout() {
             </button>
             <ThemeToggle />
             <LanguageSwitcher />
-            <UserMenu user={user} profilePath="/admin/me" profileLabelKey="nav.admin.me" showPreferences={false} />
+            <UserMenu user={user} profilePath="/admin/me" profileLabelKey="nav.admin.me" shopPath="/admin/shop" shopLabelKey="nav.admin.shop" badgesPath="/admin/badges" badgesLabelKey="nav.admin.badges" showPreferences={false} />
           </div>
         </header>
 

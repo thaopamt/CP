@@ -400,18 +400,8 @@ function QuestCard({ sq, onOpen, t }: { sq: IStudentQuest; onOpen: (sq: IStudent
                   <span className="flex items-center gap-1 text-[11px] font-bold text-fuchsia-700 bg-fuchsia-50 border border-fuchsia-100 px-2 py-1 rounded-md dark:border-fuchsia-300/20 dark:bg-fuchsia-400/[0.12] dark:text-fuchsia-200">
                     <Icon name="diamond" size={11} /> {sq.quest.rewardGems}
                   </span>
-                  {isDone && (
-                    <span
-                      className={`text-xs font-bold flex items-center gap-1 ${isClaimed ? 'text-on-surface-variant' : 'text-emerald-700 dark:text-emerald-300'
-                        }`}
-                    >
-                      <Icon name="check_circle" size={14} className={isClaimed ? 'text-emerald-500/60' : ''} />{' '}
-                    </span>
-                  )}
+
                 </div>
-                {isInProgress && progressPct > 0 && (
-                  <span className="text-[11px] font-bold text-primary/70">{progressPct}%</span>
-                )}
               </div>
             </>
           )}
@@ -614,7 +604,7 @@ function QuestDetailModal({
         <div className="sticky bottom-0 bg-surface-container-lowest/95 backdrop-blur border-t border-outline-variant px-6 py-4 flex items-center justify-between gap-3 dark:border-white/10 dark:bg-[#18151f]/95">
           {isCompleted ? (
             <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
-              <Icon name="check_circle" size={18} /> {t('gamif.student.quests.rewardEarned')}
+              {t('gamif.student.quests.rewardEarned')}
             </span>
           ) : (
             <span />

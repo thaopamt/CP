@@ -8,49 +8,28 @@ interface LanguageSwitcherProps {
   className?: string;
 }
 
-const ORDER = ['vi', 'en'] as const;
-
-/**
- * Two-button locale toggle. Reads/writes via react-i18next so persistence
- * is handled by the listener in apps/web/src/app/i18n/index.ts.
- */
 export function LanguageSwitcher({ variant = 'compact', className }: LanguageSwitcherProps) {
   const { i18n, t } = useTranslation();
   const current = i18n.language === 'en' ? 'en' : 'vi';
+  const isEn = current === 'en';
 
   return (
-    <div
-      role="group"
+    <button
+      type="button"
+      onClick={() => void i18n.changeLanguage(isEn ? 'vi' : 'en')}
       aria-label={t('ui.languageSwitcher.label')}
+      title={isEn ? 'Switch to Tiếng Việt' : 'Switch to English'}
       className={cn(
-        'inline-flex items-center gap-xs rounded-full border border-outline-variant bg-surface-container-low p-[2px]',
+        'p-2 rounded-full hover:bg-surface-container-high transition-colors flex items-center justify-center text-on-surface-variant gap-1',
         className,
       )}
     >
-      {variant === 'full' && (
-        <Icon name="language" size={16} className="text-on-surface-variant ml-xs" />
+      <Icon name="language" size={20} />
+      {(variant === 'full' || variant === 'compact') && (
+        <span className="text-[11px] font-bold tracking-wider uppercase">
+          {current}
+        </span>
       )}
-      {ORDER.map((lng) => {
-        const active = lng === current;
-        return (
-          <button
-            key={lng}
-            type="button"
-            onClick={() => {
-              if (!active) void i18n.changeLanguage(lng);
-            }}
-            aria-pressed={active}
-            className={cn(
-              'min-w-[36px] px-sm py-xs rounded-full text-[11px] font-bold tracking-wider uppercase transition-colors',
-              active
-                ? 'bg-primary text-on-primary'
-                : 'text-on-surface-variant hover:bg-surface-container-high',
-            )}
-          >
-            {t(`ui.languageSwitcher.short.${lng}`)}
-          </button>
-        );
-      })}
-    </div>
+    </button>
   );
 }

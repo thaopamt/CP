@@ -21,6 +21,11 @@ const STUDENT_QUESTS: SidebarNavItem = {
   icon: 'rocket_launch',
   key: 'nav.student.quests',
 };
+const STUDENT_LEADERBOARD: SidebarNavItem = {
+  to: '/student/leaderboard',
+  icon: 'leaderboard',
+  key: 'nav.student.leaderboard',
+};
 const STUDENT_BADGES: SidebarNavItem = {
   to: '/student/badges',
   icon: 'workspace_premium',
@@ -29,6 +34,8 @@ const STUDENT_BADGES: SidebarNavItem = {
 
 const NAV: SidebarNavEntry[] = [
   STUDENT_HOME,
+  STUDENT_QUESTS,
+  STUDENT_LEADERBOARD,
   {
     icon: 'school',
     key: 'nav.groups.learning',
@@ -45,10 +52,6 @@ const NAV: SidebarNavEntry[] = [
     key: 'nav.groups.challenges',
     items: [
       { to: '/student/maze', icon: 'extension', key: 'nav.student.maze' },
-      STUDENT_QUESTS,
-      STUDENT_BADGES,
-      { to: '/student/leaderboard', icon: 'leaderboard', key: 'nav.student.leaderboard' },
-      { to: '/student/shop', icon: 'storefront', key: 'nav.student.shop' },
     ],
   },
 ];
@@ -60,7 +63,7 @@ const MOBILE_NAV = [
   STUDENT_ASSIGNMENTS,
   STUDENT_BLOG,
   STUDENT_QUESTS,
-  STUDENT_BADGES,
+  STUDENT_LEADERBOARD,
 ];
 
 /**
@@ -134,6 +137,8 @@ export default function StudentLayout() {
             nameColor={dashboard?.nameColor}
             title={dashboard?.equippedTitle}
             profilePath="/student/me"
+            shopPath="/student/shop"
+            badgesPath="/student/badges"
           />
         </div>
       </header>
@@ -160,6 +165,8 @@ export default function StudentLayout() {
             nameColor={dashboard?.nameColor}
             title={dashboard?.equippedTitle}
             profilePath="/student/me"
+            shopPath="/student/shop"
+            badgesPath="/student/badges"
           />
         </div>
       </header>

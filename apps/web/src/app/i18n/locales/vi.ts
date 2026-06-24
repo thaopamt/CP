@@ -85,7 +85,7 @@ const vi: AppResources = {
       attendance: 'Điểm danh',
       finance: 'Tài chính',
       users: 'Người dùng',
-      me: 'Của tôi',
+      me: 'Thông tin cá nhân',
       settings: 'Cài đặt',
       monitor: 'Giám sát',
 
@@ -110,7 +110,7 @@ const vi: AppResources = {
       myClasses: 'Lớp của tôi',
       submissions: 'Bài nộp',
       gradebook: 'Sổ điểm',
-      me: 'Của tôi',
+      me: 'Thông tin cá nhân',
 
     },
     student: {
@@ -126,7 +126,7 @@ const vi: AppResources = {
       badges: 'Huy hiệu',
       leaderboard: 'Bảng xếp hạng',
       shop: 'Cửa hàng',
-      me: 'Của tôi',
+      me: 'Thông tin cá nhân',
 
     },
   },
