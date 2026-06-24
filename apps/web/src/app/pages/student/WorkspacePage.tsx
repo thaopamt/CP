@@ -12,16 +12,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 
-// Syntax highlighting
-import Editor from 'react-simple-code-editor';
-import Prism from 'prismjs';
-import 'prismjs/themes/prism-tomorrow.css'; // dark theme
-import 'prismjs/components/prism-clike';
-import 'prismjs/components/prism-c';
-import 'prismjs/components/prism-cpp';
-import 'prismjs/components/prism-java';
-import 'prismjs/components/prism-python';
-import 'prismjs/components/prism-javascript';
+import Editor, { useMonaco } from '@monaco-editor/react';
 
 import { useAssignment, useCourseAssignments } from '../../api/curriculum.queries';
 import { useAllMySubmissions, useRunCode, useSubmitCode, useSubmissions } from '../../api/submissions.queries';
@@ -29,7 +20,6 @@ import { useMyTasks, useStudentDashboard, useUpdateDefaultLanguage } from '../..
 import { useLiveCodingSync } from '../../hooks/useLiveCodingSync';
 import { useInteractiveExec } from '../../hooks/useInteractiveExec';
 import { useSubmissionRealtimeFeed } from '../../hooks/useSubmissionRealtimeFeed';
-import RemoteCursors from '../../components/RemoteCursors';
 import { CompletionRankingInfo } from '../../components/CompletionRankingInfo';
 import {
   buildSubmissionRunResults,
@@ -41,7 +31,7 @@ import {
 const LANG_OPTIONS: { value: string; label: string; template: string }[] = [
   { value: 'cpp', label: 'C++ 20', template: '#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Your code here\n    \n    return 0;\n}\n' },
   { value: 'java', label: 'Java 17', template: 'import java.util.*;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        // Your code here\n        \n    }\n}\n' },
-  { value: 'python', label: 'Python 3', template: '# Your code here\nimport sys\ninput = sys.stdin.readline\n\n' },
+  { value: 'python', label: 'Python 3', template: '' },
   { value: 'javascript', label: 'JavaScript', template: '// Your code here\nconst readline = require("readline");\nconst rl = readline.createInterface({ input: process.stdin });\n\nrl.on("line", (line) => {\n    \n});\n' },
 ];
 
@@ -84,43 +74,71 @@ function CourseProgressDots({
   currentAssignmentId?: string;
   onSelect: (item: CourseProgressItem) => void;
 }) {
+  const [hoverInfo, setHoverInfo] = useState<{ title: string; index: number; x: number; y: number } | null>(null);
+
   if (items.length === 0) return null;
 
   return (
-    <nav
-      aria-label="Course assignment progress"
-      className="mx-3 flex min-w-[96px] flex-1 justify-center overflow-hidden"
-    >
-      <div className="flex max-w-full items-center gap-1.5 overflow-x-auto rounded-lg border border-white/10 bg-white/5 px-2 py-1.5">
-        {items.map((item, index) => {
-          const isCurrent = item.id === currentAssignmentId;
-          const statusClass = {
-            accepted: 'border-emerald-400 bg-emerald-400',
-            partial: 'border-emerald-400 bg-transparent',
-            wrong: 'border-amber-400 bg-amber-400',
-            idle: 'border-transparent bg-white/20',
-          }[item.status];
+    <>
+      <nav
+        aria-label="Course assignment progress"
+        className="mx-3 flex min-w-[96px] flex-1 justify-center overflow-hidden"
+      >
+        <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-white/10 bg-white/5 px-1.5 py-1 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/30 pb-[2px]">
+          {items.map((item, index) => {
+            const isCurrent = item.id === currentAssignmentId;
+            const statusClass = {
+              accepted: 'border-emerald-400 bg-emerald-400 text-[#1a1a2e]',
+              partial: 'border-emerald-400 bg-emerald-400/20 text-emerald-400',
+              wrong: 'border-amber-400 bg-amber-400 text-[#1a1a2e]',
+              idle: 'border-white/20 bg-white/10 text-gray-300',
+            }[item.status];
 
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onSelect(item)}
-              title={`Bài ${index + 1}: ${item.title}`}
-              aria-label={`Bài ${index + 1}: ${item.title}${isCurrent ? ' đang làm' : ''}`}
-              className={`h-2.5 w-2.5 shrink-0 rounded-full border-2 transition-all hover:scale-125 focus:outline-none focus:ring-2 focus:ring-emerald-300/70 ${
-                isCurrent ? 'scale-125 ring-2 ring-white/70' : ''
-              } ${statusClass}`}
-            />
-          );
-        })}
-      </div>
-    </nav>
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onSelect(item)}
+                onMouseEnter={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setHoverInfo({
+                    title: item.title,
+                    index,
+                    x: rect.left + rect.width / 2,
+                    y: rect.bottom + 8,
+                  });
+                }}
+                onMouseLeave={() => setHoverInfo(null)}
+                aria-label={`Bài ${index + 1}: ${item.title}${isCurrent ? ' đang làm' : ''}`}
+                className={`flex items-center justify-center shrink-0 rounded-full border transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-emerald-300/70 ${
+                  isCurrent ? 'w-5 h-5 text-[10px] font-bold ring-2 ring-white/50 ring-offset-1 ring-offset-[#1a1a2e]' : 'w-3 h-3'
+                } ${statusClass}`}
+              >
+                {isCurrent ? index + 1 : null}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      {hoverInfo && (
+        <div
+          className="fixed z-[100] pointer-events-none -translate-x-1/2 px-3 py-1.5 bg-[#2a2a4a] text-white text-sm font-medium rounded-lg shadow-xl border border-white/10 animate-in fade-in zoom-in-95 duration-150 whitespace-nowrap"
+          style={{ left: hoverInfo.x, top: hoverInfo.y }}
+        >
+          <span className="text-emerald-400 mr-1.5">{hoverInfo.title}</span>
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-b-[#2a2a4a]" />
+        </div>
+      )}
+    </>
   );
 }
 
 export default function StudentWorkspacePage() {
   const { isConnected: realtimeConnected } = useSubmissionRealtimeFeed();
+  const editorRef = useRef<any>(null);
+  const monacoRef = useRef<any>(null);
+  const decorationsCollectionRef = useRef<any>(null);
 
   const routeParams = useParams<{ problemId?: string; id?: string }>();
   const problemId = routeParams.problemId ?? routeParams.id;
@@ -452,63 +470,45 @@ export default function StudentWorkspacePage() {
     setLanguage(newLanguage);
   }, []);
 
-  const handleEditorKeyDown = (e: React.KeyboardEvent<any>) => {
-    const { key } = e;
-    const pairs: Record<string, string> = {
-      '(': ')',
-      '{': '}',
-      '[': ']',
-      '"': '"',
-      "'": "'",
-    };
-
-    if (pairs[key]) {
-      e.preventDefault();
-      const ta = e.currentTarget as HTMLTextAreaElement;
-      const start = ta.selectionStart;
-      const end = ta.selectionEnd;
-      const val = code;
-      const before = val.substring(0, start);
-      const after = val.substring(end);
-      const newCode = before + key + pairs[key] + after;
-      setCode(newCode);
-      setTimeout(() => {
-        if (ta) {
-          ta.selectionStart = ta.selectionEnd = start + 1;
-          setCursorOffset(start + 1);
-        }
-      }, 0);
-    } else if (key === 'Backspace') {
-      const ta = e.currentTarget as HTMLTextAreaElement;
-      const start = ta.selectionStart;
-      const end = ta.selectionEnd;
-      if (start === end && start > 0) {
-        const val = code;
-        const charBefore = val[start - 1];
-        const charAfter = val[start];
-        const matchingPairs: Record<string, string> = { '(': ')', '{': '}', '[': ']', '"': '"', "'": "'" };
-        if (matchingPairs[charBefore] === charAfter) {
-          e.preventDefault();
-          const before = val.substring(0, start - 1);
-          const after = val.substring(start + 1);
-          setCode(before + after);
-          setTimeout(() => {
-            if (ta) {
-              ta.selectionStart = ta.selectionEnd = start - 1;
-              setCursorOffset(start - 1);
-            }
-          }, 0);
-        }
-      }
-    }
-  };
-
   // Kích hoạt Live Coding Sync
   const { adminCursor, adminName, adminIsEditing } = useLiveCodingSync(problemId, code, language, cursorOffset, {
     title: assignment?.title,
     description: assignment?.description,
     examples: liveProblemExamples,
   }, handleRemoteCodeChange);
+
+  // Monaco admin cursor decoration
+  useEffect(() => {
+    if (!editorRef.current || !monacoRef.current) return;
+    const editor = editorRef.current;
+    
+    if (adminIsEditing && typeof adminCursor === 'number') {
+      const model = editor.getModel();
+      if (!model) return;
+      const pos = model.getPositionAt(adminCursor);
+      
+      const newDecorations = [
+        {
+          range: new monacoRef.current.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column),
+          options: {
+            className: 'remote-cursor-admin',
+            stickiness: monacoRef.current.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+            hoverMessage: { value: adminName || 'Giáo viên' }
+          }
+        }
+      ];
+      
+      if (!decorationsCollectionRef.current) {
+        decorationsCollectionRef.current = editor.createDecorationsCollection(newDecorations);
+      } else {
+        decorationsCollectionRef.current.set(newDecorations);
+      }
+    } else {
+      if (decorationsCollectionRef.current) {
+        decorationsCollectionRef.current.clear();
+      }
+    }
+  }, [adminIsEditing, adminCursor, adminName]);
 
   // Sync default language from DB (once after dashboard loads)
   useEffect(() => {
@@ -778,29 +778,31 @@ export default function StudentWorkspacePage() {
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#1a1a2e] text-gray-200" style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
       {/* ── Top Bar ─────────────────────────────────────────────────── */}
-      <header className="h-12 flex items-center justify-between px-4 bg-[#1e1e3a] border-b border-white/5 shrink-0">
+      <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 min-h-[3rem] px-4 bg-[#1e1e3a] border-b border-white/5 shrink-0">
         <div className="flex items-center gap-3">
-          <button onClick={handleBack} className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm">
+          <button onClick={handleBack} className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm whitespace-nowrap shrink-0">
             <Icon name="arrow_back" size={18} />
             <span className="hidden sm:inline">{backLabel}</span>
           </button>
-          <div className="w-px h-5 bg-white/10" />
-          <div className="flex items-center gap-2 min-w-0">
-            <span className={`material-symbols-outlined text-base ${assignment.difficulty === 'EASY' ? 'text-emerald-400' : assignment.difficulty === 'MEDIUM' ? 'text-amber-400' : 'text-red-400'}`}>
+          <div className="w-px h-5 bg-white/10 shrink-0 hidden sm:block" />
+          <div className="flex items-center gap-2 min-w-0 hidden sm:flex">
+            <span className={`material-symbols-outlined text-base shrink-0 ${assignment.difficulty === 'EASY' ? 'text-emerald-400' : assignment.difficulty === 'MEDIUM' ? 'text-amber-400' : 'text-red-400'}`}>
               assignment
             </span>
-            <h1 className="text-sm font-semibold text-white truncate max-w-[300px]">{assignment.title}</h1>
+            <h1 className="text-sm font-semibold text-white leading-tight break-words">{assignment.title}</h1>
             <DifficultyBadge difficulty={assignment.difficulty as DifficultyLevel} />
           </div>
         </div>
 
-        <CourseProgressDots
-          items={courseProgressItems}
-          currentAssignmentId={problemId}
-          onSelect={handleCourseProgressSelect}
-        />
+        <div className="flex justify-center min-w-0">
+          <CourseProgressDots
+            items={courseProgressItems}
+            currentAssignmentId={problemId}
+            onSelect={handleCourseProgressSelect}
+          />
+        </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2 shrink-0">
           <select
             value={language}
             onChange={e => handleLanguageChange(e.target.value)}
@@ -1069,7 +1071,7 @@ export default function StudentWorkspacePage() {
           {/* Code Editor Area */}
           <div style={{ height: `${splitY}%` }} className="flex flex-col min-h-0 bg-[#0d0d1a]">
             {/* Editor Header */}
-            <div className="flex items-center justify-between px-3 py-1.5 bg-[#1e1e3a] border-b border-white/5 shrink-0">
+            <div className="flex items-center justify-between px-3 h-[37px] bg-[#1e1e3a] border-b border-white/5 shrink-0">
               <div className="flex items-center gap-2">
                 <Icon name="code" size={14} className="text-emerald-400" />
                 <span className="text-xs text-gray-400">Code</span>
@@ -1079,74 +1081,73 @@ export default function StudentWorkspacePage() {
               </button>
             </div>
             {/* Editor Body */}
-            <div className="flex-1 min-h-0 overflow-auto relative">
-              <div className="flex min-h-full">
-                {/* Line numbers */}
-                <div className="shrink-0 w-10 bg-[#0a0a18] select-none border-r border-white/5 pt-3 pr-2">
-                  {code.split('\n').map((_, i) => (
-                    <div key={i} className="text-right text-[11px] leading-[20px] text-gray-600 font-mono">{i + 1}</div>
-                  ))}
-                </div>
-                {/* Syntax highlighted editor */}
-                <div ref={editorScrollRef} className="flex-1 min-w-0 bg-[#0d0d1a] relative">
-                  <div ref={editorWrapRef} style={{ position: 'relative' }}>
-                    <Editor
-                      value={code}
-                      onValueChange={code => setCode(code)}
-                      highlight={code => {
-                        const grammar = Prism.languages[language === 'cpp' ? 'cpp' : language] || Prism.languages.javascript;
-                        return Prism.highlight(code, grammar, language);
-                      }}
-                      padding={12}
-                      className="editor-container"
-                      textareaClassName="focus:outline-none"
-                      onKeyDown={handleEditorKeyDown}
-                      onKeyUp={() => {
-                        const ta = editorWrapRef.current?.querySelector('textarea');
-                        if (ta) setCursorOffset(ta.selectionStart);
-                      }}
-                      onClick={() => {
-                        const ta = editorWrapRef.current?.querySelector('textarea');
-                        if (ta) setCursorOffset(ta.selectionStart);
-                      }}
-                      style={{
-                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                        fontSize: 13,
-                        lineHeight: '20px',
-                        backgroundColor: 'transparent',
-                        minHeight: '100%',
-                        color: '#d4d4d4', // fallback color
-                      }}
-                    />
-                    {adminIsEditing && typeof adminCursor === 'number' && (
-                      <RemoteCursors
-                        cursors={[{ name: adminName || 'Giáo viên', offset: adminCursor, color: '#a78bfa' }]}
-                        code={code}
-                        scrollContainerRef={editorScrollRef}
-                        lineHeight={20}
-                        paddingTop={12}
-                        paddingLeft={12}
-                      />
-                    )}
-                  </div>
-                </div>
-              </div>
+            <div className="flex-1 min-h-0 relative">
+              <Editor
+                height="100%"
+                language={language === 'cpp' ? 'cpp' : language}
+                theme="cp-dark"
+                beforeMount={(monaco) => {
+                  monaco.editor.defineTheme('cp-dark', {
+                    base: 'vs-dark',
+                    inherit: true,
+                    rules: [
+                      { token: 'comment', foreground: '6b7280', fontStyle: 'italic' },
+                      { token: 'keyword', foreground: 'a78bfa' },
+                      { token: 'identifier', foreground: 'e5e7eb' },
+                      { token: 'string', foreground: '34d399' },
+                      { token: 'number', foreground: 'fbbf24' },
+                    ],
+                    colors: {
+                      'editor.background': '#0d0d1a',
+                      'editor.foreground': '#e5e7eb',
+                      'editor.lineHighlightBackground': '#ffffff0a',
+                      'editorLineNumber.foreground': '#4b5563',
+                      'editorLineNumber.activeForeground': '#a78bfa',
+                      'editor.selectionBackground': '#34d39930',
+                      'editorCursor.foreground': '#34d399',
+                      'editorWhitespace.foreground': '#ffffff10',
+                      'editorIndentGuide.background': '#ffffff10',
+                      'editorIndentGuide.activeBackground': '#ffffff30',
+                    }
+                  });
+                }}
+                value={code}
+                onChange={(val) => {
+                  if (val !== undefined) setCode(val);
+                }}
+                onMount={(editor, monaco) => {
+                  editorRef.current = editor;
+                  monacoRef.current = monaco;
+                  editor.onDidChangeCursorPosition((e) => {
+                    const offset = editor.getModel()?.getOffsetAt(e.position) || 0;
+                    setCursorOffset(offset);
+                  });
+                }}
+                options={{
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                  fontSize: 13,
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  wordWrap: 'on',
+                  padding: { top: 12 },
+                  tabSize: 4,
+                  automaticLayout: true,
+                }}
+              />
             </div>
 
-            {/* Add some global CSS overrides for the editor to ensure it fills the space properly */}
             <style>{`
-                .editor-container {
-                  min-height: 100%;
+                .remote-cursor-admin {
+                  border-left: 2px solid #a78bfa;
+                  animation: remoteCursorBlink 1.2s ease-in-out infinite;
+                  z-index: 100;
+                  pointer-events: none;
                 }
-                .editor-container textarea {
-                  outline: none !important;
+                @keyframes remoteCursorBlink {
+                  0%, 100% { opacity: 1; }
+                  50% { opacity: 0.3; }
                 }
-                /* Optional: small tweaks to Prism tomorrow theme for better integration */
-                code[class*="language-"], pre[class*="language-"] {
-                  text-shadow: none !important;
-                  background: transparent !important;
-                }
-              `}</style>
+            `}</style>
           </div>
 
           {/* ── Vertical Splitter ──────────────────────────────────── */}

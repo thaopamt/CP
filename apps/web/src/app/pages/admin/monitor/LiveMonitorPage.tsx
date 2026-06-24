@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Icon, PageHeader } from '@cp/ui';
-import Editor from 'react-simple-code-editor';
+import MonacoEditor from '@monaco-editor/react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -16,7 +16,6 @@ import 'prismjs/components/prism-javascript';
 import 'katex/dist/katex.min.css';
 
 import { resolveSocketNamespace } from '../../../lib/socket-url';
-import RemoteCursors, { type RemoteCursor } from '../../../components/RemoteCursors';
 import { MazeWorkspaceViewer } from '../../../features/maze/MazeWorkspaceViewer';
 import { useAuthStore } from '../../../stores/auth.store';
 import { fullName } from '@cp/shared';
@@ -85,8 +84,9 @@ function DetailModal({
   socketRef: React.RefObject<Socket | null>;
   onAdminCodeChange: (studentId: string, problemId: string, code: string, language: string) => void;
 }) {
-  const editorContainerRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const monacoEditorRef = useRef<any>(null);
+  const monacoInstanceRef = useRef<any>(null);
+  const decorationsCollectionRef = useRef<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [draftCode, setDraftCode] = useState(code);
   const { user } = useAuthStore();
@@ -117,13 +117,15 @@ function DetailModal({
 
   useEffect(() => {
     if (!isEditing) return;
-    const frame = requestAnimationFrame(() => {
-      const textarea = editorContainerRef.current?.querySelector('textarea');
-      textarea?.focus();
-      emitAdminEditState(true, textarea?.selectionStart ?? 0);
-    });
+    if (monacoEditorRef.current) {
+      monacoEditorRef.current.focus();
+      const pos = monacoEditorRef.current.getPosition();
+      const offset = pos ? monacoEditorRef.current.getModel()?.getOffsetAt(pos) || 0 : 0;
+      emitAdminEditState(true, offset);
+    } else {
+      emitAdminEditState(true, 0);
+    }
     return () => {
-      cancelAnimationFrame(frame);
       emitAdminEditState(false);
     };
   }, [emitAdminEditState, isEditing]);
@@ -158,9 +160,9 @@ function DetailModal({
 
     // Emit to server immediately
     if (socketRef.current && student.problemId) {
-      // Get cursor position from textarea
-      const textarea = editorContainerRef.current?.querySelector('textarea');
-      const cursorOffset = textarea?.selectionStart ?? 0;
+      // Get cursor position from monaco
+      const pos = monacoEditorRef.current?.getPosition();
+      const cursorOffset = pos ? monacoEditorRef.current?.getModel()?.getOffsetAt(pos) || 0 : 0;
       socketRef.current.emit('admin_code_edit', {
         studentId: student.studentId,
         problemId: student.problemId,
@@ -172,53 +174,37 @@ function DetailModal({
     }
   }, [adminName, isEditing, language, onAdminCodeChange, socketRef, student.problemId, student.studentId]);
 
-  // Track admin cursor movement (clicks, arrow keys, etc.)
   useEffect(() => {
-    if (!isEditing) return;
-    const container = editorContainerRef.current;
-    if (!container) return;
-
-    const emitCursor = () => {
-      const textarea = container.querySelector('textarea');
-      if (!textarea || !socketRef.current || !student.problemId) return;
-      socketRef.current.emit('admin_cursor_move', {
-        studentId: student.studentId,
-        problemId: student.problemId,
-        cursorOffset: textarea.selectionStart ?? 0,
-        adminName,
-      });
-    };
-
-    // Track cursor changes via multiple events
-    const onSelect = () => emitCursor();
-    const onClick = () => emitCursor();
-    const onKeyUp = (e: KeyboardEvent) => {
-      // Only emit for navigation keys, not typing (typing already handled in handleCodeChange)
-      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) {
-        emitCursor();
+    if (!monacoEditorRef.current || !monacoInstanceRef.current) return;
+    const editor = monacoEditorRef.current;
+    
+    if (typeof studentCursorOffset === 'number') {
+      const model = editor.getModel();
+      if (!model) return;
+      const pos = model.getPositionAt(studentCursorOffset);
+      
+      const newDecorations = [
+        {
+          range: new monacoInstanceRef.current.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column),
+          options: {
+            className: 'remote-cursor-student',
+            stickiness: monacoInstanceRef.current.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+            hoverMessage: { value: student.studentName || 'Học sinh' }
+          }
+        }
+      ];
+      
+      if (!decorationsCollectionRef.current) {
+        decorationsCollectionRef.current = editor.createDecorationsCollection(newDecorations);
+      } else {
+        decorationsCollectionRef.current.set(newDecorations);
       }
-    };
-
-    container.addEventListener('click', onClick);
-    container.addEventListener('keyup', onKeyUp);
-    document.addEventListener('selectionchange', onSelect);
-
-    return () => {
-      container.removeEventListener('click', onClick);
-      container.removeEventListener('keyup', onKeyUp);
-      document.removeEventListener('selectionchange', onSelect);
-    };
-  }, [adminName, isEditing, socketRef, student.problemId, student.studentId]);
-
-  // Student cursor for RemoteCursors overlay
-  const remoteCursors: RemoteCursor[] = [];
-  if (typeof studentCursorOffset === 'number') {
-    remoteCursors.push({
-      name: student.studentName || 'Học sinh',
-      offset: studentCursorOffset,
-      color: '#34d399', // emerald
-    });
-  }
+    } else {
+      if (decorationsCollectionRef.current) {
+        decorationsCollectionRef.current.clear();
+      }
+    }
+  }, [studentCursorOffset, student.studentName]);
 
   return (
     <div
@@ -359,41 +345,84 @@ function DetailModal({
               <MazeWorkspaceViewer xml={code} />
             </div>
           ) : (
-            <div ref={scrollContainerRef} className="min-h-0 overflow-auto relative">
-              <div ref={editorContainerRef} className="relative min-h-full">
-                {isEditing ? (
-                  <Editor
-                    value={draftCode}
-                    onValueChange={handleCodeChange}
-                    highlight={(c) => highlightCode(c, language)}
-                    padding={16}
-                    placeholder="// Waiting for code..."
-                    className="w-full min-h-full font-mono text-[13px] bg-transparent text-gray-300 outline-none"
-                    textareaClassName="focus:outline-none"
-                    style={{
-                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                      lineHeight: '20px',
-                    }}
-                  />
-                ) : editorValue ? (
-                  <pre
-                    className="min-h-full w-full whitespace-pre p-4 font-mono text-[13px] leading-5 text-gray-300"
-                    dangerouslySetInnerHTML={{ __html: highlightCode(editorValue, language) }}
-                  />
-                ) : (
-                  <div className="flex min-h-[220px] items-center justify-center p-4 text-sm italic text-gray-600">
-                    Chưa có code…
-                  </div>
-                )}
-                <RemoteCursors
-                  cursors={remoteCursors}
-                  code={editorValue || ''}
-                  scrollContainerRef={scrollContainerRef}
-                  lineHeight={20}
-                  paddingTop={16}
-                  paddingLeft={16}
-                />
-              </div>
+            <div className="min-h-0 relative bg-[#1e1e1e]">
+              <MonacoEditor
+                height="100%"
+                language={language === 'cpp' ? 'cpp' : language}
+                theme="cp-dark"
+                beforeMount={(monaco) => {
+                  monaco.editor.defineTheme('cp-dark', {
+                    base: 'vs-dark',
+                    inherit: true,
+                    rules: [
+                      { token: 'comment', foreground: '6b7280', fontStyle: 'italic' },
+                      { token: 'keyword', foreground: 'a78bfa' },
+                      { token: 'identifier', foreground: 'e5e7eb' },
+                      { token: 'string', foreground: '34d399' },
+                      { token: 'number', foreground: 'fbbf24' },
+                    ],
+                    colors: {
+                      'editor.background': '#0d0d1a',
+                      'editor.foreground': '#e5e7eb',
+                      'editor.lineHighlightBackground': '#ffffff0a',
+                      'editorLineNumber.foreground': '#4b5563',
+                      'editorLineNumber.activeForeground': '#a78bfa',
+                      'editor.selectionBackground': '#34d39930',
+                      'editorCursor.foreground': '#34d399',
+                      'editorWhitespace.foreground': '#ffffff10',
+                      'editorIndentGuide.background': '#ffffff10',
+                      'editorIndentGuide.activeBackground': '#ffffff30',
+                    }
+                  });
+                }}
+                value={isEditing ? draftCode : editorValue}
+                onChange={(val) => {
+                  if (isEditing && val !== undefined) {
+                    handleCodeChange(val);
+                  }
+                }}
+                onMount={(editor, monaco) => {
+                  monacoEditorRef.current = editor;
+                  monacoInstanceRef.current = monaco;
+                  
+                  // Track admin cursor movement using Monaco native event
+                  editor.onDidChangeCursorPosition((e) => {
+                    if (!isEditing) return;
+                    const offset = editor.getModel()?.getOffsetAt(e.position) || 0;
+                    if (socketRef.current && student.problemId) {
+                      socketRef.current.emit('admin_cursor_move', {
+                        studentId: student.studentId,
+                        problemId: student.problemId,
+                        cursorOffset: offset,
+                        adminName,
+                      });
+                    }
+                  });
+                }}
+                options={{
+                  readOnly: !isEditing,
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                  fontSize: 13,
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  wordWrap: 'on',
+                  padding: { top: 16 },
+                  tabSize: 4,
+                  automaticLayout: true,
+                }}
+              />
+              <style>{`
+                .remote-cursor-student {
+                  border-left: 2px solid #34d399;
+                  animation: remoteCursorBlink 1.2s ease-in-out infinite;
+                  z-index: 100;
+                  pointer-events: none;
+                }
+                @keyframes remoteCursorBlink {
+                  0%, 100% { opacity: 1; }
+                  50% { opacity: 0.3; }
+                }
+              `}</style>
             </div>
           )}
         </div>
