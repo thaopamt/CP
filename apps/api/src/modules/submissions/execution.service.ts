@@ -236,6 +236,8 @@ export class ExecutionService {
         ? { inputFileName: config.inputFileName, outputFileName: config.outputFileName }
         : undefined;
 
+    const checkerType = config?.checkerType || 'standard';
+
     // Inline test cases live in the DB (small, visible samples); heavy hidden
     // grading test cases live on disk. The judge grades the inline ones first,
     // then the disk-backed ones, so indices stay contiguous.
@@ -311,6 +313,7 @@ export class ExecutionService {
           memoryLimitBytes,
           fileIoConfig,
           hooks,
+          checkerType,
         );
       } catch (error: any) {
         this.logger.warn(
@@ -319,7 +322,7 @@ export class ExecutionService {
       }
     }
 
-    return this.gradeSequentialTestCases(language, code, testCases, timeLimitMs, memoryLimitBytes, fileIoConfig, hooks);
+    return this.gradeSequentialTestCases(language, code, testCases, timeLimitMs, memoryLimitBytes, fileIoConfig, hooks, checkerType);
   }
 
   private async resolveGradeTestCases(
@@ -353,6 +356,7 @@ export class ExecutionService {
     memoryLimitBytes: number,
     fileIoConfig: FileIoConfig | undefined,
     hooks: GradeSubmissionHooks,
+    checkerType: 'standard' | 'exact' | 'custom' = 'standard',
   ): Promise<GradeComputationResult> {
     const testResults: GradedTestResult[] = [];
     let passedCount = 0;
@@ -407,11 +411,7 @@ export class ExecutionService {
           finalStatus = SubmissionStatus.RUNTIME_ERROR;
         }
       } else {
-        // Compare output (trim trailing whitespace/newlines)
-        const expected = tcOutput.trim();
-        const actual = actualOutput.trim();
-
-        if (expected !== actual) {
+        if (!this.compareOutputs(tcOutput, actualOutput, checkerType)) {
           status = SubmissionStatus.WRONG_ANSWER;
           if (finalStatus === SubmissionStatus.ACCEPTED) {
             finalStatus = SubmissionStatus.WRONG_ANSWER;
@@ -455,6 +455,28 @@ export class ExecutionService {
     };
   }
 
+  private compareOutputs(expected: string, actual: string, checkerType: 'standard' | 'exact' | 'custom'): boolean {
+    if (checkerType === 'exact') {
+      return expected.trim() === actual.trim();
+    }
+    
+    // standard match: split by whitespace and compare tokens
+    const expectedTokens = expected.trim().split(/\s+/).filter(Boolean);
+    const actualTokens = actual.trim().split(/\s+/).filter(Boolean);
+    
+    if (expectedTokens.length !== actualTokens.length) {
+      return false;
+    }
+    
+    for (let i = 0; i < expectedTokens.length; i++) {
+      if (expectedTokens[i] !== actualTokens[i]) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+
   private canUseBatchGrader(language: string): boolean {
     const l = language.toLowerCase();
     return (
@@ -478,6 +500,7 @@ export class ExecutionService {
     memoryLimitBytes: number,
     fileIoConfig: FileIoConfig | undefined,
     hooks: GradeSubmissionHooks,
+    checkerType: 'standard' | 'exact' | 'custom' = 'standard',
   ): Promise<GradeComputationResult> {
     const sourceFileName = this.getSourceFileName(language);
     const wrapper = this.buildBatchRunner(language, sourceFileName, testCases.length, timeLimitMs, fileIoConfig);
@@ -562,7 +585,7 @@ export class ExecutionService {
       } else if (output.exitCode !== 0) {
         status = SubmissionStatus.RUNTIME_ERROR;
         errorMessage = output.stderr || `Runtime Error: process exited with code ${output.exitCode}`;
-      } else if (testCase.output.trim() !== output.stdout.trim()) {
+      } else if (!this.compareOutputs(testCase.output, output.stdout, checkerType)) {
         status = SubmissionStatus.WRONG_ANSWER;
       }
 

@@ -808,19 +808,14 @@ export default function AssignmentEditPage() {
                 Advanced
               </h3>
               
-              {/* Checker configuration */}
-              <div className="mb-sm">
-                <label className="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Checker Configuration</label>
-                <div className="flex gap-md mt-sm">
-                  <label className="flex items-center gap-xs cursor-pointer">
-                    <input type="radio" name="checkerType" checked={checkerType === 'standard'} onChange={() => setCheckerType('standard')} className="text-primary focus:ring-primary border-outline-variant" />
-                    <span className="text-sm text-on-surface">Standard</span>
-                  </label>
-                  <label className="flex items-center gap-xs cursor-pointer opacity-50" title="Coming soon">
-                    <input type="radio" name="checkerType" disabled className="text-on-surface-variant border-outline-variant" />
-                    <span className="text-sm text-on-surface-variant">Custom Checker (Coming soon)</span>
-                  </label>
-                </div>
+              <div className="mb-md">
+                <label className="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Checker Type</label>
+                <select value={checkerType} onChange={e => setCheckerType(e.target.value as any)} className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm text-sm focus:outline-none focus:border-primary appearance-none">
+                  <option value="standard">Standard Token Match</option>
+                  <option value="exact">Exact Match</option>
+                  <option value="custom">Custom Checker (C++)</option>
+                </select>
+                <p className="text-xs text-on-surface-variant mt-1">Use standard token match for most problems.</p>
               </div>
 
               {/* I/O Mode */}

@@ -30,6 +30,7 @@ import { useLiveCodingSync } from '../../hooks/useLiveCodingSync';
 import { useInteractiveExec } from '../../hooks/useInteractiveExec';
 import { useSubmissionRealtimeFeed } from '../../hooks/useSubmissionRealtimeFeed';
 import RemoteCursors from '../../components/RemoteCursors';
+import { CompletionRankingInfo } from '../../components/CompletionRankingInfo';
 import {
   buildSubmissionRunResults,
   getActiveRunResultIndex,
@@ -379,13 +380,18 @@ export default function StudentWorkspacePage() {
     void (async () => {
       const shouldMoveNext = await confirm({
         title: 'Hoàn thành bài!',
-        message: nextAssignmentTarget ? (
-          <span>
-            Em đã làm đúng tất cả test. Bài tiếp theo là{' '}
-            <span className="font-semibold text-on-surface">{nextAssignmentTarget.title}</span>.
-          </span>
-        ) : (
-          'Em đã làm đúng tất cả test. Hiện chưa có bài tiếp theo trong danh sách đang giao.'
+        message: (
+          <div>
+            {nextAssignmentTarget ? (
+              <span>
+                Em đã làm đúng tất cả test. Bài tiếp theo là{' '}
+                <span className="font-semibold text-on-surface">{nextAssignmentTarget.title}</span>.
+              </span>
+            ) : (
+              <span>Em đã làm đúng tất cả test. Hiện chưa có bài tiếp theo trong danh sách đang giao.</span>
+            )}
+            <CompletionRankingInfo />
+          </div>
         ),
         confirmLabel: nextAssignmentTarget ? 'Làm bài tiếp theo' : 'Về danh sách bài',
         cancelLabel: 'Ở lại',

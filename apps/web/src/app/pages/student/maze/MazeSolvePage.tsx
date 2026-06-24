@@ -9,6 +9,7 @@ import { useLiveCodingSync } from '../../../hooks/useLiveCodingSync';
 import { MazeBlocklyEditor, MazeBlocklyEditorHandle } from '../../../features/maze/MazeBlocklyEditor';
 import { MazeGrid } from '../../../features/maze/MazeGrid';
 import { useMazeAnimation } from '../../../features/maze/useMazeAnimation';
+import { CompletionRankingInfo } from '../../../components/CompletionRankingInfo';
 
 type Outcome =
   | { kind: 'success' }
@@ -52,13 +53,18 @@ export default function MazeSolvePage() {
   const promptNextLevel = useCallback(async () => {
     const shouldMoveNext = await confirm({
       title: 'Hoàn thành mê cung!',
-      message: nextLevel ? (
-        <span>
-          Em đã giải đúng bàn này. Bàn tiếp theo là{' '}
-          <span className="font-semibold text-on-surface">{nextLevel.title}</span>.
-        </span>
-      ) : (
-        'Em đã giải đúng bàn này. Hiện chưa có bàn tiếp theo trong danh sách đang giao.'
+      message: (
+        <div>
+          {nextLevel ? (
+            <span>
+              Em đã giải đúng bàn này. Bàn tiếp theo là{' '}
+              <span className="font-semibold text-on-surface">{nextLevel.title}</span>.
+            </span>
+          ) : (
+            <span>Em đã giải đúng bàn này. Hiện chưa có bàn tiếp theo trong danh sách đang giao.</span>
+          )}
+          <CompletionRankingInfo />
+        </div>
       ),
       confirmLabel: nextLevel ? 'Làm bàn tiếp theo' : 'Về danh sách mê cung',
       cancelLabel: 'Ở lại',
