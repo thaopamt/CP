@@ -1,0 +1,184 @@
+# ─────────────────────────────────────────────────────────────────────
+# CP System — CI/CD Deploy via Tailscale + SSH
+#
+# Flow:
+#   1. Push to `main` → trigger pipeline
+#   2. GitHub Actions connects to Tailscale VPN
+#   3. SSH vào server → git pull + docker compose build + up
+#
+# Required GitHub Secrets:
+#   TS_OAUTH_CLIENT_ID     — Tailscale OAuth client ID
+#   TS_OAUTH_SECRET        — Tailscale OAuth secret
+#   SSH_HOST               — Tailscale IP hoặc hostname của server
+#   SSH_USER               — User SSH (ví dụ: ubuntu)
+#   SSH_PRIVATE_KEY        — Private key để SSH vào server
+# ─────────────────────────────────────────────────────────────────────
+
+name: 🚀 Deploy CP System
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:         # Cho phép chạy tay từ GitHub UI
+
+# Chỉ cho phép 1 deploy chạy cùng lúc, cancel cái cũ nếu có push mới
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+env:
+  APP_DIR: /opt/cp-system
+
+jobs:
+  # ── Job 1: Lint & Test ──────────────────────────────────────────────
+  test:
+    name: 🧪 Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔍 Lint
+        run: pnpm lint
+        continue-on-error: true   # Không block deploy nếu lint warning
+
+      - name: 🧪 Run tests
+        run: pnpm test
+        continue-on-error: true   # Tùy bạn: set false nếu muốn block deploy khi test fail
+
+  # ── Job 2: Deploy qua Tailscale + SSH ───────────────────────────────
+  deploy:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: test
+    environment: production     # Dùng GitHub Environment để protect (optional)
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      # ── Kết nối Tailscale VPN ──────────────────────────────────────
+      - name: 🔗 Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci         # Tag trong Tailscale ACL cho CI runner
+
+      # ── Cài SSH key ────────────────────────────────────────────────
+      - name: 🔑 Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          
+          # Thêm server vào known_hosts (skip host key check lần đầu)
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      # ── Kiểm tra kết nối ───────────────────────────────────────────
+      - name: 🏓 Test SSH connection
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+              -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=no \
+              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+              "echo '✓ SSH connection OK — $(hostname)'"
+
+      # ── Deploy trên server ─────────────────────────────────────────
+      - name: 🚀 Deploy on server
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+              -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=no \
+              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+              bash -s << 'DEPLOY_SCRIPT'
+          
+          set -euo pipefail
+          
+          APP_DIR="/opt/cp-system"
+          echo "══════════════════════════════════════════════════"
+          echo "  CP System — CI/CD Deploy"
+          echo "  Server : $(hostname)"
+          echo "  Time   : $(date '+%Y-%m-%d %H:%M:%S')"
+          echo "══════════════════════════════════════════════════"
+          
+          cd "$APP_DIR"
+          
+          # ── Pull latest code ───────────────────────────────────
+          echo "→ Pulling latest code from main..."
+          git fetch origin main
+          git reset --hard origin/main
+          
+          # ── Build Docker images ────────────────────────────────
+          echo "→ Building Docker images (API & Web)..."
+          docker compose build api web
+          
+          # ── Restart services ───────────────────────────────────
+          echo "→ Restarting services (Redis, API & Web)..."
+          docker compose up -d redis api web
+          
+          # ── Health check ───────────────────────────────────────
+          echo "→ Waiting for API to be ready..."
+          for i in $(seq 1 30); do
+            if docker exec cp_api wget -q --spider http://localhost:3000/api 2>/dev/null; then
+              echo "  ✓ API ready (attempt $i)"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "  ✗ API health check failed after 60s"
+              docker compose logs --tail=50 api
+              exit 1
+            fi
+            sleep 2
+          done
+          
+          # ── Cleanup ────────────────────────────────────────────
+          echo "→ Cleaning up old Docker images..."
+          docker image prune -f
+          
+          echo ""
+          echo "══════════════════════════════════════════════════"
+          echo "  ✅ Deploy completed!"
+          echo "  🌐 https://cp.thaopamt.site"
+          echo "══════════════════════════════════════════════════"
+          
+          docker compose ps
+          
+          DEPLOY_SCRIPT
+
+      # ── Cleanup SSH key ────────────────────────────────────────────
+      - name: 🧹 Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+  # ── Job 3: Notify (optional) ────────────────────────────────────────
+  notify:
+    name: 📢 Notify
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: always()
+    steps:
+      - name: 📢 Deploy result
+        run: |
+          if [ "${{ needs.deploy.result }}" == "success" ]; then
+            echo "✅ Deploy thành công! → https://cp.thaopamt.site"
+          else
+            echo "❌ Deploy thất bại! Kiểm tra logs."
+          fi
+          # TODO: Thêm notification qua Telegram/Discord/Slack nếu cần
+          # curl -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+          #   -d "chat_id=$CHAT_ID" \
+          #   -d "text=🚀 CP System deploy: ${{ needs.deploy.result }}"
