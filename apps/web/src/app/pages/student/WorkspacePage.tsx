@@ -75,14 +75,61 @@ function CourseProgressDots({
   onSelect: (item: CourseProgressItem) => void;
 }) {
   const [hoverInfo, setHoverInfo] = useState<{ title: string; index: number; x: number; y: number } | null>(null);
+  const [scrollButtons, setScrollButtons] = useState({ canScrollLeft: false, canScrollRight: false });
+  const progressViewportRef = useRef<HTMLDivElement | null>(null);
   const currentDotRef = useRef<HTMLButtonElement | null>(null);
-  const shouldScrollProgress = items.length > 5;
+  const shouldScrollProgress = items.length > 8;
+
+  const updateScrollButtons = useCallback(() => {
+    const viewport = progressViewportRef.current;
+    const maxScrollLeft = viewport ? viewport.scrollWidth - viewport.clientWidth : 0;
+    const nextScrollButtons = {
+      canScrollLeft: shouldScrollProgress && !!viewport && viewport.scrollLeft > 1,
+      canScrollRight: shouldScrollProgress && !!viewport && viewport.scrollLeft < maxScrollLeft - 1,
+    };
+
+    setScrollButtons((current) => (
+      current.canScrollLeft === nextScrollButtons.canScrollLeft &&
+      current.canScrollRight === nextScrollButtons.canScrollRight
+        ? current
+        : nextScrollButtons
+    ));
+  }, [shouldScrollProgress]);
 
   useEffect(() => {
-    if (!shouldScrollProgress) return;
+    if (!shouldScrollProgress) {
+      updateScrollButtons();
+      return;
+    }
 
     currentDotRef.current?.scrollIntoView({ block: 'nearest', inline: 'center' });
-  }, [currentAssignmentId, shouldScrollProgress]);
+    requestAnimationFrame(updateScrollButtons);
+  }, [currentAssignmentId, items.length, shouldScrollProgress, updateScrollButtons]);
+
+  useEffect(() => {
+    const viewport = progressViewportRef.current;
+    if (!viewport) return undefined;
+
+    const handleScroll = () => updateScrollButtons();
+    viewport.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll);
+    updateScrollButtons();
+
+    return () => {
+      viewport.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, [updateScrollButtons]);
+
+  const handleProgressScroll = useCallback((direction: 'left' | 'right') => {
+    const viewport = progressViewportRef.current;
+    if (!viewport) return;
+
+    viewport.scrollBy({
+      left: direction === 'left' ? -viewport.clientWidth : viewport.clientWidth,
+      behavior: 'smooth',
+    });
+  }, []);
 
   if (items.length === 0) return null;
 
@@ -90,9 +137,24 @@ function CourseProgressDots({
     <>
       <nav
         aria-label="Course assignment progress"
-        className="mx-3 flex shrink-0 justify-center overflow-hidden"
+        className="mx-3 flex shrink-0 items-center justify-center gap-1 overflow-hidden"
       >
-        <div className={`flex ${shouldScrollProgress ? 'w-[98px]' : 'max-w-full'} items-center gap-1 overflow-x-auto rounded-full border border-white/10 bg-white/5 px-1.5 py-1 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/30 pb-[2px]`}>
+        {shouldScrollProgress && (
+          <button
+            type="button"
+            onClick={() => handleProgressScroll('left')}
+            disabled={!scrollButtons.canScrollLeft}
+            aria-label="Scroll assignments left"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-300 transition-colors hover:bg-white/10 hover:text-white disabled:pointer-events-none disabled:opacity-35"
+          >
+            <Icon name="chevron_left" size={15} />
+          </button>
+        )}
+
+        <div
+          ref={progressViewportRef}
+          className={`flex ${shouldScrollProgress ? 'w-36 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden' : 'max-w-full'} items-center gap-1 overflow-x-auto rounded-full border border-white/10 bg-white/5 px-1.5 py-1 pb-[2px]`}
+        >
           {items.map((item, index) => {
             const isCurrent = item.id === currentAssignmentId;
             const statusClass = {
@@ -106,6 +168,7 @@ function CourseProgressDots({
               <button
                 key={item.id}
                 ref={(node) => {
+                  if (!isCurrent && currentDotRef.current === node) currentDotRef.current = null;
                   if (isCurrent) currentDotRef.current = node;
                 }}
                 type="button"
@@ -130,6 +193,18 @@ function CourseProgressDots({
             );
           })}
         </div>
+
+        {shouldScrollProgress && (
+          <button
+            type="button"
+            onClick={() => handleProgressScroll('right')}
+            disabled={!scrollButtons.canScrollRight}
+            aria-label="Scroll assignments right"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-300 transition-colors hover:bg-white/10 hover:text-white disabled:pointer-events-none disabled:opacity-35"
+          >
+            <Icon name="chevron_right" size={15} />
+          </button>
+        )}
       </nav>
 
       {hoverInfo && (
