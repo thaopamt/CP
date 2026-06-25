@@ -75,6 +75,14 @@ function CourseProgressDots({
   onSelect: (item: CourseProgressItem) => void;
 }) {
   const [hoverInfo, setHoverInfo] = useState<{ title: string; index: number; x: number; y: number } | null>(null);
+  const currentDotRef = useRef<HTMLButtonElement | null>(null);
+  const shouldScrollProgress = items.length > 5;
+
+  useEffect(() => {
+    if (!shouldScrollProgress) return;
+
+    currentDotRef.current?.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }, [currentAssignmentId, shouldScrollProgress]);
 
   if (items.length === 0) return null;
 
@@ -82,9 +90,9 @@ function CourseProgressDots({
     <>
       <nav
         aria-label="Course assignment progress"
-        className="mx-3 flex min-w-[96px] flex-1 justify-center overflow-hidden"
+        className="mx-3 flex shrink-0 justify-center overflow-hidden"
       >
-        <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-white/10 bg-white/5 px-1.5 py-1 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/30 pb-[2px]">
+        <div className={`flex ${shouldScrollProgress ? 'w-[98px]' : 'max-w-full'} items-center gap-1 overflow-x-auto rounded-full border border-white/10 bg-white/5 px-1.5 py-1 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/30 pb-[2px]`}>
           {items.map((item, index) => {
             const isCurrent = item.id === currentAssignmentId;
             const statusClass = {
@@ -97,6 +105,9 @@ function CourseProgressDots({
             return (
               <button
                 key={item.id}
+                ref={(node) => {
+                  if (isCurrent) currentDotRef.current = node;
+                }}
                 type="button"
                 onClick={() => onSelect(item)}
                 onMouseEnter={(e) => {
