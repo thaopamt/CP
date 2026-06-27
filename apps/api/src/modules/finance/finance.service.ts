@@ -22,6 +22,7 @@ import { ScheduleSlotAttendanceRecord } from '../attendance/schedule-slot-attend
 import { ScheduleSlotCancellation } from '../attendance/schedule-slot-cancellation.entity';
 import { StudentProfile } from '../students/student-profile.entity';
 import { StudentSchedule } from '../students/student-schedule.entity';
+import { TeacherStudent } from '../students/teacher-student.entity';
 import { FinanceMonthlyAmountDue } from './finance-monthly-amount-due.entity';
 import { FinanceMonthlyStatus } from './finance-monthly-status.entity';
 import { SystemCacheService } from '../../common/cache/system-cache.service';
@@ -62,6 +63,8 @@ export class FinanceService {
     private readonly amountDueOverrides: Repository<FinanceMonthlyAmountDue>,
     @InjectRepository(FinanceMonthlyStatus)
     private readonly monthlyStatuses: Repository<FinanceMonthlyStatus>,
+    @InjectRepository(TeacherStudent)
+    private readonly teacherStudents: Repository<TeacherStudent>,
     private readonly cache: SystemCacheService,
   ) {}
 
@@ -114,8 +117,15 @@ export class FinanceService {
       ? new Set(options.visibleStudentUserIds)
       : null;
 
-    const [allProfiles, slotRows, cancellations, legacyRows, amountDueOverrides, monthlyStatuses] =
-      await Promise.all([
+    const [
+      allProfiles,
+      slotRows,
+      cancellations,
+      legacyRows,
+      amountDueOverrides,
+      monthlyStatuses,
+      teacherLinks,
+    ] = await Promise.all([
         this.profiles.find({ relations: ['user'], order: { createdAt: 'DESC' } }),
         this.scheduleSlotAttendance.find({
           where: { date: Between(from, to), status: In(BILLABLE_STATUSES) },
@@ -127,7 +137,11 @@ export class FinanceService {
         }),
         this.amountDueOverrides.find({ where: { month } }),
         this.monthlyStatuses.find({ where: { month } }),
+        this.teacherStudents.find({ select: { studentId: true } }),
       ]);
+
+    // Student profile ids that have at least one teacher assigned.
+    const assignedProfileIds = new Set(teacherLinks.map((link) => link.studentId));
 
     // When teacher-scoped, only include profiles for visible students
     const profiles = visibleSet
@@ -262,6 +276,7 @@ export class FinanceService {
           amountDue,
           amountDueOverride: amountDueOverrideAmount,
           hasAmountDueOverride: amountDueOverrideAmount !== null,
+          hasAssignedTeacher: assignedProfileIds.has(profile.id),
           missingTuitionConfig: monthlyTuition <= 0 && amountDueOverrideAmount === null,
           billingStatus,
           collectionStatus,
@@ -275,6 +290,14 @@ export class FinanceService {
         acc.billableSessions += row.billableSessions;
         acc.totalPotentialAmount += row.monthlyTuition;
         acc.totalAmountDue += row.amountDue;
+        // Split by teacher assignment: "tại nhà" = has a teacher, "trung tâm" = none.
+        if (row.hasAssignedTeacher) {
+          acc.homePotentialAmount += row.monthlyTuition;
+          acc.homeAmountDue += row.amountDue;
+        } else {
+          acc.centerPotentialAmount += row.monthlyTuition;
+          acc.centerAmountDue += row.amountDue;
+        }
         if (row.collectionStatus !== 'PAID') acc.totalOutstandingAmount += row.amountDue;
         if (row.missingTuitionConfig) acc.studentsMissingTuition += 1;
         return acc;
@@ -288,6 +311,10 @@ export class FinanceService {
         billableSessions: 0,
         totalPotentialAmount: 0,
         totalAmountDue: 0,
+        centerPotentialAmount: 0,
+        centerAmountDue: 0,
+        homePotentialAmount: 0,
+        homeAmountDue: 0,
         totalOutstandingAmount: 0,
         studentsMissingTuition: 0,
       },

@@ -6,6 +6,7 @@ import { ScheduleSlotAttendanceRecord } from '../attendance/schedule-slot-attend
 import { ScheduleSlotCancellation } from '../attendance/schedule-slot-cancellation.entity';
 import { StudentProfile } from '../students/student-profile.entity';
 import { StudentSchedule } from '../students/student-schedule.entity';
+import { TeacherStudent } from '../students/teacher-student.entity';
 import { StudentsModule } from '../students/students.module';
 import { FinanceController } from './finance.controller';
 import { TeacherFinanceController } from './teacher-finance.controller';
@@ -23,6 +24,7 @@ import { FinanceService } from './finance.service';
       AttendanceRecord,
       FinanceMonthlyAmountDue,
       FinanceMonthlyStatus,
+      TeacherStudent,
     ]),
     StudentsModule,
   ],

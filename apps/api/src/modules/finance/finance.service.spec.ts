@@ -7,6 +7,7 @@ import { ScheduleSlotCancellation } from '../attendance/schedule-slot-cancellati
 import { ClassEntity } from '../classes/class.entity';
 import { StudentProfile } from '../students/student-profile.entity';
 import { StudentSchedule } from '../students/student-schedule.entity';
+import { TeacherStudent } from '../students/teacher-student.entity';
 import { User } from '../users/user.entity';
 import { FinanceMonthlyAmountDue } from './finance-monthly-amount-due.entity';
 import { FinanceMonthlyStatus } from './finance-monthly-status.entity';
@@ -40,7 +41,11 @@ function user(id: string, firstName: string, lastName: string): User {
   } as User;
 }
 
-function profile(id: string, userId: string, monthlyTuition: number): StudentProfile {
+function profile(
+  id: string,
+  userId: string,
+  monthlyTuition: number,
+): StudentProfile {
   return {
     id,
     userId,
@@ -108,6 +113,10 @@ function legacy(
   } as AttendanceRecord;
 }
 
+function teacherLink(teacherId: string, studentProfileId: string): TeacherStudent {
+  return { teacherId, studentId: studentProfileId } as TeacherStudent;
+}
+
 function amountDueOverride(studentId: string, month: string, amountDue: number): FinanceMonthlyAmountDue {
   return { studentId, month, amountDue } as FinanceMonthlyAmountDue;
 }
@@ -128,6 +137,7 @@ function serviceWith({
   legacyRows = [],
   amountDueOverrides = [],
   monthlyStatuses = [],
+  teacherLinks = [],
 }: {
   profiles: StudentProfile[];
   slots?: ScheduleSlotAttendanceRecord[];
@@ -136,6 +146,7 @@ function serviceWith({
   legacyRows?: AttendanceRecord[];
   amountDueOverrides?: FinanceMonthlyAmountDue[];
   monthlyStatuses?: FinanceMonthlyStatus[];
+  teacherLinks?: TeacherStudent[];
 }) {
   const cache = {
     remember: jest.fn((_opts, loader) => loader()),
@@ -149,6 +160,7 @@ function serviceWith({
     repo(legacyRows),
     repo(amountDueOverrides),
     repo(monthlyStatuses),
+    repo(teacherLinks),
     cache as never,
   );
 }
@@ -220,6 +232,42 @@ describe('FinanceService', () => {
     expect(row.amountDue).toBe(200_000);
     expect(row.billingStatus).toBe('READY');
     expect(row.classNames).toEqual(['Algorithms']);
+  });
+
+  it('splits potential and collectable totals by teacher assignment (tại nhà vs trung tâm)', async () => {
+    const service = serviceWith({
+      // p1 (s1) has a teacher → "tại nhà"; p2 (s2) has none → "trung tâm".
+      // Both scheduled all 5 Tuesdays, 1 billable each → amountDue 120k each.
+      profiles: [profile('p1', 's1', 600_000), profile('p2', 's2', 600_000)],
+      schedules: [
+        schedule('s1', DayOfWeek.TUE, '08:00:00', '09:30:00', null),
+        schedule('s2', DayOfWeek.TUE, '08:00:00', '09:30:00', null),
+      ],
+      slots: [
+        slot('s1', '2026-06-02', DayOfWeek.TUE, '08:00:00', '09:30:00', AttendanceStatus.PRESENT),
+        slot('s2', '2026-06-02', DayOfWeek.TUE, '08:00:00', '09:30:00', AttendanceStatus.PRESENT),
+      ],
+      teacherLinks: [teacherLink('t1', 'p1')],
+    });
+
+    const report = await service.getMonthlyReport({ month: '2026-06' });
+    const s1 = report.rows.find((row) => row.studentId === 's1');
+    const s2 = report.rows.find((row) => row.studentId === 's2');
+
+    expect(s1?.hasAssignedTeacher).toBe(true);
+    expect(s2?.hasAssignedTeacher).toBe(false);
+    expect(s1?.amountDue).toBe(120_000);
+    expect(s2?.amountDue).toBe(120_000);
+
+    // Whole-cohort totals.
+    expect(report.summary.totalPotentialAmount).toBe(1_200_000);
+    expect(report.summary.totalAmountDue).toBe(240_000);
+    // "Tại nhà" group = s1 only.
+    expect(report.summary.homePotentialAmount).toBe(600_000);
+    expect(report.summary.homeAmountDue).toBe(120_000);
+    // "Trung tâm" group = s2 only.
+    expect(report.summary.centerPotentialAmount).toBe(600_000);
+    expect(report.summary.centerAmountDue).toBe(120_000);
   });
 
   it('marks configured students without schedule or billable attendance separately', async () => {

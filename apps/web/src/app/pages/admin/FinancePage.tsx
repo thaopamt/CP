@@ -458,7 +458,7 @@ export default function AdminFinancePage() {
         />
       </FilterToolbar>
 
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-md">
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-md">
         <StatCard
           label={t('pages.admin.finance.kpi.potentialDue')}
           value={money.format(summary?.totalPotentialAmount ?? 0)}
@@ -466,16 +466,34 @@ export default function AdminFinancePage() {
           iconColor="text-primary"
         />
         <StatCard
-          label={t('pages.admin.finance.kpi.totalDue')}
+          label={t('pages.admin.finance.kpi.monthlyPotentialDue')}
           value={money.format(summary?.totalAmountDue ?? 0)}
-          icon="payments"
+          icon="calendar_month"
+          iconColor="text-primary"
+        />
+        <StatCard
+          label={t('pages.admin.finance.kpi.centerPotential')}
+          value={money.format(summary?.centerPotentialAmount ?? 0)}
+          icon="apartment"
           iconColor="text-tertiary"
         />
         <StatCard
-          label={t('pages.admin.finance.kpi.outstandingDue')}
-          value={money.format(summary?.totalOutstandingAmount ?? 0)}
-          icon="pending_actions"
-          iconColor="text-error"
+          label={t('pages.admin.finance.kpi.centerPotentialDue')}
+          value={money.format(summary?.centerAmountDue ?? 0)}
+          icon="apartment"
+          iconColor="text-tertiary"
+        />
+        <StatCard
+          label={t('pages.admin.finance.kpi.homePotential')}
+          value={money.format(summary?.homePotentialAmount ?? 0)}
+          icon="home"
+          iconColor="text-secondary"
+        />
+        <StatCard
+          label={t('pages.admin.finance.kpi.homePotentialDue')}
+          value={money.format(summary?.homeAmountDue ?? 0)}
+          icon="home"
+          iconColor="text-secondary"
         />
       </section>
 

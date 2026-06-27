@@ -22,6 +22,8 @@ export interface IFinanceMonthlyRow {
   amountDue: number;
   amountDueOverride?: number | null;
   hasAmountDueOverride: boolean;
+  /** Whether the student has at least one teacher assigned (TeacherStudent link). */
+  hasAssignedTeacher: boolean;
   missingTuitionConfig: boolean;
   billingStatus: FinanceBillingStatus;
   collectionStatus: FinanceCollectionStatus;
@@ -34,8 +36,18 @@ export interface IFinanceMonthlySummary {
   totalStudents: number;
   scheduledSessions: number;
   billableSessions: number;
+  /** Full-month tuition summed over all students. */
   totalPotentialAmount: number;
+  /** Actual collectable (amountDue) summed over all students. */
   totalAmountDue: number;
+  /** Full-month tuition summed over students with NO assigned teacher ("trung tâm"). */
+  centerPotentialAmount: number;
+  /** Actual collectable summed over students with NO assigned teacher ("trung tâm"). */
+  centerAmountDue: number;
+  /** Full-month tuition summed over students with ≥1 assigned teacher ("tại nhà"). */
+  homePotentialAmount: number;
+  /** Actual collectable summed over students with ≥1 assigned teacher ("tại nhà"). */
+  homeAmountDue: number;
   totalOutstandingAmount: number;
   studentsMissingTuition: number;
 }

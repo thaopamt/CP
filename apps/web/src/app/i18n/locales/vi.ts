@@ -935,6 +935,11 @@ const vi: AppResources = {
         },
         kpi: {
           potentialDue: 'Tối đa có thể thu',
+          monthlyPotentialDue: 'Tối đa có thể thu theo tháng',
+          centerPotential: 'Tối đa trung tâm',
+          centerPotentialDue: 'Tối đa trung tâm có thể thu',
+          homePotential: 'Tối đa tại nhà',
+          homePotentialDue: 'Tối đa tại nhà có thể thu',
           totalDue: 'Số tiền cần thu',
           outstandingDue: 'Số tiền còn thiếu',
         },

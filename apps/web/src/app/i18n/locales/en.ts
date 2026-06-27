@@ -937,7 +937,12 @@ const en = {
           statusAll: 'All status',
         },
         kpi: {
-          potentialDue: 'Full month potential',
+          potentialDue: 'Max collectable',
+          monthlyPotentialDue: 'Max collectable (month)',
+          centerPotential: 'Center max',
+          centerPotentialDue: 'Center collectable',
+          homePotential: 'Home max',
+          homePotentialDue: 'Home collectable',
           totalDue: 'Amount due',
           outstandingDue: 'Outstanding',
         },
