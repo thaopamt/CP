@@ -42,6 +42,40 @@ interface ActiveStudent {
   idleForMs?: number;
 }
 
+function getStudentPositionKey(student: ActiveStudent) {
+  return student.studentId;
+}
+
+function mergeStableStudentList(current: ActiveStudent[], incoming: ActiveStudent[]) {
+  const incomingByKey = new Map<string, ActiveStudent>();
+
+  for (const student of incoming) {
+    const key = getStudentPositionKey(student);
+    if (!incomingByKey.has(key)) {
+      incomingByKey.set(key, student);
+    }
+  }
+
+  const seenKeys = new Set<string>();
+  const orderedKeys: string[] = [];
+
+  for (const student of current) {
+    const key = getStudentPositionKey(student);
+    if (!incomingByKey.has(key) || seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    orderedKeys.push(key);
+  }
+
+  for (const student of incoming) {
+    const key = getStudentPositionKey(student);
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    orderedKeys.push(key);
+  }
+
+  return orderedKeys.map((key) => incomingByKey.get(key)!);
+}
+
 /* ── Syntax highlight helper ─────────────────────────────────── */
 function highlightCode(code: string, language: string) {
   const lang = language === 'cpp' ? 'cpp' : language;
@@ -455,7 +489,7 @@ export default function LiveMonitorPage() {
     });
 
     socket.on('active_students_list', (list: ActiveStudent[]) => {
-      setStudents(list);
+      setStudents((current) => mergeStableStudentList(current, list));
       // Seed codeMap from the initial student data
       setCodeMap((prev) => {
         const next = { ...prev };
@@ -592,7 +626,7 @@ export default function LiveMonitorPage() {
 
               return (
                 <button
-                  key={student.socketId}
+                  key={getStudentPositionKey(student)}
                   onClick={() => handleOpenDetail(student)}
                   className={`group relative flex flex-col bg-white dark:bg-[#141420] rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm
                     transition-all duration-200 overflow-hidden text-left focus:outline-none ${
