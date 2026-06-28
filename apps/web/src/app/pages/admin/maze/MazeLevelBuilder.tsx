@@ -10,6 +10,7 @@ import {
   ItemTheme,
   Monster,
   MonsterMode,
+  MysteryBox,
   PublishStatus,
 } from '@cp/shared';
 
@@ -42,6 +43,7 @@ export const emptyDraft = (): MazeLevelDraft => ({
     goal: { x: 4, y: 4 },
     items: [],
     monsters: [],
+    boxes: [],
   },
   allowedBlocks: [BlockType.MOVE_FORWARD, BlockType.TURN_LEFT, BlockType.TURN_RIGHT],
   maxBlocks: null,
@@ -52,7 +54,9 @@ export const emptyDraft = (): MazeLevelDraft => ({
   classIds: [],
 });
 
-type PaintMode = 'wall' | 'start' | 'goal' | 'item' | 'monster';
+type PaintMode = 'wall' | 'start' | 'goal' | 'item' | 'monster' | 'box';
+
+type BoxContent = MysteryBox['content'];
 
 /** Max number of stacked items the builder cycles through on a single cell. */
 const MAX_ITEM_STACK = 5;
@@ -97,6 +101,8 @@ export function MazeLevelBuilder({ draft, onChange, onSave, saving }: Props) {
   const [paintMode, setPaintMode] = useState<PaintMode>('wall');
   // Index of the monster whose patrol path is currently receiving clicks.
   const [activeMonster, setActiveMonster] = useState<number | null>(null);
+  // Which reward/hazard a newly painted mystery box holds.
+  const [boxContent, setBoxContent] = useState<BoxContent>('treasure');
 
   const { data: classesData } = useClassesList({ page: 1, limit: 100 });
   const classes = classesData?.items ?? [];
@@ -109,6 +115,7 @@ export function MazeLevelBuilder({ draft, onChange, onSave, saving }: Props) {
 
   const items = grid.items ?? [];
   const monsters = grid.monsters ?? [];
+  const boxes = grid.boxes ?? [];
   const itemTheme: ItemTheme = grid.itemTheme ?? (grid.collectAll ? 'crop' : 'gem');
 
   const resizeWithin = (cell: Cell, w: number, h: number) =>
@@ -127,6 +134,7 @@ export function MazeLevelBuilder({ draft, onChange, onSave, saving }: Props) {
       monsters: monsters
         .map((m) => ({ ...m, path: m.path.filter((c) => inBounds(c, w, h)) }))
         .filter((m) => m.path.length > 0),
+      boxes: boxes.filter((b) => inBounds(b, w, h)),
       start: resizeWithin(grid.start, w, h),
       goal: resizeWithin(grid.goal, w, h),
     });
@@ -137,7 +145,11 @@ export function MazeLevelBuilder({ draft, onChange, onSave, saving }: Props) {
   const setItemCount = (cell: Cell, n: number) => {
     const rest = items.filter((c) => !sameCell(c, cell));
     const copies = Array.from({ length: n }, () => ({ ...cell }));
-    setGrid({ items: [...rest, ...copies], walls: grid.walls.filter((w) => !sameCell(w, cell)) });
+    setGrid({
+      items: [...rest, ...copies],
+      walls: grid.walls.filter((w) => !sameCell(w, cell)),
+      boxes: boxes.filter((b) => !sameCell(b, cell)),
+    });
   };
 
   // ── Monster helpers ──────────────────────────────────────────────────────
@@ -157,19 +169,47 @@ export function MazeLevelBuilder({ draft, onChange, onSave, saving }: Props) {
     setMonsters(monsters.map((mm, idx) => (idx === i ? { ...mm, path: mm.path.slice(0, -1) } : mm)));
   };
 
+  // ── Mystery-box helpers ──────────────────────────────────────────────────
+  const setBoxes = (next: MysteryBox[]) => setGrid({ boxes: next });
+  const deleteBox = (i: number) => setBoxes(boxes.filter((_, idx) => idx !== i));
+  const boxContentLabel = (c: BoxContent) =>
+    c === 'treasure' ? t('maze.builder.boxTreasure') : t('maze.builder.boxMonster');
+
   const handleCellClick = (cell: Cell) => {
     if (paintMode === 'start') {
       if (sameCell(cell, grid.goal)) return;
-      setGrid({ start: cell, walls: grid.walls.filter((w) => !sameCell(w, cell)) });
+      setGrid({
+        start: cell,
+        walls: grid.walls.filter((w) => !sameCell(w, cell)),
+        boxes: boxes.filter((b) => !sameCell(b, cell)),
+      });
       return;
     }
     if (paintMode === 'goal') {
       if (sameCell(cell, grid.start)) return;
-      setGrid({ goal: cell, walls: grid.walls.filter((w) => !sameCell(w, cell)) });
+      setGrid({
+        goal: cell,
+        walls: grid.walls.filter((w) => !sameCell(w, cell)),
+        boxes: boxes.filter((b) => !sameCell(b, cell)),
+      });
       return;
     }
     if (paintMode === 'item') {
       setItemCount(cell, (itemCountAt(cell) + 1) % (MAX_ITEM_STACK + 1));
+      return;
+    }
+    if (paintMode === 'box') {
+      // Never on start/goal; toggle: a second click on a box removes it.
+      if (sameCell(cell, grid.start) || sameCell(cell, grid.goal)) return;
+      if (boxes.some((b) => sameCell(b, cell))) {
+        setBoxes(boxes.filter((b) => !sameCell(b, cell)));
+        return;
+      }
+      setGrid({
+        boxes: [...boxes, { x: cell.x, y: cell.y, content: boxContent }],
+        walls: grid.walls.filter((w) => !sameCell(w, cell)),
+        items: items.filter((w) => !sameCell(w, cell)),
+      });
       return;
     }
     if (paintMode === 'monster') {
@@ -199,6 +239,7 @@ export function MazeLevelBuilder({ draft, onChange, onSave, saving }: Props) {
       monsters: monsters
         .map((m) => ({ ...m, path: m.path.filter((c) => !sameCell(c, cell)) }))
         .filter((m) => m.path.length > 0),
+      boxes: boxes.filter((b) => !sameCell(b, cell)),
     });
   };
 
@@ -463,7 +504,7 @@ export function MazeLevelBuilder({ draft, onChange, onSave, saving }: Props) {
       <div className="flex flex-col gap-md">
         <Card className="p-5 flex flex-col items-center gap-4">
           <div className="flex flex-wrap gap-2 self-start">
-            {(['wall', 'start', 'goal', 'item', 'monster'] as PaintMode[]).map((mode) => (
+            {(['wall', 'start', 'goal', 'item', 'monster', 'box'] as PaintMode[]).map((mode) => (
               <button
                 key={mode}
                 onClick={() => {
@@ -554,6 +595,53 @@ export function MazeLevelBuilder({ draft, onChange, onSave, saving }: Props) {
                     onClick={() => deleteMonster(i)}
                     className="shrink-0 rounded p-1 text-error hover:bg-error/10"
                     title={t('maze.builder.monsterDelete')}
+                  >
+                    <Icon name="delete" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Mystery-box content picker + list */}
+          {paintMode === 'box' && (
+            <div className="w-full flex flex-col gap-2">
+              <Field label={t('maze.builder.boxContentLabel')}>
+                <div className="flex gap-2">
+                  {(['treasure', 'monster'] as BoxContent[]).map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setBoxContent(c)}
+                      className={`flex-1 rounded-lg px-2 py-2 text-label-sm font-semibold border ${
+                        boxContent === c
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-outline-variant text-on-surface-variant'
+                      }`}
+                    >
+                      {boxContentLabel(c)}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              <span className="text-label-sm font-semibold text-on-surface-variant">
+                {t('maze.builder.boxesLabel')}
+              </span>
+              {boxes.length === 0 && (
+                <p className="text-label-sm text-on-surface-variant">{t('maze.builder.boxesEmpty')}</p>
+              )}
+              {boxes.map((b, i) => (
+                <div
+                  key={`${b.x},${b.y}`}
+                  className="flex items-center gap-2 rounded-lg border border-outline-variant px-2 py-1.5"
+                >
+                  <span className="shrink-0 text-label-sm font-bold text-on-surface">📦 #{i + 1}</span>
+                  <span className="flex-1 truncate text-label-sm text-on-surface-variant">
+                    ({b.x},{b.y}) — {boxContentLabel(b.content)}
+                  </span>
+                  <button
+                    onClick={() => deleteBox(i)}
+                    className="shrink-0 rounded p-1 text-error hover:bg-error/10"
+                    title={t('maze.builder.boxDelete')}
                   >
                     <Icon name="delete" />
                   </button>
