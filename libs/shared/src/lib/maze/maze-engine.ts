@@ -21,6 +21,7 @@ import {
   Monster,
   MonsterKind,
   MonsterView,
+  MysteryBox,
   SensorType,
   SimStep,
   SimTraceEvent,
@@ -149,13 +150,31 @@ const key = (c: Cell) => `${c.x},${c.y}`;
 
 /** Internal control-flow signal returned by statement execution. */
 type Signal = 'ok' | 'abort' | 'break';
+type ResolvedBoxContent = Exclude<MysteryBox['content'], 'random'>;
+
+function hash32(input: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function resolveBoxContent(box: MysteryBox, seed: number): ResolvedBoxContent {
+  if (box.content !== 'random') return box.content;
+  return hash32(`${seed}:${box.x},${box.y}`) % 2 === 0 ? 'treasure' : 'monster';
+}
 
 export function simulate(
   grid: GridConfig,
   commands: Command[],
-  opts?: { opLimit?: number },
+  opts?: { opLimit?: number; randomSeed?: number },
 ): SimulationResult {
   const opLimit = opts?.opLimit ?? MAZE_OP_LIMIT;
+  const randomSeed = Number.isFinite(opts?.randomSeed)
+    ? Math.trunc(opts?.randomSeed ?? 0)
+    : 0;
   const wallSet = new Set((grid.walls ?? []).map(key));
   // Items as a count per cell — a coordinate listed N times = N collectibles in
   // that cell (picked one at a time). `totalItems` tracks the remaining sum.
@@ -164,9 +183,9 @@ export function simulate(
   let totalItems = 0;
   for (const n of itemCount.values()) totalItems += n;
 
-  // Mystery boxes: hidden '?' cells keyed by position → content. Removed on open.
-  const boxAt = new Map<string, 'treasure' | 'monster'>();
-  for (const b of grid.boxes ?? []) boxAt.set(key(b), b.content);
+  // Mystery boxes: hidden '?' cells keyed by position → resolved content. Removed on open.
+  const boxAt = new Map<string, ResolvedBoxContent>();
+  for (const b of grid.boxes ?? []) boxAt.set(key(b), resolveBoxContent(b, randomSeed));
   const hasBoxes = boxAt.size > 0;
   let treasureBoxesLeft = 0;
   for (const c of boxAt.values()) if (c === 'treasure') treasureBoxesLeft += 1;

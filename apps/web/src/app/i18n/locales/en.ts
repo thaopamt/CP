@@ -1892,6 +1892,7 @@ const en = {
         box: 'Pick the content, then click a cell to drop a box; click a box again to remove it.',
       },
       boxContentLabel: 'Box content',
+      boxRandom: 'Random 🎲',
       boxTreasure: 'Treasure 💎',
       boxMonster: 'Monster 👹',
       boxesLabel: 'Mystery boxes',

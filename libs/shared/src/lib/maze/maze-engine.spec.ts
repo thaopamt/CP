@@ -1,4 +1,4 @@
-import { BlockType, Command, Direction, GridConfig, Monster } from './maze.types';
+import { BlockType, Command, Direction, GridConfig, Monster, SensorType } from './maze.types';
 import { countBlocks, monsterCellAt, rotate, simulate } from './maze-engine';
 import { validateCommands } from './maze-validator';
 
@@ -205,6 +205,46 @@ describe('simulate — mystery boxes', () => {
   it('opening a monster box ends the run', () => {
     const grid: GridConfig = { ...row(3), boxes: [{ x: 1, y: 0, content: 'monster' }] };
     expect(simulate(grid, [move]).failReason).toBe('CAUGHT');
+  });
+
+  it('resolves random boxes from a stable per-run seed', () => {
+    const grid: GridConfig = {
+      width: 2, height: 1, walls: [], start: { x: 0, y: 0 }, startDir: Direction.EAST, goal: { x: 1, y: 0 },
+      boxes: [{ x: 1, y: 0, content: 'random' }],
+    };
+    const outcomes = Array.from({ length: 20 }, (_, randomSeed) =>
+      simulate(grid, [move], { randomSeed }).failReason,
+    );
+
+    expect(simulate(grid, [move], { randomSeed: 7 }).failReason).toBe(
+      simulate(grid, [move], { randomSeed: 7 }).failReason,
+    );
+    expect(outcomes).toContain(null);
+    expect(outcomes).toContain('CAUGHT');
+  });
+
+  it('lets an if block branch on whether a random box is safe', () => {
+    const grid: GridConfig = {
+      width: 2, height: 1, walls: [], start: { x: 0, y: 0 }, startDir: Direction.EAST, goal: { x: 1, y: 0 },
+      boxes: [{ x: 1, y: 0, content: 'random' }],
+    };
+    const ifSafeThenMove: Command = {
+      type: BlockType.IF,
+      branches: [{ cond: { kind: 'sensor', sensor: SensorType.BOX_AHEAD_SAFE }, body: [move] }],
+      elseBody: [right],
+    };
+    const seedFor = (expectedFailReason: ReturnType<typeof simulate>['failReason']) => {
+      for (let randomSeed = 0; randomSeed < 64; randomSeed++) {
+        if (simulate(grid, [move], { randomSeed }).failReason === expectedFailReason) return randomSeed;
+      }
+      throw new Error(`Could not find seed for ${expectedFailReason}`);
+    };
+
+    expect(simulate(grid, [ifSafeThenMove], { randomSeed: seedFor(null) }).reachedGoal).toBe(true);
+    const avoided = simulate(grid, [ifSafeThenMove], { randomSeed: seedFor('CAUGHT') });
+    expect(avoided.failReason).toBeNull();
+    expect(avoided.reachedGoal).toBe(false);
+    expect(avoided.finalDir).toBe(Direction.SOUTH);
   });
 });
 

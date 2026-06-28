@@ -86,6 +86,7 @@ const DIRECTIONS: { dir: Direction; icon: string }[] = [
 ];
 
 const ITEM_THEMES: ItemTheme[] = ['star', 'gem', 'crop'];
+const BOX_CONTENTS: BoxContent[] = ['random', 'treasure', 'monster'];
 
 interface Props {
   draft: MazeLevelDraft;
@@ -102,7 +103,7 @@ export function MazeLevelBuilder({ draft, onChange, onSave, saving }: Props) {
   // Index of the monster whose patrol path is currently receiving clicks.
   const [activeMonster, setActiveMonster] = useState<number | null>(null);
   // Which reward/hazard a newly painted mystery box holds.
-  const [boxContent, setBoxContent] = useState<BoxContent>('treasure');
+  const [boxContent, setBoxContent] = useState<BoxContent>('random');
 
   const { data: classesData } = useClassesList({ page: 1, limit: 100 });
   const classes = classesData?.items ?? [];
@@ -172,8 +173,10 @@ export function MazeLevelBuilder({ draft, onChange, onSave, saving }: Props) {
   // ── Mystery-box helpers ──────────────────────────────────────────────────
   const setBoxes = (next: MysteryBox[]) => setGrid({ boxes: next });
   const deleteBox = (i: number) => setBoxes(boxes.filter((_, idx) => idx !== i));
-  const boxContentLabel = (c: BoxContent) =>
-    c === 'treasure' ? t('maze.builder.boxTreasure') : t('maze.builder.boxMonster');
+  const boxContentLabel = (c: BoxContent) => {
+    if (c === 'random') return t('maze.builder.boxRandom');
+    return c === 'treasure' ? t('maze.builder.boxTreasure') : t('maze.builder.boxMonster');
+  };
 
   const handleCellClick = (cell: Cell) => {
     if (paintMode === 'start') {
@@ -608,7 +611,7 @@ export function MazeLevelBuilder({ draft, onChange, onSave, saving }: Props) {
             <div className="w-full flex flex-col gap-2">
               <Field label={t('maze.builder.boxContentLabel')}>
                 <div className="flex gap-2">
-                  {(['treasure', 'monster'] as BoxContent[]).map((c) => (
+                  {BOX_CONTENTS.map((c) => (
                     <button
                       key={c}
                       onClick={() => setBoxContent(c)}

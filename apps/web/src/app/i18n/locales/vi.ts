@@ -1891,6 +1891,7 @@ const vi: AppResources = {
         box: 'Chọn loại nội dung rồi bấm vào ô để đặt hộp; bấm lại lên hộp để xóa.',
       },
       boxContentLabel: 'Nội dung hộp',
+      boxRandom: 'Ngẫu nhiên 🎲',
       boxTreasure: 'Báu vật 💎',
       boxMonster: 'Quái vật 👹',
       boxesLabel: 'Hộp bí ẩn',

@@ -23,6 +23,9 @@ type MazeProgressItem = {
   status: MazeProgressStatus;
 };
 
+const MAX_RANDOM_SEED = 0x7fffffff;
+const createMazeRunSeed = () => Math.floor(Math.random() * (MAX_RANDOM_SEED + 1));
+
 function MazeProgressDots({
   items,
   currentLevelId,
@@ -209,12 +212,13 @@ export default function MazeSolvePage() {
     }
 
     // Local simulation drives the animation.
-    const result = simulate(grid, ast);
+    const randomSeed = createMazeRunSeed();
+    const result = simulate(grid, ast, { randomSeed });
     animation.play(result);
 
     // Server re-grades authoritatively; its verdict is final.
     submitMutation.mutate(
-      { levelId: level.id, workspaceXml: editorRef.current.getXml(), commandTree: ast },
+      { levelId: level.id, workspaceXml: editorRef.current.getXml(), commandTree: ast, randomSeed },
       {
         onSuccess: (res) => {
           if (res.reachedGoal) {

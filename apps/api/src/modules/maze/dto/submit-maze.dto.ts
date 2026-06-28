@@ -1,4 +1,4 @@
-import { IsArray, IsString, IsUUID } from 'class-validator';
+import { IsArray, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 import { Command, ISubmitMazePayload } from '@cp/shared';
 
 export class SubmitMazeDto implements ISubmitMazePayload {
@@ -15,4 +15,10 @@ export class SubmitMazeDto implements ISubmitMazePayload {
    */
   @IsArray()
   commandTree!: Command[];
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(0x7fffffff)
+  randomSeed?: number;
 }

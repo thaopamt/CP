@@ -75,12 +75,17 @@ export interface MonsterView {
   asleep?: boolean;
 }
 
-/** A hidden "?" cell holding a fixed but concealed reward or hazard. */
+export type MysteryBoxContent = 'treasure' | 'monster' | 'random';
+
+/** A hidden "?" cell holding a concealed reward or hazard. */
 export interface MysteryBox {
   x: number;
   y: number;
-  /** `treasure` opens safely (counts toward collect-all); `monster` ends the run. */
-  content: 'treasure' | 'monster';
+  /**
+   * `treasure` opens safely (counts toward collect-all); `monster` ends the run.
+   * `random` is resolved per simulation run from the submitted random seed.
+   */
+  content: MysteryBoxContent;
 }
 
 /** Visual skin for collectible `items`. Defaults: `crop` in harvest mode, else `gem`. */
@@ -124,8 +129,9 @@ export interface GridConfig {
   monsters?: Monster[];
   /**
    * Hidden "?" cells. Stepping onto one opens it: a `treasure` box is collected
-   * (counts toward collect-all), a `monster` box ends the run. The `box_ahead`
-   * and `box_ahead_safe` sensors let the character decide before opening.
+   * (counts toward collect-all), a `monster` box ends the run, and a `random`
+   * box is resolved per run. The `box_ahead` and `box_ahead_safe` sensors let
+   * the character decide before opening.
    */
   boxes?: MysteryBox[];
 }
@@ -351,6 +357,8 @@ export interface ISubmitMazePayload {
   workspaceXml: string;
   /** The parsed command tree the server actually grades. */
   commandTree: Command[];
+  /** Shared seed so random mystery boxes match between client animation and server grading. */
+  randomSeed?: number;
 }
 
 /** A maze level as returned by the API. */

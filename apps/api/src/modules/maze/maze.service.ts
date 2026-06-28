@@ -259,7 +259,7 @@ export class MazeService {
       return { submission: saved, reachedGoal: false, errors: validation.errors };
     }
 
-    const result = simulate(level.gridConfig, dto.commandTree);
+    const result = simulate(level.gridConfig, dto.commandTree, { randomSeed: dto.randomSeed });
     submission.status = result.reachedGoal ? SubmissionStatus.ACCEPTED : SubmissionStatus.WRONG_ANSWER;
     submission.reachedGoal = result.reachedGoal;
     submission.blocksUsed = result.blocksUsed;
