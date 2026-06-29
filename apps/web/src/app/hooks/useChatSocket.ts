@@ -121,8 +121,8 @@ export function useChatSocket() {
   }, [accessToken, qc]);
 
   const sendMessage = useCallback(
-    (conversationId: string, content: string, type?: string) => {
-      socketRef.current?.emit('send_message', { conversationId, content, type });
+    (conversationId: string, content: string, type?: string, imageUrl?: string) => {
+      socketRef.current?.emit('send_message', { conversationId, content, type, imageUrl });
     },
     [],
   );

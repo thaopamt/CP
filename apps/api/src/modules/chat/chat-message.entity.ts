@@ -34,6 +34,9 @@ export class ChatMessage extends BaseEntity {
   @Column({ type: 'varchar', length: 20, default: 'normal' })
   type!: string;
 
+  @Column({ type: 'text', name: 'image_url', nullable: true })
+  imageUrl!: string | null;
+
   @Column({ type: 'timestamptz', name: 'read_at', nullable: true })
   readAt!: Date | null;
 }

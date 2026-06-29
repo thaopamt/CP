@@ -181,6 +181,7 @@ const vi: AppResources = {
     warningTitle: '⚠️ Cảnh báo từ quản trị',
     warningDismiss: 'Tôi đã hiểu',
     warningBadge: 'Cảnh báo',
+    attachImage: 'Đính kèm hình ảnh',
   },
 
 

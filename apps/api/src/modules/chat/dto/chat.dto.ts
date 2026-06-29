@@ -21,4 +21,8 @@ export class SendMessageDto {
   @IsOptional()
   @IsIn(['normal', 'warning'])
   type?: ChatMessageType;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
 }

@@ -10,6 +10,7 @@ import {
   useMarkAsRead,
 } from '../../api/chat.queries';
 import { useChatSocket } from '../../hooks/useChatSocket';
+import { chatApi } from '../../api/chat.api';
 
 /* ────────────────────────────────────────────────────────────────────── */
 /*  Teacher / Admin — Full-page Chat                                     */
@@ -35,6 +36,10 @@ export default function ChatPage() {
   const [page, setPage] = useState(1);
   const [allMessages, setAllMessages] = useState<IChatMessage[]>([]);
   const [isWarningMode, setIsWarningMode] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const msgEndRef = useRef<HTMLDivElement>(null);
 
@@ -117,9 +122,23 @@ export default function ChatPage() {
   );
 
   // Send message — optimistic UI
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!msgInput.trim() || !activeConvId || !user) return;
     const content = msgInput.trim();
+
+    // Upload image first if attached
+    let uploadedImageUrl: string | undefined;
+    if (imageFile && isWarningMode) {
+      setIsUploading(true);
+      try {
+        const result = await chatApi.uploadImage(imageFile);
+        uploadedImageUrl = result.url;
+      } catch {
+        setIsUploading(false);
+        return;
+      }
+      setIsUploading(false);
+    }
 
     // Optimistic: show message immediately
     const optimisticMsg: IChatMessage = {
@@ -131,14 +150,17 @@ export default function ChatPage() {
       senderAvatarUrl: null,
       content,
       type: isWarningMode ? 'warning' : 'normal',
+      imageUrl: uploadedImageUrl ?? null,
       readAt: null,
       createdAt: new Date().toISOString(),
     };
     setAllMessages((prev) => [...prev, optimisticMsg]);
 
-    wsSend(activeConvId, content, isWarningMode ? 'warning' : undefined);
+    wsSend(activeConvId, content, isWarningMode ? 'warning' : undefined, uploadedImageUrl);
     setMsgInput('');
     setIsWarningMode(false);
+    setImageFile(null);
+    setImagePreview(null);
   };
 
   // Load older messages
@@ -386,6 +408,15 @@ export default function ChatPage() {
                             {msg.senderName}
                           </p>
                         )}
+                        {/* Attached image */}
+                        {msg.imageUrl && (
+                          <img
+                            src={msg.imageUrl}
+                            alt="Attachment"
+                            className="max-w-full max-h-48 rounded-lg mb-1 cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => window.open(msg.imageUrl!, '_blank')}
+                          />
+                        )}
                         {msg.content}
                         <div
                           className={`flex items-center gap-1 mt-0.5 ${
@@ -450,10 +481,44 @@ export default function ChatPage() {
                   </button>
                 </div>
               )}
+              {/* Image preview (warning mode only) */}
+              {isWarningMode && imagePreview && (
+                <div className="relative mb-xs mx-sm">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="max-h-40 rounded-lg border border-error/20 object-contain"
+                  />
+                  <button
+                    onClick={() => { setImageFile(null); setImagePreview(null); }}
+                    className="absolute top-1 right-1 w-6 h-6 grid place-items-center rounded-full bg-error text-on-error text-[14px]"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">close</span>
+                  </button>
+                </div>
+              )}
+              {/* Hidden file input */}
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setImageFile(file);
+                    setImagePreview(URL.createObjectURL(file));
+                  }
+                  e.target.value = '';
+                }}
+              />
               <div className="flex items-center gap-xs">
                 {/* Warning toggle */}
                 <button
-                  onClick={() => setIsWarningMode((prev) => !prev)}
+                  onClick={() => {
+                    setIsWarningMode((prev) => !prev);
+                    if (isWarningMode) { setImageFile(null); setImagePreview(null); }
+                  }}
                   title={t('chat.sendWarning')}
                   className={`w-10 h-10 grid place-items-center rounded-full transition-colors shrink-0 ${
                     isWarningMode
@@ -463,6 +528,16 @@ export default function ChatPage() {
                 >
                   <span className="material-symbols-outlined text-[20px]">warning</span>
                 </button>
+                {/* Image attach (warning mode only) */}
+                {isWarningMode && (
+                  <button
+                    onClick={() => imageInputRef.current?.click()}
+                    title={t('chat.attachImage')}
+                    className="w-10 h-10 grid place-items-center rounded-full text-error hover:bg-error/10 transition-colors shrink-0"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">image</span>
+                  </button>
+                )}
                 <input
                   type="text"
                   value={msgInput}
@@ -485,7 +560,7 @@ export default function ChatPage() {
                 />
                 <button
                   onClick={handleSend}
-                  disabled={!msgInput.trim()}
+                  disabled={!msgInput.trim() || isUploading}
                   className={`w-10 h-10 grid place-items-center rounded-full disabled:opacity-40 transition-colors shrink-0 ${
                     isWarningMode
                       ? 'bg-error text-on-error hover:bg-error/90'
@@ -493,7 +568,7 @@ export default function ChatPage() {
                   }`}
                 >
                   <span className="material-symbols-outlined text-[20px]">
-                    send
+                    {isUploading ? 'hourglass_top' : 'send'}
                   </span>
                 </button>
               </div>

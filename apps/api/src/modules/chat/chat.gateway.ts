@@ -73,7 +73,7 @@ export class ChatGateway
 
   @SubscribeMessage('send_message')
   async handleSendMessage(
-    @MessageBody() data: { conversationId: string; content: string; type?: string },
+    @MessageBody() data: { conversationId: string; content: string; type?: string; imageUrl?: string },
     @ConnectedSocket() client: Socket,
   ) {
     const payload = this.socketPayload.get(client.id);
@@ -87,6 +87,7 @@ export class ChatGateway
       payload.role,
       data.content.trim(),
       msgType as any,
+      data.imageUrl,
     );
 
     // 2. Fast lookup to find the student (single PK query)

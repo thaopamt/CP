@@ -185,6 +185,7 @@ export function ChatWidget() {
       senderAvatarUrl: null,
       content,
       type: 'normal',
+      imageUrl: null,
       readAt: null,
       createdAt: new Date().toISOString(),
     };
@@ -346,6 +347,15 @@ export function ChatWidget() {
                               {t('chat.warningBadge')}
                             </div>
                           )}
+                          {/* Attached image */}
+                          {msg.imageUrl && (
+                            <img
+                              src={msg.imageUrl}
+                              alt="Attachment"
+                              className="max-w-full max-h-32 rounded-lg mb-1 cursor-pointer hover:opacity-90 transition-opacity"
+                              onClick={() => window.open(msg.imageUrl!, '_blank')}
+                            />
+                          )}
                           {msg.content}
                           <div
                             className={`flex items-center gap-0.5 mt-0.5 ${
@@ -477,9 +487,21 @@ export function ChatWidget() {
             </h2>
 
             {/* Message content */}
-            <div className="text-body-md text-on-surface text-center mb-lg whitespace-pre-wrap leading-relaxed">
+            <div className="text-body-md text-on-surface text-center mb-md whitespace-pre-wrap leading-relaxed">
               {warningPopup.content}
             </div>
+
+            {/* Attached image */}
+            {warningPopup.imageUrl && (
+              <div className="flex justify-center mb-lg">
+                <img
+                  src={warningPopup.imageUrl}
+                  alt="Warning attachment"
+                  className="max-w-full max-h-56 rounded-xl border border-error/20 object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => window.open(warningPopup.imageUrl!, '_blank')}
+                />
+              </div>
+            )}
 
             {/* Dismiss */}
             <button

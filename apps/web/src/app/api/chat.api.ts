@@ -64,4 +64,13 @@ export const chatApi = {
     const { data } = await apiClient.get<number>('/chat/unread-count');
     return data;
   },
+
+  async uploadImage(file: File): Promise<{ url: string }> {
+    const form = new FormData();
+    form.append('image', file);
+    const { data } = await apiClient.post<{ url: string }>('/chat/upload', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
 };

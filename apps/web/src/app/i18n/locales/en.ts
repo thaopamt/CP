@@ -183,6 +183,7 @@ const en = {
     warningTitle: '⚠️ Warning from Admin',
     warningDismiss: 'I understand',
     warningBadge: 'Warning',
+    attachImage: 'Attach image',
   },
 
 

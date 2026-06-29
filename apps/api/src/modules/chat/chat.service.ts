@@ -148,6 +148,7 @@ export class ChatService {
     senderRole: UserRole,
     content: string,
     type: ChatMessageType = 'normal',
+    imageUrl?: string,
   ): Promise<IChatMessage> {
     // Fetch conversation + sender in parallel (2 queries concurrently)
     const [conv, sender] = await Promise.all([
@@ -164,7 +165,7 @@ export class ChatService {
 
     // Save message
     const msg = await this.msgRepo.save(
-      this.msgRepo.create({ conversationId, senderId, content, type, readAt: null }),
+      this.msgRepo.create({ conversationId, senderId, content, type, imageUrl: imageUrl ?? null, readAt: null }),
     );
 
     // Update conversation denormalized fields (fire-and-forget — don't block response)
@@ -303,6 +304,7 @@ export class ChatService {
       senderAvatarUrl: m.sender?.avatarUrl ?? null,
       content: m.content,
       type: (m.type as ChatMessageType) || 'normal',
+      imageUrl: m.imageUrl ?? null,
       readAt: m.readAt?.toISOString() ?? null,
       createdAt: m.createdAt.toISOString(),
     };

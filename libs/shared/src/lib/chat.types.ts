@@ -33,6 +33,8 @@ export interface IChatMessage {
   content: string;
   /** 'normal' (default) or 'warning' (shows full-screen alert to student) */
   type: ChatMessageType;
+  /** Optional image URL (for warnings with images) */
+  imageUrl: string | null;
   readAt: string | null;
   createdAt: string;
 }
@@ -43,6 +45,8 @@ export interface SendMessagePayload {
   content: string;
   /** Optional: 'warning' to trigger a full-screen alert for the student */
   type?: ChatMessageType;
+  /** Optional: image URL attached to the message */
+  imageUrl?: string;
 }
 
 /** Paginated messages response. */

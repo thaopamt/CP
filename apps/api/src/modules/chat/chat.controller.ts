@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -6,10 +7,17 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { JwtPayload } from '@cp/shared';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { existsSync, mkdirSync } from 'fs';
+import { randomUUID } from 'crypto';
+import { JwtPayload, UserRole } from '@cp/shared';
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 import { ChatService } from './chat.service';
@@ -68,7 +76,7 @@ export class ChatController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SendMessageDto,
   ) {
-    return this.chat.sendMessage(id, user.sub, user.role, dto.content, dto.type);
+    return this.chat.sendMessage(id, user.sub, user.role, dto.content, dto.type, dto.imageUrl);
   }
 
   /** Mark messages as read. */
@@ -84,5 +92,41 @@ export class ChatController {
   @Get('unread-count')
   getUnreadCount(@CurrentUser() user: JwtPayload) {
     return this.chat.getTotalUnread(user.sub, user.role);
+  }
+
+  /** Upload image for chat message (staff only). */
+  @Post('upload')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: (_req, _file, cb) => {
+          const dir = join(process.cwd(), 'uploads', 'chat');
+          if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+          cb(null, dir);
+        },
+        filename: (_req, file, cb) => {
+          const ext = extname(file.originalname).toLowerCase() || '.png';
+          cb(null, `${randomUUID()}${ext}`);
+        },
+      }),
+      limits: { fileSize: 5 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowed.includes(file.mimetype)) {
+          return cb(new BadRequestException(`Unsupported file type: ${file.mimetype}`), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  uploadImage(
+    @CurrentUser() user: JwtPayload,
+    @UploadedFile() file: Express.Multer.File,
+  ): { url: string } {
+    if (user.role === UserRole.STUDENT) {
+      throw new BadRequestException('Students cannot upload chat images');
+    }
+    if (!file) throw new BadRequestException('No file uploaded.');
+    return { url: `/api/uploads/chat/${file.filename}` };
   }
 }
