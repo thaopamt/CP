@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
 import { UserMenu, ThemeToggle } from './_shared';
-import { SidebarNav, getActiveNavItem, flattenNavEntries, type SidebarNavEntry } from './SidebarNav';
+import { SidebarNav, getActiveNavItem, flattenNavEntries, type SidebarNavEntry, type SidebarNavItem } from './SidebarNav';
+import { useChatNotifications } from '../hooks/useChatNotifications';
 
 const NAV: SidebarNavEntry[] = [
   { to: '/admin', icon: 'dashboard', key: 'nav.admin.dashboard', end: true },
@@ -43,6 +44,7 @@ const NAV: SidebarNavEntry[] = [
     items: [
       { to: '/admin/finance', icon: 'payments', key: 'nav.admin.finance' },
       { to: '/admin/users', icon: 'group', key: 'nav.admin.users' },
+      { to: '/admin/chat', icon: 'chat', key: 'nav.admin.chat' },
       { to: '/admin/monitor', icon: 'screen_share', key: 'nav.admin.monitor' },
       { to: '/admin/me', icon: 'account_circle', key: 'nav.admin.me' },
     ],
@@ -60,6 +62,7 @@ export default function AdminLayout() {
   const user = useAuthStore((s) => s.user);
   const { pathname } = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { unreadCount: chatUnread } = useChatNotifications();
   const activeTo = useMemo(() => {
     const activeItem = getActiveNavItem(NAV, pathname);
     if (activeItem) return activeItem.to;
@@ -127,6 +130,7 @@ export default function AdminLayout() {
           entries={NAV}
           activeTo={activeTo}
           className="flex flex-col gap-xs mt-sm flex-1 overflow-y-auto"
+          renderBadge={renderChatBadge(chatUnread)}
         />
       </nav>
 
@@ -145,6 +149,7 @@ export default function AdminLayout() {
           compact
           className="flex flex-col gap-xs mt-xs flex-1 overflow-y-auto"
           inactiveClassName="text-on-surface-variant hover:bg-surface-container-highest"
+          renderBadge={renderChatBadge(chatUnread)}
         />
       </nav>
 
@@ -194,4 +199,16 @@ export default function AdminLayout() {
       </div>
     </div>
   );
+}
+
+/** Render unread badge only for the chat nav item. */
+function renderChatBadge(unread: number) {
+  return (item: SidebarNavItem) => {
+    if (!item.to.endsWith('/chat') || unread <= 0) return null;
+    return (
+      <span className="ml-auto min-w-[18px] h-[18px] px-1 grid place-items-center rounded-full bg-error text-white text-[10px] font-bold shrink-0">
+        {unread > 99 ? '99+' : unread}
+      </span>
+    );
+  };
 }

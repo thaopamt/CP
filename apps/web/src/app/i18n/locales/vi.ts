@@ -88,6 +88,7 @@ const vi: AppResources = {
       me: 'Thông tin cá nhân',
       settings: 'Cài đặt',
       monitor: 'Giám sát',
+      chat: 'Tin nhắn',
 
     },
     teacher: {
@@ -111,6 +112,7 @@ const vi: AppResources = {
       submissions: 'Bài nộp',
       gradebook: 'Sổ điểm',
       me: 'Thông tin cá nhân',
+      chat: 'Tin nhắn',
 
     },
     student: {
@@ -127,6 +129,7 @@ const vi: AppResources = {
       leaderboard: 'Bảng xếp hạng',
       shop: 'Cửa hàng',
       me: 'Thông tin cá nhân',
+      chat: 'Tin nhắn',
 
     },
   },
@@ -149,6 +152,36 @@ const vi: AppResources = {
     demoHint: 'Thử: {{accounts}} · mật khẩu {{password}}',
   },
 
+  chat: {
+    title: 'Tin nhắn',
+    newChat: 'Tin nhắn mới',
+    selectStudent: 'Chọn học sinh',
+    selectTeacher: 'Chọn giáo viên',
+    noConversations: 'Chưa có cuộc trò chuyện nào',
+    noMessages: 'Chưa có tin nhắn',
+    typeMessage: 'Nhập tin nhắn...',
+    send: 'Gửi',
+    typing: 'đang nhập...',
+    today: 'Hôm nay',
+    yesterday: 'Hôm qua',
+    loadMore: 'Tải tin nhắn cũ hơn',
+    selectConversation: 'Chọn cuộc trò chuyện để bắt đầu nhắn tin',
+    supportTitle: 'Hỗ trợ',
+    supportSubtitle: 'Chat với giáo viên của bạn',
+    emptyWidgetTitle: 'Chưa có tin nhắn',
+    emptyWidgetSubtitle: 'Giáo viên sẽ bắt đầu cuộc trò chuyện với bạn tại đây.',
+    welcomeMessage: 'Chào bạn! Gửi tin nhắn đầu tiên để bắt đầu chat.',
+    unavailable: 'Chat hiện không khả dụng. Vui lòng thử lại sau.',
+    contextAssignment: 'Bài tập',
+    typeQuestionAbout: 'Nhập câu hỏi về bài tập này...',
+    askAboutAssignment: 'Hỏi / Báo cáo',
+    sendWarning: 'Gửi dạng cảnh báo',
+    warningModeOn: 'Chế độ cảnh báo — tin nhắn sẽ hiện popup toàn màn hình cho học sinh',
+    typeWarning: 'Nhập nội dung cảnh báo...',
+    warningTitle: '⚠️ Cảnh báo từ quản trị',
+    warningDismiss: 'Tôi đã hiểu',
+    warningBadge: 'Cảnh báo',
+  },
 
 
   ui: {

@@ -37,6 +37,8 @@ import { ExamRankingSnapshot } from '../modules/exams/exam-ranking-snapshot.enti
 import { ExamRewardRule } from '../modules/exams/exam-reward-rule.entity';
 import { ExamRewardGrant } from '../modules/exams/exam-reward-grant.entity';
 import { ExamAuditLog } from '../modules/exams/exam-audit-log.entity';
+import { ChatConversation } from '../modules/chat/chat-conversation.entity';
+import { ChatMessage } from '../modules/chat/chat-message.entity';
 
 // Load env in CLI context (TypeORM CLI doesn't go through ConfigModule)
 loadEnv({ path: join(process.cwd(), 'apps/api/.env') });
@@ -91,6 +93,8 @@ export const AppDataSource = new DataSource({
     ExamRewardRule,
     ExamRewardGrant,
     ExamAuditLog,
+    ChatConversation,
+    ChatMessage,
   ],
   migrations: [join(__dirname, 'migrations/*.{ts,js}')],
   synchronize: true,

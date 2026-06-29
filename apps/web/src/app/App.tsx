@@ -91,6 +91,7 @@ const StudentCourseDetail = lazy(() => import('./pages/student/CourseDetailPage'
 const StudentMe = lazy(() => import('./pages/student/MePage'));
 
 const SubmissionsPage = lazy(() => import('./pages/shared/SubmissionsPage'));
+const ChatPage = lazy(() => import('./pages/shared/ChatPage'));
 const TeacherFinance = lazy(() => import('./pages/teacher/FinancePage'));
 
 import { ToastProvider, ConfirmProvider } from '@cp/ui';
@@ -172,6 +173,8 @@ export default function App() {
                 <Route path="exams/:id/edit" element={<AdminExamForm />} />
 
                 <Route path="submissions" element={<SubmissionsPage />} />
+                <Route path="chat" element={<ChatPage />} />
+                <Route path="chat/:conversationId" element={<ChatPage />} />
                 <Route path="me" element={<AdminMe />} />
                 <Route path="settings" element={<AdminMe />} />
               </Route>
@@ -228,6 +231,8 @@ export default function App() {
                 <Route path="monitor" element={<LiveMonitorPage />} />
 
                 <Route path="submissions" element={<SubmissionsPage />} />
+                <Route path="chat" element={<ChatPage />} />
+                <Route path="chat/:conversationId" element={<ChatPage />} />
                 <Route path="me" element={<AdminMe />} />
                 <Route path="settings" element={<AdminMe />} />
               </Route>

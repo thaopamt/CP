@@ -21,6 +21,7 @@ import { AttendanceModule } from '../modules/attendance/attendance.module';
 import { MazeModule } from '../modules/maze/maze.module';
 import { FinanceModule } from '../modules/finance/finance.module';
 import { BlogModule } from '../modules/blog/blog.module';
+import { ChatModule } from '../modules/chat/chat.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { BlogModule } from '../modules/blog/blog.module';
     FinanceModule,
     MazeModule,
     BlogModule,
+    ChatModule,
   ],
 })
 export class AppModule {}

@@ -5,6 +5,7 @@ import { useStudentLivePresence } from '../hooks/useStudentLivePresence';
 import { useStudentDashboard } from '../api/student.queries';
 import { useUnreadBlogCount } from '../api/blog.queries';
 import { GamificationCelebration } from '../components/GamificationCelebration';
+import { ChatWidget } from '../components/ChatWidget';
 import { UserMenu } from './_shared';
 import { SidebarNav, type SidebarNavEntry, type SidebarNavItem } from './SidebarNav';
 
@@ -206,6 +207,7 @@ export default function StudentLayout() {
           ))}
         </nav>
       )}
+      {!isMazePlayRoute && <ChatWidget />}
     </div>
   );
 }

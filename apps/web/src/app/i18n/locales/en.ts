@@ -90,6 +90,7 @@ const en = {
       me: 'Me',
       settings: 'Settings',
       monitor: 'Live Monitor',
+      chat: 'Chat',
 
     },
     teacher: {
@@ -113,6 +114,7 @@ const en = {
       submissions: 'Submissions',
       gradebook: 'Gradebook',
       me: 'My Account',
+      chat: 'Chat',
 
     },
     student: {
@@ -129,6 +131,7 @@ const en = {
       leaderboard: 'Leaderboard',
       shop: 'Shop',
       me: 'Me',
+      chat: 'Chat',
 
     },
   },
@@ -151,6 +154,36 @@ const en = {
     demoHint: 'Try: {{accounts}} · password {{password}}',
   },
 
+  chat: {
+    title: 'Messages',
+    newChat: 'New message',
+    selectStudent: 'Select student',
+    selectTeacher: 'Select teacher',
+    noConversations: 'No conversations yet',
+    noMessages: 'No messages yet',
+    typeMessage: 'Type a message...',
+    send: 'Send',
+    typing: 'is typing...',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    loadMore: 'Load older messages',
+    selectConversation: 'Select a conversation to start chatting',
+    supportTitle: 'Support',
+    supportSubtitle: 'Chat with your teacher',
+    emptyWidgetTitle: 'No messages yet',
+    emptyWidgetSubtitle: 'Your teacher will start a conversation with you here.',
+    welcomeMessage: 'Say hi! Send your first message to start chatting.',
+    unavailable: 'Chat is not available right now. Please try again later.',
+    contextAssignment: 'Assignment',
+    typeQuestionAbout: 'Type your question about this assignment...',
+    askAboutAssignment: 'Ask / Report',
+    sendWarning: 'Send as warning alert',
+    warningModeOn: 'Warning mode — message will appear as a full-screen alert to the student',
+    typeWarning: 'Type your warning message...',
+    warningTitle: '⚠️ Warning from Admin',
+    warningDismiss: 'I understand',
+    warningBadge: 'Warning',
+  },
 
 
   ui: {

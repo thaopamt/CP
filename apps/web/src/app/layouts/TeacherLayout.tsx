@@ -4,6 +4,7 @@ import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
 import { UserMenu, ThemeToggle } from './_shared';
 import { SidebarNav, type SidebarNavEntry, type SidebarNavItem } from './SidebarNav';
+import { useChatNotifications } from '../hooks/useChatNotifications';
 
 // Mirrors the Admin sidebar minus the Dashboard, Users and
 // Quest-analytics tabs. Finance has its own read-only teacher page.
@@ -48,6 +49,7 @@ const NAV: SidebarNavEntry[] = [
     key: 'nav.groups.operations',
     items: [
       { to: '/teacher/finance', icon: 'account_balance', key: 'nav.teacher.finance' },
+      { to: '/teacher/chat', icon: 'chat', key: 'nav.teacher.chat' },
       { to: '/teacher/monitor', icon: 'screen_share', key: 'nav.teacher.monitor' },
       { to: '/teacher/me', icon: 'account_circle', key: 'nav.teacher.me' },
     ],
@@ -65,6 +67,7 @@ export default function TeacherLayout() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const marginLeft = 'md:ml-[200px]';
+  const { unreadCount: chatUnread } = useChatNotifications();
 
   return (
     <div className="min-h-screen bg-surface text-on-surface font-inter">
@@ -81,6 +84,7 @@ export default function TeacherLayout() {
           entries={NAV}
           compact
           className="flex flex-col gap-xs mt-xs flex-1 overflow-y-auto"
+          renderBadge={renderChatBadge(chatUnread)}
         />
       </nav>
 
@@ -136,4 +140,16 @@ export default function TeacherLayout() {
       </nav>
     </div>
   );
+}
+
+/** Render unread badge only for the chat nav item. */
+function renderChatBadge(unread: number) {
+  return (item: SidebarNavItem) => {
+    if (!item.to.endsWith('/chat') || unread <= 0) return null;
+    return (
+      <span className="ml-auto min-w-[18px] h-[18px] px-1 grid place-items-center rounded-full bg-error text-white text-[10px] font-bold shrink-0">
+        {unread > 99 ? '99+' : unread}
+      </span>
+    );
+  };
 }

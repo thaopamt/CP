@@ -21,6 +21,7 @@ import { useLiveCodingSync } from '../../hooks/useLiveCodingSync';
 import { useInteractiveExec } from '../../hooks/useInteractiveExec';
 import { useSubmissionRealtimeFeed } from '../../hooks/useSubmissionRealtimeFeed';
 import { CompletionRankingInfo } from '../../components/CompletionRankingInfo';
+import { useChatWidgetStore } from '../../stores/chat-widget.store';
 import {
   buildSubmissionRunResults,
   getActiveRunResultIndex,
@@ -973,6 +974,21 @@ export default function StudentWorkspacePage() {
                       <Icon name="draft" size={13} />File I/O
                     </span>
                   )}
+
+                  {/* Ask about this assignment */}
+                  <button
+                    onClick={() => {
+                      useChatWidgetStore.getState().openWithContext({
+                        type: 'assignment',
+                        id: assignment.id,
+                        title: assignment.title,
+                        meta: assignment.difficulty,
+                      });
+                    }}
+                    className="inline-flex items-center gap-1 text-xs text-teal-400 font-medium bg-teal-500/10 hover:bg-teal-500/20 px-2 py-0.5 rounded transition-colors cursor-pointer"
+                  >
+                    <Icon name="support_agent" size={13} />Hỏi / Báo cáo
+                  </button>
                 </div>
 
                 {/* Tags */}
