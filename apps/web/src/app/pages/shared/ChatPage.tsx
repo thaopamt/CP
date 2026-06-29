@@ -551,6 +551,24 @@ export default function ChatPage() {
                       handleSend();
                     }
                   }}
+                  onPaste={(e) => {
+                    const items = e.clipboardData?.items;
+                    if (!items) return;
+                    for (let i = 0; i < items.length; i++) {
+                      const item = items[i];
+                      if (item.type.startsWith('image/')) {
+                        e.preventDefault();
+                        const blob = item.getAsFile();
+                        if (blob) {
+                          const file = new File([blob], `screenshot_${Date.now()}.png`, { type: blob.type });
+                          setImageFile(file);
+                          setImagePreview(URL.createObjectURL(file));
+                          if (!isWarningMode) setIsWarningMode(true);
+                        }
+                        break;
+                      }
+                    }
+                  }}
                   placeholder={isWarningMode ? t('chat.typeWarning') : t('chat.typeMessage')}
                   className={`flex-1 px-md py-2.5 rounded-full text-body-sm outline-none border-none ${
                     isWarningMode
