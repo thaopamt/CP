@@ -119,6 +119,12 @@ export interface IStudentDashboardData {
   leaderboard: ILeaderboardEntry[];
   todaySchedule: IDashboardScheduleSession[];
   nextSession: IDashboardScheduleSession | null;
-  recentSubmissions: IRecentSubmissionSummary[];
   recommendedNext: IDashboardRecommendation | null;
+}
+
+export interface IHeatmapData {
+  date: string;          // Format: 'YYYY-MM-DD'
+  activityCount: number; // Total submissions
+  acceptedCount: number; // Total Accepted submissions
+  solvedCount: number;   // Total distinct assignments Accepted
 }

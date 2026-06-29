@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards, NotFoundException } from '@nestjs/common';
 import { Crud, CrudController, CrudRequest, Override, ParsedRequest } from '@dataui/crud';
 import { JwtPayload, UserRole } from '@cp/shared';
 
@@ -118,5 +118,14 @@ export class StudentsController implements CrudController<StudentProfile> {
   ): Promise<{ success: boolean }> {
     await this.service.resetPassword(id, dto.newPassword);
     return { success: true };
+  }
+
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @Get(':id/heatmap')
+  async getStudentHeatmap(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<any[]> {
+    const profile = await this.service.getProfileById(id);
+    return this.service.getHeatmapData(profile.userId);
   }
 }

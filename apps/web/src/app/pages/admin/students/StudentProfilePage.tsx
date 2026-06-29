@@ -14,10 +14,11 @@ import {
   TabPills,
   TrendBadge,
   useToast,
+  ContributionHeatmap,
 } from '@cp/ui';
 import { IGuardian, ISubjectGrade, UserRole, fullName as formatName } from '@cp/shared';
 
-import { useStudent, useResetPasswordStudent } from '../../../api/student.queries';
+import { useStudent, useResetPasswordStudent, useStudentHeatmapAdmin } from '../../../api/student.queries';
 import {
   useStudentTeachers,
   useSetStudentTeachers,
@@ -44,6 +45,7 @@ export default function StudentProfilePage() {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [manageTeachersOpen, setManageTeachersOpen] = useState(false);
   const resetPassword = useResetPasswordStudent(idParam as string);
+  const heatmapQuery = useStudentHeatmapAdmin(idParam as string);
 
   const subjectGrades: ISubjectGrade[] = useMemo(
     () => [
@@ -298,8 +300,21 @@ export default function StudentProfilePage() {
               <StudentAttendanceHistoryTab studentId={s.userId} />
             )}
             {tab === 'activity' && (
-              <div className="p-md md:p-lg text-center text-on-surface-variant">
-                {t('pages.admin.studentProfile.activity.empty')}
+              <div className="p-md md:p-lg">
+                <header className="flex items-center justify-between mb-md">
+                  <h4 className="font-manrope text-headline-md text-on-surface">
+                    {t('pages.student.home.learningActivity', 'Hoạt động học tập (365 ngày)')}
+                  </h4>
+                </header>
+                {heatmapQuery.isLoading ? (
+                  <div className="h-[140px] animate-pulse rounded bg-surface-container-high" />
+                ) : heatmapQuery.data ? (
+                  <ContributionHeatmap data={heatmapQuery.data} metric="activityCount" />
+                ) : (
+                  <div className="text-center text-on-surface-variant py-lg">
+                    {t('pages.admin.studentProfile.activity.empty', 'Chưa có hoạt động.')}
+                  </div>
+                )}
               </div>
             )}
             {tab === 'schedule' && (

@@ -17,6 +17,7 @@ export const studentQueryKeys = {
   detail: (id: string) => ['students', 'detail', id] as const,
   me: () => ['students', 'me'] as const,
   dashboard: () => ['students', 'dashboard'] as const,
+  heatmap: () => ['students', 'heatmap'] as const,
   myTasks: (params: any) => ['students', 'myTasks', params] as const,
   myFeedback: () => ['students', 'myFeedback'] as const,
 };
@@ -128,5 +129,22 @@ export function useUpdateDefaultLanguage() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: studentQueryKeys.dashboard() });
     },
+  });
+}
+
+export function useStudentHeatmap() {
+  return useQuery({
+    queryKey: studentQueryKeys.heatmap(),
+    queryFn: () => studentsApi.getHeatmapData(),
+    staleTime: queryStaleTime.dashboard,
+  });
+}
+
+export function useStudentHeatmapAdmin(studentId: string) {
+  return useQuery({
+    queryKey: ['students', 'heatmap', studentId],
+    queryFn: () => studentsApi.getStudentHeatmapAdmin(studentId),
+    enabled: !!studentId,
+    staleTime: queryStaleTime.dashboard,
   });
 }

@@ -18,6 +18,12 @@ export class StudentDashboardController {
   }
 
   @Roles(UserRole.STUDENT)
+  @Get('heatmap')
+  async getHeatmap(@CurrentUser() user: JwtPayload): Promise<any> {
+    return this.service.getHeatmapData(user.sub);
+  }
+
+  @Roles(UserRole.STUDENT)
   @Patch('preferences')
   async updatePreferences(
     @CurrentUser() user: JwtPayload,

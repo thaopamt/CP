@@ -13,7 +13,8 @@ import {
   SubmissionStatus,
 } from '@cp/shared';
 import { useAuthStore } from '../../stores/auth.store';
-import { useStudentDashboard } from '../../api/student.queries';
+import { useStudentDashboard, useStudentHeatmap } from '../../api/student.queries';
+import { ContributionHeatmap } from '@cp/ui';
 
 const STATUS_META: Record<SubmissionStatus, { icon: string; className: string; label: string }> = {
   [SubmissionStatus.PENDING]: {
@@ -79,6 +80,7 @@ export default function StudentDashboardPage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const { data: dashboard, isLoading, error } = useStudentDashboard();
+  const { data: heatmapData } = useStudentHeatmap();
 
   const tr = (key: string, defaultValue: string, options?: Record<string, unknown>) =>
     t(key, { defaultValue, ...options });
@@ -224,6 +226,20 @@ export default function StudentDashboardPage() {
         <KpiCard icon="flag" label={tr('pages.student.home.dailyGoal', 'Mục tiêu hôm nay')} value={`${dashboard.dailyQuestsCompleted}/${dashboard.dailyQuestsTarget}`} />
         <KpiCard icon="calendar_month" label={tr('pages.student.home.weeklyAccepted', 'Accepted tuần này')} value={`${dashboard.weeklyAccepted}`} />
         <KpiCard icon="diamond" label={tr('pages.student.home.gems', 'Gems')} value={dashboard.gems.toLocaleString()} />
+      </section>
+
+      <section className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg shadow-elev-1 overflow-hidden">
+        <div className="mb-md flex items-center justify-between gap-md">
+          <h2 className="flex min-w-0 items-center gap-sm text-title-md font-bold text-on-surface">
+            <Icon name="calendar_month" size={22} className="shrink-0 text-primary" />
+            <span className="truncate">{tr('pages.student.home.learningActivity', 'Hoạt động học tập (365 ngày)')}</span>
+          </h2>
+        </div>
+        <div className="overflow-x-auto pb-2">
+          {heatmapData ? <ContributionHeatmap data={heatmapData} metric="activityCount" /> : (
+            <div className="h-[140px] animate-pulse rounded bg-surface-container-high" />
+          )}
+        </div>
       </section>
 
       <div className="grid grid-cols-1 gap-lg xl:grid-cols-[minmax(0,1fr)_360px]">

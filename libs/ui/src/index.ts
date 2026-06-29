@@ -17,6 +17,7 @@ export * from './lib/Timeline/Timeline';
 export * from './lib/MetaChip/MetaChip';
 export * from './lib/Charts/AreaChart';
 export * from './lib/Charts/BarChart';
+export * from './lib/Charts/ContributionHeatmap';
 export * from './lib/CurriculumBuilder/LessonItem';
 export * from './lib/CurriculumBuilder/ModuleItem';
 export * from './lib/Schedule/EventCard';

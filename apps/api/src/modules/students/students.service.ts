@@ -219,6 +219,12 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
     return profile;
   }
 
+  async getProfileById(id: string): Promise<StudentProfile> {
+    const profile = await this.repo.findOne({ where: { id } });
+    if (!profile) throw new NotFoundException(`Student profile not found ${id}`);
+    return profile;
+  }
+
   async updateCurrentStudent(userId: string, dto: UpdateMyStudentDto): Promise<StudentProfile> {
     const profile = await this.getStudentByUserId(userId);
 
@@ -289,6 +295,42 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
         ttlMs: 20_000,
       },
       () => this.buildDashboardData(userId),
+    );
+  }
+
+  async getHeatmapData(userId: string): Promise<any[]> {
+    return this.cache.remember(
+      {
+        namespace: 'student-heatmap',
+        parts: [userId],
+        tags: [`student:${userId}:dashboard`],
+        ttlMs: 60_000,
+      },
+      async () => {
+        const startDate = new Date();
+        startDate.setHours(0, 0, 0, 0);
+        startDate.setDate(startDate.getDate() - 365);
+
+        const stats = await this.ds
+          .getRepository(Submission)
+          .createQueryBuilder('s')
+          .select('DATE(s."createdAt")', 'date')
+          .addSelect('COUNT(s.id)::int', 'activityCount')
+          .addSelect(`COUNT(CASE WHEN s.status = '${SubmissionStatus.ACCEPTED}' THEN 1 END)::int`, 'acceptedCount')
+          .addSelect(`COUNT(DISTINCT CASE WHEN s.status = '${SubmissionStatus.ACCEPTED}' THEN s."assignmentId" END)::int`, 'solvedCount')
+          .where('s."userId" = :userId', { userId })
+          .andWhere('s."createdAt" >= :startDate', { startDate })
+          .groupBy('DATE(s."createdAt")')
+          .orderBy('DATE(s."createdAt")', 'ASC')
+          .getRawMany();
+
+        return stats.map((r) => ({
+          date: r.date instanceof Date ? r.date.toISOString().split('T')[0] : String(r.date).split('T')[0],
+          activityCount: Number(r.activityCount) || 0,
+          acceptedCount: Number(r.acceptedCount) || 0,
+          solvedCount: Number(r.solvedCount) || 0,
+        }));
+      },
     );
   }
 

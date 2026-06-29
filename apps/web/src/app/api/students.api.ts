@@ -15,6 +15,7 @@ import {
   IStudentProfile,
   IStudentDashboardData,
   IUpdateStudentPayload,
+  IHeatmapData,
 } from '@cp/shared';
 
 import { apiClient } from '../lib/api-client';
@@ -203,6 +204,16 @@ export const studentsApi = {
 
   async getDashboard(): Promise<IStudentDashboardData> {
     const { data } = await apiClient.get<IStudentDashboardData>('/student-dashboard');
+    return data;
+  },
+
+  async getHeatmapData(): Promise<IHeatmapData[]> {
+    const { data } = await apiClient.get<IHeatmapData[]>('/student-dashboard/heatmap');
+    return data;
+  },
+
+  async getStudentHeatmapAdmin(id: string): Promise<IHeatmapData[]> {
+    const { data } = await apiClient.get<IHeatmapData[]>(`/students/${id}/heatmap`);
     return data;
   },
 
