@@ -28,6 +28,7 @@ function invalidateShop(qc: ReturnType<typeof useQueryClient>) {
   void qc.invalidateQueries({ queryKey: ['students', 'dashboard'] });
   void qc.invalidateQueries({ queryKey: ['leaderboard'] });
   void qc.invalidateQueries({ queryKey: ['student-badges'] });
+  void qc.invalidateQueries({ queryKey: ['students', 'me'] });
 }
 
 /** Reflect the equipped-character avatar change in the persisted auth user. */

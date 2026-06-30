@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { UserRole } from '@cp/shared';
 
 import { AuthProvider } from './providers/AuthProvider';
+import { ThemeProvider } from './providers/ThemeProvider';
 import { RoleGuard, RoleHomeRedirect } from './guards/RoleGuard';
 import { PublicLayout } from './layouts/PublicLayout';
 
@@ -110,9 +111,10 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ConfirmProvider>
-          <BrowserRouter>
-            <ToastProvider />
+        <ThemeProvider>
+          <ConfirmProvider>
+            <BrowserRouter>
+              <ToastProvider />
             <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center">Loading...</div>}>
             <Routes>
               {/* ── Public ───────────────────────────────────────────── */}
@@ -274,10 +276,11 @@ export default function App() {
               {/* Default — send user to their own portal home */}
               <Route path="/" element={<RoleHomeRedirect />} />
               <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
-          </BrowserRouter>
-        </ConfirmProvider>
+              </Routes>
+            </Suspense>
+            </BrowserRouter>
+          </ConfirmProvider>
+        </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
