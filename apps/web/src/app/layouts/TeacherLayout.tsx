@@ -70,9 +70,9 @@ export default function TeacherLayout() {
   const { unreadCount: chatUnread } = useChatNotifications();
 
   return (
-    <div className="min-h-screen bg-surface text-on-surface font-inter">
+    <div className="min-h-screen bg-surface/85 backdrop-blur-md text-on-surface font-inter">
 
-      <nav className="hidden md:flex flex-col w-[200px] h-screen fixed top-0 left-0 p-sm gap-xs bg-surface-container-low border-r border-outline-variant z-50 transition-all duration-300">
+      <nav className="hidden md:flex flex-col w-[200px] h-screen fixed top-0 left-0 p-sm gap-xs bg-surface-container-low/80 backdrop-blur-md border-r border-outline-variant z-50 transition-all duration-300">
         <div className="flex flex-col items-center gap-xs px-xs py-md text-center relative">
           <img src="/logo.png" alt="Zenith" className="w-9 h-9 rounded-lg object-contain shrink-0" />
           <h1 className="text-[11px] font-extrabold text-primary leading-tight truncate max-w-full">

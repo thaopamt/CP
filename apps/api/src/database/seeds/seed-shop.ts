@@ -93,6 +93,10 @@ const ITEMS: ShopSeed[] = [
   { code: 'THEME_CYBERPUNK', name: 'Theme Cyberpunk', description: 'Giao diện neon neon tương lai.', icon: 'memory', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.EPIC, price: 600, payload: { themeKey: 'cyberpunk' }, sortOrder: 24 },
   { code: 'THEME_AURORA', name: 'Theme Cực quang', description: 'Giao diện gradient mờ ảo diệu kì.', icon: 'lens_blur', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.EPIC, price: 550, payload: { themeKey: 'aurora' }, sortOrder: 25 },
   { code: 'THEME_GALAXY', name: 'Theme Thiên hà', description: 'Giao diện không gian vũ trụ tối tăm.', icon: 'public', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.LEGENDARY, price: 1000, payload: { themeKey: 'galaxy' }, sortOrder: 26 },
+  { code: 'THEME_SNOW', name: 'Theme Mùa đông', description: 'Giao diện băng giá với bông tuyết rơi.', icon: 'ac_unit', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.COMMON, price: 200, payload: { themeKey: 'snow' }, sortOrder: 27 },
+  { code: 'THEME_SAKURA', name: 'Theme Hoa anh đào', description: 'Giao diện hồng phấn lãng mạn.', icon: 'local_florist', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.RARE, price: 350, payload: { themeKey: 'sakura' }, sortOrder: 28 },
+  { code: 'THEME_VOLCANO', name: 'Theme Núi lửa', description: 'Giao diện rực lửa và cuồng nhiệt.', icon: 'local_fire_department', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.EPIC, price: 500, payload: { themeKey: 'volcano' }, sortOrder: 29 },
+  { code: 'THEME_PARTY', name: 'Theme Lễ hội', description: 'Giao diện sôi động với pháo hoa giấy.', icon: 'celebration', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.LEGENDARY, price: 800, payload: { themeKey: 'party' }, sortOrder: 30 },
 
 
   // ── Titles ────────────────────────────────────────────────────────────────────

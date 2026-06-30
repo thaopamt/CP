@@ -16,12 +16,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // so we just get undefined.
     const currentTheme = student?.equippedTheme;
 
-    // Remove any previously applied theme classes
-    root.classList.forEach((cls) => {
-      if (cls.startsWith('theme-')) {
-        root.classList.remove(cls);
-      }
-    });
+    // Remove any previously applied theme classes safely
+    const classesToRemove = Array.from(root.classList).filter((cls) => cls.startsWith('theme-'));
+    classesToRemove.forEach((cls) => root.classList.remove(cls));
 
     // Apply new theme if exists
     if (currentTheme) {

@@ -6,6 +6,15 @@ const preset = require('../../libs/config/tailwind.preset.cjs');
 
 export default {
   presets: [preset],
+  safelist: [
+    'theme-ocean',
+    'theme-hacker',
+    'theme-sunset',
+    'theme-forest',
+    'theme-cyberpunk',
+    'theme-aurora',
+    'theme-galaxy',
+  ],
   content: [
     join(__dirname, 'index.html'),
     join(__dirname, 'src/**/*!(*.stories|*.spec).{ts,tsx,html}'),

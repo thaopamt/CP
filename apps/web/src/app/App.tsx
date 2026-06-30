@@ -97,6 +97,8 @@ const TeacherFinance = lazy(() => import('./pages/teacher/FinancePage'));
 
 import { ToastProvider, ConfirmProvider } from '@cp/ui';
 
+import { ThemeEffects } from './components/ThemeEffects';
+
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, gcTime: 10 * 60_000, retry: 1 } },
 });
@@ -112,6 +114,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ThemeProvider>
+          <ThemeEffects />
           <ConfirmProvider>
             <BrowserRouter>
               <ToastProvider />

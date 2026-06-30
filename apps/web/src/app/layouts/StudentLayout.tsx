@@ -93,12 +93,12 @@ export default function StudentLayout() {
   useStudentLivePresence(location.pathname);
 
   return (
-    <div className="min-h-screen bg-surface text-on-surface font-inter">
+    <div className="min-h-screen bg-surface/85 backdrop-blur-md text-on-surface font-inter">
 
       <GamificationCelebration />
       {/* Sidebar — full height on desktop */}
       {!isMazePlayRoute && (
-        <nav className={`hidden md:flex flex-col ${sidebarWidth} fixed top-0 bottom-0 left-0 p-sm gap-xs bg-surface-container-lowest border-r border-outline-variant z-50 transition-all duration-300`}>
+        <nav className={`hidden md:flex flex-col ${sidebarWidth} fixed top-0 bottom-0 left-0 p-sm gap-xs bg-surface-container-lowest/80 backdrop-blur-md border-r border-outline-variant z-50 transition-all duration-300`}>
           {/* Brand block — parity with Admin/Teacher */}
           <div className="flex flex-col items-center gap-xs px-xs py-md text-center relative">
             <img src="/logo.png" alt="Zenith" className="w-9 h-9 rounded-2xl object-contain shrink-0" />

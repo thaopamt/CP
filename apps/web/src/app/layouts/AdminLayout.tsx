@@ -88,7 +88,7 @@ export default function AdminLayout() {
   }, [mobileMenuOpen]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface text-on-surface font-inter">
+    <div className="flex h-screen overflow-hidden bg-surface/85 backdrop-blur-md text-on-surface font-inter">
 
 
       {/* ── Mobile Drawer Overlay ── */}
@@ -135,7 +135,7 @@ export default function AdminLayout() {
       </nav>
 
       {/* ── Desktop Sidebar ── */}
-      <nav className="hidden lg:flex flex-col w-[200px] h-screen p-sm gap-xs bg-surface-container-low border-r border-outline-variant shrink-0 z-50 transition-all duration-300 relative">
+      <nav className="hidden lg:flex flex-col w-[200px] h-screen p-sm gap-xs bg-surface-container-low/80 backdrop-blur-md border-r border-outline-variant shrink-0 z-50 transition-all duration-300 relative">
         <div className="flex flex-col items-center gap-xs px-xs py-md text-center relative">
           <img src="/logo.png" alt="Zenith" className="w-9 h-9 rounded-lg object-contain shrink-0" />
           <h1 className="text-[11px] font-extrabold text-primary leading-tight truncate max-w-full">
