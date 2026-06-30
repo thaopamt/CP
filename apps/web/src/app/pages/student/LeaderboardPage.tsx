@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@cp/ui';
 import { LeaderboardScope, LeaderboardWindow, ILeaderboardRankEntry } from '@cp/shared';
 import { useLeaderboard } from '../../api/gamification.queries';
+import { StudentHoverCard } from '../../components/StudentHoverCard';
 
 type TFn = (key: string, opts?: Record<string, unknown>) => string;
 
@@ -195,7 +196,12 @@ function PodiumCard({
   return (
     <div className={`flex flex-col items-center w-28 md:w-44 ${isFirst ? '-mt-4' : ''}`}>
       {/* Avatar + crown */}
-      <div className="relative mb-3">
+      <StudentHoverCard 
+        userId={entry.userId} 
+        fallbackName={entry.name} 
+        fallbackAvatar={entry.avatarUrl}
+        className="relative mb-3 flex flex-col items-center"
+      >
         {/* <div className={`absolute -top-5 left-1/2 -translate-x-1/2 z-10 ${config.label}`}>
           <Icon name={config.icon} size={isFirst ? 24 : 20} />
         </div> */}
@@ -213,7 +219,7 @@ function PodiumCard({
             {initials(entry.name)}
           </div>
         )}
-      </div>
+      </StudentHoverCard>
 
       <span
         className="text-sm font-bold text-on-surface text-center truncate w-full px-1"
@@ -268,23 +274,37 @@ function RankRow({
       </span>
 
       {/* Avatar */}
-      {entry.avatarUrl ? (
-        <img src={entry.avatarUrl} alt={entry.name} className="w-16 h-16 md:w-20 md:h-20 shrink-0 object-contain" />
-      ) : (
-        <div className="w-16 h-16 md:w-20 md:h-20 shrink-0 rounded-full grid place-items-center text-lg font-black bg-surface-container-high text-on-surface border border-outline-variant dark:border-white/10">
-          {initials(entry.name)}
-        </div>
-      )}
+      <StudentHoverCard
+        userId={entry.userId}
+        fallbackName={entry.name}
+        fallbackAvatar={entry.avatarUrl}
+        className="flex items-center gap-3 md:gap-4 shrink-0"
+      >
+        {entry.avatarUrl ? (
+          <img src={entry.avatarUrl} alt={entry.name} className="w-16 h-16 md:w-20 md:h-20 shrink-0 object-contain" />
+        ) : (
+          <div className="w-16 h-16 md:w-20 md:h-20 shrink-0 rounded-full grid place-items-center text-lg font-black bg-surface-container-high text-on-surface border border-outline-variant dark:border-white/10">
+            {initials(entry.name)}
+          </div>
+        )}
+      </StudentHoverCard>
 
       {/* Name + title + level/badges */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span
-            className="font-bold text-sm truncate text-on-surface"
-            style={entry.nameColor ? { color: entry.nameColor } : undefined}
+          <StudentHoverCard
+            userId={entry.userId}
+            fallbackName={entry.name}
+            fallbackAvatar={entry.avatarUrl}
+            className="truncate"
           >
-            {entry.name}
-          </span>
+            <span
+              className="font-bold text-sm truncate text-on-surface hover:underline cursor-pointer"
+              style={entry.nameColor ? { color: entry.nameColor } : undefined}
+            >
+              {entry.name}
+            </span>
+          </StudentHoverCard>
           {highlighted && (
             <span className="text-[9px] font-black uppercase tracking-wider text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full shrink-0 dark:text-amber-300 dark:bg-amber-400/15">
               {t('gamif.student.leaderboard.you')}

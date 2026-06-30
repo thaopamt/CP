@@ -172,6 +172,14 @@ export interface IStudentProfile {
   cohortPercentile?: string | null;
   honorRoll: boolean;
 
+  /** Gamification */
+  level: number;
+  xp: number;
+  badgesEarned: number;
+  equippedTitle?: string | null;
+  nameColor?: string | null;
+  equippedTheme?: string | null;
+
   /** Relations */
   guardians: IGuardian[];
 

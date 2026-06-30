@@ -85,6 +85,11 @@ export class StudentsController implements CrudController<StudentProfile> {
     return this.service.getStudentByUserId(user.sub);
   }
 
+  @Get('user/:userId')
+  async getByUserId(@Param('userId', new ParseUUIDPipe()) userId: string): Promise<StudentProfile> {
+    return this.service.getStudentByUserId(userId);
+  }
+
   @Roles(UserRole.STUDENT)
   @Patch('me')
   async updateMe(

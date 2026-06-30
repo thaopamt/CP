@@ -15,6 +15,7 @@ import { queryStaleTime } from './query-cache';
 export const studentQueryKeys = {
   list: (params: StudentsListParams) => ['students', 'list', params] as const,
   detail: (id: string) => ['students', 'detail', id] as const,
+  byUserId: (userId: string) => ['students', 'byUserId', userId] as const,
   me: () => ['students', 'me'] as const,
   dashboard: () => ['students', 'dashboard'] as const,
   heatmap: () => ['students', 'heatmap'] as const,
@@ -36,6 +37,15 @@ export function useStudent(id: string | undefined) {
     queryKey: id ? studentQueryKeys.detail(id) : ['students', 'detail', 'noop'],
     queryFn: () => studentsApi.get(id as string),
     enabled: !!id,
+    staleTime: queryStaleTime.userScoped,
+  });
+}
+
+export function useStudentByUserId(userId: string | undefined) {
+  return useQuery({
+    queryKey: userId ? studentQueryKeys.byUserId(userId) : ['students', 'byUserId', 'noop'],
+    queryFn: () => studentsApi.getByUserId(userId as string),
+    enabled: !!userId,
     staleTime: queryStaleTime.userScoped,
   });
 }

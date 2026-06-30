@@ -62,6 +62,12 @@ interface ApiStudentProfile {
   questsCompleted: number;
   cohortPercentile: string | null;
   honorRoll: boolean;
+  level: number;
+  xp: number;
+  badgesEarned: number;
+  equippedTitle: string | null;
+  nameColor: string | null;
+  equippedTheme: string | null;
   guardians: ApiGuardian[];
   createdAt: string;
   updatedAt: string;
@@ -108,6 +114,12 @@ function toStudent(s: ApiStudentProfile): IStudentProfile {
     questsCompleted: s.questsCompleted ?? 0,
     cohortPercentile: s.cohortPercentile,
     honorRoll: s.honorRoll,
+    level: s.level ?? 1,
+    xp: s.xp ?? 0,
+    badgesEarned: s.badgesEarned ?? 0,
+    equippedTitle: s.equippedTitle ?? null,
+    nameColor: s.nameColor ?? null,
+    equippedTheme: s.equippedTheme ?? null,
     guardians: (s.guardians ?? []).map(toGuardian),
     createdAt: s.createdAt,
     updatedAt: s.updatedAt,
@@ -171,6 +183,11 @@ export const studentsApi = {
 
   async get(id: string): Promise<IStudentProfile> {
     const { data } = await apiClient.get<ApiStudentProfile>(`/students/${id}`);
+    return toStudent(data);
+  },
+
+  async getByUserId(userId: string): Promise<IStudentProfile> {
+    const { data } = await apiClient.get<ApiStudentProfile>(`/students/user/${userId}`);
     return toStudent(data);
   },
 
