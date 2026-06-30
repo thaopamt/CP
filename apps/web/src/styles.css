@@ -192,6 +192,123 @@
     --color-on-surface: #4ade80;
     --color-on-background: #22c55e;
   }
+
+  .theme-sunset {
+    --color-background: #fffbeb;
+    --color-surface: #fef3c7;
+    --color-surface-container-lowest: #ffffff;
+    --color-surface-container-low: #fef3c7;
+    --color-surface-container: #fde68a;
+    --color-primary: #ea580c;
+    --color-on-primary: #ffffff;
+    --color-primary-container: #ffedd5;
+    --color-on-primary-container: #9a3412;
+  }
+  .theme-sunset.dark {
+    --color-background: #431407;
+    --color-surface: #7c2d12;
+    --color-surface-container-lowest: #431407;
+    --color-surface-container-low: #7c2d12;
+    --color-surface-container: #9a3412;
+    --color-primary: #fb923c;
+    --color-on-primary: #431407;
+    --color-primary-container: #9a3412;
+    --color-on-primary-container: #ffedd5;
+  }
+
+  .theme-forest {
+    --color-background: #f0fdf4;
+    --color-surface: #dcfce7;
+    --color-surface-container-lowest: #ffffff;
+    --color-surface-container-low: #dcfce7;
+    --color-surface-container: #bbf7d0;
+    --color-primary: #16a34a;
+    --color-on-primary: #ffffff;
+    --color-primary-container: #dcfce7;
+    --color-on-primary-container: #14532d;
+  }
+  .theme-forest.dark {
+    --color-background: #052e16;
+    --color-surface: #14532d;
+    --color-surface-container-lowest: #052e16;
+    --color-surface-container-low: #14532d;
+    --color-surface-container: #166534;
+    --color-primary: #4ade80;
+    --color-on-primary: #052e16;
+    --color-primary-container: #166534;
+    --color-on-primary-container: #dcfce7;
+  }
+
+  .theme-cyberpunk {
+    --color-background: #0f172a;
+    --color-surface: #1e293b;
+    --color-surface-container-lowest: #020617;
+    --color-surface-container-low: #0f172a;
+    --color-surface-container: #1e293b;
+    --color-primary: #f43f5e;
+    --color-on-primary: #ffffff;
+    --color-primary-container: #881337;
+    --color-on-primary-container: #fecdd3;
+    --color-secondary: #06b6d4;
+    --color-on-secondary: #ffffff;
+  }
+  .theme-cyberpunk.dark {
+    --color-background: #020617;
+    --color-surface: #0f172a;
+    --color-surface-container-lowest: #000000;
+    --color-surface-container-low: #020617;
+    --color-surface-container: #0f172a;
+    --color-primary: #fb7185;
+    --color-on-primary: #4c0519;
+    --color-primary-container: #881337;
+    --color-on-primary-container: #ffe4e6;
+  }
+
+  .theme-aurora {
+    --color-background: #fdf4ff;
+    --color-surface: #fae8ff;
+    --color-surface-container-lowest: #ffffff;
+    --color-surface-container-low: #fae8ff;
+    --color-surface-container: #f5d0fe;
+    --color-primary: #c026d3;
+    --color-on-primary: #ffffff;
+    --color-primary-container: #f5d0fe;
+    --color-on-primary-container: #701a75;
+  }
+  .theme-aurora.dark {
+    --color-background: #2e1065;
+    --color-surface: #3b0764;
+    --color-surface-container-lowest: #1b0a3a;
+    --color-surface-container-low: #2e1065;
+    --color-surface-container: #4c1d95;
+    --color-primary: #e879f9;
+    --color-on-primary: #2e1065;
+    --color-primary-container: #701a75;
+    --color-on-primary-container: #fae8ff;
+  }
+
+  .theme-galaxy {
+    --color-background: #171717;
+    --color-surface: #262626;
+    --color-surface-container-lowest: #0a0a0a;
+    --color-surface-container-low: #171717;
+    --color-surface-container: #262626;
+    --color-primary: #a855f7;
+    --color-on-primary: #ffffff;
+    --color-primary-container: #581c87;
+    --color-on-primary-container: #e9d5ff;
+  }
+  .theme-galaxy.dark {
+    --color-background: #0a0a0a;
+    --color-surface: #171717;
+    --color-surface-container-lowest: #000000;
+    --color-surface-container-low: #0a0a0a;
+    --color-surface-container: #171717;
+    --color-primary: #c084fc;
+    --color-on-primary: #3b0764;
+    --color-primary-container: #581c87;
+    --color-on-primary-container: #f3e8ff;
+  }
 }
 
 /* Fix for Blockly flyout scrollbar remaining visible when flyout is hidden */

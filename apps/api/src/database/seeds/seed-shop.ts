@@ -86,9 +86,14 @@ const ITEMS: ShopSeed[] = [
 
 
   // ── Profile themes ────────────────────────────────────────────────────────────
-  { code: 'THEME_SUNSET', name: 'Theme Hoàng hôn', description: 'Nền hồ sơ gradient hoàng hôn.', icon: 'gradient', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.RARE, price: 250, payload: { themeKey: 'sunset' }, sortOrder: 20 },
-  { code: 'THEME_AURORA', name: 'Theme Cực quang', description: 'Nền hồ sơ gradient cực quang.', icon: 'gradient', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.EPIC, price: 550, payload: { themeKey: 'aurora' }, sortOrder: 21 },
-  { code: 'THEME_GALAXY', name: 'Theme Thiên hà', description: 'Nền hồ sơ thiên hà huyền ảo.', icon: 'gradient', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.LEGENDARY, price: 1000, payload: { themeKey: 'galaxy' }, sortOrder: 22 },
+  { code: 'THEME_OCEAN', name: 'Theme Đại dương', description: 'Giao diện mang màu xanh của biển cả.', icon: 'water_drop', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.COMMON, price: 150, payload: { themeKey: 'ocean' }, sortOrder: 20 },
+  { code: 'THEME_HACKER', name: 'Theme Hacker', description: 'Giao diện terminal xanh đen phong cách hacker.', icon: 'terminal', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.RARE, price: 300, payload: { themeKey: 'hacker' }, sortOrder: 21 },
+  { code: 'THEME_SUNSET', name: 'Theme Hoàng hôn', description: 'Giao diện ấm áp với sắc cam chiều tà.', icon: 'wb_twilight', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.RARE, price: 250, payload: { themeKey: 'sunset' }, sortOrder: 22 },
+  { code: 'THEME_FOREST', name: 'Theme Rừng nhiệt đới', description: 'Giao diện xanh lá mát mẻ của thiên nhiên.', icon: 'forest', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.EPIC, price: 400, payload: { themeKey: 'forest' }, sortOrder: 23 },
+  { code: 'THEME_CYBERPUNK', name: 'Theme Cyberpunk', description: 'Giao diện neon neon tương lai.', icon: 'memory', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.EPIC, price: 600, payload: { themeKey: 'cyberpunk' }, sortOrder: 24 },
+  { code: 'THEME_AURORA', name: 'Theme Cực quang', description: 'Giao diện gradient mờ ảo diệu kì.', icon: 'lens_blur', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.EPIC, price: 550, payload: { themeKey: 'aurora' }, sortOrder: 25 },
+  { code: 'THEME_GALAXY', name: 'Theme Thiên hà', description: 'Giao diện không gian vũ trụ tối tăm.', icon: 'public', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.LEGENDARY, price: 1000, payload: { themeKey: 'galaxy' }, sortOrder: 26 },
+
 
   // ── Titles ────────────────────────────────────────────────────────────────────
   { code: 'TITLE_RISING', name: 'Danh hiệu "Tân binh triển vọng"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.COMMON, price: 150, payload: { title: 'Tân binh triển vọng' }, sortOrder: 30 },
