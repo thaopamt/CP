@@ -242,6 +242,7 @@ export class MazeService {
       dto.commandTree,
       (level.allowedBlocks ?? []) as BlockType[],
       level.maxBlocks ?? null,
+      level.gridConfig?.allowedSensors ?? null,
     );
 
     const submission = this.submissions.create({

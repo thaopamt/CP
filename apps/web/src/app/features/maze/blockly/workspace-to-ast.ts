@@ -67,6 +67,8 @@ function blockToCommand(block: Blockly.Block, ws: Blockly.Workspace): Command | 
       return withBlockId(block, { type: BlockType.PICK });
     case 'maze_wait':
       return withBlockId(block, { type: BlockType.WAIT });
+    case 'maze_attack':
+      return withBlockId(block, { type: BlockType.ATTACK });
 
     case 'controls_repeat_ext': {
       const timesExpr = parseExpr(block.getInputTargetBlock('TIMES'), ws);

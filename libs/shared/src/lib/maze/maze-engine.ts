@@ -202,6 +202,7 @@ export function simulate(
   // time (chaser/guard react to the character, so they cannot be a pure fn of tick).
   const monsterPos: Cell[] = monsters.map((m) => ({ ...(m.path[0] ?? { x: -1, y: -1 }) }));
   const sleeperStep: number[] = monsters.map(() => 0);
+  const defeatedMonsters = new Set<number>();
 
   const steps: SimStep[] = [];
   const trace: SimTraceEvent[] = [];
@@ -229,19 +230,30 @@ export function simulate(
     monsterKinds[i] !== 'sleeper' || sleeperAwakeAt(monsters[i], t);
 
   const monsterViews = (): MonsterView[] =>
-    monsters.map((m, i) => ({
-      ...monsterPos[i],
-      kind: monsterKinds[i],
-      ...(monsterKinds[i] === 'sleeper' && !sleeperAwakeAt(m, tick) ? { asleep: true } : {}),
-    }));
+    monsters
+      .map((m, i) => {
+        if (defeatedMonsters.has(i)) {
+          return { x: -1, y: -1, kind: monsterKinds[i], defeated: true };
+        }
+        return {
+          ...monsterPos[i],
+          kind: monsterKinds[i],
+          ...(monsterKinds[i] === 'sleeper' && !sleeperAwakeAt(m, tick) ? { asleep: true } : {}),
+        };
+      })
+      .filter((v) => !(v as any).defeated);
 
   /** True when a LETHAL monster currently sits on cell `c` (drives the sensors). */
   const monsterDangerAt = (c: Cell): boolean =>
-    monsters.some((_, i) => monsterLethalNow(i, tick) && sameCell(monsterPos[i], c));
+    monsters.some((_, i) => !defeatedMonsters.has(i) && monsterLethalNow(i, tick) && sameCell(monsterPos[i], c));
 
   /** Advance every monster to `newTick`, reacting to the character's cell `target`. */
   const advanceMonsters = (newTick: number, target: Cell): void => {
     for (let i = 0; i < monsters.length; i++) {
+      if (defeatedMonsters.has(i)) {
+        monsterPos[i] = { x: -1, y: -1 };
+        continue;
+      }
       const m = monsters[i];
       switch (monsterKinds[i]) {
         case 'static':
@@ -419,6 +431,8 @@ export function simulate(
         return boxAt.has(key(cellAhead(dir)));
       case SensorType.BOX_AHEAD_SAFE:
         return boxAt.get(key(cellAhead(dir))) === 'treasure';
+      case SensorType.BOX_AHEAD_MONSTER:
+        return boxAt.get(key(cellAhead(dir))) === 'monster';
     }
   };
 
@@ -544,6 +558,30 @@ export function simulate(
           const from = { ...pos };
           if (advanceAndCheckCaught(from, pos, 'wait', cmd)) return 'abort';
           pushStep('wait', cmd);
+          break;
+        }
+        case BlockType.ATTACK: {
+          const targetCell = cellAhead(dir);
+          const targetKey = key(targetCell);
+
+          // 1. Destroy monster mystery box
+          if (hasBoxes && boxAt.has(targetKey) && boxAt.get(targetKey) === 'monster') {
+            boxAt.delete(targetKey);
+          }
+
+          // 2. Defeat roaming monsters
+          if (hasMonsters) {
+            for (let i = 0; i < monsters.length; i++) {
+              if (!defeatedMonsters.has(i) && sameCell(monsterPos[i], targetCell)) {
+                defeatedMonsters.add(i);
+                monsterPos[i] = { x: -1, y: -1 };
+              }
+            }
+          }
+
+          const from = { ...pos };
+          if (advanceAndCheckCaught(from, pos, 'attack', cmd)) return 'abort';
+          pushStep('attack', cmd);
           break;
         }
         case BlockType.REPEAT: {

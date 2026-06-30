@@ -1838,6 +1838,7 @@ const en = {
       turn_right: 'turn right',
       pick: 'collect',
       wait: 'wait',
+      attack: 'attack',
       repeat: 'repeat N times',
       forever: 'repeat forever',
       while: 'while / until',

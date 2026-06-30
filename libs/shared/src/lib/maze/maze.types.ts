@@ -134,6 +134,8 @@ export interface GridConfig {
    * the character decide before opening.
    */
   boxes?: MysteryBox[];
+  /** Allowed sensors when BlockType.CONDITION is enabled. If undefined/empty, all sensors are allowed. */
+  allowedSensors?: SensorType[];
 }
 
 /**
@@ -147,6 +149,7 @@ export enum BlockType {
   TURN_RIGHT = 'turn_right',
   PICK = 'pick', // thu hoạch: nhặt cây/vật phẩm/ngôi sao ở ô hiện tại
   WAIT = 'wait', // đứng yên một nhịp (để quái vật đi qua)
+  ATTACK = 'attack', // tấn công quái vật/hộp bí ẩn
   REPEAT = 'repeat', // lặp lại N lần
   FOREVER = 'forever', // lặp mãi mãi
   WHILE = 'while', // trong khi / lặp cho đến khi
@@ -176,6 +179,7 @@ export enum SensorType {
   MONSTER_RIGHT = 'monster_right', // ô bên phải đang có quái vật nguy hiểm
   BOX_AHEAD = 'box_ahead', // ô ngay phía trước có hộp bí ẩn chưa mở
   BOX_AHEAD_SAFE = 'box_ahead_safe', // hộp bí ẩn phía trước là báu vật (an toàn để mở)
+  BOX_AHEAD_MONSTER = 'box_ahead_monster', // hộp bí ẩn phía trước là quái vật
 }
 
 // ── Expression AST (evaluates to a number or boolean) ──────────────────────
@@ -221,6 +225,9 @@ export interface PickCmd extends CommandMeta {
 export interface WaitCmd extends CommandMeta {
   type: BlockType.WAIT;
 }
+export interface AttackCmd extends CommandMeta {
+  type: BlockType.ATTACK;
+}
 export interface RepeatCmd extends CommandMeta {
   type: BlockType.REPEAT;
   /** Number of iterations. Number for back-compat; Expr when driven by a variable/math. */
@@ -264,6 +271,7 @@ export type Command =
   | TurnRightCmd
   | PickCmd
   | WaitCmd
+  | AttackCmd
   | RepeatCmd
   | ForeverCmd
   | WhileCmd
@@ -290,7 +298,7 @@ export interface SimStep {
   pos: Cell;
   /** Character facing direction AFTER applying this step. */
   dir: Direction;
-  action: 'move' | 'turnLeft' | 'turnRight' | 'pick' | 'wait';
+  action: 'move' | 'turnLeft' | 'turnRight' | 'pick' | 'wait' | 'attack';
   /** Blockly block id that produced this visible step, when available. */
   blockId?: string;
   /** True when a `move` was blocked (wall / out of bounds) or a monster caught the character. */

@@ -7,6 +7,7 @@ const left: Command = { type: BlockType.TURN_LEFT };
 const right: Command = { type: BlockType.TURN_RIGHT };
 const pick: Command = { type: BlockType.PICK };
 const wait: Command = { type: BlockType.WAIT };
+const attack: Command = { type: BlockType.ATTACK };
 
 /** 3-wide row, start facing east at (0,0), goal at (2,0). */
 const straight: GridConfig = {
@@ -260,6 +261,57 @@ describe('simulate — mixed item types', () => {
   });
 });
 
+describe('simulate — attack command', () => {
+  const corridor = (w: number): GridConfig => ({
+    width: w, height: 1, walls: [], start: { x: 0, y: 0 }, startDir: Direction.EAST, goal: { x: w - 1, y: 0 },
+  });
+
+  it('defeats a static monster in front and walks through safely', () => {
+    const grid: GridConfig = {
+      ...corridor(3),
+      monsters: [{ path: [{ x: 1, y: 0 }] }],
+    };
+    const res = simulate(grid, [attack, move, move]);
+    expect(res.failReason).toBeNull();
+    expect(res.reachedGoal).toBe(true);
+  });
+
+  it('destroys a monster box in front and walks through safely', () => {
+    const grid: GridConfig = {
+      ...corridor(3),
+      boxes: [{ x: 1, y: 0, content: 'monster' }],
+    };
+    const res = simulate(grid, [attack, move, move]);
+    expect(res.failReason).toBeNull();
+    expect(res.reachedGoal).toBe(true);
+  });
+
+  it('does not destroy a treasure box when attacking', () => {
+    const grid: GridConfig = {
+      ...corridor(3),
+      boxes: [{ x: 1, y: 0, content: 'treasure' }],
+      collectAll: true,
+    };
+    const res = simulate(grid, [attack, move]);
+    expect(res.failReason).toBeNull();
+    expect(res.reachedGoal).toBe(true);
+  });
+
+  it('detects a monster box with BOX_AHEAD_MONSTER', () => {
+    const grid: GridConfig = {
+      ...corridor(3),
+      boxes: [{ x: 1, y: 0, content: 'monster' }],
+    };
+    const checkMonsterSensor: Command = {
+      type: BlockType.IF,
+      branches: [{ cond: { kind: 'sensor', sensor: SensorType.BOX_AHEAD_MONSTER }, body: [attack] }],
+    };
+    const res = simulate(grid, [checkMonsterSensor, move, move]);
+    expect(res.failReason).toBeNull();
+    expect(res.reachedGoal).toBe(true);
+  });
+});
+
 describe('countBlocks', () => {
   it('counts a repeat as itself plus its body', () => {
     expect(countBlocks([move, { type: BlockType.REPEAT, times: 3, body: [move, right] }])).toBe(4);
@@ -283,5 +335,29 @@ describe('validateCommands', () => {
     const res = validateCommands([move, left, move], allowed, 5);
     expect(res.ok).toBe(true);
     expect(res.errors).toHaveLength(0);
+  });
+
+  it('rejects disallowed sensors', () => {
+    const commands: Command[] = [{
+      type: BlockType.IF,
+      branches: [{
+        cond: { kind: 'sensor', sensor: SensorType.BOX_AHEAD_SAFE },
+        body: [move],
+      }],
+    }];
+    const res = validateCommands(commands, [BlockType.MOVE_FORWARD, BlockType.IF, BlockType.CONDITION], null, [SensorType.PATH_AHEAD]);
+    expect(res.ok).toBe(false);
+  });
+
+  it('accepts allowed sensors', () => {
+    const commands: Command[] = [{
+      type: BlockType.IF,
+      branches: [{
+        cond: { kind: 'sensor', sensor: SensorType.BOX_AHEAD_SAFE },
+        body: [move],
+      }],
+    }];
+    const res = validateCommands(commands, [BlockType.MOVE_FORWARD, BlockType.IF, BlockType.CONDITION], null, [SensorType.BOX_AHEAD_SAFE]);
+    expect(res.ok).toBe(true);
   });
 });

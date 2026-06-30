@@ -6,7 +6,7 @@ import {
   useImperativeHandle,
   useRef,
 } from 'react';
-import { BlockType, Command, countBlocks } from '@cp/shared';
+import { BlockType, Command, countBlocks, SensorType } from '@cp/shared';
 
 import { registerMazeBlocks } from './blockly/blocks';
 import { buildToolbox } from './blockly/toolbox';
@@ -24,6 +24,7 @@ export interface MazeBlocklyEditorHandle {
 
 interface Props {
   allowedBlocks: BlockType[];
+  allowedSensors?: SensorType[];
   /** Blockly block id to highlight while the maze animation is executing. */
   activeBlockId?: string | null;
   /** Notified with the current block count whenever the workspace changes. */
@@ -34,7 +35,7 @@ interface Props {
 }
 
 export const MazeBlocklyEditor = forwardRef<MazeBlocklyEditorHandle, Props>(
-  ({ allowedBlocks, activeBlockId = null, onBlockCountChange, onProgramChange, initialXml }, ref) => {
+  ({ allowedBlocks, allowedSensors, activeBlockId = null, onBlockCountChange, onProgramChange, initialXml }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const workspaceRef = useRef<Blockly.WorkspaceSvg | null>(null);
 
@@ -67,6 +68,7 @@ export const MazeBlocklyEditor = forwardRef<MazeBlocklyEditorHandle, Props>(
         move: { scrollbars: true, drag: true, wheel: false },
       });
       workspaceRef.current = workspace;
+      (workspace as any).allowedSensors = allowedSensors;
       
       const toolbox = workspace.getToolbox();
       if (toolbox) {
@@ -116,6 +118,12 @@ export const MazeBlocklyEditor = forwardRef<MazeBlocklyEditorHandle, Props>(
       // Rebuild only when the toolbox set changes.
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [allowedBlocks.join(',')]);
+
+    useEffect(() => {
+      if (workspaceRef.current) {
+        (workspaceRef.current as any).allowedSensors = allowedSensors;
+      }
+    }, [allowedSensors]);
 
     return <div ref={containerRef} className="h-full w-full" />;
   },

@@ -12,7 +12,9 @@ import {
   MonsterMode,
   MysteryBox,
   PublishStatus,
+  SensorType,
 } from '@cp/shared';
+import { SENSOR_OPTIONS } from '../../../features/maze/blockly/blocks';
 
 import { useClassesList } from '../../../api/class.queries';
 import { useCoursesList } from '../../../api/curriculum.queries';
@@ -67,6 +69,7 @@ const ALL_BLOCKS: BlockType[] = [
   BlockType.TURN_RIGHT,
   BlockType.PICK,
   BlockType.WAIT,
+  BlockType.ATTACK,
   BlockType.REPEAT,
   BlockType.FOREVER,
   BlockType.WHILE,
@@ -433,6 +436,34 @@ export function MazeLevelBuilder({ draft, onChange, onSave, saving }: Props) {
               ))}
             </div>
           </Field>
+
+          {draft.allowedBlocks.includes(BlockType.CONDITION) && (
+            <Field label="Cảm biến được phép (để trống = cho phép tất cả)">
+              <div className="flex flex-wrap gap-2">
+                {SENSOR_OPTIONS.map(([label, s]) => {
+                  const current = grid.allowedSensors ?? [];
+                  const isAllowed = current.includes(s);
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => {
+                        const next = isAllowed ? current.filter((x) => x !== s) : [...current, s];
+                        setGrid({ allowedSensors: next.length > 0 ? next : undefined });
+                      }}
+                      className={`rounded-full px-3 py-1.5 text-label-sm font-semibold border ${
+                        isAllowed
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-outline-variant text-on-surface-variant'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <Field label={t('maze.builder.maxBlocks')}>

@@ -205,6 +205,7 @@ export default function MazeSolvePage() {
       ast,
       (level.allowedBlocks ?? []) as BlockType[],
       level.maxBlocks ?? null,
+      level.gridConfig?.allowedSensors ?? null,
     );
     if (!validation.ok) {
       toast.warning(validation.errors[0]);
@@ -304,6 +305,7 @@ export default function MazeSolvePage() {
               key={level.id}
               ref={editorRef}
               allowedBlocks={(level.allowedBlocks ?? []) as BlockType[]}
+              allowedSensors={level.gridConfig?.allowedSensors}
               activeBlockId={animation.activeBlockId}
               onBlockCountChange={setBlockCount}
               onProgramChange={(_ast, xml) => setWorkspaceXml(xml)}

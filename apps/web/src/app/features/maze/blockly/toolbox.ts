@@ -33,6 +33,7 @@ export function buildToolbox(allowedBlocks: BlockType[]): Blockly.utils.toolbox.
   if (allow.has(BlockType.TURN_RIGHT)) moves.push({ kind: 'block', type: 'maze_turn_right' });
   if (allow.has(BlockType.PICK)) moves.push({ kind: 'block', type: 'maze_pick' });
   if (allow.has(BlockType.WAIT)) moves.push({ kind: 'block', type: 'maze_wait' });
+  if (allow.has(BlockType.ATTACK)) moves.push({ kind: 'block', type: 'maze_attack' });
   if (moves.length) categories.push({ kind: 'category', name: 'Di chuyển', colour: '#4C97FF', contents: moves });
 
   // ── Vòng lặp ──────────────────────────────────────────────────────────

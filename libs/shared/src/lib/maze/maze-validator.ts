@@ -14,6 +14,7 @@ import {
   Expr,
   MAZE_MAX_DEPTH,
   MAZE_MAX_REPEAT,
+  SensorType,
   ValidationResult,
 } from './maze.types';
 
@@ -21,13 +22,20 @@ export function validateCommands(
   commands: Command[],
   allowedBlocks: BlockType[],
   maxBlocks: number | null,
+  allowedSensors?: SensorType[] | null,
 ): ValidationResult {
   const errors = new Set<string>();
   const allowed = new Set<BlockType>(allowedBlocks);
+  const allowedSens = allowedSensors && allowedSensors.length > 0 ? new Set<SensorType>(allowedSensors) : null;
 
   const push = (msg: string) => errors.add(msg);
   const requireCap = (cap: BlockType) => {
     if (!allowed.has(cap)) push('Bài này không cho phép dùng một khối mà em đã đặt.');
+  };
+  const requireSensor = (sens: SensorType) => {
+    if (allowedSens && !allowedSens.has(sens)) {
+      push('Cảm biến này không được phép sử dụng ở bàn chơi này.');
+    }
   };
 
   const walkExpr = (e: Expr | number | undefined): void => {
@@ -41,6 +49,7 @@ export function validateCommands(
         break;
       case 'sensor':
         requireCap(BlockType.CONDITION);
+        requireSensor(e.sensor);
         break;
       case 'arith':
         requireCap(BlockType.MATH);
@@ -85,6 +94,9 @@ export function validateCommands(
           break;
         case BlockType.WAIT:
           requireCap(BlockType.WAIT);
+          break;
+        case BlockType.ATTACK:
+          requireCap(BlockType.ATTACK);
           break;
         case BlockType.REPEAT: {
           requireCap(BlockType.REPEAT);

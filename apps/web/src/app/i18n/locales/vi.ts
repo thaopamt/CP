@@ -1837,6 +1837,7 @@ const vi: AppResources = {
       turn_right: 'quay phải',
       pick: 'thu thập',
       wait: 'đứng yên',
+      attack: 'tấn công',
       repeat: 'lặp lại N lần',
       forever: 'lặp mãi mãi',
       while: 'trong khi / cho đến khi',
