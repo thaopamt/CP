@@ -14,6 +14,10 @@ export default {
     'theme-cyberpunk',
     'theme-aurora',
     'theme-galaxy',
+    'theme-snow',
+    'theme-sakura',
+    'theme-volcano',
+    'theme-party',
   ],
   content: [
     join(__dirname, 'index.html'),
