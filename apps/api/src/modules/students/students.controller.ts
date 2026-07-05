@@ -125,6 +125,14 @@ export class StudentsController implements CrudController<StudentProfile> {
     return { success: true };
   }
 
+  @Roles(UserRole.ADMIN)
+  @Post(':id/reset-learning-data')
+  async resetLearningData(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.service.resetLearningData(id);
+  }
+
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Get(':id/heatmap')
   async getStudentHeatmap(

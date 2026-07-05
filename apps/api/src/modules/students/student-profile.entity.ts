@@ -102,6 +102,9 @@ export class StudentProfile extends BaseEntity {
   @Column({ type: 'varchar', length: 60, nullable: true, name: 'equipped_title' })
   equippedTitle!: string | null;
 
+  @Column({ type: 'timestamptz', nullable: true, name: 'learning_reset_at' })
+  learningResetAt!: Date | null;
+
   @Column({ type: 'int', default: 0 })
   streak!: number;
 

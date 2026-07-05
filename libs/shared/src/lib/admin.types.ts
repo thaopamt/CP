@@ -179,6 +179,7 @@ export interface IStudentProfile {
   equippedTitle?: string | null;
   nameColor?: string | null;
   equippedTheme?: string | null;
+  learningResetAt?: string | null;
 
   /** Relations */
   guardians: IGuardian[];

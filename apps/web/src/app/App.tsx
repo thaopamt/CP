@@ -113,10 +113,10 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ThemeProvider>
-          <ThemeEffects />
-          <ConfirmProvider>
-            <BrowserRouter>
+        <BrowserRouter>
+          <ThemeProvider>
+            <ThemeEffects />
+            <ConfirmProvider>
               <ToastProvider />
             <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center">Loading...</div>}>
             <Routes>
@@ -281,9 +281,9 @@ export default function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>
-            </BrowserRouter>
-          </ConfirmProvider>
-        </ThemeProvider>
+            </ConfirmProvider>
+          </ThemeProvider>
+        </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
   );

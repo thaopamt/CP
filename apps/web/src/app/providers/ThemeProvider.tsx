@@ -1,31 +1,60 @@
-import { useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useCurrentStudent } from '../api/student.queries';
-import { useAuthStore } from '../stores/auth.store';
+import { DevThemeSwitcher } from '../components/DevThemeSwitcher';
+
+export interface ThemeContextType {
+  activeTheme: string | null | undefined;
+  isOverride: boolean;
+  setThemeOverride: (theme: string | null) => void;
+}
+
+export const ThemeContext = createContext<ThemeContextType>({
+  activeTheme: undefined,
+  isOverride: false,
+  setThemeOverride: () => {},
+});
+
+export function useTheme() {
+  return useContext(ThemeContext);
+}
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const user = useAuthStore((s) => s.user);
-  
-  // We call useCurrentStudent. Since queries are enabled by default, 
-  // it might fire even if user is not a student, but the backend may handle it 
-  // or it will fail gracefully. However, `studentQueryKeys.me()` is standard.
   const { data: student } = useCurrentStudent();
+  const [themeOverride, setThemeOverrideState] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('dev-theme-override');
+    }
+    return null;
+  });
+
+  const setThemeOverride = (theme: string | null) => {
+    setThemeOverrideState(theme);
+    if (theme) {
+      localStorage.setItem('dev-theme-override', theme);
+    } else {
+      localStorage.removeItem('dev-theme-override');
+    }
+  };
+
+  const activeTheme = themeOverride || student?.equippedTheme;
 
   useEffect(() => {
     const root = document.documentElement;
-    // We get the equipped theme. If the user is an admin or teacher, they might not have this,
-    // so we just get undefined.
-    const currentTheme = student?.equippedTheme;
-
     // Remove any previously applied theme classes safely
     const classesToRemove = Array.from(root.classList).filter((cls) => cls.startsWith('theme-'));
     classesToRemove.forEach((cls) => root.classList.remove(cls));
 
     // Apply new theme if exists
-    if (currentTheme) {
-      // Ensure the theme key matches the CSS class, e.g. themeKey "ocean" -> "theme-ocean"
-      root.classList.add(`theme-${currentTheme}`);
+    if (activeTheme) {
+      root.classList.add(`theme-${activeTheme}`);
     }
-  }, [student?.equippedTheme]);
+  }, [activeTheme]);
 
-  return <>{children}</>;
+  return (
+    <ThemeContext.Provider value={{ activeTheme, isOverride: !!themeOverride, setThemeOverride }}>
+      {children}
+      <DevThemeSwitcher />
+    </ThemeContext.Provider>
+  );
 }

@@ -68,9 +68,22 @@ interface ApiStudentProfile {
   equippedTitle: string | null;
   nameColor: string | null;
   equippedTheme: string | null;
+  learningResetAt: string | null;
   guardians: ApiGuardian[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ResetStudentLearningDataResult {
+  studentId: string;
+  userId: string;
+  submissionsDeleted: number;
+  assignmentProgressDeleted: number;
+  questsDeleted: number;
+  badgesDeleted: number;
+  shopItemsDeleted: number;
+  mazeSubmissionsDeleted: number;
+  learningResetAt: string;
 }
 
 export interface UpdateMyStudentPayload {
@@ -120,6 +133,7 @@ function toStudent(s: ApiStudentProfile): IStudentProfile {
     equippedTitle: s.equippedTitle ?? null,
     nameColor: s.nameColor ?? null,
     equippedTheme: s.equippedTheme ?? null,
+    learningResetAt: s.learningResetAt ?? null,
     guardians: (s.guardians ?? []).map(toGuardian),
     createdAt: s.createdAt,
     updatedAt: s.updatedAt,
@@ -213,6 +227,11 @@ export const studentsApi = {
 
   async resetPassword(id: string, newPassword: string): Promise<void> {
     await apiClient.post(`/students/${id}/reset-password`, { newPassword });
+  },
+
+  async resetLearningData(id: string): Promise<ResetStudentLearningDataResult> {
+    const { data } = await apiClient.post<ResetStudentLearningDataResult>(`/students/${id}/reset-learning-data`);
+    return data;
   },
 
   async remove(id: string): Promise<void> {

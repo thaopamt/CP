@@ -21,6 +21,8 @@ import { useLiveCodingSync } from '../../hooks/useLiveCodingSync';
 import { useInteractiveExec } from '../../hooks/useInteractiveExec';
 import { useSubmissionRealtimeFeed } from '../../hooks/useSubmissionRealtimeFeed';
 import { CompletionRankingInfo } from '../../components/CompletionRankingInfo';
+import { applyLearningResetStorageCleanup } from '../../lib/learning-reset-storage';
+import { useAuthStore } from '../../stores/auth.store';
 import { useChatWidgetStore } from '../../stores/chat-widget.store';
 import {
   buildSubmissionRunResults,
@@ -247,6 +249,7 @@ export default function StudentWorkspacePage() {
   const runMutation = useRunCode();
   const submitMutation = useSubmitCode();
   const { data: dashboardData } = useStudentDashboard();
+  const userId = useAuthStore((s) => s.user?.id);
   const updateLangMutation = useUpdateDefaultLanguage();
 
   const [leftTab, setLeftTab] = useState<LeftTab>('description');
@@ -278,6 +281,19 @@ export default function StudentWorkspacePage() {
   const [code, setCode] = useState(() => {
     return readCurrentWorkspaceDraft().code;
   });
+
+  useEffect(() => {
+    const result = applyLearningResetStorageCleanup({
+      storage: window.localStorage,
+      userId,
+      learningResetAt: dashboardData?.learningResetAt,
+    });
+    if (!result.removedKeys.includes(draftKey)) return;
+
+    const fallback = LANG_OPTIONS.find(l => l.value === localStorage.getItem('cp_default_language')) || defaultLangOption;
+    setLanguage(fallback.value);
+    setCode(fallback.template);
+  }, [dashboardData?.learningResetAt, defaultLangOption, draftKey, userId]);
 
   // ── Auto-save code to localStorage (debounced 500ms) ──
   useEffect(() => {

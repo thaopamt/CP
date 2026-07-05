@@ -105,6 +105,7 @@ export interface IStudentDashboardData {
   nameColor?: string | null;
   equippedTitle?: string | null;
   equippedTheme?: string | null;
+  learningResetAt?: string | null;
   dailyQuestsCompleted: number;
   dailyQuestsTarget: number;
   weeklyAccepted: number;
@@ -119,6 +120,7 @@ export interface IStudentDashboardData {
   leaderboard: ILeaderboardEntry[];
   todaySchedule: IDashboardScheduleSession[];
   nextSession: IDashboardScheduleSession | null;
+  recentSubmissions: IRecentSubmissionSummary[];
   recommendedNext: IDashboardRecommendation | null;
 }
 

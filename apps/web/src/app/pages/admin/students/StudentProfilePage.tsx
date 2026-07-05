@@ -13,12 +13,18 @@ import {
   StatusBadge,
   TabPills,
   TrendBadge,
+  useConfirm,
   useToast,
   ContributionHeatmap,
 } from '@cp/ui';
 import { IGuardian, ISubjectGrade, UserRole, fullName as formatName } from '@cp/shared';
 
-import { useStudent, useResetPasswordStudent, useStudentHeatmapAdmin } from '../../../api/student.queries';
+import {
+  useStudent,
+  useResetPasswordStudent,
+  useResetStudentLearningData,
+  useStudentHeatmapAdmin,
+} from '../../../api/student.queries';
 import {
   useStudentTeachers,
   useSetStudentTeachers,
@@ -38,6 +44,7 @@ export default function StudentProfilePage() {
   const base = usePortalBase();
   const { studentId: idParam } = useParams<{ studentId: string }>();
   const toast = useToast();
+  const confirm = useConfirm();
 
   const studentQuery = useStudent(idParam);
   const studentTeachersQuery = useStudentTeachers(idParam);
@@ -45,6 +52,7 @@ export default function StudentProfilePage() {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [manageTeachersOpen, setManageTeachersOpen] = useState(false);
   const resetPassword = useResetPasswordStudent(idParam as string);
+  const resetLearningData = useResetStudentLearningData(idParam as string);
   const heatmapQuery = useStudentHeatmapAdmin(idParam as string);
 
   const subjectGrades: ISubjectGrade[] = useMemo(
@@ -84,7 +92,55 @@ export default function StudentProfilePage() {
   const fullName = `${s.firstName} ${s.lastName}`.trim();
   const initials = `${s.firstName[0] ?? ''}${s.lastName[0] ?? ''}`.toUpperCase();
 
+  async function handleResetLearningData() {
+    const ok = await confirm({
+      title: t('pages.admin.studentProfile.resetLearning.title', 'Reset học tập'),
+      message: (
+        <div className="space-y-2 text-left">
+          <p>
+            {t(
+              'pages.admin.studentProfile.resetLearning.message',
+              'Thao tác này sẽ xóa bài đã làm, submissions, progress khóa học, quest, badge, maze, shop và đặt lại XP/gems/level của học sinh này.',
+            )}
+          </p>
+          <p className="font-medium">
+            {t(
+              'pages.admin.studentProfile.resetLearning.keep',
+              'Thông tin cá nhân, học phí, lớp học, lịch học và điểm danh sẽ được giữ nguyên.',
+            )}
+          </p>
+        </div>
+      ),
+      confirmLabel: t('pages.admin.studentProfile.resetLearning.confirm', 'Reset học tập'),
+      cancelLabel: t('common.cancel', 'Cancel'),
+      intent: 'danger',
+    });
+    if (!ok) return;
 
+    try {
+      const result = await resetLearningData.mutateAsync();
+      const deletedCount =
+        result.submissionsDeleted +
+        result.assignmentProgressDeleted +
+        result.questsDeleted +
+        result.badgesDeleted +
+        result.shopItemsDeleted +
+        result.mazeSubmissionsDeleted;
+      toast.success(
+        t('pages.admin.studentProfile.resetLearning.success', {
+          defaultValue: 'Đã reset dữ liệu học tập ({{count}} bản ghi).',
+          count: deletedCount,
+        }),
+      );
+    } catch {
+      toast.error(
+        t(
+          'pages.admin.studentProfile.resetLearning.error',
+          'Không thể reset dữ liệu học tập. Vui lòng thử lại.',
+        ),
+      );
+    }
+  }
 
   return (
     <div className="flex flex-col gap-lg">
@@ -140,6 +196,16 @@ export default function StudentProfilePage() {
             >
               {t('pages.admin.studentProfile.resetPassword')}
             </Button>
+            {base === '/admin' && (
+              <Button
+                variant="danger"
+                leadingIcon={<Icon name="restart_alt" size={18} />}
+                disabled={resetLearningData.isPending}
+                onClick={handleResetLearningData}
+              >
+                {t('pages.admin.studentProfile.resetLearning.action', 'Reset học tập')}
+              </Button>
+            )}
             <Button variant="admin" leadingIcon={<Icon name="mail" size={18} />}>
               {t('pages.admin.studentProfile.message')}
             </Button>

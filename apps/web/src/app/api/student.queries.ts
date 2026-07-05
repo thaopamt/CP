@@ -97,6 +97,28 @@ export function useResetPasswordStudent(id: string) {
   });
 }
 
+export function useResetStudentLearningData(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => studentsApi.resetLearningData(id),
+    onSuccess: (result) => {
+      void qc.invalidateQueries({ queryKey: ['students'] });
+      void qc.invalidateQueries({ queryKey: studentQueryKeys.detail(id) });
+      void qc.invalidateQueries({ queryKey: studentQueryKeys.byUserId(result.userId) });
+      void qc.invalidateQueries({ queryKey: studentQueryKeys.me() });
+      void qc.invalidateQueries({ queryKey: studentQueryKeys.dashboard() });
+      void qc.invalidateQueries({ queryKey: ['submissions'] });
+      void qc.invalidateQueries({ queryKey: ['submissions-all'] });
+      void qc.invalidateQueries({ queryKey: ['submissions-all-my'] });
+      void qc.invalidateQueries({ queryKey: ['leaderboard'] });
+      void qc.invalidateQueries({ queryKey: ['student-quests'] });
+      void qc.invalidateQueries({ queryKey: ['student-badges'] });
+      void qc.invalidateQueries({ queryKey: ['shop'] });
+      void qc.invalidateQueries({ queryKey: ['maze-levels'] });
+    },
+  });
+}
+
 export function useDeleteStudent() {
   const qc = useQueryClient();
   return useMutation({

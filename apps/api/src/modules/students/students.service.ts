@@ -19,6 +19,10 @@ import { CourseAssignment } from '../courses/course-assignment.entity';
 import { Assignment } from '../assignments/assignment.entity';
 import { Submission } from '../submissions/submission.entity';
 import { StudentAssignmentProgress } from '../submissions/student-assignment-progress.entity';
+import { StudentQuest } from '../quests/student-quest.entity';
+import { StudentBadge } from '../quests/student-badge.entity';
+import { StudentInventory } from '../shop/student-inventory.entity';
+import { MazeSubmission } from '../maze/maze-submission.entity';
 import { StudentSchedule } from './student-schedule.entity';
 import { SystemCacheService } from '../../common/cache/system-cache.service';
 import {
@@ -28,6 +32,18 @@ import {
   xpIntoCurrentLevel,
   xpBucketSize,
 } from '../../common/gamification.constants';
+
+export interface ResetStudentLearningDataResult {
+  studentId: string;
+  userId: string;
+  submissionsDeleted: number;
+  assignmentProgressDeleted: number;
+  questsDeleted: number;
+  badgesDeleted: number;
+  shopItemsDeleted: number;
+  mazeSubmissionsDeleted: number;
+  learningResetAt: string;
+}
 
 @Injectable()
 export class StudentsService extends TypeOrmCrudService<StudentProfile> {
@@ -271,6 +287,90 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
     await this.users.update({ id: profile.userId }, { passwordHash });
+  }
+
+  async resetLearningData(studentId: string): Promise<ResetStudentLearningDataResult> {
+    const resetAt = new Date();
+
+    const result = await this.ds.transaction(async (tx) => {
+      const profileRepo = tx.getRepository(StudentProfile);
+      const profile = await profileRepo.findOne({ where: { id: studentId } });
+      if (!profile) throw new NotFoundException(`Student ${studentId} not found`);
+
+      const userId = profile.userId;
+
+      await tx.query(
+        `
+          UPDATE badges b
+          SET earned_count = GREATEST(0, b.earned_count - earned.badge_count)
+          FROM (
+            SELECT badge_id, COUNT(*)::int AS badge_count
+            FROM student_badges
+            WHERE user_id = $1
+            GROUP BY badge_id
+          ) earned
+          WHERE b.id = earned.badge_id
+        `,
+        [userId],
+      );
+
+      const progressDelete = await tx.getRepository(StudentAssignmentProgress).delete({ studentId: userId });
+      const submissionDelete = await tx.getRepository(Submission).delete({ userId });
+      const questDelete = await tx.getRepository(StudentQuest).delete({ userId });
+      const badgeDelete = await tx.getRepository(StudentBadge).delete({ userId });
+      const inventoryDelete = await tx.getRepository(StudentInventory).delete({ userId });
+      const mazeDelete = await tx.getRepository(MazeSubmission).delete({ userId });
+
+      await profileRepo.update(
+        { id: studentId },
+        {
+          level: 1,
+          xp: 0,
+          weeklyXp: 0,
+          weekKey: null,
+          monthlyXp: 0,
+          monthKey: null,
+          gems: 0,
+          streak: 0,
+          streakLastDate: null,
+          problemsSolved: 0,
+          mazesSolved: 0,
+          badgesEarned: 0,
+          questsCompleted: 0,
+          equippedTheme: null,
+          nameColor: null,
+          equippedTitle: null,
+          learningResetAt: resetAt,
+        },
+      );
+
+      return {
+        studentId,
+        userId,
+        submissionsDeleted: submissionDelete.affected ?? 0,
+        assignmentProgressDeleted: progressDelete.affected ?? 0,
+        questsDeleted: questDelete.affected ?? 0,
+        badgesDeleted: badgeDelete.affected ?? 0,
+        shopItemsDeleted: inventoryDelete.affected ?? 0,
+        mazeSubmissionsDeleted: mazeDelete.affected ?? 0,
+        learningResetAt: resetAt.toISOString(),
+      };
+    });
+
+    void this.cache.bumpTags([
+      'students:list',
+      'leaderboard:global',
+      'badges:catalog',
+      'maze:progress',
+      `student:${result.userId}:profile`,
+      `student:${result.userId}:dashboard`,
+      `student:${result.userId}:quests`,
+      `student:${result.userId}:badges`,
+      `student:${result.userId}:shop`,
+      `student:${result.userId}:maze`,
+    ]);
+
+    return result;
   }
 
   async updateDefaultLanguage(userId: string, language: string): Promise<{ defaultLanguage: string }> {
@@ -588,6 +688,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       nameColor: profile.nameColor ?? null,
       equippedTitle: profile.equippedTitle ?? null,
       equippedTheme: profile.equippedTheme ?? null,
+      learningResetAt: profile.learningResetAt?.toISOString() ?? null,
       dailyQuestsCompleted,
       dailyQuestsTarget,
       weeklyAccepted,
