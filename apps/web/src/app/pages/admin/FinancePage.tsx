@@ -23,6 +23,10 @@ import {
   useSetFinanceMonthlyAmountDue,
   useSetFinanceMonthlyStatus,
 } from '../../api/finance.queries';
+import {
+  buildTuitionInvoiceImageFilename,
+  buildTuitionInvoicePngBlob,
+} from './finance-invoice-print';
 
 const PAGE_SIZE = 25;
 type StatusFilter = 'all' | FinanceCollectionStatus;
@@ -318,7 +322,7 @@ export default function AdminFinancePage() {
           variant="ghost"
           size="sm"
           leadingIcon={<Icon name="print" size={16} />}
-          onClick={() => printInvoice(row)}
+          onClick={() => void printInvoice(row)}
         >
           {t('pages.admin.finance.invoice.print')}
         </Button>
@@ -326,36 +330,28 @@ export default function AdminFinancePage() {
     },
   ];
 
-  function printInvoice(row: IFinanceMonthlyRow) {
+  async function printInvoice(row: IFinanceMonthlyRow) {
     if (!summary) {
       toast.error(t('pages.admin.finance.invoice.printFailed'));
       return;
     }
 
-    const invoiceWindow = window.open('', '_blank', 'width=900,height=720');
-    if (!invoiceWindow) {
-      toast.error(t('pages.admin.finance.invoice.popupBlocked'));
+    const invoiceStatus = row.collectionStatus === 'PAID' ? row.collectionStatus : 'PRINTED';
+    try {
+      const blob = await buildTuitionInvoicePngBlob({
+        row,
+        month,
+        from: formatDate(summary.from),
+        to: formatDate(summary.to),
+        issuedAt: formatDate(new Date()),
+        money,
+        status: getCollectionStatusLabel(invoiceStatus),
+      });
+      downloadBlob(blob, buildTuitionInvoiceImageFilename(row, month));
+    } catch (err) {
+      toast.error((err as Error).message || t('pages.admin.finance.invoice.printFailed'));
       return;
     }
-
-    const invoiceStatus = row.collectionStatus === 'PAID' ? row.collectionStatus : 'PRINTED';
-    const html = buildInvoiceHtml({
-      row,
-      month,
-      from: formatDate(summary.from),
-      to: formatDate(summary.to),
-      issuedAt: formatDate(new Date()),
-      money,
-      status: getCollectionStatusLabel(invoiceStatus),
-      t,
-    });
-    invoiceWindow.document.open();
-    invoiceWindow.document.write(html);
-    invoiceWindow.document.close();
-    invoiceWindow.focus();
-    invoiceWindow.setTimeout(() => {
-      invoiceWindow.print();
-    }, 250);
 
     if (invoiceStatus !== row.collectionStatus) {
       void setMonthlyStatus
@@ -586,112 +582,11 @@ function csvCell(value: string) {
   return `"${value.replace(/"/g, '""')}"`;
 }
 
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function buildInvoiceHtml({
-  row,
-  month,
-  from,
-  to,
-  issuedAt,
-  money,
-  status,
-  t,
-}: {
-  row: IFinanceMonthlyRow;
-  month: string;
-  from: string;
-  to: string;
-  issuedAt: string;
-  money: Intl.NumberFormat;
-  status: string;
-  t: (key: string, options?: Record<string, unknown>) => string;
-}) {
-  const invoiceNo = `FIN-${month}-${row.profileId.slice(0, 8).toUpperCase()}`;
-  const lines = [
-    [t('pages.admin.finance.invoice.fields.period'), `${from} - ${to}`],
-    [t('pages.admin.finance.invoice.fields.student'), row.studentName],
-    [t('pages.admin.finance.invoice.fields.grade'), String(row.grade)],
-    [t('pages.admin.finance.invoice.fields.classes'), row.classNames.join(', ') || t('common.none')],
-    [t('pages.admin.finance.invoice.fields.scheduledSessions'), String(row.scheduledSessions)],
-    [t('pages.admin.finance.invoice.fields.billableSessions'), String(row.billableSessions)],
-    [t('pages.admin.finance.invoice.fields.monthlyTuition'), money.format(row.monthlyTuition)],
-    [t('pages.admin.finance.invoice.fields.sessionRate'), money.format(row.tuitionPerSession)],
-    ...(row.hasAmountDueOverride
-      ? [[t('pages.admin.finance.invoice.fields.calculatedAmountDue'), money.format(row.calculatedAmountDue)]]
-      : []),
-  ];
-
-  return `<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>${escapeHtml(t('pages.admin.finance.invoice.title'))} ${escapeHtml(invoiceNo)}</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; padding: 32px; font-family: Inter, Arial, sans-serif; color: #1f2937; background: #f8fafc; }
-    .invoice { max-width: 760px; margin: 0 auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 32px; }
-    .top { display: flex; justify-content: space-between; gap: 24px; border-bottom: 2px solid #111827; padding-bottom: 20px; }
-    .brand { font-size: 24px; font-weight: 800; letter-spacing: .02em; }
-    .muted { color: #6b7280; font-size: 13px; }
-    .title { text-align: right; }
-    .title h1 { margin: 0 0 8px; font-size: 28px; }
-    .badge { display: inline-flex; padding: 6px 10px; border-radius: 999px; background: #ecfdf5; color: #047857; font-size: 12px; font-weight: 700; }
-    .section { margin-top: 24px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
-    .item { display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid #f1f5f9; padding: 10px 0; }
-    .label { color: #64748b; }
-    .value { font-weight: 700; text-align: right; }
-    .total { margin-top: 24px; padding: 20px; border-radius: 10px; background: #111827; color: white; display: flex; justify-content: space-between; align-items: center; }
-    .total .amount { font-size: 28px; font-weight: 900; }
-    .note { margin-top: 20px; font-size: 12px; color: #64748b; line-height: 1.5; }
-    @media print {
-      body { background: #fff; padding: 0; }
-      .invoice { border: none; border-radius: 0; max-width: none; }
-    }
-  </style>
-</head>
-<body>
-  <main class="invoice">
-    <section class="top">
-      <div>
-        <div class="brand">Zenith</div>
-        <div class="muted">${escapeHtml(t('brand.adminPortal'))}</div>
-        <div class="muted">${escapeHtml(t('pages.admin.finance.invoice.issuedAt'))}: ${escapeHtml(issuedAt)}</div>
-      </div>
-      <div class="title">
-        <h1>${escapeHtml(t('pages.admin.finance.invoice.title'))}</h1>
-        <div class="muted">#${escapeHtml(invoiceNo)}</div>
-        <div class="badge">${escapeHtml(status)}</div>
-      </div>
-    </section>
-
-    <section class="section grid">
-      ${lines
-        .map(
-          ([label, value]) =>
-            `<div class="item"><span class="label">${escapeHtml(label)}</span><span class="value">${escapeHtml(value)}</span></div>`,
-        )
-        .join('')}
-    </section>
-
-    <section class="total">
-      <div>
-        <div class="muted">${escapeHtml(t('pages.admin.finance.invoice.fields.amountDue'))}</div>
-        <div>${escapeHtml(t('pages.admin.finance.invoice.fields.status'))}: ${escapeHtml(status)}</div>
-      </div>
-      <div class="amount">${escapeHtml(money.format(row.amountDue))}</div>
-    </section>
-
-    <p class="note">${escapeHtml(t('pages.admin.finance.invoice.note'))}</p>
-  </main>
-</body>
-</html>`;
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }
