@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import {
+  FinanceBillingStatus,
   FinanceCollectionStatus,
   IFinanceMonthlyAmountDuePayload,
   IFinanceMonthlyStatusPayload,
@@ -22,6 +23,8 @@ export class FinanceController {
     @Query('month') month?: string,
     @Query('search') search?: string,
     @Query('status') status?: FinanceCollectionStatus,
+    @Query('billingStatus') billingStatus?: FinanceBillingStatus,
+    @Query('studentGroup') studentGroup?: 'center' | 'home',
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
@@ -29,6 +32,8 @@ export class FinanceController {
       month,
       search,
       status,
+      billingStatus,
+      studentGroup,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
     });

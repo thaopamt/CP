@@ -1,0 +1,38 @@
+<h2>Bạn muốn hiển thị loại biểu đồ nào?</h2>
+<p class="subtitle">Biểu đồ xu hướng mang lại cái nhìn bao quát nhất nhưng yêu cầu thêm API ở Backend.</p>
+
+<div class="options">
+  <div class="option" data-choice="trend" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Biểu đồ xu hướng (Đề xuất)</h3>
+      <p>Hiển thị xu hướng 3 chỉ số (Tối đa, Tổng thu, Chưa thu) qua <b>6 tháng gần nhất</b> bằng Line Chart hoặc Bar Chart.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Ưu điểm</h4><ul><li>Nhìn toàn cảnh tăng trưởng</li></ul></div>
+        <div class="cons"><h4>Nhược điểm</h4><ul><li>Cần làm thêm API thống kê nhiều tháng ở Backend</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="breakdown" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Cơ cấu tháng hiện tại</h3>
+      <p>So sánh Tỷ lệ Đã thu / Chưa thu và 3 chỉ số trong <b>tháng đang chọn</b> bằng Pie Chart / Bar Chart.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Ưu điểm</h4><ul><li>Dùng luôn API hiện tại, làm rất nhanh</li></ul></div>
+        <div class="cons"><h4>Nhược điểm</h4><ul><li>Chỉ xem được cục bộ 1 tháng</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="segmentation" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Phân bổ doanh thu</h3>
+      <p>Hiển thị tỷ lệ doanh thu theo khối lớp (Grade) của tháng hiện tại bằng Pie Chart.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Ưu điểm</h4><ul><li>Biết được khối nào đem lại nhiều doanh thu nhất</li></ul></div>
+        <div class="cons"><h4>Nhược điểm</h4><ul><li>Phải tính toán thủ công trên danh sách học sinh</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

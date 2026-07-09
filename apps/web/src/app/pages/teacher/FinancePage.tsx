@@ -12,7 +12,13 @@ import {
   SelectFilter,
   StatCard,
 } from '@cp/ui';
-import { FINANCE_COLLECTION_STATUSES, FinanceCollectionStatus, IFinanceMonthlyRow } from '@cp/shared';
+import {
+  FINANCE_BILLING_STATUSES,
+  FINANCE_COLLECTION_STATUSES,
+  FinanceBillingStatus,
+  FinanceCollectionStatus,
+  IFinanceMonthlyRow,
+} from '@cp/shared';
 
 import { useTeacherFinanceMonthlyReport } from '../../api/finance.queries';
 
@@ -57,16 +63,18 @@ export default function TeacherFinancePage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [collectionStatusFilter, setCollectionStatusFilter] = useState<StatusFilter>('all');
+  const [billingStatusFilter, setBillingStatusFilter] = useState<'all' | FinanceBillingStatus>('all');
   const deferredSearch = useDeferredValue(search.trim());
 
   useEffect(() => {
     setPage(1);
-  }, [month, deferredSearch, collectionStatusFilter]);
+  }, [month, deferredSearch, collectionStatusFilter, billingStatusFilter]);
 
   const reportQuery = useTeacherFinanceMonthlyReport({
     month,
     search: deferredSearch || undefined,
     status: collectionStatusFilter === 'all' ? undefined : collectionStatusFilter,
+    billingStatus: billingStatusFilter === 'all' ? undefined : billingStatusFilter,
     page,
     limit: PAGE_SIZE,
   });
@@ -80,6 +88,8 @@ export default function TeacherFinancePage() {
       }),
     [locale],
   );
+
+
 
   const numberFormat = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const report = reportQuery.data;
@@ -97,38 +107,20 @@ export default function TeacherFinancePage() {
       header: t('pages.admin.finance.columns.student'),
       align: 'left',
       cell: (row) => (
-        <div className="flex min-w-[260px] items-center gap-sm">
-          <Avatar size="sm" initials={initials(row.studentName)} src={row.avatarUrl ?? undefined} />
-          <div className="min-w-0 text-left">
-            <div className="truncate font-semibold text-on-surface">{row.studentName}</div>
-          </div>
+        <div className="w-[80px] min-w-0 text-left">
+          <div className="truncate text-[13px] font-semibold text-on-surface" title={row.studentName}>{row.studentName}</div>
         </div>
       ),
     },
     {
-      key: 'grade',
-      header: t('pages.admin.finance.columns.grade'),
+      key: 'sessions',
+      header: t('pages.admin.finance.columns.sessions', 'Số buổi'),
       align: 'center',
       cell: (row) => (
-        <span className="whitespace-nowrap text-on-surface-variant">
-          {t('pages.admin.studentProfile.gradeShort', { grade: row.grade })}
+        <span className="text-on-surface text-[13px]">
+          <span className="font-semibold">{row.billableSessions}</span>
+          <span className="text-on-surface-variant"> / {row.scheduledSessions}</span>
         </span>
-      ),
-    },
-    {
-      key: 'scheduled',
-      header: t('pages.admin.finance.columns.scheduledSessions'),
-      align: 'center',
-      cell: (row) => (
-        <span className="text-on-surface-variant">{numberFormat.format(row.scheduledSessions)}</span>
-      ),
-    },
-    {
-      key: 'billable',
-      header: t('pages.admin.finance.columns.billableSessions'),
-      align: 'center',
-      cell: (row) => (
-        <span className="font-semibold text-on-surface">{numberFormat.format(row.billableSessions)}</span>
       ),
     },
     {
@@ -144,10 +136,21 @@ export default function TeacherFinancePage() {
       ),
     },
     {
-      key: 'rate',
-      header: t('pages.admin.finance.columns.sessionRate'),
+      key: 'parent',
+      header: t('pages.admin.finance.columns.parent', 'Phụ huynh'),
       align: 'center',
-      cell: (row) => <span className="text-on-surface-variant">{money.format(row.tuitionPerSession)}</span>,
+      cell: (row) => (
+        <div className="flex flex-col items-center text-[13px] leading-tight">
+          {row.parentName ? (
+            <>
+              <span className="font-medium text-on-surface">{row.parentName}</span>
+              {row.parentPhone && <span className="text-on-surface-variant text-[11px] mt-0.5">{row.parentPhone}</span>}
+            </>
+          ) : (
+            <span className="text-on-surface-variant opacity-60">--</span>
+          )}
+        </div>
+      ),
     },
     {
       key: 'amount',
@@ -193,6 +196,30 @@ export default function TeacherFinancePage() {
         subtitle={t('pages.admin.finance.subtitle')}
       />
 
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-md">
+        <StatCard
+          label={t('pages.admin.finance.kpi.potentialDue')}
+          value={money.format(summary?.totalPotentialAmount ?? 0)}
+          icon="account_balance_wallet"
+          iconColor="text-primary"
+          valueClassName="text-[28px]"
+        />
+        <StatCard
+          label={t('pages.admin.finance.kpi.totalDue')}
+          value={money.format(summary?.totalAmountDue ?? 0)}
+          icon="payments"
+          iconColor="text-tertiary"
+          valueClassName="text-[28px]"
+        />
+        <StatCard
+          label={t('pages.admin.finance.kpi.outstandingDue')}
+          value={money.format(summary?.totalOutstandingAmount ?? 0)}
+          icon="pending_actions"
+          iconColor="text-error"
+          valueClassName="text-[28px]"
+        />
+      </section>
+
       <FilterToolbar>
         <SearchBox
           value={search}
@@ -220,28 +247,19 @@ export default function TeacherFinancePage() {
             })),
           ]}
         />
+        <SelectFilter
+          label={t('pages.admin.finance.filters.billingStatusLabel')}
+          value={billingStatusFilter}
+          onChange={(event) => setBillingStatusFilter(event.target.value as 'all' | FinanceBillingStatus)}
+          options={[
+            { value: 'all', label: t('pages.admin.finance.filters.statusAll') },
+            ...FINANCE_BILLING_STATUSES.map((status) => ({
+              value: status,
+              label: t(`pages.admin.finance.status.${status}`),
+            })),
+          ]}
+        />
       </FilterToolbar>
-
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-md">
-        <StatCard
-          label={t('pages.admin.finance.kpi.potentialDue')}
-          value={money.format(summary?.totalPotentialAmount ?? 0)}
-          icon="account_balance_wallet"
-          iconColor="text-primary"
-        />
-        <StatCard
-          label={t('pages.admin.finance.kpi.totalDue')}
-          value={money.format(summary?.totalAmountDue ?? 0)}
-          icon="payments"
-          iconColor="text-tertiary"
-        />
-        <StatCard
-          label={t('pages.admin.finance.kpi.outstandingDue')}
-          value={money.format(summary?.totalOutstandingAmount ?? 0)}
-          icon="pending_actions"
-          iconColor="text-error"
-        />
-      </section>
 
       <section className="overflow-hidden rounded-xl border border-outline-variant/50 bg-surface-container-lowest shadow-elev-1">
         <header className="flex flex-col gap-xs border-b border-outline-variant/30 bg-surface-bright p-md md:p-lg">
@@ -251,10 +269,10 @@ export default function TeacherFinancePage() {
           <p className="text-label-sm text-on-surface-variant">
             {summary
               ? t('pages.admin.finance.reportMeta', {
-                  from: formatDate(summary.from),
-                  to: formatDate(summary.to),
-                  count: summary.totalStudents,
-                })
+                from: formatDate(summary.from),
+                to: formatDate(summary.to),
+                count: summary.totalStudents,
+              })
               : t('common.loading')}
           </p>
         </header>

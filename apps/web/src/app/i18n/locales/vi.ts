@@ -964,7 +964,8 @@ const vi: AppResources = {
         loadFailed: 'Không tải được báo cáo tài chính.',
         exportFailed: 'Không xuất được CSV.',
         filters: {
-          statusLabel: 'Trạng thái',
+          statusLabel: 'Tình trạng thu tiền',
+          billingStatusLabel: 'Trạng thái tính phí',
           statusAll: 'Tất cả trạng thái',
         },
         kpi: {

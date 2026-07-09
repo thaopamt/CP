@@ -10,6 +10,7 @@ interface StatCardProps {
   iconColor?: string;
   trend?: Trend;
   delta?: string;
+  valueClassName?: string;
 }
 
 const TREND_ICON: Record<Trend, string> = {
@@ -28,7 +29,7 @@ const TREND_COLOR: Record<Trend, string> = {
  * KPI card used on the Admin Dashboard. Mirrors the prototype at
  *   admin_portal_foundation/code.html lines 200–252.
  */
-export function StatCard({ label, value, icon, iconColor = 'text-primary', trend, delta }: StatCardProps) {
+export function StatCard({ label, value, icon, iconColor = 'text-primary', trend, delta, valueClassName }: StatCardProps) {
   return (
     <div className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-md shadow-elev-1 hover:shadow-elev-2 transition-shadow relative overflow-hidden group">
       <div className="absolute top-0 right-0 p-md opacity-10 group-hover:opacity-20 transition-opacity">
@@ -39,7 +40,7 @@ export function StatCard({ label, value, icon, iconColor = 'text-primary', trend
         <h3 className="text-label-sm font-semibold uppercase tracking-wider">{label}</h3>
       </div>
       <div className="flex items-end gap-md">
-        <span className="text-display-lg md:text-display-xl font-manrope font-extrabold text-on-surface truncate">{value}</span>
+        <span className={`font-manrope font-extrabold text-on-surface truncate ${valueClassName || 'text-display-lg md:text-display-xl'}`}>{value}</span>
         {trend && delta && (
           <div className={`flex items-center text-label-sm mb-2 ${TREND_COLOR[trend]}`}>
             <Icon name={TREND_ICON[trend]} className="text-[16px]" />

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useMemo } from 'react';
 import { LanguageSwitcher } from '@cp/ui';
 import { useAuthStore } from '../stores/auth.store';
-import { UserMenu, ThemeToggle } from './_shared';
+import { UserMenu } from './_shared';
 import { SidebarNav, getActiveNavItem, flattenNavEntries, type SidebarNavEntry, type SidebarNavItem } from './SidebarNav';
 import { useChatNotifications } from '../hooks/useChatNotifications';
 
@@ -62,6 +62,9 @@ export default function AdminLayout() {
   const user = useAuthStore((s) => s.user);
   const { pathname } = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem('admin_sidebar_collapsed') === 'true');
+  const [isHovered, setIsHovered] = useState(false);
+  const effectivelyCollapsed = isCollapsed && !isHovered;
   const { unreadCount: chatUnread } = useChatNotifications();
   const activeTo = useMemo(() => {
     const activeItem = getActiveNavItem(NAV, pathname);
@@ -86,6 +89,14 @@ export default function AdminLayout() {
     }
     return () => { document.body.style.overflow = ''; };
   }, [mobileMenuOpen]);
+
+  function toggleCollapse() {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem('admin_sidebar_collapsed', String(next));
+      return next;
+    });
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface/85 backdrop-blur-md text-on-surface font-inter">
@@ -135,22 +146,39 @@ export default function AdminLayout() {
       </nav>
 
       {/* ── Desktop Sidebar ── */}
-      <nav className="hidden lg:flex flex-col w-[200px] h-screen p-sm gap-xs bg-surface-container-low/80 backdrop-blur-md border-r border-outline-variant shrink-0 z-50 transition-all duration-300 relative">
-        <div className="flex flex-col items-center gap-xs px-xs py-md text-center relative">
+      <nav 
+        className={`hidden lg:flex flex-col ${effectivelyCollapsed ? 'w-[72px]' : 'w-[200px]'} h-screen p-sm gap-xs bg-surface-container-low/80 backdrop-blur-md border-r border-outline-variant shrink-0 z-50 transition-all duration-300 relative`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div className="flex flex-col items-center gap-xs px-xs py-md text-center relative overflow-hidden">
           <img src="/logo.png" alt="Zenith" className="w-9 h-9 rounded-lg object-contain shrink-0" />
-          <h1 className="text-[11px] font-extrabold text-primary leading-tight truncate max-w-full">
-            {t('brand.adminPortal')}
-          </h1>
+          {!effectivelyCollapsed && (
+            <h1 className="text-[11px] font-extrabold text-primary leading-tight truncate w-full">
+              {t('brand.adminPortal')}
+            </h1>
+          )}
         </div>
 
         <SidebarNav
           entries={NAV}
           activeTo={activeTo}
           compact
-          className="flex flex-col gap-xs mt-xs flex-1 overflow-y-auto"
+          collapsed={effectivelyCollapsed}
+          className="flex flex-col gap-xs mt-xs flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide"
           inactiveClassName="text-on-surface-variant hover:bg-surface-container-highest"
           renderBadge={renderChatBadge(chatUnread)}
         />
+
+        <button
+          onClick={toggleCollapse}
+          className="absolute -right-3 top-[52px] z-[60] flex h-6 w-6 items-center justify-center rounded-full border border-outline-variant bg-surface text-on-surface-variant shadow-sm hover:text-primary transition-transform hover:scale-110"
+          title={isCollapsed ? t('common.expand', 'Mở rộng') : t('common.collapse', 'Thu gọn')}
+        >
+          <span className="material-symbols-outlined text-[14px] transition-transform">
+            {isCollapsed ? 'chevron_right' : 'chevron_left'}
+          </span>
+        </button>
       </nav>
 
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
@@ -187,7 +215,7 @@ export default function AdminLayout() {
               <span className="material-symbols-outlined">notifications</span>
               <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full" />
             </button>
-            <ThemeToggle />
+
             <LanguageSwitcher />
             <UserMenu user={user} profilePath="/admin/me" profileLabelKey="nav.admin.me" shopPath="/admin/shop" shopLabelKey="nav.admin.shop" badgesPath="/admin/badges" badgesLabelKey="nav.admin.badges" showPreferences={false} />
           </div>
@@ -203,8 +231,15 @@ export default function AdminLayout() {
 
 /** Render unread badge only for the chat nav item. */
 function renderChatBadge(unread: number) {
-  return (item: SidebarNavItem) => {
+  return (item: SidebarNavItem, options?: { collapsed: boolean }) => {
     if (!item.to.endsWith('/chat') || unread <= 0) return null;
+    if (options?.collapsed) {
+      return (
+        <span className="absolute top-1 right-2 min-w-[16px] h-[16px] px-[2px] grid place-items-center rounded-full bg-error text-white text-[9px] font-bold shrink-0 z-10">
+          {unread > 99 ? '99+' : unread}
+        </span>
+      );
+    }
     return (
       <span className="ml-auto min-w-[18px] h-[18px] px-1 grid place-items-center rounded-full bg-error text-white text-[10px] font-bold shrink-0">
         {unread > 99 ? '99+' : unread}

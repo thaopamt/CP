@@ -1,4 +1,5 @@
-export type FinanceBillingStatus = 'READY' | 'MISSING_TUITION' | 'NO_SCHEDULE' | 'NO_BILLABLE';
+export const FINANCE_BILLING_STATUSES = ['READY', 'MISSING_TUITION', 'NO_SCHEDULE', 'NO_BILLABLE'] as const;
+export type FinanceBillingStatus = (typeof FINANCE_BILLING_STATUSES)[number];
 
 export const FINANCE_COLLECTION_STATUSES = ['PENDING', 'PRINTED', 'SENT', 'PAID'] as const;
 
@@ -20,6 +21,8 @@ export interface IFinanceMonthlyRow {
   tuitionPerSession: number;
   calculatedAmountDue: number;
   amountDue: number;
+  parentName?: string | null;
+  parentPhone?: string | null;
   amountDueOverride?: number | null;
   hasAmountDueOverride: boolean;
   /** Whether the student has at least one teacher assigned (TeacherStudent link). */
@@ -68,6 +71,8 @@ export interface IFinanceMonthlyReportParams {
   month?: string;
   search?: string;
   status?: FinanceCollectionStatus;
+  billingStatus?: FinanceBillingStatus;
+  studentGroup?: 'center' | 'home';
   page?: number;
   limit?: number;
 }

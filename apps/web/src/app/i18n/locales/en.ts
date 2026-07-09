@@ -967,7 +967,8 @@ const en = {
         loadFailed: 'Could not load the finance report.',
         exportFailed: 'Could not export CSV.',
         filters: {
-          statusLabel: 'Status',
+          statusLabel: 'Collection Status',
+          billingStatusLabel: 'Billing Status',
           statusAll: 'All status',
         },
         kpi: {

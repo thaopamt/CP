@@ -1,5 +1,6 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import {
+  FinanceBillingStatus,
   FinanceCollectionStatus,
   JwtPayload,
   UserRole,
@@ -39,6 +40,7 @@ export class TeacherFinanceController {
     @Query('month') month?: string,
     @Query('search') search?: string,
     @Query('status') status?: FinanceCollectionStatus,
+    @Query('billingStatus') billingStatus?: FinanceBillingStatus,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
@@ -48,6 +50,7 @@ export class TeacherFinanceController {
         month,
         search,
         status,
+        billingStatus,
         page: page ? Number(page) : undefined,
         limit: limit ? Number(limit) : undefined,
       },

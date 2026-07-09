@@ -5,6 +5,7 @@ import {
   AttendanceStatus,
   DayOfWeek,
   FINANCE_COLLECTION_STATUSES,
+  FINANCE_BILLING_STATUSES,
   FinanceBillingStatus,
   FinanceCollectionStatus,
   IFinanceMonthlyAmountDueOverride,
@@ -81,6 +82,8 @@ export class FinanceService {
       month,
       search: params.search?.trim() || undefined,
       status: this.normalizeCollectionStatus(params.status, true) ?? undefined,
+      billingStatus: this.normalizeBillingStatus(params.billingStatus, true) ?? undefined,
+      studentGroup: params.studentGroup,
       page: this.normalizePositiveInt(params.page, 1),
       limit: Math.min(this.normalizePositiveInt(params.limit, 25), 100),
     };
@@ -111,6 +114,7 @@ export class FinanceService {
     const page = this.normalizePositiveInt(params.page, 1);
     const limit = Math.min(this.normalizePositiveInt(params.limit, 25), 100);
     const statusFilter = this.normalizeCollectionStatus(params.status, true);
+    const billingStatusFilter = this.normalizeBillingStatus(params.billingStatus, true);
     const { from, to } = this.monthRange(month);
 
     const visibleSet = options?.visibleStudentUserIds
@@ -220,8 +224,12 @@ export class FinanceService {
     }
 
     const search = params.search?.trim().toLowerCase();
+    const studentGroup = params.studentGroup;
     const allRows = profiles
       .filter((profile) => {
+        if (studentGroup === 'center' && assignedProfileIds.has(profile.id)) return false;
+        if (studentGroup === 'home' && !assignedProfileIds.has(profile.id)) return false;
+
         if (!search) return true;
         const user = profile.user;
         const haystack = [user?.firstName, user?.lastName, user?.username, user?.email]
@@ -258,6 +266,11 @@ export class FinanceService {
           hasAmountDueOverride: amountDueOverrideAmount !== null,
         });
         const collectionStatus = this.coerceCollectionStatus(statusByStudentId.get(profile.userId)?.status);
+        
+        const primaryGuardian = profile.guardians?.find(g => g.isPrimary) || profile.guardians?.[0];
+        const parentName = primaryGuardian?.fullName ?? null;
+        const parentPhone = primaryGuardian?.phoneNumber ?? null;
+
         return {
           profileId: profile.id,
           studentId: profile.userId,
@@ -274,6 +287,8 @@ export class FinanceService {
           tuitionPerSession,
           calculatedAmountDue,
           amountDue,
+          parentName,
+          parentPhone,
           amountDueOverride: amountDueOverrideAmount,
           hasAmountDueOverride: amountDueOverrideAmount !== null,
           hasAssignedTeacher: assignedProfileIds.has(profile.id),
@@ -282,7 +297,8 @@ export class FinanceService {
           collectionStatus,
         };
       })
-      .filter((row) => !statusFilter || row.collectionStatus === statusFilter);
+      .filter((row) => !statusFilter || row.collectionStatus === statusFilter)
+      .filter((row) => !billingStatusFilter || row.billingStatus === billingStatusFilter);
 
     const summary = allRows.reduce(
       (acc, row) => {
@@ -440,6 +456,16 @@ export class FinanceService {
       return value as FinanceCollectionStatus;
     }
     throw new BadRequestException('status is invalid');
+  }
+
+  private normalizeBillingStatus(value: unknown, allowAll = false): FinanceBillingStatus | undefined {
+    if (allowAll && (value === undefined || value === null || value === '' || value === 'all')) {
+      return undefined;
+    }
+    if (FINANCE_BILLING_STATUSES.includes(value as FinanceBillingStatus)) {
+      return value as FinanceBillingStatus;
+    }
+    throw new BadRequestException('billingStatus is invalid');
   }
 
   private coerceMoneyAmount(value: unknown): number {

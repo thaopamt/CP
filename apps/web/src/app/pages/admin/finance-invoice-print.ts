@@ -18,6 +18,13 @@ type TuitionInvoiceRow = Pick<
   'amountDue' | 'classNames' | 'grade' | 'profileId' | 'studentName'
 >;
 
+interface TuitionInvoiceOverrides {
+  studentName?: string;
+  className?: string;
+  amountDue?: number;
+  transferMemo?: string;
+}
+
 interface TuitionInvoiceHtmlOptions {
   row: TuitionInvoiceRow;
   month: string;
@@ -26,18 +33,21 @@ interface TuitionInvoiceHtmlOptions {
   issuedAt: string;
   money: Intl.NumberFormat;
   status: string;
+  overrides?: TuitionInvoiceOverrides;
 }
 
 interface TuitionInvoiceImageSvgOptions extends TuitionInvoiceHtmlOptions {
   qrImageUrl: string;
 }
 
-export function buildTuitionInvoiceQrUrl(row: TuitionInvoiceRow, month: string) {
-  const memo = `HP ${row.studentName} ${month}`;
+export function buildTuitionInvoiceQrUrl(row: TuitionInvoiceRow, month: string, overrides?: TuitionInvoiceOverrides) {
+  const studentName = overrides?.studentName ?? row.studentName;
+  const amountDue = overrides?.amountDue ?? row.amountDue;
+  const memo = overrides?.transferMemo ?? `HP ${studentName} ${month}`;
   const params = [
     ['acc', TUITION_INVOICE_PAYMENT.accountNumber],
     ['bank', TUITION_INVOICE_PAYMENT.bankCode],
-    ['amount', String(Math.max(0, Math.round(row.amountDue)))],
+    ['amount', String(Math.max(0, Math.round(amountDue)))],
     ['des', memo],
     ['template', 'compact'],
     ['holder', TUITION_INVOICE_PAYMENT.accountName],
@@ -53,14 +63,16 @@ export function buildTuitionInvoiceImageFilename(row: TuitionInvoiceRow, month: 
   return `hoa-don-hoc-phi-${slugify(row.studentName) || 'hoc-sinh'}-${month}.png`;
 }
 
-export function buildVietQrPayload(row: TuitionInvoiceRow, month: string) {
+export function buildVietQrPayload(row: TuitionInvoiceRow, month: string, overrides?: TuitionInvoiceOverrides) {
+  const studentName = overrides?.studentName ?? row.studentName;
+  const amountDue = overrides?.amountDue ?? row.amountDue;
   const bankAccountInfo =
     emv('00', TUITION_INVOICE_PAYMENT.bankBin) + emv('01', TUITION_INVOICE_PAYMENT.accountNumber);
   const merchantAccountInfo =
     emv('00', 'A000000727') + emv('01', bankAccountInfo) + emv('02', 'QRIBFTTA');
-  const transferMemo = normalizeTransferMemo(`HP ${row.studentName} ${month}`);
+  const transferMemo = normalizeTransferMemo(overrides?.transferMemo ?? `HP ${studentName} ${month}`);
   const additionalData = emv('08', transferMemo);
-  const amount = String(Math.max(0, Math.round(row.amountDue)));
+  const amount = String(Math.max(0, Math.round(amountDue)));
   const payloadWithoutCrc = [
     emv('00', '01'),
     emv('01', '12'),
@@ -75,8 +87,8 @@ export function buildVietQrPayload(row: TuitionInvoiceRow, month: string) {
   return `${payloadWithoutCrc}${crc16CcittFalse(payloadWithoutCrc)}`;
 }
 
-export async function buildTuitionInvoiceQrDataUrl(row: TuitionInvoiceRow, month: string) {
-  return QRCode.toDataURL(buildVietQrPayload(row, month), {
+export async function buildTuitionInvoiceQrDataUrl(row: TuitionInvoiceRow, month: string, overrides?: TuitionInvoiceOverrides) {
+  return QRCode.toDataURL(buildVietQrPayload(row, month, overrides), {
     errorCorrectionLevel: 'M',
     margin: 1,
     width: 260,
@@ -99,7 +111,7 @@ export function buildTuitionInvoiceImageSvg(options: TuitionInvoiceImageSvgOptio
 }
 
 export async function buildTuitionInvoicePngBlob(options: TuitionInvoiceHtmlOptions) {
-  const qrImageUrl = await buildTuitionInvoiceQrDataUrl(options.row, options.month);
+  const qrImageUrl = await buildTuitionInvoiceQrDataUrl(options.row, options.month, options.overrides);
   const qrImage = await loadImage(qrImageUrl);
   return renderInvoiceCanvasToPngBlob(options, qrImage);
 }
@@ -112,9 +124,10 @@ export function buildTuitionInvoiceHtml({
   issuedAt,
   money,
   status,
+  overrides,
 }: TuitionInvoiceHtmlOptions) {
   const invoiceNo = `FIN-${month}-${row.profileId.slice(0, 8).toUpperCase()}`;
-  const qrUrl = buildTuitionInvoiceQrUrl(row, month);
+  const qrUrl = buildTuitionInvoiceQrUrl(row, month, overrides);
 
   return `<!doctype html>
 <html>
@@ -129,7 +142,7 @@ export function buildTuitionInvoiceHtml({
 </head>
 <body>
   <div class="invoice-page">
-    ${buildTuitionInvoiceCard({ row, month, from, to, issuedAt, money, status, qrImageUrl: qrUrl })}
+    ${buildTuitionInvoiceCard({ row, month, from, to, issuedAt, money, status, overrides, qrImageUrl: qrUrl })}
   </div>
 </body>
 </html>`;
@@ -253,16 +266,19 @@ function buildTuitionInvoiceCard({
   month,
   money,
   qrImageUrl,
+  overrides,
 }: TuitionInvoiceImageSvgOptions) {
-  const className = row.classNames.join(', ') || `Khối ${row.grade}`;
+  const studentName = overrides?.studentName ?? row.studentName;
+  const className = overrides?.className ?? (row.classNames.join(', ') || `Khối ${row.grade}`);
+  const amountDue = overrides?.amountDue ?? row.amountDue;
   const monthLabel = formatInvoiceMonth(month);
 
   return `<main class="invoice-card">
     <section class="invoice-main">
       <section class="message">
-        <p>Kính gửi phụ huynh em: <strong>${escapeHtml(row.studentName)}</strong></p>
+        <p>Kính gửi phụ huynh em: <strong>${escapeHtml(studentName)}</strong></p>
         <p>Lớp: <strong>${escapeHtml(className)}</strong></p>
-        <p class="tuition">HP tháng <strong>${escapeHtml(monthLabel)}</strong>: <strong>${formatInvoiceMoney(row.amountDue, money)}</strong></p>
+        <p class="tuition">HP tháng <strong>${escapeHtml(monthLabel)}</strong>: <strong>${formatInvoiceMoney(amountDue, money)}</strong></p>
         <p>PH chuyển khoản theo số tài khoản bên cạnh!</p>
         <p class="thanks">Xin cảm ơn!</p>
       </section>
@@ -351,12 +367,14 @@ async function renderInvoiceCanvasToPngBlob(options: TuitionInvoiceHtmlOptions, 
 
 function drawInvoiceCanvas(
   context: CanvasRenderingContext2D,
-  { row, month, money }: TuitionInvoiceHtmlOptions,
+  { row, month, money, overrides }: TuitionInvoiceHtmlOptions,
   qrImage: HTMLImageElement,
 ) {
-  const className = row.classNames.join(', ') || `Khối ${row.grade}`;
+  const studentName = overrides?.studentName ?? row.studentName;
+  const className = overrides?.className ?? (row.classNames.join(', ') || `Khối ${row.grade}`);
+  const amountDue = overrides?.amountDue ?? row.amountDue;
   const monthLabel = formatInvoiceMonth(month);
-  const amount = money.format(row.amountDue);
+  const amount = money.format(amountDue);
 
   context.fillStyle = '#ffffff';
   context.fillRect(0, 0, TUITION_INVOICE_IMAGE_WIDTH, TUITION_INVOICE_IMAGE_HEIGHT);
@@ -369,7 +387,7 @@ function drawInvoiceCanvas(
       y: 270,
       parts: [
         { text: 'Kính gửi phụ huynh em: ', color: '#050505', font: '800 29px Arial, Helvetica, sans-serif' },
-        { text: row.studentName, color: '#ff3047', font: '800 29px Arial, Helvetica, sans-serif' },
+        { text: studentName, color: '#ff3047', font: '800 29px Arial, Helvetica, sans-serif' },
       ],
     },
     {
