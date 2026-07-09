@@ -23,7 +23,7 @@
 **Files:**
 - Modify: `package.json`
 
-- [ ] **Step 1: Cài đặt recharts**
+- [x] **Step 1: Cài đặt recharts**
 
 ```bash
 pnpm add recharts
@@ -38,7 +38,7 @@ pnpm add recharts
 **Interfaces:**
 - Produces: API `GET /api/finance/monthly-trend?month=YYYY-MM&months=6` trả về `Array<{ month: string, summary: IFinanceMonthlySummary }>`.
 
-- [ ] **Step 1: Cập nhật Service (`finance.service.ts`)**
+- [x] **Step 1: Cập nhật Service (`finance.service.ts`)**
 Thêm hàm `getMonthlyTrend`. Sử dụng logic lấy 6 tháng (tính lùi) và gọi hàm `getMonthlyReport` cho từng tháng.
 
 ```typescript
@@ -64,7 +64,7 @@ Thêm hàm `getMonthlyTrend`. Sử dụng logic lấy 6 tháng (tính lùi) và 
   }
 ```
 
-- [ ] **Step 2: Cập nhật Controller (`finance.controller.ts`)**
+- [x] **Step 2: Cập nhật Controller (`finance.controller.ts`)**
 
 ```typescript
   @Get('monthly-trend')
@@ -86,7 +86,7 @@ Thêm hàm `getMonthlyTrend`. Sử dụng logic lấy 6 tháng (tính lùi) và 
 **Interfaces:**
 - Consumes: Mảng Trend data từ API và `reportQuery.data.summary` từ trang AdminFinancePage.
 
-- [ ] **Step 1: Tạo Component**
+- [x] **Step 1: Tạo Component**
 
 ```tsx
 import React from 'react';
@@ -175,7 +175,7 @@ export function FinanceDashboardCharts({ currentMonth, currentSummary }: Props) 
 **Files:**
 - Modify: `apps/web/src/app/pages/admin/FinancePage.tsx`
 
-- [ ] **Step 1: Import và render component**
+- [x] **Step 1: Import và render component**
 
 Thêm dòng import:
 ```tsx

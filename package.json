@@ -69,6 +69,7 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^6.26.2",
     "react-simple-code-editor": "^0.14.1",
+    "recharts": "^3.9.2",
     "reflect-metadata": "^0.2.2",
     "rehype-katex": "^7.0.1",
     "remark-math": "^6.0.0",

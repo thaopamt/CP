@@ -69,6 +69,24 @@ export class FinanceService {
     private readonly cache: SystemCacheService,
   ) {}
 
+  async getMonthlyTrend(monthStr?: string, monthsCount: number = 6, options?: { visibleStudentUserIds?: string[] }) {
+    const endMonthDate = monthStr ? new Date(`${monthStr}-01T00:00:00Z`) : new Date();
+    const result: Array<{ month: string; summary: any }> = [];
+    
+    for (let i = monthsCount - 1; i >= 0; i--) {
+      const d = new Date(endMonthDate);
+      d.setUTCMonth(d.getUTCMonth() - i);
+      const mStr = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+      
+      const report = await this.getMonthlyReport({ month: mStr }, options);
+      result.push({
+        month: mStr,
+        summary: report.summary,
+      });
+    }
+    
+    return result;
+  }
   async getMonthlyReport(
     params: IFinanceMonthlyReportParams = {},
     options?: { visibleStudentUserIds?: string[] },

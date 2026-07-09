@@ -18,6 +18,15 @@ import { FinanceService } from './finance.service';
 export class FinanceController {
   constructor(private readonly service: FinanceService) {}
 
+  @Get('monthly-trend')
+  getMonthlyTrend(
+    @Query('month') month?: string,
+    @Query('months') months?: string,
+  ) {
+    const monthsCount = months ? parseInt(months, 10) : 6;
+    return this.service.getMonthlyTrend(month, monthsCount);
+  }
+
   @Get('monthly')
   getMonthlyReport(
     @Query('month') month?: string,

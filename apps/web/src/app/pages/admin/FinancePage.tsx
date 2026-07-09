@@ -24,6 +24,7 @@ import {
   IFinanceMonthlyRow,
 } from '@cp/shared';
 
+import { FinanceDashboardCharts } from './FinanceDashboardCharts';
 import { financeApi } from '../../api/finance.api';
 import {
   useFinanceMonthlyReport,
@@ -530,6 +531,10 @@ export default function AdminFinancePage() {
           iconColor="text-error"
           valueClassName="text-[28px]"
         />
+      </section>
+
+      <section>
+        <FinanceDashboardCharts currentMonth={month} currentSummary={summary} />
       </section>
 
       <div className="flex justify-start">

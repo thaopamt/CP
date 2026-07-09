@@ -336,4 +336,21 @@ describe('FinanceService', () => {
     expect(paid.summary.totalAmountDue).toBe(300_000);
     expect(paid.summary.totalOutstandingAmount).toBe(0);
   });
+
+  it('returns a monthly trend for the specified number of months', async () => {
+    const service = serviceWith({
+      profiles: [profile('p1', 's1', 600_000)],
+      schedules: [schedule('s1', DayOfWeek.TUE, '08:00:00', '09:30:00', null)],
+      slots: [slot('s1', '2026-06-02', DayOfWeek.TUE, '08:00:00', '09:30:00', AttendanceStatus.PRESENT)],
+    });
+
+    const trend = await service.getMonthlyTrend('2026-06', 3);
+    
+    expect(trend).toHaveLength(3);
+    expect(trend[0].month).toBe('2026-04');
+    expect(trend[1].month).toBe('2026-05');
+    expect(trend[2].month).toBe('2026-06');
+    expect(trend[2].summary.totalPotentialAmount).toBe(600_000);
+    expect(trend[2].summary.totalAmountDue).toBe(120_000); // 1 session out of 5 scheduled in June 2026
+  });
 });
