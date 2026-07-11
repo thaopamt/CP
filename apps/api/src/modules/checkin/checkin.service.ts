@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { ICheckinBoardCell, ICheckinResult, ICheckinStatus } from '@cp/shared';
+import { ICheckinBoardCell, ICheckinResult, ICheckinStatus, ICheckinWheelResult } from '@cp/shared';
 
 import { CheckinState } from './checkin-state.entity';
 import { DailyCheckin } from './daily-checkin.entity';
@@ -22,6 +22,7 @@ import {
   CHECKIN_FREEZE_CAP,
   CHECKIN_MAKEUP_COST_GEMS,
   CHECKIN_MAKEUP_MAX_PER_MONTH,
+  CHECKIN_WHEEL_SEGMENTS,
 } from './checkin.constants';
 
 /** Number of calendar days in a 'YYYY-MM' month. */
@@ -57,6 +58,17 @@ export function buildCheckinBoard(
     cells.push({ dayKey, status });
   }
   return cells;
+}
+
+/** Weighted-random wheel segment. rand() in [0,1). Server-authoritative. */
+export function pickWheelSegment(rand: () => number = Math.random) {
+  const total = CHECKIN_WHEEL_SEGMENTS.reduce((s, seg) => s + seg.weight, 0);
+  let r = rand() * total;
+  for (const seg of CHECKIN_WHEEL_SEGMENTS) {
+    r -= seg.weight;
+    if (r < 0) return seg;
+  }
+  return CHECKIN_WHEEL_SEGMENTS[CHECKIN_WHEEL_SEGMENTS.length - 1];
 }
 
 function isUniqueViolation(err: unknown): boolean {
@@ -316,6 +328,81 @@ export class CheckinService {
     const rows = await this.dailies.find({ where: { userId, monthKey: monthNow } });
     const status = this.toStatus(mutatedState, rows, today, monthNow);
     return this.result(status, 0, 0, false, false);
+  }
+
+  /**
+   * Server-authoritative lucky wheel spin. Atomically spends one
+   * pendingWheelSpins (FOR UPDATE lock on checkin_states so concurrent spins
+   * can't double-grant), picks a weighted segment, and grants the gems/xp
+   * prize onto the profile — all inside one transaction (spec §5/§6c).
+   */
+  async spinWheel(
+    userId: string,
+    now: Date = new Date(),
+    rand: () => number = Math.random,
+  ): Promise<ICheckinWheelResult> {
+    const today = checkinDayKey(now);
+    const monthNow = today.slice(0, 7);
+
+    const outcome = await this.ds.transaction(async (tx) => {
+      const stateRepo = tx.getRepository(CheckinState);
+      const profileRepo = tx.getRepository(StudentProfile);
+
+      const state = await stateRepo.findOne({
+        where: { userId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!state || state.pendingWheelSpins <= 0) {
+        throw new ConflictException('NO_SPINS');
+      }
+      state.pendingWheelSpins -= 1;
+
+      const seg = pickWheelSegment(rand);
+
+      const profile = await profileRepo.findOne({
+        where: { userId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!profile) {
+        throw new ConflictException('NO_PROFILE');
+      }
+
+      let leveledUp = false;
+      let newLevel = profile.level;
+      if (seg.kind === 'gems') {
+        profile.gems += seg.amount;
+      } else if (seg.kind === 'xp') {
+        applyXpGain(profile, seg.amount, now);
+        leveledUp = advanceLevel(profile);
+        newLevel = profile.level;
+      }
+      await profileRepo.save(profile);
+      await stateRepo.save(state);
+
+      return {
+        segmentIndex: seg.index,
+        prize: { kind: seg.kind, amount: seg.amount },
+        state,
+        leveledUp,
+        newLevel,
+      };
+    });
+
+    await this.bumpCaches(userId);
+    if (outcome.leveledUp) {
+      this.gateway.publish(userId, {
+        type: 'level:up',
+        title: 'Level Up!',
+        message: `You reached level ${outcome.newLevel}`,
+        icon: 'trending_up',
+        level: outcome.newLevel,
+        at: new Date().toISOString(),
+      });
+    }
+
+    const rows = await this.dailies.find({ where: { userId, monthKey: monthNow } });
+    const status = this.toStatus(outcome.state, rows, today, monthNow);
+    return { segmentIndex: outcome.segmentIndex, prize: outcome.prize, status };
   }
 
   private result(

@@ -35,3 +35,13 @@ export const CHECKIN_FREEZE_CAP = 3;
 // ── Phase 2: makeup check-in (spec §6b) ──────────────────────────────────────
 export const CHECKIN_MAKEUP_COST_GEMS = 20;
 export const CHECKIN_MAKEUP_MAX_PER_MONTH = 2;
+
+// ── Phase 2: lucky wheel (spec §5/§6c) — total weight = 100, server-authoritative ──
+export const CHECKIN_WHEEL_SEGMENTS = [
+  { index: 0, kind: 'gems', amount: 10, weight: 30 },
+  { index: 1, kind: 'xp', amount: 50, weight: 25 },
+  { index: 2, kind: 'gems', amount: 25, weight: 20 },
+  { index: 3, kind: 'xp', amount: 150, weight: 12 },
+  { index: 4, kind: 'gems', amount: 60, weight: 8 },
+  { index: 5, kind: 'gems', amount: 100, weight: 5 },
+] as const;

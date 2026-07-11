@@ -27,4 +27,9 @@ export class CheckinController {
   makeup(@CurrentUser() user: JwtPayload, @Body() dto: MakeupDto) {
     return this.service.makeup(user.sub, dto.date);
   }
+
+  @Post('wheel/spin')
+  spin(@CurrentUser() user: JwtPayload) {
+    return this.service.spinWheel(user.sub);
+  }
 }

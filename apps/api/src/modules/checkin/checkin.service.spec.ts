@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 import { CheckinState } from './checkin-state.entity';
 import { DailyCheckin } from './daily-checkin.entity';
 import { StudentProfile } from '../students/student-profile.entity';
-import { CheckinService, buildCheckinBoard } from './checkin.service';
+import { CheckinService, buildCheckinBoard, pickWheelSegment } from './checkin.service';
 
 function makeService(
   seed: {
@@ -293,5 +293,50 @@ describe('CheckinService.makeup (Task 10)', () => {
     expect(cell('2026-07-10').status).toBe('missable');
     expect(cell('2026-07-11').status).toBe('today');
     expect(cell('2026-07-12').status).toBe('future');
+  });
+});
+
+describe('pickWheelSegment (Task 11)', () => {
+  it('is deterministic under an injected rand and honors weights', () => {
+    // total weight 100. r = rand()*100.
+    expect(pickWheelSegment(() => 0).index).toBe(0);        // r=0 → first bucket (weight 30)
+    expect(pickWheelSegment(() => 0.5).index).toBe(1);      // r=50 → 50-30=20, 20-25<0 → seg 1
+    expect(pickWheelSegment(() => 0.999).index).toBe(5);    // r≈99.9 → last bucket (weight 5)
+  });
+});
+
+describe('CheckinService.spinWheel (Task 11)', () => {
+  const NOW = new Date('2026-07-11T03:00:00Z');
+  const baseProfile = { userId: 'u1', gems: 0, xp: 0, level: 1, weekKey: null, monthKey: null, weeklyXp: 0, monthlyXp: 0 };
+
+  it('spends a spin and grants an xp segment', async () => {
+    const ctx = makeService({
+      state: { userId: 'u1', monthKey: '2026-07', pendingWheelSpins: 2 },
+      profile: { ...baseProfile },
+    });
+    const res = await ctx.service.spinWheel('u1', NOW, () => 0.5); // → seg 1 (xp 50)
+    expect(res.segmentIndex).toBe(1);
+    expect(res.prize).toEqual({ kind: 'xp', amount: 50 });
+    expect(res.status.pendingWheelSpins).toBe(1);
+    expect(ctx.profileRepo.save).toHaveBeenCalled();
+    expect(ctx.cache.bumpTags).toHaveBeenCalled();
+  });
+
+  it('grants a gems segment onto the profile', async () => {
+    const ctx = makeService({
+      state: { userId: 'u1', monthKey: '2026-07', pendingWheelSpins: 1 },
+      profile: { ...baseProfile, gems: 100 },
+    });
+    const res = await ctx.service.spinWheel('u1', NOW, () => 0); // → seg 0 (gems 10)
+    expect(res.segmentIndex).toBe(0);
+    expect(res.prize).toEqual({ kind: 'gems', amount: 10 });
+    expect(ctx.profileRepo.save).toHaveBeenCalledWith(expect.objectContaining({ gems: 110 }));
+    expect(res.status.pendingWheelSpins).toBe(0);
+  });
+
+  it('rejects when there are no spins', async () => {
+    const ctx = makeService({ state: { userId: 'u1', monthKey: '2026-07', pendingWheelSpins: 0 }, profile: { ...baseProfile } });
+    await expect(ctx.service.spinWheel('u1', NOW, () => 0.5)).rejects.toThrow();
+    expect(ctx.profileRepo.save).not.toHaveBeenCalled();
   });
 });
