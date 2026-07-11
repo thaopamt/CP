@@ -230,6 +230,9 @@ export class CheckinService {
         const profile = await profileRepo.findOne({
           where: { userId },
           lock: { mode: 'pessimistic_write' },
+          // StudentProfile has eager user/guardians relations; without this, the eager
+          // LEFT JOINs make Postgres reject FOR UPDATE ("nullable side of an outer join").
+          loadEagerRelations: false,
         });
 
         // Month rollover before reading monthly counters.
@@ -440,6 +443,9 @@ export class CheckinService {
       const profile = await profileRepo.findOne({
         where: { userId },
         lock: { mode: 'pessimistic_write' },
+        // StudentProfile has eager user/guardians relations; without this, the eager
+        // LEFT JOINs make Postgres reject FOR UPDATE ("nullable side of an outer join").
+        loadEagerRelations: false,
       });
 
       // Month rollover before reading monthly counters.
@@ -557,6 +563,9 @@ export class CheckinService {
       const profile = await profileRepo.findOne({
         where: { userId },
         lock: { mode: 'pessimistic_write' },
+        // StudentProfile has eager user/guardians relations; without this, the eager
+        // LEFT JOINs make Postgres reject FOR UPDATE ("nullable side of an outer join").
+        loadEagerRelations: false,
       });
       if (!profile) {
         throw new ConflictException('NO_PROFILE');
