@@ -23,6 +23,7 @@ function makeService(
     save: jest.fn(async (x: unknown) => x),
     create: jest.fn((x: unknown) => x),
     find: jest.fn().mockResolvedValue(seed.dailyRows ?? []),
+    count: jest.fn().mockResolvedValue(0),
   };
   const profileRepo = {
     findOne: jest.fn().mockResolvedValue(
@@ -470,5 +471,47 @@ describe('CheckinService.getLeaderboard (Task 13)', () => {
     ctx.stateRepo.createQueryBuilder = jest.fn().mockReturnValue(qb);
     await ctx.service.getLeaderboard(9999);
     expect(qb.limit).toHaveBeenCalledWith(100);      // clamped to max 100
+  });
+});
+
+describe('CheckinService perfect-month (Task 14)', () => {
+  const baseProfile = { userId: 'u1', gems: 0, xp: 0, level: 1, weekKey: null, monthKey: null, weeklyXp: 0, monthlyXp: 0 };
+
+  it('checkIn that completes the month grants the perfect-month reward + badge', async () => {
+    const ctx = makeService({
+      state: { userId: 'u1', currentStreak: 30, longestStreak: 30, lastCheckinDate: '2026-07-30', totalCheckins: 30, monthKey: '2026-07', monthlyCheckins: 30, highestMilestoneAwarded: 100, pendingWheelSpins: 0 },
+      profile: { ...baseProfile },
+    });
+    ctx.dailyRepo.count.mockResolvedValue(31); // July has 31 days → completing the 31st
+    const res = await ctx.service.checkIn('u1', new Date('2026-07-31T03:00:00Z'));
+    expect(res.perfectMonth).toBe(true);
+    expect(ctx.badges.awardByCode).toHaveBeenCalledWith('u1', 'checkin-perfect-month', expect.any(Date));
+    expect(res.reward.gems).toBeGreaterThanOrEqual(200);   // includes the +200 perfect-month
+    expect(res.reward.xp).toBeGreaterThanOrEqual(520);     // base 20 + perfect 500 (streak 31 not %7)
+  });
+
+  it('checkIn on a non-complete month does NOT grant perfect-month', async () => {
+    const ctx = makeService({
+      state: { userId: 'u1', currentStreak: 3, longestStreak: 3, lastCheckinDate: '2026-07-10', totalCheckins: 3, monthKey: '2026-07', monthlyCheckins: 3, highestMilestoneAwarded: 0 },
+      profile: { ...baseProfile },
+    });
+    ctx.dailyRepo.count.mockResolvedValue(4); // far from 31
+    const res = await ctx.service.checkIn('u1', new Date('2026-07-11T03:00:00Z'));
+    expect(res.perfectMonth).toBe(false);
+    expect(ctx.badges.awardByCode).not.toHaveBeenCalled();
+  });
+
+  it('makeup that completes the month grants the perfect-month reward + badge', async () => {
+    const ctx = makeService({
+      state: { userId: 'u1', monthKey: '2026-07', monthlyCheckins: 30, makeupUsedThisMonth: 0, currentStreak: 5, longestStreak: 5, lastCheckinDate: '2026-07-31', totalCheckins: 29 },
+      profile: { ...baseProfile, gems: 100 },
+    });
+    ctx.dailyRepo.count.mockResolvedValue(31); // makeup fills the last missing day
+    const res = await ctx.service.makeup('u1', '2026-07-15', new Date('2026-07-31T03:00:00Z'));
+    expect(res.perfectMonth).toBe(true);
+    expect(ctx.badges.awardByCode).toHaveBeenCalledWith('u1', 'checkin-perfect-month', expect.any(Date));
+    // makeup deducted 20 cost then +200 perfect: net profile gems 100 - 20 + 200 = 280
+    expect(ctx.profileRepo.save).toHaveBeenCalledWith(expect.objectContaining({ gems: 280 }));
+    expect(res.reward).toEqual({ gems: 200, xp: 500 });
   });
 });

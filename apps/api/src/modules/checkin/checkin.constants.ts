@@ -59,3 +59,8 @@ export const CHECKIN_BADGE_CODES = {
 
 // ── Phase 2: attendance leaderboard (Task 13) ─────────────────────────────────
 export const CHECKIN_LEADERBOARD_DEFAULT_LIMIT = 20;
+
+// ── Phase 2: perfect-month reward (spec §4.3/§10) ─────────────────────────────
+export const CHECKIN_PERFECT_MONTH_GEMS = 200;
+export const CHECKIN_PERFECT_MONTH_XP = 500;
+export const CHECKIN_PERFECT_MONTH_SPINS = 1;

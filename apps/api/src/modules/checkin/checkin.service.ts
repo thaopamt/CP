@@ -36,6 +36,9 @@ import {
   CHECKIN_MILESTONE_ITEM_FALLBACK_GEMS,
   CHECKIN_BADGE_CODES,
   CHECKIN_LEADERBOARD_DEFAULT_LIMIT,
+  CHECKIN_PERFECT_MONTH_GEMS,
+  CHECKIN_PERFECT_MONTH_XP,
+  CHECKIN_PERFECT_MONTH_SPINS,
 } from './checkin.constants';
 
 /** Number of calendar days in a 'YYYY-MM' month. */
@@ -231,6 +234,7 @@ export class CheckinService {
             spinsGranted: 0,
             allTimeMilestone: null as number | null,
             milestoneCodes: [] as string[],
+            perfectMonth: false,
             state,
           };
         }
@@ -292,6 +296,28 @@ export class CheckinService {
           }
         }
 
+        // Daily insert must land before the perfect-month COUNT below so the
+        // new row is included (a month reaches "perfect" only on the fill
+        // that completes it).
+        await dailyRepo.save(
+          dailyRepo.create({ userId, dayKey: today, monthKey: monthNow, source: 'checkin' }),
+        );
+
+        // Perfect-month (Task 14): real COUNT of persisted daily rows for the
+        // month, authoritative over the denormalized monthlyCheckins. The
+        // monetary reward is repeatable (folded into the running gems/xp/
+        // spinsGranted below); the badge is once-ever via the post-commit
+        // awardByCode loop over milestoneCodes.
+        const filledDays = await dailyRepo.count({ where: { userId, monthKey: monthNow } });
+        const perfectMonth = filledDays === daysInMonth(monthNow);
+        if (perfectMonth) {
+          gems += CHECKIN_PERFECT_MONTH_GEMS;
+          xp += CHECKIN_PERFECT_MONTH_XP;
+          spinsGranted += CHECKIN_PERFECT_MONTH_SPINS;
+          state.pendingWheelSpins += CHECKIN_PERFECT_MONTH_SPINS;
+          milestoneCodes.push(CHECKIN_BADGE_CODES.PERFECT_MONTH);
+        }
+
         let leveledUp = false;
         let newLevel = profile?.level ?? 1;
         if (profile) {
@@ -302,12 +328,9 @@ export class CheckinService {
           await profileRepo.save(profile);
         }
         await stateRepo.save(state);
-        await dailyRepo.save(
-          dailyRepo.create({ userId, dayKey: today, monthKey: monthNow, source: 'checkin' }),
-        );
         return {
           gems, xp, leveledUp, newLevel, alreadyCheckedIn: false as const, weeklyMilestone, spinsGranted,
-          allTimeMilestone, milestoneCodes, state,
+          allTimeMilestone, milestoneCodes, perfectMonth, state,
         };
       })
       .catch((err) => {
@@ -351,7 +374,7 @@ export class CheckinService {
     const status = this.toStatus(outcome.state, rows, today, monthNow);
     return this.result(
       status, outcome.gems, outcome.xp, outcome.leveledUp, outcome.alreadyCheckedIn,
-      outcome.weeklyMilestone, outcome.spinsGranted, outcome.allTimeMilestone, false, badgesEarned,
+      outcome.weeklyMilestone, outcome.spinsGranted, outcome.allTimeMilestone, outcome.perfectMonth, badgesEarned,
     );
   }
 
@@ -369,7 +392,7 @@ export class CheckinService {
       throw new BadRequestException('date must be a past day in the current month');
     }
 
-    const mutatedState = await this.ds.transaction(async (tx) => {
+    const outcome = await this.ds.transaction(async (tx) => {
       const stateRepo = tx.getRepository(CheckinState);
       const dailyRepo = tx.getRepository(DailyCheckin);
       const profileRepo = tx.getRepository(StudentProfile);
@@ -411,24 +434,54 @@ export class CheckinService {
       }
 
       profile.gems -= CHECKIN_MAKEUP_COST_GEMS;
-      await profileRepo.save(profile);
 
       state.makeupUsedThisMonth += 1;
       state.monthlyCheckins += 1;
-      await stateRepo.save(state);
 
+      // Daily insert must land before the perfect-month COUNT below so the
+      // new row is included.
       await dailyRepo.save(
         dailyRepo.create({ userId, dayKey: date, monthKey: monthNow, source: 'makeup' }),
       );
-      // perfect-month check added in Task 14
 
-      return state;
+      // Perfect-month (Task 14): real COUNT of persisted daily rows, same
+      // rule as checkIn. Fold the (repeatable) monetary reward into the same
+      // profile object as the makeup cost deduction below — exactly one
+      // profile save. The badge (once-ever) is awarded post-commit.
+      const filledDays = await dailyRepo.count({ where: { userId, monthKey: monthNow } });
+      const perfectMonth = filledDays === daysInMonth(monthNow);
+      let leveledUp = false;
+      if (perfectMonth) {
+        profile.gems += CHECKIN_PERFECT_MONTH_GEMS;
+        applyXpGain(profile, CHECKIN_PERFECT_MONTH_XP, now);
+        leveledUp = advanceLevel(profile);
+        state.pendingWheelSpins += CHECKIN_PERFECT_MONTH_SPINS;
+      }
+
+      await profileRepo.save(profile);
+      await stateRepo.save(state);
+
+      return { state, perfectMonth, leveledUp };
     });
 
     await this.bumpCaches(userId);
+
+    // Post-commit badge award for the once-ever perfect-month badge (the
+    // monetary reward above is NOT gated on this — money repeats, badge doesn't).
+    const badgesEarned: string[] = [];
+    if (outcome.perfectMonth) {
+      const b = await this.badges.awardByCode(userId, CHECKIN_BADGE_CODES.PERFECT_MONTH, now);
+      if (b) badgesEarned.push(b.code);
+    }
+
     const rows = await this.dailies.find({ where: { userId, monthKey: monthNow } });
-    const status = this.toStatus(mutatedState, rows, today, monthNow);
-    return this.result(status, 0, 0, false, false);
+    const status = this.toStatus(outcome.state, rows, today, monthNow);
+    return outcome.perfectMonth
+      ? this.result(
+          status, CHECKIN_PERFECT_MONTH_GEMS, CHECKIN_PERFECT_MONTH_XP, outcome.leveledUp, false,
+          false, CHECKIN_PERFECT_MONTH_SPINS, null, true, badgesEarned,
+        )
+      : this.result(status, 0, 0, false, false);
   }
 
   /**
