@@ -10,7 +10,17 @@ import { GamificationGateway } from '../quests/gamification.gateway';
 import { checkinDayKey, daysBetweenDayKeys, applyXpGain } from '../quests/period-keys';
 import { advanceLevel } from '../../common/gamification.constants';
 import { SystemCacheService } from '../../common/cache/system-cache.service';
-import { CHECKIN_BASE_GEMS, CHECKIN_BASE_XP, streakBonusGems } from './checkin.constants';
+import {
+  CHECKIN_BASE_GEMS,
+  CHECKIN_BASE_XP,
+  streakBonusGems,
+  CHECKIN_WEEKLY_PERIOD,
+  CHECKIN_WEEKLY_GEMS,
+  CHECKIN_WEEKLY_XP,
+  CHECKIN_WEEKLY_SPINS,
+  CHECKIN_WEEKLY_FREEZE,
+  CHECKIN_FREEZE_CAP,
+} from './checkin.constants';
 
 /** Number of calendar days in a 'YYYY-MM' month. */
 function daysInMonth(monthKey: string): number {
@@ -82,9 +92,9 @@ export class CheckinService {
       longestStreak: state?.longestStreak ?? 0,
       totalCheckins: state?.totalCheckins ?? 0,
       monthlyCheckins: sameMonth ? state!.monthlyCheckins : 0,
-      // Phase-1 boundary: enrichment/makeup fields are literal zeros (Phase 2 fills them).
-      freezeTokens: 0,
-      pendingWheelSpins: 0,
+      freezeTokens: state?.freezeTokens ?? 0,
+      pendingWheelSpins: state?.pendingWheelSpins ?? 0,
+      // Phase-1 boundary: makeup fields are literal zeros (a later task fills them).
       makeupRemaining: 0,
       makeupCost: 0,
     };
@@ -126,23 +136,53 @@ export class CheckinService {
         // Idempotent fast-path — no reward, no insert. Return the (already
         // today-stamped) state so the caller builds status-after-action from it.
         if (state.lastCheckinDate === today) {
-          return { gems: 0, xp: 0, leveledUp: false, newLevel: profile?.level ?? 1, alreadyCheckedIn: true as const, state };
+          return {
+            gems: 0,
+            xp: 0,
+            leveledUp: false,
+            newLevel: profile?.level ?? 1,
+            alreadyCheckedIn: true as const,
+            weeklyMilestone: false,
+            spinsGranted: 0,
+            state,
+          };
         }
 
-        // Streak update (Phase 1: no freeze — any gap > 1 resets).
+        // Streak update (Phase 2: gaps bridged by freeze tokens auto-consume; spec §6a).
         if (state.lastCheckinDate == null) {
           state.currentStreak = 1;
         } else {
           const gap = daysBetweenDayKeys(state.lastCheckinDate, today);
-          state.currentStreak = gap === 1 ? state.currentStreak + 1 : 1;
+          if (gap === 1) {
+            state.currentStreak += 1;
+          } else {
+            const missed = gap - 1;
+            if (state.freezeTokens >= missed) {
+              state.freezeTokens -= missed; // auto-consume freeze (spec §6a)
+              state.currentStreak += 1;
+            } else {
+              state.currentStreak = 1; // reset; tokens untouched
+            }
+          }
         }
         state.longestStreak = Math.max(state.longestStreak, state.currentStreak);
         state.lastCheckinDate = today;
         state.totalCheckins += 1;
         state.monthlyCheckins += 1;
 
-        const gems = CHECKIN_BASE_GEMS + streakBonusGems(state.currentStreak);
-        const xp = CHECKIN_BASE_XP;
+        let gems = CHECKIN_BASE_GEMS + streakBonusGems(state.currentStreak);
+        let xp = CHECKIN_BASE_XP;
+
+        let weeklyMilestone = false;
+        let spinsGranted = 0;
+        if (state.currentStreak % CHECKIN_WEEKLY_PERIOD === 0) {
+          weeklyMilestone = true;
+          gems += CHECKIN_WEEKLY_GEMS;
+          xp += CHECKIN_WEEKLY_XP;
+          spinsGranted += CHECKIN_WEEKLY_SPINS;
+          state.pendingWheelSpins += CHECKIN_WEEKLY_SPINS;
+          state.freezeTokens = Math.min(CHECKIN_FREEZE_CAP, state.freezeTokens + CHECKIN_WEEKLY_FREEZE);
+        }
 
         let leveledUp = false;
         let newLevel = profile?.level ?? 1;
@@ -157,7 +197,7 @@ export class CheckinService {
         await dailyRepo.save(
           dailyRepo.create({ userId, dayKey: today, monthKey: monthNow, source: 'checkin' }),
         );
-        return { gems, xp, leveledUp, newLevel, alreadyCheckedIn: false as const, state };
+        return { gems, xp, leveledUp, newLevel, alreadyCheckedIn: false as const, weeklyMilestone, spinsGranted, state };
       })
       .catch((err) => {
         if (isUniqueViolation(err)) return null; // UNIQUE backstop → treat as already checked in
@@ -188,7 +228,10 @@ export class CheckinService {
     // (equals the persisted row), NOT a second DB read (see Global Constraints).
     const rows = await this.dailies.find({ where: { userId, monthKey: monthNow } });
     const status = this.toStatus(outcome.state, rows, today, monthNow);
-    return this.result(status, outcome.gems, outcome.xp, outcome.leveledUp, outcome.alreadyCheckedIn);
+    return this.result(
+      status, outcome.gems, outcome.xp, outcome.leveledUp, outcome.alreadyCheckedIn,
+      outcome.weeklyMilestone, outcome.spinsGranted,
+    );
   }
 
   private result(
@@ -197,15 +240,20 @@ export class CheckinService {
     xp: number,
     leveledUp: boolean,
     alreadyCheckedIn: boolean,
+    weeklyMilestone = false,
+    spinsGranted = 0,
+    allTimeMilestone: number | null = null,
+    perfectMonth = false,
+    badgesEarned: string[] = [],
   ): ICheckinResult {
     return {
       status,
       reward: { gems, xp },
-      weeklyMilestone: false,
-      allTimeMilestone: null,
-      perfectMonth: false,
-      badgesEarned: [],
-      spinsGranted: 0,
+      weeklyMilestone,
+      allTimeMilestone,
+      perfectMonth,
+      badgesEarned,
+      spinsGranted,
       leveledUp,
       ...(alreadyCheckedIn ? { alreadyCheckedIn: true } : {}),
     };

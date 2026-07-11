@@ -22,3 +22,11 @@ export const CHECKIN_STREAK_GEM_CAP = 20;
 export function streakBonusGems(currentStreak: number): number {
   return Math.min(CHECKIN_STREAK_GEM_CAP, Math.max(0, currentStreak - 1) * CHECKIN_STREAK_GEM_PER_DAY);
 }
+
+// ── Phase 2: weekly milestone + freeze tokens (spec §5/§6a) ──────────────────
+export const CHECKIN_WEEKLY_PERIOD = 7;
+export const CHECKIN_WEEKLY_GEMS = 30;
+export const CHECKIN_WEEKLY_XP = 100;
+export const CHECKIN_WEEKLY_SPINS = 1;
+export const CHECKIN_WEEKLY_FREEZE = 1;
+export const CHECKIN_FREEZE_CAP = 3;

@@ -80,9 +80,9 @@ describe('CheckinService.checkIn', () => {
     expect(res.status.longestStreak).toBe(4);
   });
 
-  it('gap > 1 (missed days): streak resets to 1 (no freeze in Phase 1)', async () => {
+  it('gap > 1 (missed days) with no freeze tokens available: streak resets to 1', async () => {
     const ctx = makeService({
-      state: { userId: 'u1', currentStreak: 6, longestStreak: 6, lastCheckinDate: '2026-07-08', totalCheckins: 6, monthKey: '2026-07', monthlyCheckins: 6, freezeTokens: 3 },
+      state: { userId: 'u1', currentStreak: 6, longestStreak: 6, lastCheckinDate: '2026-07-08', totalCheckins: 6, monthKey: '2026-07', monthlyCheckins: 6, freezeTokens: 0 },
       profile: { userId: 'u1', gems: 0, xp: 0, level: 1, weekKey: null, monthKey: null, weeklyXp: 0, monthlyXp: 0 },
     });
     const res = await ctx.service.checkIn('u1', NOW);
@@ -172,5 +172,48 @@ describe('CheckinService.getMe board', () => {
     expect(today.status).toBe('today');
     expect(status.checkedInToday).toBe(false);
     expect(status.currentStreak).toBe(0);
+  });
+});
+
+describe('CheckinService.checkIn — Phase 2 weekly milestone + freeze (Task 9)', () => {
+  const NOW_711 = new Date('2026-07-11T03:00:00Z'); // VN 10:00 2026-07-11
+  const NOW_704 = new Date('2026-07-04T03:00:00Z'); // VN 10:00 2026-07-04
+  const baseProfile = { userId: 'u1', gems: 0, xp: 0, level: 1, weekKey: null, monthKey: null, weeklyXp: 0, monthlyXp: 0 };
+
+  it('grants the weekly milestone when the streak reaches a multiple of 7', async () => {
+    const ctx = makeService({
+      state: { userId: 'u1', currentStreak: 6, longestStreak: 6, lastCheckinDate: '2026-07-10', totalCheckins: 6, monthKey: '2026-07', monthlyCheckins: 6, freezeTokens: 0, pendingWheelSpins: 0 },
+      profile: { ...baseProfile },
+    });
+    const res = await ctx.service.checkIn('u1', NOW_711);
+    expect(res.status.currentStreak).toBe(7);
+    expect(res.weeklyMilestone).toBe(true);
+    expect(res.spinsGranted).toBe(1);
+    expect(res.status.freezeTokens).toBe(1);        // 0 + 1 weekly, cap 3
+    expect(res.status.pendingWheelSpins).toBe(1);
+    expect(res.reward.gems).toBe(5 + 12 + 30);       // base 5 + bonus min(20,(7-1)*2)=12 + weekly 30
+    expect(res.reward.xp).toBe(20 + 100);            // base 20 + weekly 100
+  });
+
+  it('bridges a gap with freeze tokens then earns one back on the weekly (worked example §4.2)', async () => {
+    const ctx = makeService({
+      state: { userId: 'u1', currentStreak: 6, longestStreak: 6, lastCheckinDate: '2026-07-01', totalCheckins: 6, monthKey: '2026-07', monthlyCheckins: 6, freezeTokens: 2, pendingWheelSpins: 0 },
+      profile: { ...baseProfile },
+    });
+    const res = await ctx.service.checkIn('u1', NOW_704); // gap 3 → missed 2
+    expect(res.status.currentStreak).toBe(7);        // 6 + 1 (bridged)
+    expect(res.weeklyMilestone).toBe(true);
+    expect(res.status.freezeTokens).toBe(1);         // 2 - 2 = 0, then + 1 weekly
+  });
+
+  it('resets the streak to 1 when freeze tokens are insufficient (tokens untouched)', async () => {
+    const ctx = makeService({
+      state: { userId: 'u1', currentStreak: 6, longestStreak: 6, lastCheckinDate: '2026-07-01', totalCheckins: 6, monthKey: '2026-07', monthlyCheckins: 6, freezeTokens: 1, pendingWheelSpins: 0 },
+      profile: { ...baseProfile },
+    });
+    const res = await ctx.service.checkIn('u1', NOW_704); // gap 3 → missed 2 > 1 token
+    expect(res.status.currentStreak).toBe(1);
+    expect(res.status.freezeTokens).toBe(1);         // untouched on reset
+    expect(res.weeklyMilestone).toBe(false);
   });
 });
