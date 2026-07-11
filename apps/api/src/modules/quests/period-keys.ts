@@ -76,3 +76,26 @@ export function currentWeeklyXp(p: XpBuckets, now: Date): number {
 export function currentMonthlyXp(p: XpBuckets, now: Date): number {
   return p.monthKey === monthKey(now) ? p.monthlyXp : 0;
 }
+
+// ── Check-in day keys (Asia/Ho_Chi_Minh, UTC+7) ──────────────────────────────
+
+const VN_TZ = 'Asia/Ho_Chi_Minh';
+
+/** Calendar day in VN (UTC+7), as 'YYYY-MM-DD'. */
+export function checkinDayKey(now: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: VN_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+}
+
+/** Whole calendar days from dayKey `a` to `b` (b - a). */
+export function daysBetweenDayKeys(a: string, b: string): number {
+  const toUtcNoon = (k: string) => {
+    const [y, m, d] = k.split('-').map(Number);
+    return Date.UTC(y, m - 1, d, 12);
+  };
+  return Math.round((toUtcNoon(b) - toUtcNoon(a)) / 86400000);
+}
