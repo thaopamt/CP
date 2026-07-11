@@ -22,6 +22,7 @@ import { MazeModule } from '../modules/maze/maze.module';
 import { FinanceModule } from '../modules/finance/finance.module';
 import { BlogModule } from '../modules/blog/blog.module';
 import { ChatModule } from '../modules/chat/chat.module';
+import { CheckinModule } from '../modules/checkin/checkin.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { ChatModule } from '../modules/chat/chat.module';
     MazeModule,
     BlogModule,
     ChatModule,
+    CheckinModule,
   ],
 })
 export class AppModule {}
