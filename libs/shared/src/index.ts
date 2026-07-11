@@ -18,3 +18,4 @@ export * from './lib/types/dashboard.types';
 export * from './lib/types/quests.types';
 export * from './lib/types/gamification.types';
 export * from './lib/types/shop.types';
+export * from './lib/types/checkin.types';
