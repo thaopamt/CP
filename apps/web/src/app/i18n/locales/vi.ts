@@ -183,6 +183,15 @@ const vi: AppResources = {
     leaderboardTitle: 'Bảng xếp hạng chuyên cần',
     rank: 'Hạng',
     noEntries: 'Chưa có dữ liệu.',
+    guide: {
+      title: 'Điểm danh mỗi ngày để nhận thưởng',
+      daily: 'Mỗi lần điểm danh: +5 kim cương và +20 XP. Chuỗi càng dài, thưởng càng nhiều (tới +10 kim cương/ngày).',
+      weekly: 'Mỗi 7 ngày liên tục: +30 kim cương, +100 XP, +1 lượt quay và +1 thẻ giữ chuỗi.',
+      milestone: 'Đạt chuỗi 7 / 30 / 100 ngày: huy hiệu đặc biệt kèm một lượt quay.',
+      perfectMonth: 'Điểm danh đủ mọi ngày trong tháng: +120 kim cương, +500 XP, một lượt quay và huy hiệu Chuyên cần.',
+      wheel: 'Dùng lượt quay ở Vòng quay may mắn để đổi thêm kim cương hoặc XP.',
+      freeze: 'Thẻ giữ chuỗi tự động cứu chuỗi khi bạn lỡ một ngày.',
+    },
   },
 
   chat: {

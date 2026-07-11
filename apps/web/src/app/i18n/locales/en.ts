@@ -185,6 +185,15 @@ const en = {
     leaderboardTitle: 'Attendance leaderboard',
     rank: 'Rank',
     noEntries: 'No entries yet.',
+    guide: {
+      title: 'Check in daily to earn rewards',
+      daily: 'Every check-in: +5 gems and +20 XP. The longer your streak, the bigger the bonus (up to +10 gems/day).',
+      weekly: 'Every 7 days in a row: +30 gems, +100 XP, +1 wheel spin, and +1 freeze token.',
+      milestone: 'Hit a 7 / 30 / 100-day streak: a special badge plus a wheel spin.',
+      perfectMonth: 'Check in every day of the month: +120 gems, +500 XP, a spin, and the Perfect Attendance badge.',
+      wheel: 'Use your spins on the Lucky Wheel for extra gems or XP.',
+      freeze: 'Freeze tokens automatically save your streak if you miss a day.',
+    },
   },
 
   chat: {

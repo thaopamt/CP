@@ -37,6 +37,21 @@ export default function CheckinPage() {
         <p className="text-on-surface-variant">{t('checkin.subtitle')}</p>
       </header>
 
+      <section className="rounded-3xl bg-surface-container-low p-md flex flex-col gap-sm">
+        <h2 className="text-title-md font-bold text-primary flex items-center gap-2">
+          <Icon name="redeem" size={20} />
+          {t('checkin.guide.title')}
+        </h2>
+        <ul className="flex flex-col gap-2">
+          <GuideItem icon="today" text={t('checkin.guide.daily')} />
+          <GuideItem icon="local_fire_department" text={t('checkin.guide.weekly')} />
+          <GuideItem icon="military_tech" text={t('checkin.guide.milestone')} />
+          <GuideItem icon="calendar_month" text={t('checkin.guide.perfectMonth')} />
+          <GuideItem icon="casino" text={t('checkin.guide.wheel')} />
+          <GuideItem icon="ac_unit" text={t('checkin.guide.freeze')} />
+        </ul>
+      </section>
+
       <section className="grid grid-cols-3 gap-md">
         <Stat label={t('checkin.currentStreak')} value={`${status.currentStreak} ${t('checkin.days')}`} />
         <Stat label={t('checkin.longestStreak')} value={`${status.longestStreak} ${t('checkin.days')}`} />
@@ -160,6 +175,15 @@ export default function CheckinPage() {
         )}
       </section>
     </div>
+  );
+}
+
+function GuideItem({ icon, text }: { icon: string; text: string }) {
+  return (
+    <li className="flex items-start gap-2 text-label-md text-on-surface-variant">
+      <Icon name={icon} size={18} className="text-primary shrink-0 mt-0.5" />
+      <span>{text}</span>
+    </li>
   );
 }
 
