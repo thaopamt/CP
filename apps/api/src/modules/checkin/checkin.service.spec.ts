@@ -205,7 +205,7 @@ describe('CheckinService.checkIn — Phase 2 weekly milestone + freeze (Task 9)'
     expect(res.spinsGranted).toBe(1);
     expect(res.status.freezeTokens).toBe(1);        // 0 + 1 weekly, cap 3
     expect(res.status.pendingWheelSpins).toBe(1);
-    expect(res.reward.gems).toBe(5 + 12 + 30);       // base 5 + bonus min(20,(7-1)*2)=12 + weekly 30
+    expect(res.reward.gems).toBe(5 + 10 + 30);       // base 5 + bonus min(10,(7-1)*2)=10 + weekly 30
     expect(res.reward.xp).toBe(20 + 100);            // base 20 + weekly 100
   });
 
@@ -415,8 +415,8 @@ describe('CheckinService.checkIn — all-time milestone (Task 12)', () => {
     expect(res.status.currentStreak).toBe(30);
     expect(res.allTimeMilestone).toBe(30);
     expect(ctx.badges.awardByCode).toHaveBeenCalledWith('u1', 'checkin-streak-30', expect.any(Date));
-    // base 5 + streak bonus cap 20 + gems-fallback 100 (no weekly milestone at streak 30)
-    expect(res.reward.gems).toBe(5 + 20 + 100);
+    // base 5 + streak bonus cap 10 + gems-fallback 100 (no weekly milestone at streak 30)
+    expect(res.reward.gems).toBe(5 + 10 + 100);
     // highestMilestoneAwarded is internal (not on ICheckinStatus) — assert via the persisted state row.
     expect(ctx.stateRepo.save).toHaveBeenCalledWith(expect.objectContaining({ highestMilestoneAwarded: 30 }));
   });
@@ -432,7 +432,7 @@ describe('CheckinService.checkIn — all-time milestone (Task 12)', () => {
     // only the 100 milestone fires this time — 7 and 30 are already claimed
     expect(ctx.badges.awardByCode).toHaveBeenCalledTimes(1);
     expect(ctx.badges.awardByCode).toHaveBeenCalledWith('u1', 'checkin-streak-100', expect.any(Date));
-    expect(res.reward.gems).toBe(5 + 20 + 100);
+    expect(res.reward.gems).toBe(5 + 10 + 100);
     expect(ctx.stateRepo.save).toHaveBeenCalledWith(expect.objectContaining({ highestMilestoneAwarded: 100 }));
     // exactly one all-time spin on top of the base check-in (no weekly milestone at streak 100)
     expect(res.spinsGranted).toBe(1);
@@ -518,7 +518,7 @@ describe('CheckinService perfect-month (Task 14)', () => {
     const res = await ctx.service.checkIn('u1', new Date('2026-07-31T03:00:00Z'));
     expect(res.perfectMonth).toBe(true);
     expect(ctx.badges.awardByCode).toHaveBeenCalledWith('u1', 'checkin-perfect-month', expect.any(Date));
-    expect(res.reward.gems).toBeGreaterThanOrEqual(200);   // includes the +200 perfect-month
+    expect(res.reward.gems).toBeGreaterThanOrEqual(120);   // includes the +120 perfect-month (5 + 10 + 120 = 135)
     expect(res.reward.xp).toBeGreaterThanOrEqual(520);     // base 20 + perfect 500 (streak 31 not %7)
   });
 
@@ -542,9 +542,9 @@ describe('CheckinService perfect-month (Task 14)', () => {
     const res = await ctx.service.makeup('u1', '2026-07-15', new Date('2026-07-31T03:00:00Z'));
     expect(res.perfectMonth).toBe(true);
     expect(ctx.badges.awardByCode).toHaveBeenCalledWith('u1', 'checkin-perfect-month', expect.any(Date));
-    // makeup deducted 20 cost then +200 perfect: net profile gems 100 - 20 + 200 = 280
-    expect(ctx.profileRepo.save).toHaveBeenCalledWith(expect.objectContaining({ gems: 280 }));
-    expect(res.reward).toEqual({ gems: 200, xp: 500 });
+    // makeup deducted 20 cost then +120 perfect: net profile gems 100 - 20 + 120 = 200
+    expect(ctx.profileRepo.save).toHaveBeenCalledWith(expect.objectContaining({ gems: 200 }));
+    expect(res.reward).toEqual({ gems: 120, xp: 500 });
   });
 
   it('makeup that completes a perfect month AND levels the profile publishes a level:up event', async () => {

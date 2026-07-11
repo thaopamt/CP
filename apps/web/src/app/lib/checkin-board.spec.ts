@@ -21,11 +21,11 @@ function statusFor(month: string, cells: { dayKey: string; status: ICheckinStatu
 }
 
 describe('streakBonusGems', () => {
-  it('is 0 on day 1, grows +2/day, and caps at 20', () => {
+  it('is 0 on day 1, grows +2/day, and caps at 10', () => {
     expect(streakBonusGems(1)).toBe(0);
     expect(streakBonusGems(4)).toBe(6);
-    expect(streakBonusGems(11)).toBe(20);
-    expect(streakBonusGems(50)).toBe(20);
+    expect(streakBonusGems(11)).toBe(10);
+    expect(streakBonusGems(50)).toBe(10);
     expect(streakBonusGems(0)).toBe(0);
   });
 });

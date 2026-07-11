@@ -17,7 +17,7 @@ export const CHECKIN_BASE_XP = 20;
 export const CHECKIN_STREAK_GEM_PER_DAY = 2;
 
 /** Cap on the streak-bonus gems. */
-export const CHECKIN_STREAK_GEM_CAP = 20;
+export const CHECKIN_STREAK_GEM_CAP = 10;
 
 /** bonusGems = min(cap, (currentStreak - 1) * perDay); never negative. */
 export function streakBonusGems(currentStreak: number): number {
@@ -61,6 +61,6 @@ export const CHECKIN_BADGE_CODES = {
 export const CHECKIN_LEADERBOARD_DEFAULT_LIMIT = 20;
 
 // ── Phase 2: perfect-month reward (spec §4.3/§10) ─────────────────────────────
-export const CHECKIN_PERFECT_MONTH_GEMS = 200;
+export const CHECKIN_PERFECT_MONTH_GEMS = 120;
 export const CHECKIN_PERFECT_MONTH_XP = 500;
 export const CHECKIN_PERFECT_MONTH_SPINS = 1;

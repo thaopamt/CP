@@ -31,9 +31,9 @@ export function buildBoardWeeks(status: ICheckinStatus): CheckinBoardWeek[] {
   return weeks;
 }
 
-/** Phase-1 streak bonus gems: 0 on day 1, +2/day, capped at 20. Mirrors backend. */
+/** Phase-1 streak bonus gems: 0 on day 1, +2/day, capped at 10. Mirrors backend. */
 export function streakBonusGems(currentStreak: number): number {
-  return Math.min(20, Math.max(0, currentStreak - 1) * 2);
+  return Math.min(10, Math.max(0, currentStreak - 1) * 2);
 }
 
 /**
