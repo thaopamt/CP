@@ -65,6 +65,7 @@ describe('CheckinService.checkIn', () => {
       expect.objectContaining({ userId: 'u1', dayKey: '2026-07-11', monthKey: '2026-07', source: 'checkin' }),
     );
     expect(ctx.cache.bumpTags).toHaveBeenCalled();
+    expect(ctx.gateway.publish).not.toHaveBeenCalled();
   });
 
   it('consecutive day (gap === 1): streak increments and bonus applies', async () => {
@@ -76,6 +77,7 @@ describe('CheckinService.checkIn', () => {
     // new streak = 4 → bonus = (4-1)*2 = 6 → gems = 5 + 6 = 11
     expect(res.status.currentStreak).toBe(4);
     expect(res.reward).toEqual({ gems: 11, xp: 20 });
+    expect(res.status.longestStreak).toBe(4);
   });
 
   it('gap > 1 (missed days): streak resets to 1 (no freeze in Phase 1)', async () => {
@@ -86,6 +88,7 @@ describe('CheckinService.checkIn', () => {
     const res = await ctx.service.checkIn('u1', NOW);
     expect(res.status.currentStreak).toBe(1);
     expect(res.reward).toEqual({ gems: 5, xp: 20 });
+    expect(res.status.longestStreak).toBe(6); // Math.max keeps the prior max
   });
 
   it('idempotent double check-in: same day → alreadyCheckedIn, reward {0,0}, no daily insert', async () => {
@@ -122,6 +125,22 @@ describe('CheckinService.checkIn', () => {
     // level 1 → 2 threshold = (1+1)*10000 = 20000; 19990 + 20 = 20010 ≥ 20000 → level up
     expect(res.leveledUp).toBe(true);
     expect(ctx.gateway.publish).toHaveBeenCalledWith('u1', expect.objectContaining({ type: 'level:up', level: 2 }));
+  });
+
+  it('23505 unique-violation backstop: transaction rolls back, re-read reports alreadyCheckedIn with zero reward', async () => {
+    const ctx = makeService({
+      state: { userId: 'u1', currentStreak: 3, longestStreak: 3, lastCheckinDate: '2026-07-10', totalCheckins: 3, monthKey: '2026-07', monthlyCheckins: 3 },
+      profile: { userId: 'u1', gems: 0, xp: 0, level: 1, weekKey: null, monthKey: null, weeklyXp: 0, monthlyXp: 0 },
+    });
+    // Simulate a concurrent request winning the race: the daily-checkin insert
+    // hits the unique (userId, dayKey) constraint after state/profile were
+    // already mutated in-memory for this attempt.
+    ctx.dailyRepo.save.mockRejectedValueOnce({ code: '23505' });
+
+    const res = await ctx.service.checkIn('u1', NOW);
+
+    expect(res.alreadyCheckedIn).toBe(true);
+    expect(res.reward).toEqual({ gems: 0, xp: 0 });
   });
 });
 
