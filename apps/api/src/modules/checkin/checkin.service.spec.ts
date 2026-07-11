@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 import { CheckinState } from './checkin-state.entity';
 import { DailyCheckin } from './daily-checkin.entity';
 import { StudentProfile } from '../students/student-profile.entity';
-import { CheckinService, buildCheckinBoard, pickWheelSegment } from './checkin.service';
+import { CheckinService, buildCheckinBoard, pickWheelSegment, toCheckinLeaderboard } from './checkin.service';
 
 function makeService(
   seed: {
@@ -16,6 +16,7 @@ function makeService(
     findOne: jest.fn().mockResolvedValue(stateRow),
     save: jest.fn(async (x: unknown) => x),
     create: jest.fn((x: unknown) => x),
+    createQueryBuilder: jest.fn(),
   };
   const dailyRepo = {
     findOne: jest.fn().mockResolvedValue(null),
@@ -424,5 +425,50 @@ describe('CheckinService.checkIn — all-time milestone (Task 12)', () => {
     expect(res.allTimeMilestone).toBeNull();
     expect(res.badgesEarned).toEqual([]);
     expect(ctx.badges.awardByCode).not.toHaveBeenCalled();
+  });
+});
+
+describe('toCheckinLeaderboard (Task 13)', () => {
+  it('composes displayName, assigns 1-based rank, preserves order', () => {
+    const rows = toCheckinLeaderboard([
+      { userId: 'a', firstName: 'An', lastName: 'Nguyen', avatarUrl: 'x.png', currentStreak: 10, longestStreak: 12, totalCheckins: 40 },
+      { userId: 'b', firstName: 'Binh', lastName: null, avatarUrl: null, currentStreak: 7, longestStreak: 7, totalCheckins: 20 },
+    ]);
+    expect(rows[0]).toEqual({ userId: 'a', displayName: 'An Nguyen', avatarUrl: 'x.png', currentStreak: 10, longestStreak: 12, totalCheckins: 40, rank: 1 });
+    expect(rows[1].displayName).toBe('Binh');       // trailing space trimmed when lastName null
+    expect(rows[1].rank).toBe(2);
+    expect(rows[1].avatarUrl).toBeNull();
+  });
+});
+
+describe('CheckinService.getLeaderboard (Task 13)', () => {
+  it('runs the ordered/limited query and maps rows', async () => {
+    const raw = [
+      { userId: 'a', firstName: 'An', lastName: 'N', avatarUrl: null, currentStreak: 5, longestStreak: 5, totalCheckins: 9 },
+    ];
+    const qb: any = {
+      leftJoin: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue(raw),
+    };
+    const ctx = makeService();
+    ctx.stateRepo.createQueryBuilder = jest.fn().mockReturnValue(qb);
+    const rows = await ctx.service.getLeaderboard(50);
+    expect(qb.limit).toHaveBeenCalledWith(50);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ userId: 'a', displayName: 'An N', rank: 1 });
+  });
+
+  it('clamps an out-of-range limit', async () => {
+    const qb: any = { leftJoin: jest.fn().mockReturnThis(), select: jest.fn().mockReturnThis(), addSelect: jest.fn().mockReturnThis(), where: jest.fn().mockReturnThis(), orderBy: jest.fn().mockReturnThis(), addOrderBy: jest.fn().mockReturnThis(), limit: jest.fn().mockReturnThis(), getRawMany: jest.fn().mockResolvedValue([]) };
+    const ctx = makeService();
+    ctx.stateRepo.createQueryBuilder = jest.fn().mockReturnValue(qb);
+    await ctx.service.getLeaderboard(9999);
+    expect(qb.limit).toHaveBeenCalledWith(100);      // clamped to max 100
   });
 });

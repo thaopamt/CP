@@ -1,11 +1,18 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { ICheckinBoardCell, ICheckinResult, ICheckinStatus, ICheckinWheelResult } from '@cp/shared';
+import {
+  ICheckinBoardCell,
+  ICheckinLeaderboardRow,
+  ICheckinResult,
+  ICheckinStatus,
+  ICheckinWheelResult,
+} from '@cp/shared';
 
 import { CheckinState } from './checkin-state.entity';
 import { DailyCheckin } from './daily-checkin.entity';
 import { StudentProfile } from '../students/student-profile.entity';
+import { User } from '../users/user.entity';
 import { GamificationGateway } from '../quests/gamification.gateway';
 import { BadgesService } from '../quests/badges.service';
 import { checkinDayKey, daysBetweenDayKeys, applyXpGain } from '../quests/period-keys';
@@ -28,6 +35,7 @@ import {
   CHECKIN_MILESTONE_SHOP_ITEM_AT,
   CHECKIN_MILESTONE_ITEM_FALLBACK_GEMS,
   CHECKIN_BADGE_CODES,
+  CHECKIN_LEADERBOARD_DEFAULT_LIMIT,
 } from './checkin.constants';
 
 /** Number of calendar days in a 'YYYY-MM' month. */
@@ -63,6 +71,32 @@ export function buildCheckinBoard(
     cells.push({ dayKey, status });
   }
   return cells;
+}
+
+/**
+ * Map raw leaderboard rows (already ordered by the query) to ICheckinLeaderboardRow,
+ * composing displayName and assigning 1-based rank. Pure — unit-tested directly.
+ */
+export function toCheckinLeaderboard(
+  rows: {
+    userId: string;
+    firstName: string | null;
+    lastName: string | null;
+    avatarUrl: string | null;
+    currentStreak: number;
+    longestStreak: number;
+    totalCheckins: number;
+  }[],
+): ICheckinLeaderboardRow[] {
+  return rows.map((r, i) => ({
+    userId: r.userId,
+    displayName: `${r.firstName ?? ''} ${r.lastName ?? ''}`.trim(),
+    avatarUrl: r.avatarUrl ?? null,
+    currentStreak: r.currentStreak,
+    longestStreak: r.longestStreak,
+    totalCheckins: r.totalCheckins,
+    rank: i + 1,
+  }));
 }
 
 /** Weighted-random wheel segment. rand() in [0,1). Server-authoritative. */
@@ -124,6 +158,31 @@ export class CheckinService {
       makeupRemaining: CHECKIN_MAKEUP_MAX_PER_MONTH - (sameMonth ? state!.makeupUsedThisMonth : 0),
       makeupCost: CHECKIN_MAKEUP_COST_GEMS,
     };
+  }
+
+  /**
+   * Attendance leaderboard: ranks students by currentStreak then totalCheckins.
+   * checkin_states has no ManyToOne to User, so join manually (mirrors
+   * leaderboard.service.ts's QueryBuilder pattern). limit clamped to [1,100].
+   */
+  async getLeaderboard(limit = CHECKIN_LEADERBOARD_DEFAULT_LIMIT): Promise<ICheckinLeaderboardRow[]> {
+    const safeLimit = Math.min(Math.max(1, Math.trunc(limit) || CHECKIN_LEADERBOARD_DEFAULT_LIMIT), 100);
+    const rows = await this.states
+      .createQueryBuilder('s')
+      .leftJoin(User, 'u', 'u.id = s.userId')
+      .select('s.userId', 'userId')
+      .addSelect('s.currentStreak', 'currentStreak')
+      .addSelect('s.longestStreak', 'longestStreak')
+      .addSelect('s.totalCheckins', 'totalCheckins')
+      .addSelect('u.firstName', 'firstName')
+      .addSelect('u.lastName', 'lastName')
+      .addSelect('u.avatarUrl', 'avatarUrl')
+      .where('s.totalCheckins > 0')
+      .orderBy('s.currentStreak', 'DESC')
+      .addOrderBy('s.totalCheckins', 'DESC')
+      .limit(safeLimit)
+      .getRawMany();
+    return toCheckinLeaderboard(rows);
   }
 
   async checkIn(userId: string, now: Date = new Date()): Promise<ICheckinResult> {

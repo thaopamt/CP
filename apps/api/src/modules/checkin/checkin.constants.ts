@@ -56,3 +56,6 @@ export const CHECKIN_BADGE_CODES = {
   STREAK_100: 'checkin-streak-100',
   PERFECT_MONTH: 'checkin-perfect-month',
 } as const;
+
+// ── Phase 2: attendance leaderboard (Task 13) ─────────────────────────────────
+export const CHECKIN_LEADERBOARD_DEFAULT_LIMIT = 20;

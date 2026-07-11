@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtPayload, UserRole } from '@cp/shared';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -31,5 +31,10 @@ export class CheckinController {
   @Post('wheel/spin')
   spin(@CurrentUser() user: JwtPayload) {
     return this.service.spinWheel(user.sub);
+  }
+
+  @Get('leaderboard')
+  leaderboard(@Query('limit') limit?: string) {
+    return this.service.getLeaderboard(limit ? Number(limit) : undefined);
   }
 }
