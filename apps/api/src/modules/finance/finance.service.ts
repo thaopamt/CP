@@ -165,10 +165,11 @@ export class FinanceService {
     // Student profile ids that have at least one teacher assigned.
     const assignedProfileIds = new Set(teacherLinks.map((link) => link.studentId));
 
-    // When teacher-scoped, only include profiles for visible students
-    const profiles = visibleSet
-      ? allProfiles.filter((p) => visibleSet.has(p.userId))
-      : allProfiles;
+    // Only include students once their start month has arrived.
+    const profiles = allProfiles.filter((profile) => {
+      if (visibleSet && !visibleSet.has(profile.userId)) return false;
+      return this.hasStartedByMonthEnd(profile, to);
+    });
 
     const profileByStudentId = new Map(profiles.map((profile) => [profile.userId, profile]));
     const amountDueOverrideByStudentId = new Map(
@@ -514,6 +515,20 @@ export class FinanceService {
       out.push(d.toISOString().slice(0, 10));
     }
     return out;
+  }
+
+  private hasStartedByMonthEnd(profile: StudentProfile, monthEnd: string): boolean {
+    const startDate = this.datePart(profile.startDate);
+    return !startDate || startDate <= monthEnd;
+  }
+
+  private datePart(value: Date | string | null | undefined): string | null {
+    if (!value) return null;
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? null : value.toISOString().slice(0, 10);
+    }
+    const trimmed = value.trim();
+    return trimmed ? trimmed.slice(0, 10) : null;
   }
 
   private studentScheduleKey(schedule: StudentSchedule) {

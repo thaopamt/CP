@@ -13,22 +13,17 @@ import {
   StatCard,
 } from '@cp/ui';
 import {
-  FINANCE_BILLING_STATUSES,
   FINANCE_COLLECTION_STATUSES,
-  FinanceBillingStatus,
   FinanceCollectionStatus,
   IFinanceMonthlyRow,
 } from '@cp/shared';
 
+import { MonthStepper } from '../../components/finance/MonthStepper';
 import { useTeacherFinanceMonthlyReport } from '../../api/finance.queries';
+import { currentFinanceMonth } from '../../lib/finance-month';
 
 const PAGE_SIZE = 25;
 type StatusFilter = 'all' | FinanceCollectionStatus;
-
-function currentMonth() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-}
 
 function formatDate(value: string | Date) {
   const date = typeof value === 'string' ? new Date(`${value.slice(0, 10)}T00:00:00`) : value;
@@ -59,22 +54,20 @@ function initials(name: string) {
 export default function TeacherFinancePage() {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
-  const [month, setMonth] = useState(currentMonth);
+  const [month, setMonth] = useState(currentFinanceMonth);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [collectionStatusFilter, setCollectionStatusFilter] = useState<StatusFilter>('all');
-  const [billingStatusFilter, setBillingStatusFilter] = useState<'all' | FinanceBillingStatus>('all');
   const deferredSearch = useDeferredValue(search.trim());
 
   useEffect(() => {
     setPage(1);
-  }, [month, deferredSearch, collectionStatusFilter, billingStatusFilter]);
+  }, [month, deferredSearch, collectionStatusFilter]);
 
   const reportQuery = useTeacherFinanceMonthlyReport({
     month,
     search: deferredSearch || undefined,
     status: collectionStatusFilter === 'all' ? undefined : collectionStatusFilter,
-    billingStatus: billingStatusFilter === 'all' ? undefined : billingStatusFilter,
     page,
     limit: PAGE_SIZE,
   });
@@ -226,15 +219,13 @@ export default function TeacherFinancePage() {
           onChange={setSearch}
           placeholder={t('pages.admin.finance.searchPlaceholder')}
         />
-        <label className="flex items-center gap-sm text-label-sm text-on-surface-variant">
-          <span>{t('pages.admin.finance.month')}</span>
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value || currentMonth())}
-            className="rounded-lg border border-outline-variant bg-surface-container-low px-md py-sm text-label-sm text-on-surface outline-none focus:ring-2 focus:ring-primary"
-          />
-        </label>
+        <MonthStepper
+          month={month}
+          onChange={setMonth}
+          label={t('pages.admin.finance.month')}
+          previousLabel={t('pages.admin.finance.monthNav.previous', 'Tháng trước')}
+          nextLabel={t('pages.admin.finance.monthNav.next', 'Tháng sau')}
+        />
         <SelectFilter
           label={t('pages.admin.finance.filters.statusLabel')}
           value={collectionStatusFilter}
@@ -244,18 +235,6 @@ export default function TeacherFinancePage() {
             ...FINANCE_COLLECTION_STATUSES.map((status) => ({
               value: status,
               label: getCollectionStatusLabel(status),
-            })),
-          ]}
-        />
-        <SelectFilter
-          label={t('pages.admin.finance.filters.billingStatusLabel')}
-          value={billingStatusFilter}
-          onChange={(event) => setBillingStatusFilter(event.target.value as 'all' | FinanceBillingStatus)}
-          options={[
-            { value: 'all', label: t('pages.admin.finance.filters.statusAll') },
-            ...FINANCE_BILLING_STATUSES.map((status) => ({
-              value: status,
-              label: t(`pages.admin.finance.status.${status}`),
             })),
           ]}
         />

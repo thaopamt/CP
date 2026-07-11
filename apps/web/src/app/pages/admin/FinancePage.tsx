@@ -17,9 +17,7 @@ import {
   useToast,
 } from '@cp/ui';
 import {
-  FINANCE_BILLING_STATUSES,
   FINANCE_COLLECTION_STATUSES,
-  FinanceBillingStatus,
   FinanceCollectionStatus,
   IFinanceMonthlyRow,
 } from '@cp/shared';
@@ -36,20 +34,11 @@ import {
   buildTuitionInvoicePngBlob,
   buildTuitionInvoiceImageFilename,
 } from './finance-invoice-print';
+import { MonthStepper } from '../../components/finance/MonthStepper';
+import { currentFinanceMonth, formatFinanceMonthLabel } from '../../lib/finance-month';
 
 const PAGE_SIZE = 25;
 type StatusFilter = 'all' | FinanceCollectionStatus;
-
-function currentMonth() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function formatInvoiceMonth(month: string) {
-  const [year, monthNumber] = month.split('-');
-  if (!year || !monthNumber) return month;
-  return `${monthNumber.padStart(2, '0')}/${year}`;
-}
 
 function formatDate(value: string | Date) {
   const date = typeof value === 'string' ? new Date(`${value.slice(0, 10)}T00:00:00`) : value;
@@ -90,13 +79,12 @@ export default function AdminFinancePage() {
   const navigate = useNavigate();
   const toast = useToast();
   const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
-  const [month, setMonth] = useState(currentMonth);
+  const [month, setMonth] = useState(currentFinanceMonth);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [exporting, setExporting] = useState(false);
   const [amountDrafts, setAmountDrafts] = useState<Record<string, string>>({});
   const [collectionStatusFilter, setCollectionStatusFilter] = useState<StatusFilter>('all');
-  const [billingStatusFilter, setBillingStatusFilter] = useState<'all' | FinanceBillingStatus>('all');
   const [studentGroup, setStudentGroup] = useState<'center' | 'home'>('center');
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const deferredSearch = useDeferredValue(search.trim());
@@ -108,13 +96,12 @@ export default function AdminFinancePage() {
   useEffect(() => {
     setPage(1);
     setSelectedKeys(new Set());
-  }, [month, deferredSearch, collectionStatusFilter, billingStatusFilter, studentGroup]);
+  }, [month, deferredSearch, collectionStatusFilter, studentGroup]);
 
   const reportQuery = useFinanceMonthlyReport({
     month,
     search: deferredSearch || undefined,
     status: collectionStatusFilter === 'all' ? undefined : collectionStatusFilter,
-    billingStatus: billingStatusFilter === 'all' ? undefined : billingStatusFilter,
     studentGroup,
     page,
     limit: PAGE_SIZE,
@@ -249,7 +236,7 @@ export default function AdminFinancePage() {
         studentName: row.studentName,
         className: row.classNames.length > 0 ? row.classNames.join(', ') : `Khối ${row.grade}`,
         amountDue: row.amountDue,
-        transferMemo: `HP ${row.studentName} ${formatInvoiceMonth(month)}`,
+        transferMemo: `HP ${row.studentName} ${formatFinanceMonthLabel(month)}`,
       };
       const invoiceStatus = row.collectionStatus === 'PAID' ? row.collectionStatus : 'PRINTED';
       const statusLabel = t(`pages.admin.finance.collectionStatus.${invoiceStatus}`);
@@ -441,7 +428,6 @@ export default function AdminFinancePage() {
         month,
         search: deferredSearch || undefined,
         status: collectionStatusFilter === 'all' ? undefined : collectionStatusFilter,
-        billingStatus: billingStatusFilter === 'all' ? undefined : billingStatusFilter,
         page: 1,
         limit: 100,
       });
@@ -453,7 +439,6 @@ export default function AdminFinancePage() {
                 month,
                 search: deferredSearch || undefined,
                 status: collectionStatusFilter === 'all' ? undefined : collectionStatusFilter,
-                billingStatus: billingStatusFilter === 'all' ? undefined : billingStatusFilter,
                 page: index + 2,
                 limit: 100,
               }),
@@ -554,15 +539,13 @@ export default function AdminFinancePage() {
           onChange={setSearch}
           placeholder={t('pages.admin.finance.searchPlaceholder')}
         />
-        <label className="flex items-center gap-sm text-label-sm text-on-surface-variant">
-          <span>{t('pages.admin.finance.month')}</span>
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value || currentMonth())}
-            className="rounded-lg border border-outline-variant bg-surface-container-low px-md py-sm text-label-sm text-on-surface outline-none focus:ring-2 focus:ring-primary"
-          />
-        </label>
+        <MonthStepper
+          month={month}
+          onChange={setMonth}
+          label={t('pages.admin.finance.month')}
+          previousLabel={t('pages.admin.finance.monthNav.previous', 'Tháng trước')}
+          nextLabel={t('pages.admin.finance.monthNav.next', 'Tháng sau')}
+        />
         <SelectFilter
           label={t('pages.admin.finance.filters.statusLabel')}
           value={collectionStatusFilter}
@@ -572,18 +555,6 @@ export default function AdminFinancePage() {
             ...FINANCE_COLLECTION_STATUSES.map((status) => ({
               value: status,
               label: getCollectionStatusLabel(status),
-            })),
-          ]}
-        />
-        <SelectFilter
-          label={t('pages.admin.finance.filters.billingStatusLabel')}
-          value={billingStatusFilter}
-          onChange={(event) => setBillingStatusFilter(event.target.value as 'all' | FinanceBillingStatus)}
-          options={[
-            { value: 'all', label: t('pages.admin.finance.filters.statusAll') },
-            ...FINANCE_BILLING_STATUSES.map((status) => ({
-              value: status,
-              label: t(`pages.admin.finance.status.${status}`),
             })),
           ]}
         />

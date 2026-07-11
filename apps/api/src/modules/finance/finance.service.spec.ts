@@ -45,12 +45,14 @@ function profile(
   id: string,
   userId: string,
   monthlyTuition: number,
+  startDate: string | null = null,
 ): StudentProfile {
   return {
     id,
     userId,
     user: user(userId, 'Student', userId.toUpperCase()),
     grade: 6,
+    startDate,
     monthlyTuition,
   } as StudentProfile;
 }
@@ -335,6 +337,27 @@ describe('FinanceService', () => {
     expect(paid.rows[0].collectionStatus).toBe('PAID');
     expect(paid.summary.totalAmountDue).toBe(300_000);
     expect(paid.summary.totalOutstandingAmount).toBe(0);
+  });
+
+  it('excludes students from report months before their start date', async () => {
+    const service = serviceWith({
+      profiles: [
+        profile('p1', 's1', 600_000, '2026-06-15'),
+        profile('p2', 's2', 500_000),
+      ],
+    });
+
+    const beforeStart = await service.getMonthlyReport({ month: '2026-05' });
+
+    expect(beforeStart.rows.map((row) => row.studentId)).toEqual(['s2']);
+    expect(beforeStart.summary.totalStudents).toBe(1);
+    expect(beforeStart.summary.totalPotentialAmount).toBe(500_000);
+
+    const startMonth = await service.getMonthlyReport({ month: '2026-06' });
+
+    expect(startMonth.rows.map((row) => row.studentId)).toEqual(['s1', 's2']);
+    expect(startMonth.summary.totalStudents).toBe(2);
+    expect(startMonth.summary.totalPotentialAmount).toBe(1_100_000);
   });
 
   it('returns a monthly trend for the specified number of months', async () => {
