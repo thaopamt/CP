@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ICheckinStatus } from '@cp/shared';
 
-import { buildBoardWeeks, streakBonusGems, shouldOpenCheckinPopup } from './checkin-board';
+import { buildBoardWeeks, streakBonusGems, shouldOpenCheckinPopup, nextStreakMilestone, monthProgress } from './checkin-board';
 
 function statusFor(month: string, cells: { dayKey: string; status: ICheckinStatus['board'][number]['status'] }[]): ICheckinStatus {
   return {
@@ -63,5 +63,32 @@ describe('buildBoardWeeks', () => {
     // Trailing slots of the last week are null padding.
     const last = weeks[weeks.length - 1].cells;
     expect(last[last.length - 1]).toBeNull();
+  });
+});
+
+describe('nextStreakMilestone', () => {
+  it('returns the next milestone above the current streak, or null past 100', () => {
+    expect(nextStreakMilestone(0)).toBe(7);
+    expect(nextStreakMilestone(6)).toBe(7);
+    expect(nextStreakMilestone(7)).toBe(30); // strictly above → already at 7, next is 30
+    expect(nextStreakMilestone(29)).toBe(30);
+    expect(nextStreakMilestone(30)).toBe(100);
+    expect(nextStreakMilestone(100)).toBeNull();
+    expect(nextStreakMilestone(250)).toBeNull();
+  });
+});
+
+describe('monthProgress', () => {
+  it('tallies filled / remaining / missed from board statuses', () => {
+    const p = monthProgress([
+      { dayKey: '2026-07-01', status: 'checked' },
+      { dayKey: '2026-07-02', status: 'makeup' },
+      { dayKey: '2026-07-03', status: 'missable' },
+      { dayKey: '2026-07-04', status: 'missed' },
+      { dayKey: '2026-07-05', status: 'today' },
+      { dayKey: '2026-07-06', status: 'future' },
+      { dayKey: '2026-07-07', status: 'future' },
+    ]);
+    expect(p).toEqual({ filled: 2, remaining: 3, missed: 2, total: 7 });
   });
 });

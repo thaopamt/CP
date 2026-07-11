@@ -169,6 +169,8 @@ const vi: AppResources = {
       title: 'Điểm danh hằng ngày',
       body: 'Điểm danh hôm nay để nhận kim cương và nối dài chuỗi!',
       later: 'Để sau',
+      streak: 'Chuỗi hiện tại: {{days}} ngày 🔥',
+      reward: 'Điểm danh ngay để nhận +{{gems}} kim cương và +{{xp}} XP!',
     },
     freezeTokens: 'Thẻ đóng băng',
     spins: 'Lượt quay',
@@ -191,6 +193,11 @@ const vi: AppResources = {
       perfectMonth: 'Điểm danh đủ mọi ngày trong tháng: +120 kim cương, +500 XP, một lượt quay và huy hiệu Chuyên cần.',
       wheel: 'Dùng lượt quay ở Vòng quay may mắn để đổi thêm kim cương hoặc XP.',
       freeze: 'Thẻ giữ chuỗi tự động cứu chuỗi khi bạn lỡ một ngày.',
+    },
+    nudge: {
+      streak: 'Còn {{n}} ngày nữa đạt huy hiệu {{milestone}} ngày!',
+      monthOnTrack: 'Còn {{n}} ngày nữa là chuyên cần cả tháng!',
+      monthProgress: 'Đã điểm danh {{filled}}/{{total}} ngày tháng này',
     },
   },
 

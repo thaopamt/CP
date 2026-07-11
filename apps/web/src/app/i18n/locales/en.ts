@@ -171,6 +171,8 @@ const en = {
       title: 'Daily Check-in',
       body: 'Check in today to earn gems and grow your streak!',
       later: 'Later',
+      streak: 'Current streak: {{days}} day(s) 🔥',
+      reward: 'Check in now for +{{gems}} gems and +{{xp}} XP!',
     },
     freezeTokens: 'Freeze tokens',
     spins: 'Spins',
@@ -193,6 +195,11 @@ const en = {
       perfectMonth: 'Check in every day of the month: +120 gems, +500 XP, a spin, and the Perfect Attendance badge.',
       wheel: 'Use your spins on the Lucky Wheel for extra gems or XP.',
       freeze: 'Freeze tokens automatically save your streak if you miss a day.',
+    },
+    nudge: {
+      streak: '{{n}} more day(s) to the {{milestone}}-day badge!',
+      monthOnTrack: '{{n}} more day(s) for Perfect Attendance this month!',
+      monthProgress: '{{filled}}/{{total}} days checked in this month',
     },
   },
 

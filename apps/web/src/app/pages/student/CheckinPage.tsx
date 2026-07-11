@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@cp/ui';
 import { useCheckinStatus, useCheckIn, useMakeup, useWheelSpin, useCheckinLeaderboard } from '../../api/checkin.queries';
-import { buildBoardWeeks, streakBonusGems } from '../../lib/checkin-board';
+import { buildBoardWeeks, streakBonusGems, nextStreakMilestone, monthProgress } from '../../lib/checkin-board';
 import type { ICheckinBoardCell, ICheckinWheelResult, ICheckinLeaderboardRow } from '@cp/shared';
 
 const CELL_CLASS: Record<ICheckinBoardCell['status'], string> = {
@@ -29,6 +29,8 @@ export default function CheckinPage() {
 
   const weeks = buildBoardWeeks(status);
   const weekdayKeys = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+  const nextMs = nextStreakMilestone(status.currentStreak);
+  const mp = monthProgress(status.board);
 
   return (
     <div className="max-w-3xl mx-auto py-lg flex flex-col gap-lg">
@@ -61,6 +63,21 @@ export default function CheckinPage() {
       <section className="flex flex-wrap items-center gap-sm">
         <Chip icon="ac_unit" label={t('checkin.freezeTokens')} value={status.freezeTokens} />
         <Chip icon="casino" label={t('checkin.spins')} value={status.pendingWheelSpins} />
+      </section>
+
+      <section className="rounded-2xl bg-tertiary-container text-on-tertiary-container p-md flex flex-col gap-1">
+        {nextMs !== null && (
+          <p className="flex items-center gap-2 text-label-md font-semibold">
+            <Icon name="military_tech" size={18} />
+            {t('checkin.nudge.streak', { n: nextMs - status.currentStreak, milestone: nextMs })}
+          </p>
+        )}
+        <p className="flex items-center gap-2 text-label-md font-semibold">
+          <Icon name="calendar_month" size={18} />
+          {mp.missed === 0 && mp.remaining > 0
+            ? t('checkin.nudge.monthOnTrack', { n: mp.remaining })
+            : t('checkin.nudge.monthProgress', { filled: mp.filled, total: mp.total })}
+        </p>
       </section>
 
       <section className="rounded-3xl bg-surface-container-low p-md flex flex-col items-center gap-sm">

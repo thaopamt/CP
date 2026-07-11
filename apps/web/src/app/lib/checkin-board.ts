@@ -50,3 +50,29 @@ export function shouldOpenCheckinPopup(params: {
   if (params.lastPopupDay === params.today) return false;
   return true;
 }
+
+/** All-time streak milestones (mirrors backend CHECKIN_ALLTIME_MILESTONES). */
+export const CHECKIN_STREAK_MILESTONES = [7, 30, 100] as const;
+
+/** The next streak milestone strictly above currentStreak, or null if past the last one. */
+export function nextStreakMilestone(currentStreak: number): number | null {
+  return CHECKIN_STREAK_MILESTONES.find((m) => m > currentStreak) ?? null;
+}
+
+/** Month attendance progress derived from the board statuses (for motivational nudges). */
+export function monthProgress(board: ICheckinBoardCell[]): {
+  filled: number; // checked + makeup
+  remaining: number; // today + future (can still be checked in)
+  missed: number; // missable + missed (past, unfilled)
+  total: number;
+} {
+  let filled = 0;
+  let remaining = 0;
+  let missed = 0;
+  for (const c of board) {
+    if (c.status === 'checked' || c.status === 'makeup') filled += 1;
+    else if (c.status === 'today' || c.status === 'future') remaining += 1;
+    else if (c.status === 'missable' || c.status === 'missed') missed += 1;
+  }
+  return { filled, remaining, missed, total: board.length };
+}

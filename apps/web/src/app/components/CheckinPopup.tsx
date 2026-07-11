@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCheckinStatus, useCheckIn } from '../api/checkin.queries';
-import { shouldOpenCheckinPopup } from '../lib/checkin-board';
+import { shouldOpenCheckinPopup, streakBonusGems, nextStreakMilestone } from '../lib/checkin-board';
 
 const POPUP_KEY = 'checkin:lastPopupDay';
 
@@ -31,6 +31,7 @@ export default function CheckinPopup() {
   if (!open || !status) return null;
 
   const dismiss = () => setOpen(false);
+  const nextMs = nextStreakMilestone(status.currentStreak);
 
   return (
     <div className="fixed inset-0 z-[100] grid place-items-center bg-black/40 backdrop-blur-sm" role="dialog" aria-modal="true">
@@ -40,6 +41,19 @@ export default function CheckinPopup() {
           <h2 className="text-title-lg font-extrabold text-on-surface">{t('checkin.popup.title')}</h2>
         </div>
         <p className="text-on-surface-variant">{t('checkin.popup.body')}</p>
+        <div className="flex flex-col gap-1 rounded-2xl bg-surface-container-low p-md">
+          <p className="text-label-md font-semibold text-on-surface">
+            {t('checkin.popup.streak', { days: status.currentStreak })}
+          </p>
+          <p className="text-label-md text-primary font-bold">
+            {t('checkin.popup.reward', { gems: 5 + streakBonusGems(status.currentStreak + 1), xp: 20 })}
+          </p>
+          {nextMs !== null && (
+            <p className="text-label-sm text-on-surface-variant">
+              {t('checkin.nudge.streak', { n: nextMs - status.currentStreak, milestone: nextMs })}
+            </p>
+          )}
+        </div>
         <div className="flex items-center justify-end gap-sm">
           <button type="button" onClick={dismiss} className="px-md py-2 rounded-full text-on-surface-variant">
             {t('checkin.popup.later')}
