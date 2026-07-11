@@ -1,7 +1,8 @@
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { CheckinState } from './checkin-state.entity';
 import { DailyCheckin } from './daily-checkin.entity';
 import { StudentProfile } from '../students/student-profile.entity';
-import { CheckinService } from './checkin.service';
+import { CheckinService, buildCheckinBoard } from './checkin.service';
 
 function makeService(
   seed: {
@@ -145,24 +146,25 @@ describe('CheckinService.checkIn', () => {
 });
 
 describe('CheckinService.getMe board', () => {
-  it('builds a full-month board: checked past + today + future + missed', async () => {
+  it('builds a full-month board: checked past + today + future + missable', async () => {
     const ctx = makeService({
-      state: { userId: 'u1', currentStreak: 1, longestStreak: 1, lastCheckinDate: '2026-07-11', totalCheckins: 1, monthKey: '2026-07', monthlyCheckins: 1 },
+      state: { userId: 'u1', currentStreak: 1, longestStreak: 1, lastCheckinDate: '2026-07-11', totalCheckins: 1, monthKey: '2026-07', monthlyCheckins: 1, makeupUsedThisMonth: 0 },
       dailyRows: [{ dayKey: '2026-07-09', source: 'checkin' }, { dayKey: '2026-07-11', source: 'checkin' }],
     });
     const status = await ctx.service.getMe('u1', NOW);
     expect(status.board).toHaveLength(31); // July has 31 days
     const cell = (d: string) => status.board.find((c) => c.dayKey === d)!;
     expect(cell('2026-07-09').status).toBe('checked');
-    expect(cell('2026-07-10').status).toBe('missed'); // past, no row
+    expect(cell('2026-07-10').status).toBe('missable'); // past, no row — makeup-eligible (Phase 2)
     expect(cell('2026-07-11').status).toBe('checked'); // today but checked wins
     expect(cell('2026-07-12').status).toBe('future');
     expect(status.checkedInToday).toBe(true);
     // Phase-1 enrichment fields are literal zeros:
     expect(status.freezeTokens).toBe(0);
     expect(status.pendingWheelSpins).toBe(0);
-    expect(status.makeupRemaining).toBe(0);
-    expect(status.makeupCost).toBe(0);
+    // Phase-2: real makeup quota/cost (spec §6b):
+    expect(status.makeupRemaining).toBe(2);
+    expect(status.makeupCost).toBe(20);
   });
 
   it("marks the current day 'today' when not yet checked in", async () => {
@@ -215,5 +217,79 @@ describe('CheckinService.checkIn — Phase 2 weekly milestone + freeze (Task 9)'
     expect(res.status.currentStreak).toBe(1);
     expect(res.status.freezeTokens).toBe(1);         // untouched on reset
     expect(res.weeklyMilestone).toBe(false);
+  });
+});
+
+describe('CheckinService.makeup (Task 10)', () => {
+  const NOW_711 = new Date('2026-07-11T03:00:00Z'); // VN 10:00 2026-07-11
+  const baseState = {
+    userId: 'u1',
+    monthKey: '2026-07',
+    monthlyCheckins: 5,
+    makeupUsedThisMonth: 0,
+    currentStreak: 3,
+    longestStreak: 3,
+    lastCheckinDate: '2026-07-09',
+    totalCheckins: 5,
+  };
+  const baseProfile = { userId: 'u1', gems: 50, xp: 0, level: 1, weekKey: null, monthKey: null, weeklyXp: 0, monthlyXp: 0 };
+
+  it('valid makeup: fills a past empty day, deducts gems, no gems/xp/streak change', async () => {
+    const ctx = makeService({ state: { ...baseState }, profile: { ...baseProfile } });
+    const res = await ctx.service.makeup('u1', '2026-07-05', NOW_711);
+
+    expect(ctx.profileRepo.save).toHaveBeenCalledWith(expect.objectContaining({ gems: 30 }));
+    expect(ctx.dailyRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'u1', dayKey: '2026-07-05', monthKey: '2026-07', source: 'makeup' }),
+    );
+    expect(res.reward).toEqual({ gems: 0, xp: 0 });
+    expect(res.status.currentStreak).toBe(3); // unchanged
+    expect(res.status.makeupRemaining).toBe(1); // cap 2 - 1 used
+    expect(ctx.cache.bumpTags).toHaveBeenCalled();
+  });
+
+  it('rejects a future date', async () => {
+    const ctx = makeService({ state: { ...baseState }, profile: { ...baseProfile } });
+    await expect(ctx.service.makeup('u1', '2026-07-20', NOW_711)).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects date === today', async () => {
+    const ctx = makeService({ state: { ...baseState }, profile: { ...baseProfile } });
+    await expect(ctx.service.makeup('u1', '2026-07-11', NOW_711)).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects a date in a different month', async () => {
+    const ctx = makeService({ state: { ...baseState }, profile: { ...baseProfile } });
+    await expect(ctx.service.makeup('u1', '2026-06-30', NOW_711)).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects when the day is already filled', async () => {
+    const ctx = makeService({ state: { ...baseState }, profile: { ...baseProfile } });
+    ctx.dailyRepo.findOne.mockResolvedValue({ dayKey: '2026-07-05', source: 'checkin' });
+    await expect(ctx.service.makeup('u1', '2026-07-05', NOW_711)).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('rejects when the monthly makeup quota is exhausted; no gem deduction', async () => {
+    const ctx = makeService({ state: { ...baseState, makeupUsedThisMonth: 2 }, profile: { ...baseProfile } });
+    await expect(ctx.service.makeup('u1', '2026-07-05', NOW_711)).rejects.toBeInstanceOf(ConflictException);
+    expect(ctx.profileRepo.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects when the student has insufficient gems', async () => {
+    const ctx = makeService({ state: { ...baseState }, profile: { ...baseProfile, gems: 10 } });
+    await expect(ctx.service.makeup('u1', '2026-07-05', NOW_711)).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('board status: makeup/checked/missable/today/future precedence', () => {
+    const cells = buildCheckinBoard('2026-07', '2026-07-11', [
+      { dayKey: '2026-07-05', source: 'makeup' },
+      { dayKey: '2026-07-09', source: 'checkin' },
+    ]);
+    const cell = (d: string) => cells.find((c) => c.dayKey === d)!;
+    expect(cell('2026-07-05').status).toBe('makeup');
+    expect(cell('2026-07-09').status).toBe('checked');
+    expect(cell('2026-07-10').status).toBe('missable');
+    expect(cell('2026-07-11').status).toBe('today');
+    expect(cell('2026-07-12').status).toBe('future');
   });
 });

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { ICheckinBoardCell, ICheckinResult, ICheckinStatus } from '@cp/shared';
@@ -20,6 +20,8 @@ import {
   CHECKIN_WEEKLY_SPINS,
   CHECKIN_WEEKLY_FREEZE,
   CHECKIN_FREEZE_CAP,
+  CHECKIN_MAKEUP_COST_GEMS,
+  CHECKIN_MAKEUP_MAX_PER_MONTH,
 } from './checkin.constants';
 
 /** Number of calendar days in a 'YYYY-MM' month. */
@@ -29,8 +31,11 @@ function daysInMonth(monthKey: string): number {
 }
 
 /**
- * Pure board builder for a month. Phase-1 emits only checked | today | future
- * | missed (makeup/missable are Phase-2). Exported for direct unit testing.
+ * Pure board builder for a month. The board is always the current month, so
+ * every past empty in-month day is makeup-eligible → 'missable' ('missed' is
+ * no longer emitted for the current-month board; Phase 2, spec §6b).
+ * Precedence: checked > makeup > today > future > missable. Exported for
+ * direct unit testing.
  */
 export function buildCheckinBoard(
   monthKey: string,
@@ -42,11 +47,13 @@ export function buildCheckinBoard(
   const cells: ICheckinBoardCell[] = [];
   for (let d = 1; d <= total; d++) {
     const dayKey = `${monthKey}-${String(d).padStart(2, '0')}`;
+    const source = filled.get(dayKey);
     let status: ICheckinBoardCell['status'];
-    if (filled.get(dayKey) === 'checkin') status = 'checked';
+    if (source === 'checkin') status = 'checked';
+    else if (source === 'makeup') status = 'makeup';
     else if (dayKey === today) status = 'today';
     else if (dayKey > today) status = 'future';
-    else status = 'missed';
+    else status = 'missable';
     cells.push({ dayKey, status });
   }
   return cells;
@@ -94,9 +101,10 @@ export class CheckinService {
       monthlyCheckins: sameMonth ? state!.monthlyCheckins : 0,
       freezeTokens: state?.freezeTokens ?? 0,
       pendingWheelSpins: state?.pendingWheelSpins ?? 0,
-      // Phase-1 boundary: makeup fields are literal zeros (a later task fills them).
-      makeupRemaining: 0,
-      makeupCost: 0,
+      // Phase-2: real makeup quota remaining + cost (spec §6b). Read-only
+      // on-the-fly month rollover for GET, consistent with the no-write policy.
+      makeupRemaining: CHECKIN_MAKEUP_MAX_PER_MONTH - (sameMonth ? state!.makeupUsedThisMonth : 0),
+      makeupCost: CHECKIN_MAKEUP_COST_GEMS,
     };
   }
 
@@ -232,6 +240,82 @@ export class CheckinService {
       status, outcome.gems, outcome.xp, outcome.leveledUp, outcome.alreadyCheckedIn,
       outcome.weeklyMilestone, outcome.spinsGranted,
     );
+  }
+
+  /**
+   * Paid makeup: fills a past empty in-month day for gems. Not a check-in —
+   * grants no gems/xp and does not touch streak/lastCheckinDate/totalCheckins.
+   * Guarded atomically: quota cap CHECKIN_MAKEUP_MAX_PER_MONTH, cost
+   * CHECKIN_MAKEUP_COST_GEMS (spec §6b).
+   */
+  async makeup(userId: string, date: string, now: Date = new Date()): Promise<ICheckinResult> {
+    const today = checkinDayKey(now);
+    const monthNow = today.slice(0, 7);
+
+    if (!(date < today && date.slice(0, 7) === monthNow)) {
+      throw new BadRequestException('date must be a past day in the current month');
+    }
+
+    const mutatedState = await this.ds.transaction(async (tx) => {
+      const stateRepo = tx.getRepository(CheckinState);
+      const dailyRepo = tx.getRepository(DailyCheckin);
+      const profileRepo = tx.getRepository(StudentProfile);
+
+      const state =
+        (await stateRepo.findOne({ where: { userId }, lock: { mode: 'pessimistic_write' } })) ??
+        stateRepo.create({
+          userId,
+          currentStreak: 0,
+          longestStreak: 0,
+          lastCheckinDate: null,
+          totalCheckins: 0,
+          monthKey: null,
+          monthlyCheckins: 0,
+        });
+      const profile = await profileRepo.findOne({
+        where: { userId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      // Month rollover before reading monthly counters.
+      if (state.monthKey !== monthNow) {
+        state.monthKey = monthNow;
+        state.monthlyCheckins = 0;
+        state.makeupUsedThisMonth = 0;
+      }
+
+      const existing = await dailyRepo.findOne({ where: { userId, dayKey: date } });
+      if (existing) {
+        throw new ConflictException('day already filled');
+      }
+
+      if (state.makeupUsedThisMonth >= CHECKIN_MAKEUP_MAX_PER_MONTH) {
+        throw new ConflictException('makeup quota exhausted');
+      }
+
+      if (!profile || profile.gems < CHECKIN_MAKEUP_COST_GEMS) {
+        throw new BadRequestException('insufficient gems');
+      }
+
+      profile.gems -= CHECKIN_MAKEUP_COST_GEMS;
+      await profileRepo.save(profile);
+
+      state.makeupUsedThisMonth += 1;
+      state.monthlyCheckins += 1;
+      await stateRepo.save(state);
+
+      await dailyRepo.save(
+        dailyRepo.create({ userId, dayKey: date, monthKey: monthNow, source: 'makeup' }),
+      );
+      // perfect-month check added in Task 14
+
+      return state;
+    });
+
+    await this.bumpCaches(userId);
+    const rows = await this.dailies.find({ where: { userId, monthKey: monthNow } });
+    const status = this.toStatus(mutatedState, rows, today, monthNow);
+    return this.result(status, 0, 0, false, false);
   }
 
   private result(
