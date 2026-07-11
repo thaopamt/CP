@@ -48,64 +48,76 @@ export default function CheckinPage() {
         <Chip icon="casino" label={t('checkin.spins')} value={status.pendingWheelSpins} />
       </section>
 
-      <section className="rounded-3xl bg-surface-container-low p-md flex flex-col gap-sm">
-        <div className="grid grid-cols-7 gap-1 text-center text-label-sm text-on-surface-variant">
-          {weekdayKeys.map((k) => (
-            <span key={k}>{t(`checkin.weekdays.${k}`)}</span>
+      <section className="rounded-3xl bg-surface-container-low p-md flex flex-col items-center gap-sm">
+        <div className="w-full max-w-[22rem] flex flex-col gap-1">
+          <div className="grid grid-cols-7 gap-1 text-center text-label-sm text-on-surface-variant">
+            {weekdayKeys.map((k) => (
+              <span key={k}>{t(`checkin.weekdays.${k}`)}</span>
+            ))}
+          </div>
+          {weeks.map((week, wi) => (
+            <div key={wi} className="grid grid-cols-7 gap-1">
+              {week.cells.map((cell, ci) =>
+                cell === null ? (
+                  <span key={ci} />
+                ) : cell.status === 'today' ? (
+                  // Today's cell IS the check-in button (shown only when not yet checked in;
+                  // once checked in the board marks the day 'checked').
+                  <button
+                    key={cell.dayKey}
+                    type="button"
+                    title={t('checkin.checkInCta')}
+                    aria-label={t('checkin.checkInCta')}
+                    disabled={checkIn.isPending}
+                    onClick={() => checkIn.mutate()}
+                    className="relative aspect-square grid place-items-center rounded-lg text-label-md font-bold bg-primary text-on-primary ring-2 ring-primary ring-offset-2 ring-offset-surface-container-low animate-pulse hover:animate-none hover:brightness-110 transition disabled:opacity-50"
+                  >
+                    {Number(cell.dayKey.slice(-2))}
+                    <Icon
+                      name="touch_app"
+                      size={12}
+                      className="absolute -bottom-1 -right-1 rounded-full bg-primary text-on-primary p-[1px]"
+                    />
+                  </button>
+                ) : cell.status === 'missable' ? (
+                  <button
+                    key={cell.dayKey}
+                    type="button"
+                    disabled={status.makeupRemaining < 1 || makeup.isPending}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          t('checkin.makeupConfirm', { cost: status.makeupCost, remaining: status.makeupRemaining }),
+                        )
+                      ) {
+                        makeup.mutate(cell.dayKey);
+                      }
+                    }}
+                    className={`aspect-square grid place-items-center rounded-lg text-label-md ${CELL_CLASS[cell.status]} hover:ring-2 hover:ring-primary/50 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:ring-0`}
+                  >
+                    {Number(cell.dayKey.slice(-2))}
+                  </button>
+                ) : (
+                  <span
+                    key={cell.dayKey}
+                    className={`aspect-square grid place-items-center rounded-lg text-label-md ${CELL_CLASS[cell.status]}`}
+                  >
+                    {Number(cell.dayKey.slice(-2))}
+                  </span>
+                ),
+              )}
+            </div>
           ))}
         </div>
-        {weeks.map((week, wi) => (
-          <div key={wi} className="grid grid-cols-7 gap-1">
-            {week.cells.map((cell, ci) =>
-              cell === null ? (
-                <span key={ci} />
-              ) : cell.status === 'missable' ? (
-                <button
-                  key={cell.dayKey}
-                  type="button"
-                  disabled={status.makeupRemaining < 1 || makeup.isPending}
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        t('checkin.makeupConfirm', { cost: status.makeupCost, remaining: status.makeupRemaining }),
-                      )
-                    ) {
-                      makeup.mutate(cell.dayKey);
-                    }
-                  }}
-                  className={`aspect-square grid place-items-center rounded-xl text-label-md ${CELL_CLASS[cell.status]} hover:ring-2 hover:ring-primary/50 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:ring-0`}
-                >
-                  {Number(cell.dayKey.slice(-2))}
-                </button>
-              ) : (
-                <span
-                  key={cell.dayKey}
-                  className={`aspect-square grid place-items-center rounded-xl text-label-md ${CELL_CLASS[cell.status]}`}
-                >
-                  {Number(cell.dayKey.slice(-2))}
-                </span>
-              ),
-            )}
-          </div>
-        ))}
-        <p className="text-label-sm text-on-surface-variant">
+        <p className="text-label-md font-semibold text-on-surface text-center">
+          {status.checkedInToday
+            ? `✓ ${t('checkin.checkedInToday')}`
+            : t('checkin.rewardToast', { gems: 5 + streakBonusGems(status.currentStreak + 1), xp: 20 })}
+        </p>
+        <p className="text-label-sm text-on-surface-variant text-center">
           {t('checkin.makeupInfo', { remaining: status.makeupRemaining, cost: status.makeupCost })}
         </p>
       </section>
-
-      <div className="flex items-center gap-md">
-        <button
-          type="button"
-          disabled={status.checkedInToday || checkIn.isPending}
-          onClick={() => checkIn.mutate()}
-          className="px-lg py-3 rounded-full bg-primary text-on-primary font-bold disabled:opacity-50"
-        >
-          {status.checkedInToday ? t('checkin.checkedInToday') : t('checkin.checkInCta')}
-        </button>
-        <span className="text-on-surface-variant text-label-md">
-          {t('checkin.rewardToast', { gems: 5 + streakBonusGems(status.currentStreak + 1), xp: 20 })}
-        </span>
-      </div>
 
       <section className="rounded-3xl bg-surface-container-low p-md flex flex-col gap-sm">
         <h2 className="text-title-md font-bold text-on-surface flex items-center gap-2">
