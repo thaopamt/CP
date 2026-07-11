@@ -5,6 +5,7 @@ import { useStudentLivePresence } from '../hooks/useStudentLivePresence';
 import { useStudentDashboard } from '../api/student.queries';
 import { useUnreadBlogCount } from '../api/blog.queries';
 import { GamificationCelebration } from '../components/GamificationCelebration';
+import CheckinPopup from '../components/CheckinPopup';
 import { ChatWidget } from '../components/ChatWidget';
 import { UserMenu } from './_shared';
 import { SidebarNav, type SidebarNavEntry, type SidebarNavItem } from './SidebarNav';
@@ -102,6 +103,7 @@ export default function StudentLayout() {
     <div className="min-h-screen bg-surface/85 backdrop-blur-md text-on-surface font-inter">
 
       <GamificationCelebration />
+      <CheckinPopup />
       {/* Sidebar — full height on desktop */}
       {!isMazePlayRoute && (
         <nav className={`hidden md:flex flex-col ${sidebarWidth} fixed top-0 bottom-0 left-0 p-sm gap-xs bg-surface-container-lowest/80 backdrop-blur-md border-r border-outline-variant z-50 transition-all duration-300`}>
