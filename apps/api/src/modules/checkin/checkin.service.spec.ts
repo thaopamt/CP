@@ -387,6 +387,23 @@ describe('CheckinService.checkIn — all-time milestone (Task 12)', () => {
     expect(ctx.stateRepo.save).toHaveBeenCalledWith(expect.objectContaining({ highestMilestoneAwarded: 30 }));
   });
 
+  it('grants the gems-fallback bundle and awards checkin-streak-100 at the 100-day milestone (7 and 30 already awarded)', async () => {
+    const ctx = makeService({
+      state: { userId: 'u1', currentStreak: 99, longestStreak: 99, lastCheckinDate: '2026-07-10', totalCheckins: 99, monthKey: '2026-07', monthlyCheckins: 29, highestMilestoneAwarded: 30, pendingWheelSpins: 0 },
+      profile: { ...baseProfile },
+    });
+    const res = await ctx.service.checkIn('u1', NOW_711);
+    expect(res.status.currentStreak).toBe(100);
+    expect(res.allTimeMilestone).toBe(100);
+    // only the 100 milestone fires this time — 7 and 30 are already claimed
+    expect(ctx.badges.awardByCode).toHaveBeenCalledTimes(1);
+    expect(ctx.badges.awardByCode).toHaveBeenCalledWith('u1', 'checkin-streak-100', expect.any(Date));
+    expect(res.reward.gems).toBe(5 + 20 + 100);
+    expect(ctx.stateRepo.save).toHaveBeenCalledWith(expect.objectContaining({ highestMilestoneAwarded: 100 }));
+    // exactly one all-time spin on top of the base check-in (no weekly milestone at streak 100)
+    expect(res.spinsGranted).toBe(1);
+  });
+
   it('threads the awarded badge code into badgesEarned when awardByCode returns a badge', async () => {
     const ctx = makeService({
       state: { userId: 'u1', currentStreak: 6, longestStreak: 6, lastCheckinDate: '2026-07-10', totalCheckins: 6, monthKey: '2026-07', monthlyCheckins: 6, highestMilestoneAwarded: 0, pendingWheelSpins: 0 },
