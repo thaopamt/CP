@@ -142,6 +142,65 @@ export class BadgesService extends TypeOrmCrudService<Badge> {
     return awarded;
   }
 
+  /**
+   * Award a specific active badge by `code` (e.g. a check-in milestone badge
+   * that never auto-fires via `evaluateAndAward`'s criteria scan). Mirrors
+   * `evaluateAndAward`'s transactional award block exactly: same repos,
+   * same XP/gems/level/earnedCount bookkeeping, same gateway + cache bump.
+   * Returns the awarded `Badge`, or `null` if the code doesn't resolve to
+   * an active badge or the student already owns it.
+   */
+  async awardByCode(userId: string, code: string, now: Date = new Date()): Promise<Badge | null> {
+    const badge = await this.badges.findOne({ where: { code, isActive: true } });
+    if (!badge) return null;
+
+    const alreadyOwned = await this.studentBadges.findOne({ where: { userId, badgeId: badge.id } });
+    if (alreadyOwned) return null;
+
+    const awarded = await this.ds.transaction<Badge | null>(async (tx) => {
+      const sbRepo = tx.getRepository(StudentBadge);
+      const badgeRepo = tx.getRepository(Badge);
+      const profRepo = tx.getRepository(StudentProfile);
+
+      // Guard against races: skip if already owned (UQ_student_badge backstop).
+      const exists = await sbRepo.findOne({ where: { userId, badgeId: badge.id } });
+      if (exists) return null;
+
+      const fresh = await profRepo.findOne({ where: { userId } });
+      if (!fresh) return null;
+
+      await sbRepo.save(sbRepo.create({ userId, badgeId: badge.id }));
+      badge.earnedCount += 1;
+      await badgeRepo.save(badge);
+      applyXpGain(fresh, badge.rewardXp, now);
+      fresh.gems += badge.rewardGems;
+      fresh.badgesEarned += 1;
+      advanceLevel(fresh);
+      await profRepo.save(fresh);
+      return badge;
+    });
+
+    if (awarded) {
+      this.gateway.publish(userId, {
+        type: 'badge:earned',
+        title: awarded.title,
+        message: awarded.description,
+        icon: awarded.icon,
+        badgeId: awarded.id,
+        rewardXp: awarded.rewardXp,
+        rewardGems: awarded.rewardGems,
+        at: new Date().toISOString(),
+      });
+      await this.cache.bumpTags([
+        `student:${userId}:badges`,
+        `student:${userId}:dashboard`,
+        `student:${userId}:profile`,
+        'leaderboard:global',
+      ]);
+    }
+    return awarded;
+  }
+
   async getMyBadges(userId: string): Promise<StudentBadge[]> {
     return this.cache.remember(
       {

@@ -45,3 +45,14 @@ export const CHECKIN_WHEEL_SEGMENTS = [
   { index: 4, kind: 'gems', amount: 60, weight: 8 },
   { index: 5, kind: 'gems', amount: 100, weight: 5 },
 ] as const;
+
+// ── Phase 2: all-time streak milestones + badges (spec §4.4/§5/§6d) ──────────
+export const CHECKIN_ALLTIME_MILESTONES = [7, 30, 100] as const;
+export const CHECKIN_MILESTONE_SHOP_ITEM_AT = [30, 100] as const;   // grant a gems-fallback bundle
+export const CHECKIN_MILESTONE_ITEM_FALLBACK_GEMS = 100;
+export const CHECKIN_BADGE_CODES = {
+  STREAK_7: 'checkin-streak-7',
+  STREAK_30: 'checkin-streak-30',
+  STREAK_100: 'checkin-streak-100',
+  PERFECT_MONTH: 'checkin-perfect-month',
+} as const;

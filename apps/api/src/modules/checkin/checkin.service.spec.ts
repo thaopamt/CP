@@ -39,6 +39,7 @@ function makeService(
   const ds = { transaction: jest.fn((fn: (t: unknown) => unknown) => fn(tx)) };
   const cache = { bumpTags: jest.fn().mockResolvedValue(undefined) };
   const gateway = { publish: jest.fn() };
+  const badges = { awardByCode: jest.fn().mockResolvedValue(null) };
 
   const service = new CheckinService(
     stateRepo as never,
@@ -47,8 +48,9 @@ function makeService(
     ds as never,
     cache as never,
     gateway as never,
+    badges as never,
   );
-  return { service, tx, cache, gateway, stateRepo, dailyRepo, profileRepo };
+  return { service, tx, cache, gateway, badges, stateRepo, dailyRepo, profileRepo };
 }
 
 const NOW = new Date('2026-07-11T03:00:00Z'); // 2026-07-11 10:00 VN → dayKey 2026-07-11
@@ -338,5 +340,72 @@ describe('CheckinService.spinWheel (Task 11)', () => {
     const ctx = makeService({ state: { userId: 'u1', monthKey: '2026-07', pendingWheelSpins: 0 }, profile: { ...baseProfile } });
     await expect(ctx.service.spinWheel('u1', NOW, () => 0.5)).rejects.toThrow();
     expect(ctx.profileRepo.save).not.toHaveBeenCalled();
+  });
+});
+
+describe('CheckinService.checkIn — all-time milestone (Task 12)', () => {
+  const NOW_711 = new Date('2026-07-11T03:00:00Z');
+  const baseProfile = { userId: 'u1', gems: 0, xp: 0, level: 1, weekKey: null, monthKey: null, weeklyXp: 0, monthlyXp: 0 };
+
+  it('awards the 7-day all-time milestone the first time streak reaches 7', async () => {
+    const ctx = makeService({
+      state: { userId: 'u1', currentStreak: 6, longestStreak: 6, lastCheckinDate: '2026-07-10', totalCheckins: 6, monthKey: '2026-07', monthlyCheckins: 6, highestMilestoneAwarded: 0, pendingWheelSpins: 0 },
+      profile: { ...baseProfile },
+    });
+    const res = await ctx.service.checkIn('u1', NOW_711);
+    expect(res.allTimeMilestone).toBe(7);
+    expect(ctx.badges.awardByCode).toHaveBeenCalledWith('u1', 'checkin-streak-7', expect.any(Date));
+    // day-7 stacks weekly + all-time-7 → 2 spins
+    expect(res.spinsGranted).toBe(2);
+    expect(res.status.pendingWheelSpins).toBe(2);
+  });
+
+  it('does NOT re-award the 7 milestone after a reset+rebuild (highestMilestoneAwarded gate)', async () => {
+    const ctx = makeService({
+      state: { userId: 'u1', currentStreak: 6, longestStreak: 30, lastCheckinDate: '2026-07-10', totalCheckins: 40, monthKey: '2026-07', monthlyCheckins: 6, highestMilestoneAwarded: 7, pendingWheelSpins: 0 },
+      profile: { ...baseProfile },
+    });
+    const res = await ctx.service.checkIn('u1', NOW_711); // streak → 7 again
+    expect(res.allTimeMilestone).toBeNull();
+    // weekly still fires (streak 7) but all-time-7 does not → only the weekly spin
+    expect(res.spinsGranted).toBe(1);
+    expect(ctx.badges.awardByCode).not.toHaveBeenCalled();
+  });
+
+  it('grants the gems-fallback bundle and awards checkin-streak-30 at the 30-day milestone', async () => {
+    const ctx = makeService({
+      state: { userId: 'u1', currentStreak: 29, longestStreak: 29, lastCheckinDate: '2026-07-10', totalCheckins: 29, monthKey: '2026-07', monthlyCheckins: 29, highestMilestoneAwarded: 7, pendingWheelSpins: 0 },
+      profile: { ...baseProfile },
+    });
+    const res = await ctx.service.checkIn('u1', NOW_711);
+    expect(res.status.currentStreak).toBe(30);
+    expect(res.allTimeMilestone).toBe(30);
+    expect(ctx.badges.awardByCode).toHaveBeenCalledWith('u1', 'checkin-streak-30', expect.any(Date));
+    // base 5 + streak bonus cap 20 + gems-fallback 100 (no weekly milestone at streak 30)
+    expect(res.reward.gems).toBe(5 + 20 + 100);
+    // highestMilestoneAwarded is internal (not on ICheckinStatus) — assert via the persisted state row.
+    expect(ctx.stateRepo.save).toHaveBeenCalledWith(expect.objectContaining({ highestMilestoneAwarded: 30 }));
+  });
+
+  it('threads the awarded badge code into badgesEarned when awardByCode returns a badge', async () => {
+    const ctx = makeService({
+      state: { userId: 'u1', currentStreak: 6, longestStreak: 6, lastCheckinDate: '2026-07-10', totalCheckins: 6, monthKey: '2026-07', monthlyCheckins: 6, highestMilestoneAwarded: 0, pendingWheelSpins: 0 },
+      profile: { ...baseProfile },
+    });
+    ctx.badges.awardByCode.mockResolvedValueOnce({ code: 'checkin-streak-7' });
+    const res = await ctx.service.checkIn('u1', NOW_711);
+    expect(res.badgesEarned).toEqual(['checkin-streak-7']);
+  });
+
+  it('does not run the badge-award loop on the idempotent (alreadyCheckedIn) fast path', async () => {
+    const ctx = makeService({
+      state: { userId: 'u1', currentStreak: 6, longestStreak: 6, lastCheckinDate: '2026-07-11', totalCheckins: 6, monthKey: '2026-07', monthlyCheckins: 6, highestMilestoneAwarded: 0, pendingWheelSpins: 0 },
+      profile: { ...baseProfile },
+    });
+    const res = await ctx.service.checkIn('u1', NOW_711);
+    expect(res.alreadyCheckedIn).toBe(true);
+    expect(res.allTimeMilestone).toBeNull();
+    expect(res.badgesEarned).toEqual([]);
+    expect(ctx.badges.awardByCode).not.toHaveBeenCalled();
   });
 });

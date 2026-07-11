@@ -7,6 +7,7 @@ import { CheckinState } from './checkin-state.entity';
 import { DailyCheckin } from './daily-checkin.entity';
 import { StudentProfile } from '../students/student-profile.entity';
 import { GamificationGateway } from '../quests/gamification.gateway';
+import { BadgesService } from '../quests/badges.service';
 import { checkinDayKey, daysBetweenDayKeys, applyXpGain } from '../quests/period-keys';
 import { advanceLevel } from '../../common/gamification.constants';
 import { SystemCacheService } from '../../common/cache/system-cache.service';
@@ -23,6 +24,10 @@ import {
   CHECKIN_MAKEUP_COST_GEMS,
   CHECKIN_MAKEUP_MAX_PER_MONTH,
   CHECKIN_WHEEL_SEGMENTS,
+  CHECKIN_ALLTIME_MILESTONES,
+  CHECKIN_MILESTONE_SHOP_ITEM_AT,
+  CHECKIN_MILESTONE_ITEM_FALLBACK_GEMS,
+  CHECKIN_BADGE_CODES,
 } from './checkin.constants';
 
 /** Number of calendar days in a 'YYYY-MM' month. */
@@ -84,6 +89,7 @@ export class CheckinService {
     private readonly ds: DataSource,
     private readonly cache: SystemCacheService,
     private readonly gateway: GamificationGateway,
+    private readonly badges: BadgesService,
   ) {}
 
   /** Read-only status; never writes. Month-scoped counters are figured on the fly. */
@@ -164,6 +170,8 @@ export class CheckinService {
             alreadyCheckedIn: true as const,
             weeklyMilestone: false,
             spinsGranted: 0,
+            allTimeMilestone: null as number | null,
+            milestoneCodes: [] as string[],
             state,
           };
         }
@@ -204,6 +212,27 @@ export class CheckinService {
           state.freezeTokens = Math.min(CHECKIN_FREEZE_CAP, state.freezeTokens + CHECKIN_WEEKLY_FREEZE);
         }
 
+        // All-time streak milestones (7/30/100) — once-ever, gated by
+        // state.highestMilestoneAwarded so a streak reset + rebuild does NOT
+        // re-grant the spin/badge/gems (anti-farm; spec §4.4/§5).
+        const milestoneCodes: string[] = [];
+        let allTimeMilestone: number | null = null;
+        for (const M of CHECKIN_ALLTIME_MILESTONES) {
+          if (state.currentStreak >= M && state.highestMilestoneAwarded < M) {
+            state.highestMilestoneAwarded = M; // once-ever gate (anti-farm)
+            allTimeMilestone = M;
+            spinsGranted += 1;
+            state.pendingWheelSpins += 1;
+            const code =
+              M === 7 ? CHECKIN_BADGE_CODES.STREAK_7 :
+              M === 30 ? CHECKIN_BADGE_CODES.STREAK_30 : CHECKIN_BADGE_CODES.STREAK_100;
+            milestoneCodes.push(code);
+            if ((CHECKIN_MILESTONE_SHOP_ITEM_AT as readonly number[]).includes(M)) {
+              gems += CHECKIN_MILESTONE_ITEM_FALLBACK_GEMS;
+            }
+          }
+        }
+
         let leveledUp = false;
         let newLevel = profile?.level ?? 1;
         if (profile) {
@@ -217,7 +246,10 @@ export class CheckinService {
         await dailyRepo.save(
           dailyRepo.create({ userId, dayKey: today, monthKey: monthNow, source: 'checkin' }),
         );
-        return { gems, xp, leveledUp, newLevel, alreadyCheckedIn: false as const, weeklyMilestone, spinsGranted, state };
+        return {
+          gems, xp, leveledUp, newLevel, alreadyCheckedIn: false as const, weeklyMilestone, spinsGranted,
+          allTimeMilestone, milestoneCodes, state,
+        };
       })
       .catch((err) => {
         if (isUniqueViolation(err)) return null; // UNIQUE backstop → treat as already checked in
@@ -244,13 +276,23 @@ export class CheckinService {
       }
     }
 
+    // Post-commit badge awards for any all-time milestones just crossed
+    // (checkin-streak-7/30/100 — never auto-fire via evaluateAndAward).
+    const badgesEarned: string[] = [];
+    if (!outcome.alreadyCheckedIn) {
+      for (const code of outcome.milestoneCodes) {
+        const b = await this.badges.awardByCode(userId, code, now);
+        if (b) badgesEarned.push(b.code);
+      }
+    }
+
     // Build status-after-action from the committed in-memory state object
     // (equals the persisted row), NOT a second DB read (see Global Constraints).
     const rows = await this.dailies.find({ where: { userId, monthKey: monthNow } });
     const status = this.toStatus(outcome.state, rows, today, monthNow);
     return this.result(
       status, outcome.gems, outcome.xp, outcome.leveledUp, outcome.alreadyCheckedIn,
-      outcome.weeklyMilestone, outcome.spinsGranted,
+      outcome.weeklyMilestone, outcome.spinsGranted, outcome.allTimeMilestone, false, badgesEarned,
     );
   }
 

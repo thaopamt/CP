@@ -73,6 +73,16 @@ const BADGES: BadgeSeed[] = [
   { code: 'SCHOLAR', title: 'Scholar', description: 'Đạt 10.000 XP.', icon: 'school', rarity: BadgeRarity.LEGENDARY, criteriaType: BadgeCriteriaType.EARN_XP, threshold: 10000, rewardXp: 0, rewardGems: 100 },
   { code: 'XP_25K', title: 'Sage', description: 'Đạt 25.000 XP.', icon: 'psychology_alt', rarity: BadgeRarity.LEGENDARY, criteriaType: BadgeCriteriaType.EARN_XP, threshold: 25000, rewardXp: 0, rewardGems: 250 },
   { code: 'XP_50K', title: 'Enlightened', description: 'Đạt 50.000 XP.', icon: 'self_improvement', rarity: BadgeRarity.LEGENDARY, criteriaType: BadgeCriteriaType.EARN_XP, threshold: 50000, rewardXp: 0, rewardGems: 500 },
+
+  // ── Daily check-in (collectible only — awarded via BadgesService.awardByCode
+  //    from CheckinService's all-time-milestone/perfect-month loops, never via
+  //    evaluateAndAward's criteria scan; threshold is a never-auto-fire
+  //    sentinel). Reward is kept at 0/0 — the tangible reward is the wheel
+  //    spin + gems-fallback granted by CheckinService itself. ─────────────────
+  { code: 'checkin-streak-7', title: 'Điểm danh 7 ngày', description: 'Duy trì chuỗi điểm danh 7 ngày liên tiếp.', icon: 'event_available', rarity: BadgeRarity.COMMON, criteriaType: BadgeCriteriaType.STREAK_DAYS, threshold: 999999, rewardXp: 0, rewardGems: 0 },
+  { code: 'checkin-streak-30', title: 'Điểm danh 30 ngày', description: 'Duy trì chuỗi điểm danh 30 ngày liên tiếp.', icon: 'local_fire_department', rarity: BadgeRarity.RARE, criteriaType: BadgeCriteriaType.STREAK_DAYS, threshold: 999999, rewardXp: 0, rewardGems: 0 },
+  { code: 'checkin-streak-100', title: 'Điểm danh 100 ngày', description: 'Duy trì chuỗi điểm danh 100 ngày liên tiếp.', icon: 'military_tech', rarity: BadgeRarity.EPIC, criteriaType: BadgeCriteriaType.STREAK_DAYS, threshold: 999999, rewardXp: 0, rewardGems: 0 },
+  { code: 'checkin-perfect-month', title: 'Tháng điểm danh hoàn hảo', description: 'Điểm danh đủ tất cả các ngày trong một tháng.', icon: 'calendar_month', rarity: BadgeRarity.LEGENDARY, criteriaType: BadgeCriteriaType.STREAK_DAYS, threshold: 999999, rewardXp: 0, rewardGems: 0 },
 ];
 
 // ── Quest catalog (idempotent by `title`) ─────────────────────────────────────
