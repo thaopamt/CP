@@ -116,6 +116,8 @@ describe('CheckinService.checkIn', () => {
     expect(res.status.monthKey).toBe('2026-07');
     expect(res.status.monthlyCheckins).toBe(1);
     expect(res.status.currentStreak).toBe(1);
+    // makeupUsedThisMonth (2 from last month) must also reset on rollover.
+    expect(res.status.makeupRemaining).toBe(2);
   });
 
   it('publishes a level:up event when the check-in crosses a level', async () => {

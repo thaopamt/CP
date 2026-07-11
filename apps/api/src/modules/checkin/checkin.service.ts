@@ -138,7 +138,7 @@ export class CheckinService {
         if (state.monthKey !== monthNow) {
           state.monthKey = monthNow;
           state.monthlyCheckins = 0;
-          // makeupUsedThisMonth reset is Phase-2 behaviour; not touched in Phase 1.
+          state.makeupUsedThisMonth = 0; // Phase-2: makeup quota also resets on rollover.
         }
 
         // Idempotent fast-path — no reward, no insert. Return the (already
