@@ -2,7 +2,13 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 import { CheckinState } from './checkin-state.entity';
 import { DailyCheckin } from './daily-checkin.entity';
 import { StudentProfile } from '../students/student-profile.entity';
-import { CheckinService, buildCheckinBoard, pickWheelSegment, toCheckinLeaderboard } from './checkin.service';
+import {
+  CheckinService,
+  buildCheckinBoard,
+  pickWheelSegment,
+  toCheckinLeaderboard,
+  isValidCalendarDayKey,
+} from './checkin.service';
 
 function makeService(
   seed: {
@@ -269,6 +275,18 @@ describe('CheckinService.makeup (Task 10)', () => {
     await expect(ctx.service.makeup('u1', '2026-06-30', NOW_711)).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('rejects a calendar-invalid date (day 00) that passes the DTO shape regex', async () => {
+    const ctx = makeService({ state: { ...baseState }, profile: { ...baseProfile } });
+    await expect(ctx.service.makeup('u1', '2026-07-00', NOW_711)).rejects.toBeInstanceOf(BadRequestException);
+    expect(ctx.profileRepo.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects a calendar-invalid date (day 32) that passes the DTO shape regex', async () => {
+    const ctx = makeService({ state: { ...baseState }, profile: { ...baseProfile } });
+    await expect(ctx.service.makeup('u1', '2026-07-32', NOW_711)).rejects.toBeInstanceOf(BadRequestException);
+    expect(ctx.profileRepo.save).not.toHaveBeenCalled();
+  });
+
   it('rejects when the day is already filled', async () => {
     const ctx = makeService({ state: { ...baseState }, profile: { ...baseProfile } });
     ctx.dailyRepo.findOne.mockResolvedValue({ dayKey: '2026-07-05', source: 'checkin' });
@@ -297,6 +315,20 @@ describe('CheckinService.makeup (Task 10)', () => {
     expect(cell('2026-07-10').status).toBe('missable');
     expect(cell('2026-07-11').status).toBe('today');
     expect(cell('2026-07-12').status).toBe('future');
+  });
+});
+
+describe('isValidCalendarDayKey', () => {
+  it('accepts real calendar dates', () => {
+    expect(isValidCalendarDayKey('2026-07-11')).toBe(true);
+    expect(isValidCalendarDayKey('2026-02-28')).toBe(true);
+    expect(isValidCalendarDayKey('2026-07-31')).toBe(true);
+  });
+
+  it('rejects day 00 and out-of-range days', () => {
+    expect(isValidCalendarDayKey('2026-07-00')).toBe(false);
+    expect(isValidCalendarDayKey('2026-07-32')).toBe(false);
+    expect(isValidCalendarDayKey('2026-02-30')).toBe(false); // 2026 is not a leap year
   });
 });
 
@@ -513,5 +545,18 @@ describe('CheckinService perfect-month (Task 14)', () => {
     // makeup deducted 20 cost then +200 perfect: net profile gems 100 - 20 + 200 = 280
     expect(ctx.profileRepo.save).toHaveBeenCalledWith(expect.objectContaining({ gems: 280 }));
     expect(res.reward).toEqual({ gems: 200, xp: 500 });
+  });
+
+  it('makeup that completes a perfect month AND levels the profile publishes a level:up event', async () => {
+    const ctx = makeService({
+      state: { userId: 'u1', monthKey: '2026-07', monthlyCheckins: 30, makeupUsedThisMonth: 0, currentStreak: 5, longestStreak: 5, lastCheckinDate: '2026-07-31', totalCheckins: 29 },
+      // level 1 → 2 threshold = (1+1)*10000 = 20000; 19990 + 500 (perfect-month XP) ≥ 20000 → level up.
+      profile: { ...baseProfile, gems: 100, xp: 19990 },
+    });
+    ctx.dailyRepo.count.mockResolvedValue(31); // makeup fills the last missing day
+    const res = await ctx.service.makeup('u1', '2026-07-15', new Date('2026-07-31T03:00:00Z'));
+    expect(res.perfectMonth).toBe(true);
+    expect(res.leveledUp).toBe(true);
+    expect(ctx.gateway.publish).toHaveBeenCalledWith('u1', expect.objectContaining({ type: 'level:up', level: 2 }));
   });
 });

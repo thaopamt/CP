@@ -48,6 +48,20 @@ function daysInMonth(monthKey: string): number {
 }
 
 /**
+ * True iff `dayKey` (already shape-validated as YYYY-MM-DD by MakeupDto's
+ * regex) is a real calendar date — round-trips the y/m/d components through
+ * Date.UTC and confirms nothing rolled over (rejects e.g. 2026-07-00 or
+ * 2026-07-32). Exported for direct unit testing.
+ */
+export function isValidCalendarDayKey(dayKey: string): boolean {
+  const [y, m, d] = dayKey.split('-').map(Number);
+  const rebuilt = new Date(Date.UTC(y, m - 1, d));
+  return (
+    rebuilt.getUTCFullYear() === y && rebuilt.getUTCMonth() === m - 1 && rebuilt.getUTCDate() === d
+  );
+}
+
+/**
  * Pure board builder for a month. The board is always the current month, so
  * every past empty in-month day is makeup-eligible → 'missable' ('missed' is
  * no longer emitted for the current-month board; Phase 2, spec §6b).
@@ -208,6 +222,10 @@ export class CheckinService {
             totalCheckins: 0,
             monthKey: null,
             monthlyCheckins: 0,
+            freezeTokens: 0,
+            pendingWheelSpins: 0,
+            makeupUsedThisMonth: 0,
+            highestMilestoneAwarded: 0,
           });
         const profile = await profileRepo.findOne({
           where: { userId },
@@ -388,6 +406,13 @@ export class CheckinService {
     const today = checkinDayKey(now);
     const monthNow = today.slice(0, 7);
 
+    // MakeupDto only shape-validates YYYY-MM-DD (regex) — it lets calendar-
+    // invalid dates like 2026-07-00 / 2026-07-32 through. Reject those here
+    // (400) before they can reach the Postgres date insert (which would 500).
+    if (!isValidCalendarDayKey(date)) {
+      throw new BadRequestException('date is not a valid calendar date');
+    }
+
     if (!(date < today && date.slice(0, 7) === monthNow)) {
       throw new BadRequestException('date must be a past day in the current month');
     }
@@ -407,6 +432,10 @@ export class CheckinService {
           totalCheckins: 0,
           monthKey: null,
           monthlyCheckins: 0,
+          freezeTokens: 0,
+          pendingWheelSpins: 0,
+          makeupUsedThisMonth: 0,
+          highestMilestoneAwarded: 0,
         });
       const profile = await profileRepo.findOne({
         where: { userId },
@@ -451,20 +480,32 @@ export class CheckinService {
       const filledDays = await dailyRepo.count({ where: { userId, monthKey: monthNow } });
       const perfectMonth = filledDays === daysInMonth(monthNow);
       let leveledUp = false;
+      let newLevel = profile.level;
       if (perfectMonth) {
         profile.gems += CHECKIN_PERFECT_MONTH_GEMS;
         applyXpGain(profile, CHECKIN_PERFECT_MONTH_XP, now);
         leveledUp = advanceLevel(profile);
+        newLevel = profile.level;
         state.pendingWheelSpins += CHECKIN_PERFECT_MONTH_SPINS;
       }
 
       await profileRepo.save(profile);
       await stateRepo.save(state);
 
-      return { state, perfectMonth, leveledUp };
+      return { state, perfectMonth, leveledUp, newLevel };
     });
 
     await this.bumpCaches(userId);
+    if (outcome.leveledUp) {
+      this.gateway.publish(userId, {
+        type: 'level:up',
+        title: 'Level Up!',
+        message: `You reached level ${outcome.newLevel}`,
+        icon: 'trending_up',
+        level: outcome.newLevel,
+        at: new Date().toISOString(),
+      });
+    }
 
     // Post-commit badge award for the once-ever perfect-month badge (the
     // monetary reward above is NOT gated on this — money repeats, badge doesn't).

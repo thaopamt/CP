@@ -2,9 +2,9 @@
  * ── Check-in reward economy ───────────────────────────────────────────────────
  *
  * Phase-1 tunables: base gems/XP per check-in + a capped streak bonus.
- * Phase-2 weekly milestone, freeze token, and makeup constants now live in
- * this file too (wheel / all-time milestone / perfect-month are still
- * pending in later Phase-2 tasks).
+ * Phase-2 weekly milestone, freeze token, makeup, wheel, all-time milestone,
+ * and perfect-month constants now all live in this file too — every
+ * Phase-2 reward path is fully implemented.
  */
 
 /** Gems granted for an ordinary check-in. */

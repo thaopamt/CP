@@ -11,7 +11,7 @@ import { CheckinController } from './checkin.controller';
 @Module({
   imports: [
     TypeOrmModule.forFeature([DailyCheckin, CheckinState, StudentProfile]),
-    QuestsModule, // for GamificationGateway (level-up publish)
+    QuestsModule, // for GamificationGateway (level-up publish) and BadgesService (milestone/perfect-month badge awards)
   ],
   controllers: [CheckinController],
   providers: [CheckinService],
