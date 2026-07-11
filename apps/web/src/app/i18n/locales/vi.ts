@@ -130,6 +130,7 @@ const vi: AppResources = {
       shop: 'Cửa hàng',
       me: 'Thông tin cá nhân',
       chat: 'Tin nhắn',
+      checkin: 'Điểm danh',
 
     },
   },
@@ -150,6 +151,25 @@ const vi: AppResources = {
     passwordLabel: 'Mật khẩu',
     invalidLogin: 'Đăng nhập thất bại',
     demoHint: 'Thử: {{accounts}} · mật khẩu {{password}}',
+  },
+
+  checkin: {
+    title: 'Điểm danh hằng ngày',
+    subtitle: 'Điểm danh mỗi ngày để giữ chuỗi của bạn.',
+    checkInCta: 'Điểm danh',
+    checkedInToday: 'Đã điểm danh hôm nay',
+    currentStreak: 'Chuỗi hiện tại',
+    longestStreak: 'Chuỗi dài nhất',
+    totalCheckins: 'Tổng số lần điểm danh',
+    days: 'ngày',
+    rewardToast: '+{{gems}} kim cương, +{{xp}} XP',
+    alreadyCheckedIn: 'Bạn đã điểm danh hôm nay rồi.',
+    weekdays: { mon: 'T2', tue: 'T3', wed: 'T4', thu: 'T5', fri: 'T6', sat: 'T7', sun: 'CN' },
+    popup: {
+      title: 'Điểm danh hằng ngày',
+      body: 'Điểm danh hôm nay để nhận kim cương và nối dài chuỗi!',
+      later: 'Để sau',
+    },
   },
 
   chat: {

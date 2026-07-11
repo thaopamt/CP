@@ -132,6 +132,7 @@ const en = {
       shop: 'Shop',
       me: 'Me',
       chat: 'Chat',
+      checkin: 'Check-in',
 
     },
   },
@@ -152,6 +153,25 @@ const en = {
     passwordLabel: 'Password',
     invalidLogin: 'Login failed',
     demoHint: 'Try: {{accounts}} · password {{password}}',
+  },
+
+  checkin: {
+    title: 'Daily Check-in',
+    subtitle: 'Check in every day to keep your streak alive.',
+    checkInCta: 'Check in',
+    checkedInToday: 'Checked in today',
+    currentStreak: 'Current streak',
+    longestStreak: 'Longest streak',
+    totalCheckins: 'Total check-ins',
+    days: 'days',
+    rewardToast: '+{{gems}} gems, +{{xp}} XP',
+    alreadyCheckedIn: 'You have already checked in today.',
+    weekdays: { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun' },
+    popup: {
+      title: 'Daily Check-in',
+      body: 'Check in today to earn gems and grow your streak!',
+      later: 'Later',
+    },
   },
 
   chat: {

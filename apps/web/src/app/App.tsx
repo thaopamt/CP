@@ -78,6 +78,7 @@ const StudentQuests = lazy(() => import('./pages/student/QuestsPage'));
 const StudentBadges = lazy(() => import('./pages/student/BadgesPage'));
 const StudentLeaderboard = lazy(() => import('./pages/student/LeaderboardPage'));
 const StudentShop = lazy(() => import('./pages/student/ShopPage'));
+const StudentCheckin = lazy(() => import('./pages/student/CheckinPage'));
 const StudentAssignments = lazy(() => import('./pages/student/AssignmentsPage'));
 const StudentWorkspace = lazy(() => import('./pages/student/WorkspacePage'));
 const StudentAssignmentDetail = lazy(() => import('./pages/student/AssignmentDetailPage'));
@@ -273,6 +274,7 @@ export default function App() {
                 <Route path="badges" element={<StudentBadges />} />
                 <Route path="leaderboard" element={<StudentLeaderboard />} />
                 <Route path="shop" element={<StudentShop />} />
+                <Route path="checkin" element={<StudentCheckin />} />
 
                 <Route path="submissions" element={<SubmissionsPage />} />
                 <Route path="me" element={<StudentMe />} />

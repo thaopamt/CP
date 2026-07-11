@@ -32,10 +32,16 @@ const STUDENT_BADGES: SidebarNavItem = {
   icon: 'workspace_premium',
   key: 'nav.student.badges',
 };
+const STUDENT_CHECKIN: SidebarNavItem = {
+  to: '/student/checkin',
+  icon: 'event_available',
+  key: 'nav.student.checkin',
+};
 
 const NAV: SidebarNavEntry[] = [
   STUDENT_HOME,
   STUDENT_QUESTS,
+  STUDENT_CHECKIN,
   STUDENT_LEADERBOARD,
   {
     icon: 'school',
