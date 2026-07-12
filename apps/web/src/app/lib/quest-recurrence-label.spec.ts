@@ -12,4 +12,8 @@ describe('getQuestRecurrenceLabelKey', () => {
     expect(getQuestRecurrenceLabelKey(QuestRecurrence.WEEKLY)).toBe('gamif.student.quests.resetsWeekly');
     expect(getQuestRecurrenceLabelKey(QuestRecurrence.DAILY)).toBe('gamif.student.quests.resetsDaily');
   });
+
+  it('does not label one-time quests as recurring', () => {
+    expect(getQuestRecurrenceLabelKey(QuestRecurrence.NONE)).toBe('');
+  });
 });

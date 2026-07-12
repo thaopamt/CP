@@ -80,6 +80,85 @@ apps/web/src/app/features/maze/blockly/blocks.ts(126,55): error TS2551: Property
 apps/web/src/app/pages/admin/FinanceInvoiceBuilderPage.tsx(182,15): error TS2820: Type '"outlined"' is not assignable to type 'Variant | undefined'. Did you mean '"outline"'?
 ```
 
+## Task 4 Render-Path Test Fix
+
+### Red-first admin component spec
+
+Command:
+
+```bash
+pnpm exec vitest run apps/web/src/app/pages/admin/quests/QuestForm.spec.tsx --config apps/web/vite.config.ts
+```
+
+Red output:
+
+```text
+× QuestForm recurrence selector > renders all four recurrence options inside the four-column responsive selector
+→ the given combination of arguments (undefined and string) is invalid for this assertion.
+```
+
+### Red-first student component spec
+
+Command:
+
+```bash
+pnpm exec vitest run apps/web/src/app/pages/student/QuestsPage.spec.tsx --config apps/web/vite.config.ts
+```
+
+Red output:
+
+```text
+× StudentQuestsPage recurrence labels > renders the biweekly reset label on a recurring quest card
+→ expected undefined to be 'gamif.student.quests.resetsBiweekly'
+```
+
+### Green component specs
+
+Commands:
+
+```bash
+pnpm exec vitest run apps/web/src/app/pages/admin/quests/QuestForm.spec.tsx --config apps/web/vite.config.ts
+pnpm exec vitest run apps/web/src/app/pages/student/QuestsPage.spec.tsx --config apps/web/vite.config.ts
+```
+
+Green output:
+
+```text
+✓ src/app/pages/admin/quests/QuestForm.spec.tsx (1 test) 26ms
+✓ src/app/pages/student/QuestsPage.spec.tsx (1 test) 19ms
+```
+
+### Green helper specs
+
+Commands:
+
+```bash
+pnpm exec vitest run apps/web/src/app/lib/quest-recurrence-label.spec.ts --config apps/web/vite.config.ts
+pnpm exec vitest run apps/web/src/app/lib/quest-recurrence-selector.spec.ts --config apps/web/vite.config.ts
+```
+
+Green output:
+
+```text
+✓ src/app/lib/quest-recurrence-label.spec.ts (3 tests) 1ms
+✓ src/app/lib/quest-recurrence-selector.spec.ts (1 test) 4ms
+```
+
+### Typecheck summary
+
+Command:
+
+```bash
+pnpm exec tsc -p apps/web/tsconfig.app.json --noEmit
+```
+
+Output remained the same as the earlier baseline:
+
+```text
+apps/web/src/app/features/maze/blockly/blocks.ts(126,55): error TS2551: Property 'getOptions' does not exist on type 'Block'. Did you mean 'getIcons'?
+apps/web/src/app/pages/admin/FinanceInvoiceBuilderPage.tsx(182,15): error TS2820: Type '"outlined"' is not assignable to type 'Variant | undefined'. Did you mean '"outline"'?
+```
+
 ### Post-edit typecheck
 
 Command:

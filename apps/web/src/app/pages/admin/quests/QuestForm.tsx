@@ -312,7 +312,7 @@ export function QuestForm({ defaultValues, onSubmit, isLoading }: QuestFormProps
         <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
           <div className="flex flex-col gap-1 md:col-span-2">
             <label className="text-label-sm font-semibold text-on-surface">{t('gamif.admin.form.recurrence')}</label>
-            <div className={QUEST_RECURRENCE_SELECTOR_CLASS_NAME}>
+            <div data-testid="quest-recurrence-selector" className={QUEST_RECURRENCE_SELECTOR_CLASS_NAME}>
               {QUEST_RECURRENCE_SELECTOR_OPTIONS.map((rec) => {
                 const isSelected = formData.recurrence === rec;
                 return (

@@ -9,5 +9,9 @@ export function getQuestRecurrenceLabelKey(recurrence: QuestRecurrence): string 
     return 'gamif.student.quests.resetsWeekly';
   }
 
-  return 'gamif.student.quests.resetsDaily';
+  if (recurrence === QuestRecurrence.DAILY) {
+    return 'gamif.student.quests.resetsDaily';
+  }
+
+  return '';
 }

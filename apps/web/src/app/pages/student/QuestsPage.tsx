@@ -346,6 +346,7 @@ function QuestCard({ sq, onOpen, t }: { sq: IStudentQuest; onOpen: (sq: IStudent
             </h3>
             {recurs && !isLocked && (
               <span
+                data-testid="quest-recurrence-label"
                 title={recurrenceLabel}
                 aria-label={recurrenceLabel}
                 className="shrink-0 flex items-center gap-1 text-[10px] font-bold text-sky-700 bg-sky-100 px-1.5 py-0.5 rounded-md whitespace-nowrap dark:border dark:border-sky-300/20 dark:bg-sky-400/[0.12] dark:text-sky-200"
