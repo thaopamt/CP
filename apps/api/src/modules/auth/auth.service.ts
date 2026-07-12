@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -44,7 +44,13 @@ export class AuthService {
 
   async refreshTokens(userId: string, refreshToken: string): Promise<LoginResponse> {
     const user = await this.users.findByIdWithRefreshToken(userId);
-    if (!user || !user.isActive || !user.refreshTokenHash) {
+    if (!user) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+    if (!user.isActive) {
+      throw this.blockedException();
+    }
+    if (!user.refreshTokenHash) {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
@@ -80,6 +86,13 @@ export class AuthService {
 
   async logout(userId: string): Promise<void> {
     await this.users.updateRefreshTokenHash(userId, null);
+  }
+
+  private blockedException(): ForbiddenException {
+    return new ForbiddenException({
+      code: 'USER_BLOCKED',
+      message: 'User is blocked',
+    });
   }
 
   private async generateTokens(payload: JwtPayload): Promise<{ accessToken: string; refreshToken: string }> {
