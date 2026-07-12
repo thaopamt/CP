@@ -1,4 +1,4 @@
-import { QuestRecurrence, QuestType } from '@cp/shared';
+import { QuestObjectiveType, QuestRecurrence, QuestType } from '@cp/shared';
 import { QUESTS, resolvePrerequisiteQuestId } from './seed-quests';
 
 describe('quest seed catalog', () => {
@@ -47,6 +47,19 @@ describe('quest seed catalog', () => {
     );
 
     expect(biweekly.every((quest) => quest.daysWindow == null)).toBe(true);
+  });
+
+  it('keeps recurring quests on period-scoped objective types', () => {
+    const lifetimeStatObjectives = new Set([
+      QuestObjectiveType.EARN_XP,
+      QuestObjectiveType.STREAK_DAYS,
+      QuestObjectiveType.REACH_LEVEL,
+    ]);
+    const recurringStatQuests = QUESTS.filter(
+      (quest) => quest.recurrence !== QuestRecurrence.NONE && lifetimeStatObjectives.has(quest.objectiveType),
+    );
+
+    expect(recurringStatQuests).toEqual([]);
   });
 
   it('clears prerequisite quest ids when the catalog has no prerequisite title', () => {
