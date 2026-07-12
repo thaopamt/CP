@@ -7,6 +7,7 @@ import { StudentQuest } from '../quests/student-quest.entity';
 import { StudentInventory } from '../shop/student-inventory.entity';
 import { StudentAssignmentProgress } from '../submissions/student-assignment-progress.entity';
 import { Submission } from '../submissions/submission.entity';
+import { User } from '../users/user.entity';
 import { Guardian } from './guardian.entity';
 import { StudentProfile } from './student-profile.entity';
 import { StudentsService } from './students.service';
@@ -38,9 +39,20 @@ function profileRepo(profile: Partial<StudentProfile> | null) {
   };
 }
 
-function makeService(profile: Partial<StudentProfile> | null) {
+function userRepo(user: Partial<User> | null) {
+  return {
+    findOne: jest.fn().mockResolvedValue(user),
+    update: jest.fn().mockResolvedValue({ affected: user ? 1 : 0 }),
+  };
+}
+
+function makeService(
+  profile: Partial<StudentProfile> | null,
+  user: Partial<User> | null = { id: 'user-1', isActive: true },
+) {
   const repos = new Map<unknown, any>();
   const profileRepository = profileRepo(profile);
+  const usersRepository = userRepo(user);
   const progressRepository = deleteRepo(2);
   const submissionRepository = deleteRepo(3);
   const questRepository = deleteRepo(4);
@@ -49,6 +61,7 @@ function makeService(profile: Partial<StudentProfile> | null) {
   const mazeRepository = deleteRepo(7);
 
   repos.set(StudentProfile, profileRepository);
+  repos.set(User, usersRepository);
   repos.set(StudentAssignmentProgress, progressRepository);
   repos.set(Submission, submissionRepository);
   repos.set(StudentQuest, questRepository);
@@ -69,7 +82,7 @@ function makeService(profile: Partial<StudentProfile> | null) {
 
   const service = new StudentsService(
     crudRepo<StudentProfile>(),
-    {} as Repository<any>,
+    usersRepository as unknown as Repository<User>,
     {} as Repository<Guardian>,
     ds as any,
     cache as any,
@@ -80,6 +93,7 @@ function makeService(profile: Partial<StudentProfile> | null) {
     tx,
     cache,
     profileRepository,
+    usersRepository,
     progressRepository,
     submissionRepository,
     questRepository,
@@ -182,5 +196,88 @@ describe('StudentsService.resetLearningData', () => {
     await expect(ctx.service.resetLearningData('missing-profile')).rejects.toBeInstanceOf(NotFoundException);
     expect(ctx.submissionRepository.delete).not.toHaveBeenCalled();
     expect(ctx.cache.bumpTags).not.toHaveBeenCalled();
+  });
+
+  it('blocks a student by deactivating the account, revoking refresh token, and resetting learning data', async () => {
+    const ctx = makeService({
+      id: 'profile-1',
+      userId: 'user-1',
+      monthlyTuition: 800000,
+      grade: 10,
+      attendanceRate: 95,
+      daysAbsent: 1,
+    });
+
+    const result = await ctx.service.blockStudent('profile-1');
+
+    expect(ctx.usersRepository.update).toHaveBeenCalledWith(
+      { id: 'user-1' },
+      { isActive: false, refreshTokenHash: null },
+    );
+    expect(ctx.progressRepository.delete).toHaveBeenCalledWith({ studentId: 'user-1' });
+    expect(ctx.submissionRepository.delete).toHaveBeenCalledWith({ userId: 'user-1' });
+    expect(ctx.questRepository.delete).toHaveBeenCalledWith({ userId: 'user-1' });
+    expect(ctx.badgeRepository.delete).toHaveBeenCalledWith({ userId: 'user-1' });
+    expect(ctx.inventoryRepository.delete).toHaveBeenCalledWith({ userId: 'user-1' });
+    expect(ctx.mazeRepository.delete).toHaveBeenCalledWith({ userId: 'user-1' });
+    expect(ctx.profileRepository.update.mock.calls[0][1]).not.toEqual(
+      expect.objectContaining({
+        monthlyTuition: expect.anything(),
+        grade: expect.anything(),
+        attendanceRate: expect.anything(),
+        daysAbsent: expect.anything(),
+      }),
+    );
+    expect(result).toEqual({
+      studentId: 'profile-1',
+      userId: 'user-1',
+      submissionsDeleted: 3,
+      assignmentProgressDeleted: 2,
+      questsDeleted: 4,
+      badgesDeleted: 5,
+      shopItemsDeleted: 6,
+      mazeSubmissionsDeleted: 7,
+      learningResetAt: resetAt.toISOString(),
+      blockedAt: resetAt.toISOString(),
+      isActive: false,
+      alreadyBlocked: false,
+    });
+  });
+
+  it('marks repeated block calls as alreadyBlocked while still enforcing the reset boundary', async () => {
+    const ctx = makeService(
+      { id: 'profile-1', userId: 'user-1' },
+      { id: 'user-1', isActive: false },
+    );
+
+    const result = await ctx.service.blockStudent('profile-1');
+
+    expect(ctx.usersRepository.update).toHaveBeenCalledWith(
+      { id: 'user-1' },
+      { isActive: false, refreshTokenHash: null },
+    );
+    expect(ctx.submissionRepository.delete).toHaveBeenCalledWith({ userId: 'user-1' });
+    expect(result.alreadyBlocked).toBe(true);
+  });
+
+  it('unblocks a student without restoring learning data or refresh token', async () => {
+    const ctx = makeService(
+      { id: 'profile-1', userId: 'user-1' },
+      { id: 'user-1', isActive: false },
+    );
+
+    const result = await ctx.service.unblockStudent('profile-1');
+
+    expect(ctx.usersRepository.update).toHaveBeenCalledWith(
+      { id: 'user-1' },
+      { isActive: true, refreshTokenHash: null },
+    );
+    expect(ctx.submissionRepository.delete).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      studentId: 'profile-1',
+      userId: 'user-1',
+      unblockedAt: resetAt.toISOString(),
+      isActive: true,
+    });
   });
 });

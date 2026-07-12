@@ -133,6 +133,22 @@ export class StudentsController implements CrudController<StudentProfile> {
     return this.service.resetLearningData(id);
   }
 
+  @Roles(UserRole.ADMIN)
+  @Post(':id/block')
+  async blockStudent(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.service.blockStudent(id);
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Post(':id/unblock')
+  async unblockStudent(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.service.unblockStudent(id);
+  }
+
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Get(':id/heatmap')
   async getStudentHeatmap(

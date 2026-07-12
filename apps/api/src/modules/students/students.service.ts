@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { TypeOrmCrudService } from '@dataui/crud-typeorm';
 import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
-import { DataSource, Repository, In, MoreThanOrEqual, Not } from 'typeorm';
+import { DataSource, EntityManager, Repository, In, MoreThanOrEqual, Not } from 'typeorm';
 import { DayOfWeek, EnrollmentStatus, PublishStatus, SubmissionStatus, UserRole } from '@cp/shared';
 import { CourseContentKind, type ICourseNextStep } from '@cp/shared';
 
@@ -43,6 +43,19 @@ export interface ResetStudentLearningDataResult {
   shopItemsDeleted: number;
   mazeSubmissionsDeleted: number;
   learningResetAt: string;
+}
+
+export interface BlockStudentResult extends ResetStudentLearningDataResult {
+  blockedAt: string;
+  isActive: false;
+  alreadyBlocked: boolean;
+}
+
+export interface UnblockStudentResult {
+  studentId: string;
+  userId: string;
+  unblockedAt: string;
+  isActive: true;
 }
 
 @Injectable()
@@ -289,18 +302,42 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
     await this.users.update({ id: profile.userId }, { passwordHash });
   }
 
-  async resetLearningData(studentId: string): Promise<ResetStudentLearningDataResult> {
-    const resetAt = new Date();
+  private bumpLearningResetCaches(userId: string): void {
+    void this.cache.bumpTags([
+      'students:list',
+      'leaderboard:global',
+      'badges:catalog',
+      'maze:progress',
+      `student:${userId}:profile`,
+      `student:${userId}:dashboard`,
+      `student:${userId}:quests`,
+      `student:${userId}:badges`,
+      `student:${userId}:shop`,
+      `student:${userId}:maze`,
+    ]);
+  }
 
-    const result = await this.ds.transaction(async (tx) => {
-      const profileRepo = tx.getRepository(StudentProfile);
-      const profile = await profileRepo.findOne({ where: { id: studentId } });
-      if (!profile) throw new NotFoundException(`Student ${studentId} not found`);
+  private bumpStudentAccountCaches(userId: string): void {
+    void this.cache.bumpTags([
+      'students:list',
+      `student:${userId}:profile`,
+      `student:${userId}:dashboard`,
+    ]);
+  }
 
-      const userId = profile.userId;
+  private async resetLearningDataInTransaction(
+    tx: EntityManager,
+    studentId: string,
+    resetAt: Date,
+  ): Promise<ResetStudentLearningDataResult> {
+    const profileRepo = tx.getRepository(StudentProfile);
+    const profile = await profileRepo.findOne({ where: { id: studentId } });
+    if (!profile) throw new NotFoundException(`Student ${studentId} not found`);
 
-      await tx.query(
-        `
+    const userId = profile.userId;
+
+    await tx.query(
+      `
           UPDATE badges b
           SET earned_count = GREATEST(0, b.earned_count - earned.badge_count)
           FROM (
@@ -311,65 +348,115 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
           ) earned
           WHERE b.id = earned.badge_id
         `,
-        [userId],
+      [userId],
+    );
+
+    const progressDelete = await tx.getRepository(StudentAssignmentProgress).delete({ studentId: userId });
+    const submissionDelete = await tx.getRepository(Submission).delete({ userId });
+    const questDelete = await tx.getRepository(StudentQuest).delete({ userId });
+    const badgeDelete = await tx.getRepository(StudentBadge).delete({ userId });
+    const inventoryDelete = await tx.getRepository(StudentInventory).delete({ userId });
+    const mazeDelete = await tx.getRepository(MazeSubmission).delete({ userId });
+
+    await profileRepo.update(
+      { id: studentId },
+      {
+        level: 1,
+        xp: 0,
+        weeklyXp: 0,
+        weekKey: null,
+        monthlyXp: 0,
+        monthKey: null,
+        gems: 0,
+        streak: 0,
+        streakLastDate: null,
+        problemsSolved: 0,
+        mazesSolved: 0,
+        badgesEarned: 0,
+        questsCompleted: 0,
+        equippedTheme: null,
+        nameColor: null,
+        equippedTitle: null,
+        learningResetAt: resetAt,
+      },
+    );
+
+    return {
+      studentId,
+      userId,
+      submissionsDeleted: submissionDelete.affected ?? 0,
+      assignmentProgressDeleted: progressDelete.affected ?? 0,
+      questsDeleted: questDelete.affected ?? 0,
+      badgesDeleted: badgeDelete.affected ?? 0,
+      shopItemsDeleted: inventoryDelete.affected ?? 0,
+      mazeSubmissionsDeleted: mazeDelete.affected ?? 0,
+      learningResetAt: resetAt.toISOString(),
+    };
+  }
+
+  async resetLearningData(studentId: string): Promise<ResetStudentLearningDataResult> {
+    const resetAt = new Date();
+    const result = await this.ds.transaction((tx) =>
+      this.resetLearningDataInTransaction(tx, studentId, resetAt),
+    );
+
+    this.bumpLearningResetCaches(result.userId);
+
+    return result;
+  }
+
+  async blockStudent(studentId: string): Promise<BlockStudentResult> {
+    const blockedAt = new Date();
+    const result = await this.ds.transaction(async (tx) => {
+      const profileRepo = tx.getRepository(StudentProfile);
+      const userRepo = tx.getRepository(User);
+      const profile = await profileRepo.findOne({ where: { id: studentId } });
+      if (!profile) throw new NotFoundException(`Student ${studentId} not found`);
+
+      const user = await userRepo.findOne({ where: { id: profile.userId } });
+      if (!user) throw new NotFoundException(`User ${profile.userId} not found`);
+
+      const alreadyBlocked = user.isActive === false;
+      await userRepo.update(
+        { id: profile.userId },
+        { isActive: false, refreshTokenHash: null },
       );
 
-      const progressDelete = await tx.getRepository(StudentAssignmentProgress).delete({ studentId: userId });
-      const submissionDelete = await tx.getRepository(Submission).delete({ userId });
-      const questDelete = await tx.getRepository(StudentQuest).delete({ userId });
-      const badgeDelete = await tx.getRepository(StudentBadge).delete({ userId });
-      const inventoryDelete = await tx.getRepository(StudentInventory).delete({ userId });
-      const mazeDelete = await tx.getRepository(MazeSubmission).delete({ userId });
+      const reset = await this.resetLearningDataInTransaction(tx, studentId, blockedAt);
+      return {
+        ...reset,
+        blockedAt: blockedAt.toISOString(),
+        isActive: false as const,
+        alreadyBlocked,
+      };
+    });
 
-      await profileRepo.update(
-        { id: studentId },
-        {
-          level: 1,
-          xp: 0,
-          weeklyXp: 0,
-          weekKey: null,
-          monthlyXp: 0,
-          monthKey: null,
-          gems: 0,
-          streak: 0,
-          streakLastDate: null,
-          problemsSolved: 0,
-          mazesSolved: 0,
-          badgesEarned: 0,
-          questsCompleted: 0,
-          equippedTheme: null,
-          nameColor: null,
-          equippedTitle: null,
-          learningResetAt: resetAt,
-        },
+    this.bumpLearningResetCaches(result.userId);
+    return result;
+  }
+
+  async unblockStudent(studentId: string): Promise<UnblockStudentResult> {
+    const unblockedAt = new Date();
+    const result = await this.ds.transaction(async (tx) => {
+      const profileRepo = tx.getRepository(StudentProfile);
+      const userRepo = tx.getRepository(User);
+      const profile = await profileRepo.findOne({ where: { id: studentId } });
+      if (!profile) throw new NotFoundException(`Student ${studentId} not found`);
+
+      await userRepo.update(
+        { id: profile.userId },
+        { isActive: true, refreshTokenHash: null },
       );
 
       return {
         studentId,
-        userId,
-        submissionsDeleted: submissionDelete.affected ?? 0,
-        assignmentProgressDeleted: progressDelete.affected ?? 0,
-        questsDeleted: questDelete.affected ?? 0,
-        badgesDeleted: badgeDelete.affected ?? 0,
-        shopItemsDeleted: inventoryDelete.affected ?? 0,
-        mazeSubmissionsDeleted: mazeDelete.affected ?? 0,
-        learningResetAt: resetAt.toISOString(),
+        userId: profile.userId,
+        unblockedAt: unblockedAt.toISOString(),
+        isActive: true as const,
       };
     });
 
-    void this.cache.bumpTags([
-      'students:list',
-      'leaderboard:global',
-      'badges:catalog',
-      'maze:progress',
-      `student:${result.userId}:profile`,
-      `student:${result.userId}:dashboard`,
-      `student:${result.userId}:quests`,
-      `student:${result.userId}:badges`,
-      `student:${result.userId}:shop`,
-      `student:${result.userId}:maze`,
-    ]);
-
+    this.bumpStudentAccountCaches(result.userId);
     return result;
   }
 
