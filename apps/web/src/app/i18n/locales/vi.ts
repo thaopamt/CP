@@ -2039,7 +2039,7 @@ const vi: AppResources = {
       level: 'cấp',
       xp: 'XP',
     },
-    recurrence: { NONE: 'Một lần', DAILY: 'Hằng ngày', WEEKLY: 'Hằng tuần' },
+    recurrence: { NONE: 'Một lần', DAILY: 'Hằng ngày', WEEKLY: 'Hằng tuần', BIWEEKLY: 'Mỗi 2 tuần' },
     questType: {
       DAILY: 'Hằng ngày',
       WEEKLY: 'Hằng tuần',
@@ -2221,6 +2221,7 @@ const vi: AppResources = {
         endsIn: 'Kết thúc {{when}}',
         resetsDaily: 'Làm mới mỗi ngày',
         resetsWeekly: 'Làm mới mỗi tuần',
+        resetsBiweekly: 'Làm mới mỗi 2 tuần',
         loading: 'Đang tải nhiệm vụ…',
         viewDetail: 'Xem chi tiết',
         detail: {

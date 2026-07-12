@@ -308,7 +308,7 @@ export function QuestForm({ defaultValues, onSubmit, isLoading }: QuestFormProps
         <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
           <div className="flex flex-col gap-1 md:col-span-2">
             <label className="text-label-sm font-semibold text-on-surface">{t('gamif.admin.form.recurrence')}</label>
-            <div className="grid grid-cols-3 gap-2 max-w-md">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-2xl">
               {Object.values(QuestRecurrence).map((rec) => {
                 const isSelected = formData.recurrence === rec;
                 return (

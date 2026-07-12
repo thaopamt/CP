@@ -285,9 +285,11 @@ function QuestCard({ sq, onOpen, t }: { sq: IStudentQuest; onOpen: (sq: IStudent
   const unit = t(`gamif.unit.${QUEST_OBJECTIVE_META[sq.quest.objectiveType].unit}`);
   const recurs = sq.quest.recurrence !== QuestRecurrence.NONE;
   const recurrenceLabel =
-    sq.quest.recurrence === QuestRecurrence.WEEKLY
-      ? t('gamif.student.quests.resetsWeekly')
-      : t('gamif.student.quests.resetsDaily');
+    sq.quest.recurrence === QuestRecurrence.BIWEEKLY
+      ? t('gamif.student.quests.resetsBiweekly')
+      : sq.quest.recurrence === QuestRecurrence.WEEKLY
+        ? t('gamif.student.quests.resetsWeekly')
+        : t('gamif.student.quests.resetsDaily');
 
   let cardClass =
     'border-outline-variant bg-surface-container-lowest dark:border-white/10 dark:bg-[#18151f]/95 dark:shadow-[0_14px_34px_rgba(0,0,0,0.22)]';

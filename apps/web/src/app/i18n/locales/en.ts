@@ -2040,7 +2040,7 @@ const en = {
       level: 'level',
       xp: 'XP',
     },
-    recurrence: { NONE: 'One-time', DAILY: 'Daily', WEEKLY: 'Weekly' },
+    recurrence: { NONE: 'One-time', DAILY: 'Daily', WEEKLY: 'Weekly', BIWEEKLY: 'Every 2 weeks' },
     questType: { DAILY: 'Daily', WEEKLY: 'Weekly', MAIN: 'Main story', BOUNTY: 'Bounty', EVENT: 'Event' },
     questStatus: { DRAFT: 'Draft', PUBLISHED: 'Published', ARCHIVED: 'Archived' },
     sqStatus: {
@@ -2216,6 +2216,7 @@ const en = {
         endsIn: 'Ends {{when}}',
         resetsDaily: 'Resets daily',
         resetsWeekly: 'Resets weekly',
+        resetsBiweekly: 'Resets every 2 weeks',
         loading: 'Loading quests…',
         viewDetail: 'View details',
         detail: {
