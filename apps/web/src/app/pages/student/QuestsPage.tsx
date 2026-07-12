@@ -9,6 +9,7 @@ import {
   QUEST_OBJECTIVE_META,
 } from '@cp/shared';
 import { useMyQuests } from '../../api/quests.queries';
+import { getQuestRecurrenceLabelKey } from '../../lib/quest-recurrence-label';
 
 type QuestFilter = 'all' | 'in_progress' | 'done' | 'locked';
 type TFn = (key: string, opts?: Record<string, unknown>) => string;
@@ -284,12 +285,7 @@ function QuestCard({ sq, onOpen, t }: { sq: IStudentQuest; onOpen: (sq: IStudent
   const objectiveLabel = t(`gamif.objective.${sq.quest.objectiveType}`);
   const unit = t(`gamif.unit.${QUEST_OBJECTIVE_META[sq.quest.objectiveType].unit}`);
   const recurs = sq.quest.recurrence !== QuestRecurrence.NONE;
-  const recurrenceLabel =
-    sq.quest.recurrence === QuestRecurrence.BIWEEKLY
-      ? t('gamif.student.quests.resetsBiweekly')
-      : sq.quest.recurrence === QuestRecurrence.WEEKLY
-        ? t('gamif.student.quests.resetsWeekly')
-        : t('gamif.student.quests.resetsDaily');
+  const recurrenceLabel = t(getQuestRecurrenceLabelKey(sq.quest.recurrence));
 
   let cardClass =
     'border-outline-variant bg-surface-container-lowest dark:border-white/10 dark:bg-[#18151f]/95 dark:shadow-[0_14px_34px_rgba(0,0,0,0.22)]';
