@@ -13,6 +13,10 @@ import {
 import { useQuestOptions } from '../../../api/quests.queries';
 import { useBadges } from '../../../api/badges.queries';
 import { useClassesList } from '../../../api/class.queries';
+import {
+  QUEST_RECURRENCE_SELECTOR_CLASS_NAME,
+  QUEST_RECURRENCE_SELECTOR_OPTIONS,
+} from '../../../lib/quest-recurrence-selector';
 
 const QUEST_TYPE_CONFIG: Record<QuestType, { icon: string; color: string }> = {
   [QuestType.DAILY]: { icon: 'today', color: 'text-emerald-400' },
@@ -308,8 +312,8 @@ export function QuestForm({ defaultValues, onSubmit, isLoading }: QuestFormProps
         <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
           <div className="flex flex-col gap-1 md:col-span-2">
             <label className="text-label-sm font-semibold text-on-surface">{t('gamif.admin.form.recurrence')}</label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-2xl">
-              {Object.values(QuestRecurrence).map((rec) => {
+            <div className={QUEST_RECURRENCE_SELECTOR_CLASS_NAME}>
+              {QUEST_RECURRENCE_SELECTOR_OPTIONS.map((rec) => {
                 const isSelected = formData.recurrence === rec;
                 return (
                   <button

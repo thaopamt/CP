@@ -21,6 +21,65 @@ apps/web/src/app/features/maze/blockly/blocks.ts(126,55): error TS2551: Property
 apps/web/src/app/pages/admin/FinanceInvoiceBuilderPage.tsx(182,15): error TS2820: Type '"outlined"' is not assignable to type 'Variant | undefined'. Did you mean '"outline"'?
 ```
 
+## Task 4 Admin Selector Fix
+
+### Red-first admin selector spec
+
+Command:
+
+```bash
+pnpm exec vitest run apps/web/src/app/lib/quest-recurrence-selector.spec.ts --config apps/web/vite.config.ts
+```
+
+Red output:
+
+```text
+Error: Failed to load url ./quest-recurrence-selector (resolved id: ./quest-recurrence-selector) in /Users/thaopamt/Desktop/Personal/CP_System/apps/web/src/app/lib/quest-recurrence-selector.spec.ts. Does the file exist?
+```
+
+### Green admin selector spec
+
+Command:
+
+```bash
+pnpm exec vitest run apps/web/src/app/lib/quest-recurrence-selector.spec.ts --config apps/web/vite.config.ts
+```
+
+Green output:
+
+```text
+✓ src/app/lib/quest-recurrence-selector.spec.ts (1 test) 1ms
+```
+
+### Student helper coverage update
+
+Command:
+
+```bash
+pnpm exec vitest run apps/web/src/app/lib/quest-recurrence-label.spec.ts --config apps/web/vite.config.ts
+```
+
+Green output:
+
+```text
+✓ src/app/lib/quest-recurrence-label.spec.ts (2 tests) 1ms
+```
+
+### Typecheck summary
+
+Command:
+
+```bash
+pnpm exec tsc -p apps/web/tsconfig.app.json --noEmit
+```
+
+Output remained the same as the earlier baseline:
+
+```text
+apps/web/src/app/features/maze/blockly/blocks.ts(126,55): error TS2551: Property 'getOptions' does not exist on type 'Block'. Did you mean 'getIcons'?
+apps/web/src/app/pages/admin/FinanceInvoiceBuilderPage.tsx(182,15): error TS2820: Type '"outlined"' is not assignable to type 'Variant | undefined'. Did you mean '"outline"'?
+```
+
 ### Post-edit typecheck
 
 Command:
