@@ -25,7 +25,7 @@ interface BadgeSeed {
   rewardGems: number;
 }
 
-const BADGES: BadgeSeed[] = [
+export const BADGES: BadgeSeed[] = [
   // ── Problems solved (ladder) ────────────────────────────────────────────────
   { code: 'FIRST_BLOOD', title: 'First Blood', description: 'Giải bài đầu tiên của bạn.', icon: 'bolt', rarity: BadgeRarity.COMMON, criteriaType: BadgeCriteriaType.PROBLEMS_SOLVED, threshold: 1, rewardXp: 50, rewardGems: 5 },
   { code: 'GETTING_STARTED', title: 'Getting Started', description: 'Giải 5 bài lập trình.', icon: 'rocket_launch', rarity: BadgeRarity.COMMON, criteriaType: BadgeCriteriaType.PROBLEMS_SOLVED, threshold: 5, rewardXp: 80, rewardGems: 8 },
@@ -106,7 +106,7 @@ interface QuestSeed {
   daysWindow?: number; // for EVENT quests
 }
 
-const QUESTS: QuestSeed[] = [
+export const QUESTS: QuestSeed[] = [
   // ── Daily (reset mỗi ngày) ──────────────────────────────────────────────────
   { title: 'Khởi động ngày mới', description: 'Nộp đúng 1 bài bất kỳ hôm nay.', type: QuestType.DAILY, objectiveType: QuestObjectiveType.SUBMIT_ACCEPTED, targetCount: 1, rewardXp: 30, rewardGems: 5, icon: 'wb_sunny', recurrence: QuestRecurrence.DAILY, sortOrder: 1, category: 'Daily' },
   { title: 'Cày ngày', description: 'Giải 3 bài lập trình trong ngày.', type: QuestType.DAILY, objectiveType: QuestObjectiveType.SOLVE_CODING, targetCount: 3, rewardXp: 80, rewardGems: 10, icon: 'today', recurrence: QuestRecurrence.DAILY, sortOrder: 2, category: 'Daily' },
@@ -117,6 +117,14 @@ const QUESTS: QuestSeed[] = [
   { title: 'Tích XP mỗi ngày', description: 'Kiếm 150 XP trong ngày.', type: QuestType.DAILY, objectiveType: QuestObjectiveType.EARN_XP, targetCount: 150, rewardXp: 40, rewardGems: 6, icon: 'auto_graph', recurrence: QuestRecurrence.DAILY, sortOrder: 7, category: 'Daily' },
   { title: 'Combo trung cấp', description: 'Giải 2 bài độ khó MEDIUM hôm nay.', type: QuestType.DAILY, objectiveType: QuestObjectiveType.SOLVE_BY_DIFFICULTY, objectiveConfig: { difficulty: 'MEDIUM' }, targetCount: 2, rewardXp: 90, rewardGems: 12, icon: 'bolt', recurrence: QuestRecurrence.DAILY, sortOrder: 8, category: 'Daily' },
   { title: 'Chăm chỉ vượt mức', description: 'Giải 5 bài lập trình trong ngày.', type: QuestType.DAILY, objectiveType: QuestObjectiveType.SOLVE_CODING, targetCount: 5, rewardXp: 150, rewardGems: 20, icon: 'rocket_launch', recurrence: QuestRecurrence.DAILY, sortOrder: 9, category: 'Daily' },
+  { title: 'Tăng tốc buổi học', description: 'Giải 4 bài lập trình trong ngày.', type: QuestType.DAILY, objectiveType: QuestObjectiveType.SOLVE_CODING, targetCount: 4, rewardXp: 110, rewardGems: 14, icon: 'speed', recurrence: QuestRecurrence.DAILY, sortOrder: 10, category: 'Daily' },
+  { title: 'Bứt phá 6 bài', description: 'Giải 6 bài lập trình trong ngày.', type: QuestType.DAILY, objectiveType: QuestObjectiveType.SOLVE_CODING, targetCount: 6, rewardXp: 190, rewardGems: 24, icon: 'rocket_launch', recurrence: QuestRecurrence.DAILY, sortOrder: 11, category: 'Daily' },
+  { title: 'Song kiếm HARD', description: 'Giải 2 bài độ khó HARD hôm nay.', type: QuestType.DAILY, objectiveType: QuestObjectiveType.SOLVE_BY_DIFFICULTY, objectiveConfig: { difficulty: 'HARD' }, targetCount: 2, rewardXp: 220, rewardGems: 28, icon: 'local_fire_department', recurrence: QuestRecurrence.DAILY, sortOrder: 12, category: 'Daily' },
+  { title: 'Mê cung đôi', description: 'Vượt 2 màn mê cung hôm nay.', type: QuestType.DAILY, objectiveType: QuestObjectiveType.SOLVE_MAZE, targetCount: 2, rewardXp: 120, rewardGems: 14, icon: 'alt_route', recurrence: QuestRecurrence.DAILY, sortOrder: 13, category: 'Daily' },
+  { title: 'Thợ săn điểm lớn', description: 'Kiếm 250 điểm trong ngày.', type: QuestType.DAILY, objectiveType: QuestObjectiveType.EARN_POINTS, targetCount: 250, rewardXp: 130, rewardGems: 16, icon: 'payments', recurrence: QuestRecurrence.DAILY, sortOrder: 14, category: 'Daily' },
+  { title: 'Python cơ bản mỗi ngày', description: 'Giải 1 bài có tag python hôm nay.', type: QuestType.DAILY, objectiveType: QuestObjectiveType.SOLVE_BY_TAG, objectiveConfig: { tag: 'python' }, targetCount: 1, rewardXp: 70, rewardGems: 9, icon: 'code', recurrence: QuestRecurrence.DAILY, sortOrder: 15, category: 'Daily' },
+  { title: 'Vòng lặp chăm chỉ', description: 'Giải 1 bài thuộc nhóm vòng lặp hôm nay.', type: QuestType.DAILY, objectiveType: QuestObjectiveType.SOLVE_BY_TAG, objectiveConfig: { tag: 'vong-lap' }, targetCount: 1, rewardXp: 75, rewardGems: 9, icon: 'sync', recurrence: QuestRecurrence.DAILY, sortOrder: 16, category: 'Daily' },
+  { title: 'Chuỗi ký tự nhanh', description: 'Giải 1 bài xử lý chuỗi hôm nay.', type: QuestType.DAILY, objectiveType: QuestObjectiveType.SOLVE_BY_TAG, objectiveConfig: { tag: 'string' }, targetCount: 1, rewardXp: 80, rewardGems: 10, icon: 'text_fields', recurrence: QuestRecurrence.DAILY, sortOrder: 17, category: 'Daily' },
 
   // ── Weekly (reset mỗi tuần) ─────────────────────────────────────────────────
   { title: 'Tuần năng suất', description: 'Giải 15 bài trong tuần này.', type: QuestType.WEEKLY, objectiveType: QuestObjectiveType.SOLVE_CODING, targetCount: 15, rewardXp: 300, rewardGems: 40, icon: 'date_range', recurrence: QuestRecurrence.WEEKLY, sortOrder: 1, category: 'Weekly' },
@@ -161,15 +169,19 @@ const QUESTS: QuestSeed[] = [
   { title: 'Kho báu XP', description: 'Tích lũy 5.000 XP.', type: QuestType.BOUNTY, objectiveType: QuestObjectiveType.EARN_XP, targetCount: 5000, rewardXp: 0, rewardGems: 80, icon: 'diamond', recurrence: QuestRecurrence.NONE, sortOrder: 5, category: 'Bounty' },
   { title: 'Học giả 10K', description: 'Tích lũy 10.000 XP.', type: QuestType.BOUNTY, objectiveType: QuestObjectiveType.EARN_XP, targetCount: 10000, rewardXp: 0, rewardGems: 150, icon: 'school', recurrence: QuestRecurrence.NONE, sortOrder: 6, category: 'Bounty', prerequisiteTitle: 'Kho báu XP', rewardBadgeCode: 'SCHOLAR' },
   { title: 'Vua mê cung', description: 'Vượt tổng cộng 25 màn mê cung.', type: QuestType.BOUNTY, objectiveType: QuestObjectiveType.SOLVE_MAZE, targetCount: 25, rewardXp: 700, rewardGems: 80, icon: 'account_tree', recurrence: QuestRecurrence.NONE, sortOrder: 7, category: 'Bounty', rewardBadgeCode: 'MAZE_MASTER' },
+  { title: 'Tiền thưởng 2 tuần: 20 bài', description: 'Giải 20 bài lập trình trong chu kỳ 2 tuần.', type: QuestType.BOUNTY, objectiveType: QuestObjectiveType.SOLVE_CODING, targetCount: 20, rewardXp: 700, rewardGems: 80, icon: 'workspace_premium', recurrence: QuestRecurrence.BIWEEKLY, sortOrder: 20, category: 'Bounty' },
+  { title: 'Đường đua HARD 2 tuần', description: 'Giải 6 bài HARD trong chu kỳ 2 tuần.', type: QuestType.BOUNTY, objectiveType: QuestObjectiveType.SOLVE_BY_DIFFICULTY, objectiveConfig: { difficulty: 'HARD' }, targetCount: 6, rewardXp: 850, rewardGems: 95, icon: 'whatshot', recurrence: QuestRecurrence.BIWEEKLY, sortOrder: 21, category: 'Bounty' },
+  { title: 'Kho điểm 2 tuần', description: 'Kiếm 2.000 điểm trong chu kỳ 2 tuần.', type: QuestType.BOUNTY, objectiveType: QuestObjectiveType.EARN_POINTS, targetCount: 2000, rewardXp: 750, rewardGems: 90, icon: 'savings', recurrence: QuestRecurrence.BIWEEKLY, sortOrder: 22, category: 'Bounty' },
+  { title: 'Thợ săn mê cung 2 tuần', description: 'Vượt 8 màn mê cung trong chu kỳ 2 tuần.', type: QuestType.BOUNTY, objectiveType: QuestObjectiveType.SOLVE_MAZE, targetCount: 8, rewardXp: 650, rewardGems: 75, icon: 'account_tree', recurrence: QuestRecurrence.BIWEEKLY, sortOrder: 23, category: 'Bounty' },
 
   // ── Event (giới hạn thời gian) ──────────────────────────────────────────────
-  { title: 'Sự kiện cuối tuần', description: 'Nộp đúng 10 bài trong thời gian sự kiện.', type: QuestType.EVENT, objectiveType: QuestObjectiveType.SUBMIT_ACCEPTED, targetCount: 10, rewardXp: 500, rewardGems: 50, icon: 'celebration', recurrence: QuestRecurrence.NONE, sortOrder: 1, category: 'Event', daysWindow: 14 },
-  { title: 'Lễ hội thuật toán', description: 'Giải 20 bài lập trình trong thời gian lễ hội.', type: QuestType.EVENT, objectiveType: QuestObjectiveType.SOLVE_CODING, targetCount: 20, rewardXp: 1000, rewardGems: 120, icon: 'festival', recurrence: QuestRecurrence.NONE, sortOrder: 2, category: 'Event', daysWindow: 30 },
-  { title: 'Cơn bão HARD', description: 'Giải 10 bài độ khó HARD trong sự kiện.', type: QuestType.EVENT, objectiveType: QuestObjectiveType.SOLVE_BY_DIFFICULTY, objectiveConfig: { difficulty: 'HARD' }, targetCount: 10, rewardXp: 1200, rewardGems: 140, icon: 'thunderstorm', recurrence: QuestRecurrence.NONE, sortOrder: 3, category: 'Event', daysWindow: 21 },
-  { title: 'Tuần lễ mê cung', description: 'Vượt 15 màn mê cung trong sự kiện.', type: QuestType.EVENT, objectiveType: QuestObjectiveType.SOLVE_MAZE, targetCount: 15, rewardXp: 900, rewardGems: 100, icon: 'explore', recurrence: QuestRecurrence.NONE, sortOrder: 4, category: 'Event', daysWindow: 7 },
-  { title: 'Đua điểm mùa hè', description: 'Kiếm 3.000 điểm trong sự kiện mùa hè.', type: QuestType.EVENT, objectiveType: QuestObjectiveType.EARN_POINTS, targetCount: 3000, rewardXp: 1100, rewardGems: 130, icon: 'wb_sunny', recurrence: QuestRecurrence.NONE, sortOrder: 5, category: 'Event', daysWindow: 45 },
-  { title: 'Marathon 7 ngày', description: 'Giữ chuỗi hoạt động xuyên suốt sự kiện 7 ngày.', type: QuestType.EVENT, objectiveType: QuestObjectiveType.STREAK_DAYS, targetCount: 7, rewardXp: 800, rewardGems: 90, icon: 'directions_run', recurrence: QuestRecurrence.NONE, sortOrder: 6, category: 'Event', daysWindow: 7 },
-  { title: 'Vượt cấp tốc hành', description: 'Đạt cấp độ 15 trong thời gian sự kiện.', type: QuestType.EVENT, objectiveType: QuestObjectiveType.REACH_LEVEL, targetCount: 15, rewardXp: 1500, rewardGems: 160, icon: 'rocket', recurrence: QuestRecurrence.NONE, sortOrder: 7, category: 'Event', daysWindow: 60 },
+  { title: 'Sự kiện cuối tuần', description: 'Nộp đúng 10 bài trong thời gian sự kiện.', type: QuestType.EVENT, objectiveType: QuestObjectiveType.SUBMIT_ACCEPTED, targetCount: 10, rewardXp: 500, rewardGems: 50, icon: 'celebration', recurrence: QuestRecurrence.BIWEEKLY, sortOrder: 1, category: 'Event' },
+  { title: 'Lễ hội thuật toán', description: 'Giải 20 bài lập trình trong thời gian lễ hội.', type: QuestType.EVENT, objectiveType: QuestObjectiveType.SOLVE_CODING, targetCount: 20, rewardXp: 1000, rewardGems: 120, icon: 'festival', recurrence: QuestRecurrence.BIWEEKLY, sortOrder: 2, category: 'Event' },
+  { title: 'Cơn bão HARD', description: 'Giải 10 bài độ khó HARD trong sự kiện.', type: QuestType.EVENT, objectiveType: QuestObjectiveType.SOLVE_BY_DIFFICULTY, objectiveConfig: { difficulty: 'HARD' }, targetCount: 10, rewardXp: 1200, rewardGems: 140, icon: 'thunderstorm', recurrence: QuestRecurrence.BIWEEKLY, sortOrder: 3, category: 'Event' },
+  { title: 'Tuần lễ mê cung', description: 'Vượt 15 màn mê cung trong sự kiện.', type: QuestType.EVENT, objectiveType: QuestObjectiveType.SOLVE_MAZE, targetCount: 15, rewardXp: 900, rewardGems: 100, icon: 'explore', recurrence: QuestRecurrence.BIWEEKLY, sortOrder: 4, category: 'Event' },
+  { title: 'Đua điểm mùa hè', description: 'Kiếm 3.000 điểm trong sự kiện mùa hè.', type: QuestType.EVENT, objectiveType: QuestObjectiveType.EARN_POINTS, targetCount: 3000, rewardXp: 1100, rewardGems: 130, icon: 'wb_sunny', recurrence: QuestRecurrence.BIWEEKLY, sortOrder: 5, category: 'Event' },
+  { title: 'Marathon 7 ngày', description: 'Giữ chuỗi hoạt động xuyên suốt sự kiện 7 ngày.', type: QuestType.EVENT, objectiveType: QuestObjectiveType.STREAK_DAYS, targetCount: 7, rewardXp: 800, rewardGems: 90, icon: 'directions_run', recurrence: QuestRecurrence.BIWEEKLY, sortOrder: 6, category: 'Event' },
+  { title: 'Vượt cấp tốc hành', description: 'Đạt cấp độ 15 trong thời gian sự kiện.', type: QuestType.EVENT, objectiveType: QuestObjectiveType.REACH_LEVEL, targetCount: 15, rewardXp: 1500, rewardGems: 160, icon: 'rocket', recurrence: QuestRecurrence.BIWEEKLY, sortOrder: 7, category: 'Event' },
 
   // ── Bounty bậc cao (đỉnh chuỗi, dành cho học sinh top) ───────────────────────
   { title: 'Người chinh phục', description: 'Giải 250 bài lập trình.', type: QuestType.BOUNTY, objectiveType: QuestObjectiveType.SOLVE_CODING, targetCount: 250, rewardXp: 3000, rewardGems: 300, icon: 'workspace_premium', recurrence: QuestRecurrence.NONE, sortOrder: 8, category: 'Bounty', prerequisiteTitle: 'Huyền thoại trăm bài', rewardBadgeCode: 'GRANDMASTER_250' },
@@ -215,30 +227,32 @@ async function run() {
 
   for (const q of QUESTS) {
     let quest = await questRepo.findOne({ where: { title: q.title } });
+    const questPayload = {
+      title: q.title,
+      description: q.description,
+      type: q.type,
+      status: QuestStatus.PUBLISHED,
+      objectiveType: q.objectiveType,
+      objectiveConfig: q.objectiveConfig ?? null,
+      targetCount: q.targetCount,
+      rewardXp: q.rewardXp,
+      rewardGems: q.rewardGems,
+      rewardBadgeId: q.rewardBadgeCode ? badgeIdByCode.get(q.rewardBadgeCode) ?? null : null,
+      icon: q.icon,
+      category: q.category ?? null,
+      sortOrder: q.sortOrder,
+      recurrence: q.recurrence,
+      startsAt: q.daysWindow ? now : null,
+      endsAt: q.daysWindow ? new Date(now.getTime() + q.daysWindow * 86400000) : null,
+      classIds: null,
+      isActive: true,
+    };
     if (!quest) {
-      quest = await questRepo.save(
-        questRepo.create({
-          title: q.title,
-          description: q.description,
-          type: q.type,
-          status: QuestStatus.PUBLISHED,
-          objectiveType: q.objectiveType,
-          objectiveConfig: q.objectiveConfig ?? null,
-          targetCount: q.targetCount,
-          rewardXp: q.rewardXp,
-          rewardGems: q.rewardGems,
-          rewardBadgeId: q.rewardBadgeCode ? badgeIdByCode.get(q.rewardBadgeCode) ?? null : null,
-          icon: q.icon,
-          category: q.category ?? null,
-          sortOrder: q.sortOrder,
-          recurrence: q.recurrence,
-          startsAt: q.daysWindow ? now : null,
-          endsAt: q.daysWindow ? new Date(now.getTime() + q.daysWindow * 86400000) : null,
-          classIds: null,
-          isActive: true,
-        }),
-      );
+      quest = await questRepo.save(questRepo.create(questPayload));
       console.log(`  ⚔️  Quest created: ${q.title}`);
+    } else {
+      await questRepo.update({ id: quest.id }, questPayload);
+      quest = { ...quest, ...questPayload };
     }
     questIdByTitle.set(q.title, quest.id);
   }
@@ -257,7 +271,9 @@ async function run() {
   await AppDataSource.destroy();
 }
 
-run().catch((err) => {
-  console.error('❌ Error during quests seed:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  run().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
