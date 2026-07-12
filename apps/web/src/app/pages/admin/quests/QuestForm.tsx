@@ -4,6 +4,7 @@ import { Button, Icon } from '@cp/ui';
 import {
   ICreateQuestPayload,
   IQuestObjectiveConfig,
+  isPeriodScopedQuestObjective,
   QUEST_OBJECTIVE_META,
   QuestObjectiveType,
   QuestRecurrence,
@@ -65,12 +66,15 @@ export function QuestForm({ defaultValues, onSubmit, isLoading }: QuestFormProps
   const badges = badgesData?.data ?? [];
   const classes = classesData?.items ?? [];
 
+  const initialObjectiveType = defaultValues?.objectiveType ?? QuestObjectiveType.SUBMIT_ACCEPTED;
+  const initialRecurrence = defaultValues?.recurrence ?? QuestRecurrence.NONE;
+
   const [formData, setFormData] = useState<ICreateQuestPayload>({
     title: defaultValues?.title ?? '',
     description: defaultValues?.description ?? '',
     type: defaultValues?.type ?? QuestType.DAILY,
     status: defaultValues?.status ?? QuestStatus.PUBLISHED,
-    objectiveType: defaultValues?.objectiveType ?? QuestObjectiveType.SUBMIT_ACCEPTED,
+    objectiveType: initialObjectiveType,
     objectiveConfig: defaultValues?.objectiveConfig ?? {},
     targetCount: defaultValues?.targetCount ?? 1,
     rewardXp: defaultValues?.rewardXp ?? 50,
@@ -79,7 +83,7 @@ export function QuestForm({ defaultValues, onSubmit, isLoading }: QuestFormProps
     icon: defaultValues?.icon ?? 'military_tech',
     category: defaultValues?.category ?? '',
     sortOrder: defaultValues?.sortOrder ?? 0,
-    recurrence: defaultValues?.recurrence ?? QuestRecurrence.NONE,
+    recurrence: isPeriodScopedQuestObjective(initialObjectiveType) ? initialRecurrence : QuestRecurrence.NONE,
     startsAt: defaultValues?.startsAt ?? null,
     endsAt: defaultValues?.endsAt ?? null,
     prerequisiteQuestId: defaultValues?.prerequisiteQuestId ?? null,
@@ -95,6 +99,23 @@ export function QuestForm({ defaultValues, onSubmit, isLoading }: QuestFormProps
     setFormData((prev) => ({ ...prev, objectiveConfig: { ...(prev.objectiveConfig ?? {}), [field]: value } }));
   };
 
+  const handleObjectiveTypeChange = (objectiveType: QuestObjectiveType) => {
+    setFormData((prev) => ({
+      ...prev,
+      objectiveType,
+      recurrence: isPeriodScopedQuestObjective(objectiveType) ? prev.recurrence : QuestRecurrence.NONE,
+    }));
+  };
+
+  const handleRecurrenceChange = (recurrence: QuestRecurrence) => {
+    setFormData((prev) => {
+      if (recurrence !== QuestRecurrence.NONE && !isPeriodScopedQuestObjective(prev.objectiveType)) {
+        return prev;
+      }
+      return { ...prev, recurrence };
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
@@ -104,6 +125,7 @@ export function QuestForm({ defaultValues, onSubmit, isLoading }: QuestFormProps
   const config = formData.objectiveConfig ?? {};
   const typeCfg = QUEST_TYPE_CONFIG[formData.type] ?? QUEST_TYPE_CONFIG[QuestType.DAILY];
   const unitLabel = t(`gamif.unit.${meta.unit}`);
+  const selectedObjectiveIsPeriodScoped = isPeriodScopedQuestObjective(formData.objectiveType);
 
   const classIds = formData.classIds ?? [];
 
@@ -206,8 +228,9 @@ export function QuestForm({ defaultValues, onSubmit, isLoading }: QuestFormProps
           <div className="flex flex-col gap-1 md:col-span-2">
             <label className="text-label-sm font-semibold text-on-surface">{t('gamif.admin.form.objectiveType')}</label>
             <select
+              data-testid="quest-objective-type"
               value={formData.objectiveType}
-              onChange={(e) => handleChange('objectiveType', e.target.value as QuestObjectiveType)}
+              onChange={(e) => handleObjectiveTypeChange(e.target.value as QuestObjectiveType)}
               className={`${inputCls} appearance-none`}
             >
               {objectiveTypes.map((ot) => (
@@ -315,12 +338,18 @@ export function QuestForm({ defaultValues, onSubmit, isLoading }: QuestFormProps
             <div data-testid="quest-recurrence-selector" className={QUEST_RECURRENCE_SELECTOR_CLASS_NAME}>
               {QUEST_RECURRENCE_SELECTOR_OPTIONS.map((rec) => {
                 const isSelected = formData.recurrence === rec;
+                const isDisabled = rec !== QuestRecurrence.NONE && !selectedObjectiveIsPeriodScoped;
                 return (
                   <button
                     key={rec}
                     type="button"
-                    onClick={() => handleChange('recurrence', rec)}
+                    disabled={isDisabled}
+                    onClick={() => handleRecurrenceChange(rec)}
                     className={`py-2 rounded-lg border-2 text-[12px] font-bold transition-all ${
+                      isDisabled
+                        ? 'cursor-not-allowed opacity-50'
+                        : ''
+                    } ${
                       isSelected
                         ? 'border-primary bg-primary-container/30 text-on-surface'
                         : 'border-outline-variant/50 bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest'

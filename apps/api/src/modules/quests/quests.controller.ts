@@ -1,5 +1,5 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
-import { Crud, CrudController } from '@dataui/crud';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Crud, CrudController, Override } from '@dataui/crud';
 import { UserRole } from '@cp/shared';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -12,7 +12,7 @@ import { CreateQuestDto, UpdateQuestDto } from './dto/create-quest.dto';
   model: { type: Quest },
   dto: { create: CreateQuestDto, update: UpdateQuestDto, replace: CreateQuestDto },
   routes: {
-    only: ['getManyBase', 'getOneBase', 'createOneBase', 'updateOneBase', 'deleteOneBase'],
+    only: ['getManyBase', 'getOneBase', 'createOneBase', 'deleteOneBase'],
   },
   query: {
     sort: [
@@ -26,6 +26,20 @@ import { CreateQuestDto, UpdateQuestDto } from './dto/create-quest.dto';
 @Roles(UserRole.ADMIN, UserRole.TEACHER)
 export class QuestsController implements CrudController<Quest> {
   constructor(public service: QuestsService) {}
+
+  @Override('createOneBase')
+  @Post()
+  async createOne(@Body() dto: CreateQuestDto): Promise<Quest> {
+    return this.service.createQuest(dto);
+  }
+
+  @Patch(':id')
+  async updateOne(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateQuestDto,
+  ): Promise<Quest> {
+    return this.service.updateQuest(id, dto);
+  }
 
   /** Aggregate KPI stats for the admin quest list page. */
   @Get('stats')

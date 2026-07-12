@@ -67,6 +67,20 @@ export enum QuestObjectiveType {
   REACH_LEVEL = 'REACH_LEVEL',
 }
 
+export const PERIOD_SCOPED_QUEST_OBJECTIVES: readonly QuestObjectiveType[] = [
+  QuestObjectiveType.SUBMIT_ACCEPTED,
+  QuestObjectiveType.SOLVE_CODING,
+  QuestObjectiveType.SOLVE_BY_DIFFICULTY,
+  QuestObjectiveType.SOLVE_BY_TAG,
+  QuestObjectiveType.COMPLETE_ASSIGNMENT,
+  QuestObjectiveType.SOLVE_MAZE,
+  QuestObjectiveType.EARN_POINTS,
+];
+
+export function isPeriodScopedQuestObjective(objectiveType: QuestObjectiveType): boolean {
+  return PERIOD_SCOPED_QUEST_OBJECTIVES.includes(objectiveType);
+}
+
 /** Local string-literal difficulty (mirrors Assignment.difficulty literals). */
 export type QuestDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
 

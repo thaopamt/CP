@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { QuestRecurrence } from '@cp/shared';
+import { QuestObjectiveType, QuestRecurrence } from '@cp/shared';
 
 import { QuestForm } from './QuestForm';
 
@@ -68,5 +68,25 @@ describe('QuestForm recurrence selector', () => {
       `gamif.recurrence.${QuestRecurrence.WEEKLY}`,
       `gamif.recurrence.${QuestRecurrence.BIWEEKLY}`,
     ]);
+  });
+
+  it('disables recurring recurrence choices when the selected objective is lifetime stat-based', () => {
+    const container = renderQuestForm();
+    const objectiveSelect = container.querySelector('[data-testid="quest-objective-type"]') as HTMLSelectElement | null;
+
+    expect(objectiveSelect).not.toBeNull();
+    act(() => {
+      objectiveSelect!.value = QuestObjectiveType.STREAK_DAYS;
+      objectiveSelect!.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    const selector = container.querySelector('[data-testid="quest-recurrence-selector"]');
+    const buttons = Array.from(selector?.querySelectorAll('button') ?? []);
+    const byText = new Map(buttons.map((button) => [button.textContent, button as HTMLButtonElement]));
+
+    expect(byText.get(`gamif.recurrence.${QuestRecurrence.NONE}`)?.disabled).toBe(false);
+    expect(byText.get(`gamif.recurrence.${QuestRecurrence.DAILY}`)?.disabled).toBe(true);
+    expect(byText.get(`gamif.recurrence.${QuestRecurrence.WEEKLY}`)?.disabled).toBe(true);
+    expect(byText.get(`gamif.recurrence.${QuestRecurrence.BIWEEKLY}`)?.disabled).toBe(true);
   });
 });

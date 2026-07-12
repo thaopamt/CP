@@ -100,6 +100,9 @@ describe('QuestsService recurrence and duplicate-solve behavior', () => {
     questRepo = {
       metadata: crudMetadata('Quest'),
       find: jest.fn(),
+      findOne: jest.fn(),
+      create: jest.fn((row) => row),
+      save: jest.fn(async (row) => row),
     } as any;
     studentQuestRepo = {
       find: jest.fn(),
@@ -243,5 +246,32 @@ describe('QuestsService recurrence and duplicate-solve behavior', () => {
     expect(cache.bumpTags).not.toHaveBeenCalled();
     expect(profile.mazesSolved).toBe(2);
     expect(profile.streak).toBe(4);
+  });
+
+  it('rejects recurring lifetime stat objectives on create and update', async () => {
+    await expect(
+      service.createQuest({
+        title: 'Invalid stat quest',
+        type: QuestType.EVENT,
+        objectiveType: QuestObjectiveType.STREAK_DAYS,
+        targetCount: 7,
+        rewardXp: 100,
+        rewardGems: 10,
+        recurrence: QuestRecurrence.BIWEEKLY,
+      }),
+    ).rejects.toThrow('Recurring quests must use period-scoped objective types');
+    expect(questRepo.save).not.toHaveBeenCalled();
+
+    questRepo.findOne.mockResolvedValue(
+      baseQuest({
+        objectiveType: QuestObjectiveType.REACH_LEVEL,
+        recurrence: QuestRecurrence.NONE,
+      }),
+    );
+
+    await expect(service.updateQuest('quest-1', { recurrence: QuestRecurrence.WEEKLY })).rejects.toThrow(
+      'Recurring quests must use period-scoped objective types',
+    );
+    expect(questRepo.save).not.toHaveBeenCalled();
   });
 });

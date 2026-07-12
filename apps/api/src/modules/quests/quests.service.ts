@@ -6,7 +6,9 @@ import {
   QuestDifficulty,
   IClaimQuestResult,
   IStudentQuestProgressData,
+  isPeriodScopedQuestObjective,
   QuestObjectiveType,
+  QuestRecurrence,
   QuestStatus,
   StudentQuestStatus,
 } from '@cp/shared';
@@ -21,6 +23,7 @@ import { GamificationGateway } from './gamification.gateway';
 import { applyXpGain, dayKey, questPeriodKey } from './period-keys';
 import { advanceLevel } from '../../common/gamification.constants';
 import { SystemCacheService } from '../../common/cache/system-cache.service';
+import { CreateQuestDto, UpdateQuestDto } from './dto/create-quest.dto';
 
 /** Context emitted by the submission/maze pipelines into the objective engine. */
 export interface QuestEngineEvent {
@@ -91,6 +94,39 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
         };
       },
     );
+  }
+
+  async createQuest(dto: CreateQuestDto): Promise<Quest> {
+    const recurrence = dto.recurrence ?? QuestRecurrence.NONE;
+    this.assertRecurringObjectiveIsPeriodScoped(dto.objectiveType, recurrence);
+
+    const quest = this.repo.create({ ...dto, recurrence });
+    const saved = await this.repo.save(quest);
+    await this.cache.bumpTags(['quests:catalog']);
+    return saved;
+  }
+
+  async updateQuest(id: string, dto: UpdateQuestDto): Promise<Quest> {
+    const quest = await this.repo.findOne({ where: { id } });
+    if (!quest) throw new NotFoundException('Quest not found');
+
+    const objectiveType = dto.objectiveType ?? quest.objectiveType;
+    const recurrence = dto.recurrence ?? quest.recurrence ?? QuestRecurrence.NONE;
+    this.assertRecurringObjectiveIsPeriodScoped(objectiveType, recurrence);
+
+    Object.assign(quest, dto);
+    const saved = await this.repo.save(quest);
+    await this.cache.bumpTags(['quests:catalog']);
+    return saved;
+  }
+
+  private assertRecurringObjectiveIsPeriodScoped(
+    objectiveType: QuestObjectiveType,
+    recurrence: QuestRecurrence,
+  ): void {
+    if (recurrence !== QuestRecurrence.NONE && !isPeriodScopedQuestObjective(objectiveType)) {
+      throw new BadRequestException('Recurring quests must use period-scoped objective types');
+    }
   }
 
   // ── Scheduling helpers ─────────────────────────────────────────────────────
