@@ -1,5 +1,5 @@
 import { QuestRecurrence, QuestType } from '@cp/shared';
-import { QUESTS } from './seed-quests';
+import { QUESTS, resolvePrerequisiteQuestId } from './seed-quests';
 
 describe('quest seed catalog', () => {
   it('contains a richer daily catalog with varied objectives', () => {
@@ -31,7 +31,12 @@ describe('quest seed catalog', () => {
         'Tiền thưởng 2 tuần: 20 bài',
         'Đường đua HARD 2 tuần',
         'Sự kiện cuối tuần',
+        'Lễ hội thuật toán',
+        'Cơn bão HARD',
         'Tuần lễ mê cung',
+        'Đua điểm mùa hè',
+        'Marathon 7 ngày',
+        'Vượt cấp tốc hành',
       ]),
     );
   });
@@ -42,5 +47,28 @@ describe('quest seed catalog', () => {
     );
 
     expect(biweekly.every((quest) => quest.daysWindow == null)).toBe(true);
+  });
+
+  it('clears prerequisite quest ids when the catalog has no prerequisite title', () => {
+    const questIdByTitle = new Map<string, string>([
+      ['Bước chân đầu tiên', 'quest-1'],
+      ['Vững vàng cơ bản', 'quest-2'],
+    ]);
+
+    expect(
+      resolvePrerequisiteQuestId(
+        {},
+        questIdByTitle,
+      ),
+    ).toBeNull();
+
+    expect(
+      resolvePrerequisiteQuestId(
+        {
+          prerequisiteTitle: 'Bước chân đầu tiên',
+        },
+        questIdByTitle,
+      ),
+    ).toBe('quest-1');
   });
 });

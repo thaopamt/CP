@@ -188,6 +188,14 @@ export const QUESTS: QuestSeed[] = [
   { title: 'Đỉnh cao 500', description: 'Giải 500 bài lập trình.', type: QuestType.BOUNTY, objectiveType: QuestObjectiveType.SOLVE_CODING, targetCount: 500, rewardXp: 6000, rewardGems: 600, icon: 'auto_awesome', recurrence: QuestRecurrence.NONE, sortOrder: 9, category: 'Bounty', prerequisiteTitle: 'Người chinh phục', rewardBadgeCode: 'LEGEND_500' },
 ];
 
+export function resolvePrerequisiteQuestId(
+  quest: Pick<QuestSeed, 'prerequisiteTitle'>,
+  questIdByTitle: Map<string, string>,
+): string | null {
+  if (!quest.prerequisiteTitle) return null;
+  return questIdByTitle.get(quest.prerequisiteTitle) ?? null;
+}
+
 async function run() {
   console.log('🚀 Seeding quests & badges…');
   if (!AppDataSource.isInitialized) {
@@ -259,11 +267,12 @@ async function run() {
 
   // 3. Wire prerequisites now that all quest ids exist.
   for (const q of QUESTS) {
-    if (!q.prerequisiteTitle) continue;
     const id = questIdByTitle.get(q.title);
-    const prereqId = questIdByTitle.get(q.prerequisiteTitle);
-    if (id && prereqId) {
-      await questRepo.update({ id }, { prerequisiteQuestId: prereqId });
+    if (id) {
+      await questRepo.update(
+        { id },
+        { prerequisiteQuestId: resolvePrerequisiteQuestId(q, questIdByTitle) },
+      );
     }
   }
 
