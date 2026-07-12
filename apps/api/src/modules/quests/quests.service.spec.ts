@@ -203,6 +203,8 @@ describe('QuestsService recurrence and duplicate-solve behavior', () => {
 
     expect(studentQuestRepo.save).not.toHaveBeenCalled();
     expect(profileRepo.save).not.toHaveBeenCalled();
+    expect(badges.evaluateAndAward).not.toHaveBeenCalled();
+    expect(cache.bumpTags).not.toHaveBeenCalled();
     expect(profile.problemsSolved).toBe(7);
     expect(profile.streak).toBe(4);
   });
@@ -237,6 +239,8 @@ describe('QuestsService recurrence and duplicate-solve behavior', () => {
 
     expect(studentQuestRepo.save).not.toHaveBeenCalled();
     expect(profileRepo.save).not.toHaveBeenCalled();
+    expect(badges.evaluateAndAward).not.toHaveBeenCalled();
+    expect(cache.bumpTags).not.toHaveBeenCalled();
     expect(profile.mazesSolved).toBe(2);
     expect(profile.streak).toBe(4);
   });

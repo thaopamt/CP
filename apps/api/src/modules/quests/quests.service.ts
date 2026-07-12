@@ -394,6 +394,8 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
   }
 
   async handleEvent(userId: string, event: QuestEngineEvent): Promise<void> {
+    if (event.alreadySolved) return;
+
     // 1. Streak + lifetime counters first (other quests/badges read these).
     await this.updateProfileCounters(userId, event);
 
