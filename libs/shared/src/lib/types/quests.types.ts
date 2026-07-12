@@ -37,6 +37,7 @@ export enum QuestRecurrence {
   NONE = 'NONE',
   DAILY = 'DAILY',
   WEEKLY = 'WEEKLY',
+  BIWEEKLY = 'BIWEEKLY',
 }
 
 /**

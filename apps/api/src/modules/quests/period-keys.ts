@@ -7,15 +7,46 @@
  * adding to it. This avoids any cron job — a stale bucket is simply ignored
  * (treated as 0) until the next gain rolls it over.
  */
+import { QuestRecurrence } from '@cp/shared';
 
-/** ISO week key, e.g. `2026-W24`. Mirrors QuestsService.weekKey. */
-export function weekKey(d: Date): string {
+export function dayKey(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function isoWeekParts(d: Date): { year: number; week: number } {
   const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
   const dayNum = date.getUTCDay() || 7;
   date.setUTCDate(date.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
   const week = Math.ceil(((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-  return `${date.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+  return { year: date.getUTCFullYear(), week };
+}
+
+/** ISO week key, e.g. `2026-W24`. Mirrors QuestsService.weekKey. */
+export function weekKey(d: Date): string {
+  const { year, week } = isoWeekParts(d);
+  return `${year}-W${String(week).padStart(2, '0')}`;
+}
+
+/** Global two-week ISO period key, e.g. weeks 29-30 of 2026 => `2026-B15`. */
+export function biweekKey(d: Date): string {
+  const { year, week } = isoWeekParts(d);
+  const biweek = Math.ceil(week / 2);
+  return `${year}-B${String(biweek).padStart(2, '0')}`;
+}
+
+export function questPeriodKey(recurrence: QuestRecurrence, now: Date): string {
+  switch (recurrence) {
+    case QuestRecurrence.DAILY:
+      return dayKey(now);
+    case QuestRecurrence.WEEKLY:
+      return weekKey(now);
+    case QuestRecurrence.BIWEEKLY:
+      return biweekKey(now);
+    case QuestRecurrence.NONE:
+    default:
+      return 'static';
+  }
 }
 
 /** Calendar month key, e.g. `2026-06`. */
