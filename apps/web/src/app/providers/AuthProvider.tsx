@@ -6,6 +6,7 @@ import { apiClient } from '../lib/api-client';
 import { removeWorkspaceDrafts } from '../lib/learning-reset-storage';
 import { useAuthStore } from '../stores/auth.store';
 
+const BLOCKED_NOTICE_KEY = 'cp_blocked_account_notice';
 let isRefreshing = false;
 let failedQueue: { resolve: (token: string) => void; reject: (err: any) => void }[] = [];
 
@@ -33,6 +34,14 @@ function removeDraftsBeforeLogout() {
   }
 }
 
+function markBlockedAccountNotice() {
+  try {
+    window.sessionStorage.setItem(BLOCKED_NOTICE_KEY, '1');
+  } catch {
+    // Showing the notice is best-effort; auth cleanup still matters most.
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const clear = useAuthStore((s) => s.clear);
   const setTokens = useAuthStore((s) => s.setTokens);
@@ -55,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (isBlockedResponse(err)) {
           processQueue(err, null);
           removeDraftsBeforeLogout();
+          markBlockedAccountNotice();
           clear();
           return Promise.reject(err);
         }
@@ -104,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             processQueue(refreshErr, null);
             if (isBlockedResponse(refreshErr)) {
               removeDraftsBeforeLogout();
+              markBlockedAccountNotice();
             }
             clear();
             return Promise.reject(refreshErr);
