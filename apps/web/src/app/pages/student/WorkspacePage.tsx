@@ -21,7 +21,11 @@ import { useLiveCodingSync } from '../../hooks/useLiveCodingSync';
 import { useInteractiveExec } from '../../hooks/useInteractiveExec';
 import { useSubmissionRealtimeFeed } from '../../hooks/useSubmissionRealtimeFeed';
 import { CompletionRankingInfo } from '../../components/CompletionRankingInfo';
-import { applyLearningResetStorageCleanup } from '../../lib/learning-reset-storage';
+import {
+  applyLearningResetStorageCleanup,
+  readWorkspaceDraft,
+  writeWorkspaceDraft,
+} from '../../lib/learning-reset-storage';
 import { useAuthStore } from '../../stores/auth.store';
 import { useChatWidgetStore } from '../../stores/chat-widget.store';
 import {
@@ -262,16 +266,15 @@ export default function StudentWorkspacePage() {
 
   const readCurrentWorkspaceDraft = (): WorkspaceDraft => {
     const fallback = LANG_OPTIONS.find(l => l.value === localStorage.getItem('cp_default_language')) || defaultLangOption;
-    try {
-      const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
-      const draftLang = LANG_OPTIONS.find(l => l.value === draft?.language) || fallback;
-      return {
-        language: draftLang.value,
-        code: typeof draft?.code === 'string' ? draft.code : draftLang.template,
-      };
-    } catch {
-      return { language: fallback.value, code: fallback.template };
-    }
+    const result = readWorkspaceDraft({
+      storage: window.localStorage,
+      key: draftKey,
+    });
+    const draftLang = LANG_OPTIONS.find(l => l.value === result.draft?.language) || fallback;
+    return {
+      language: draftLang.value,
+      code: typeof result.draft?.code === 'string' ? result.draft.code : draftLang.template,
+    };
   };
   
   const [language, setLanguage] = useState(() => {
@@ -299,7 +302,12 @@ export default function StudentWorkspacePage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        localStorage.setItem(draftKey, JSON.stringify({ code, language }));
+        writeWorkspaceDraft({
+          storage: window.localStorage,
+          key: draftKey,
+          code,
+          language,
+        });
       } catch { /* ignore quota errors */ }
     }, 500);
     return () => clearTimeout(timer);

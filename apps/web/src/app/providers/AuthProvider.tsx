@@ -3,6 +3,7 @@ import { ReactNode, useEffect } from 'react';
 import { LoginResponse } from '@cp/shared';
 
 import { apiClient } from '../lib/api-client';
+import { removeWorkspaceDrafts } from '../lib/learning-reset-storage';
 import { useAuthStore } from '../stores/auth.store';
 
 let isRefreshing = false;
@@ -18,6 +19,19 @@ const processQueue = (error: any, token: string | null = null) => {
   });
   failedQueue = [];
 };
+
+const isBlockedResponse = (err: any) => (
+  err?.response?.status === 403 &&
+  err?.response?.data?.code === 'USER_BLOCKED'
+);
+
+function removeDraftsBeforeLogout() {
+  try {
+    removeWorkspaceDrafts(window.localStorage);
+  } catch {
+    // Storage cleanup must not prevent auth cleanup.
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const clear = useAuthStore((s) => s.clear);
@@ -37,6 +51,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (r) => r,
       async (err) => {
         const originalRequest = err.config;
+
+        if (isBlockedResponse(err)) {
+          processQueue(err, null);
+          removeDraftsBeforeLogout();
+          clear();
+          return Promise.reject(err);
+        }
 
         if (err?.response?.status === 401 && originalRequest && !originalRequest._retry) {
           if (originalRequest.url === '/auth/refresh' || originalRequest.url === '/auth/login') {
@@ -81,6 +102,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return apiClient(originalRequest);
           } catch (refreshErr) {
             processQueue(refreshErr, null);
+            if (isBlockedResponse(refreshErr)) {
+              removeDraftsBeforeLogout();
+            }
             clear();
             return Promise.reject(refreshErr);
           } finally {

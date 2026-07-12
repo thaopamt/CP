@@ -187,4 +187,16 @@ describe('workspace draft helpers', () => {
       savedAt: '2026-07-12T08:00:00.000Z',
     }));
   });
+
+  it('removeWorkspaceDrafts is safe to call before auth clear on blocked responses', () => {
+    const storage = new MemoryStorage();
+    storage.setItem('code-draft-workspace-a', '{"code":"old"}');
+    storage.setItem('code-draft-workspace-b', '{"code":"old"}');
+    storage.setItem('cp_default_language', 'python');
+
+    const removed = removeWorkspaceDrafts(storage);
+
+    expect(removed).toEqual(['code-draft-workspace-a', 'code-draft-workspace-b']);
+    expect(storage.getItem('cp_default_language')).toBe('python');
+  });
 });
