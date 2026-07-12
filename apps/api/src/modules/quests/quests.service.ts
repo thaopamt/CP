@@ -7,7 +7,6 @@ import {
   IClaimQuestResult,
   IStudentQuestProgressData,
   QuestObjectiveType,
-  QuestRecurrence,
   QuestStatus,
   StudentQuestStatus,
 } from '@cp/shared';
@@ -19,7 +18,7 @@ import { StudentProfile } from '../students/student-profile.entity';
 import { Enrollment } from '../classes/enrollment.entity';
 import { BadgesService } from './badges.service';
 import { GamificationGateway } from './gamification.gateway';
-import { applyXpGain } from './period-keys';
+import { applyXpGain, dayKey, questPeriodKey } from './period-keys';
 import { advanceLevel } from '../../common/gamification.constants';
 import { SystemCacheService } from '../../common/cache/system-cache.service';
 
@@ -97,23 +96,7 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
   // ── Scheduling helpers ─────────────────────────────────────────────────────
 
   private periodKeyFor(quest: Quest, now: Date): string {
-    if (quest.recurrence === QuestRecurrence.DAILY) return this.dayKey(now);
-    if (quest.recurrence === QuestRecurrence.WEEKLY) return this.weekKey(now);
-    return 'static';
-  }
-
-  private dayKey(d: Date): string {
-    return d.toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
-  }
-
-  private weekKey(d: Date): string {
-    // ISO week number.
-    const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-    const dayNum = date.getUTCDay() || 7;
-    date.setUTCDate(date.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-    const week = Math.ceil(((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-    return `${date.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+    return questPeriodKey(quest.recurrence, now);
   }
 
   private isWithinWindow(quest: Quest, now: Date): boolean {
@@ -186,14 +169,14 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
     // Expire stale recurring attempts from older windows — regardless of status.
     // COMPLETED/CLAIMED rows from a past day/week must also be retired, otherwise
     // they linger forever next to the fresh attempt and the page looks un-reset.
+    const currentPeriodByQuestId = new Map(visible.map((quest) => [quest.id, this.periodKeyFor(quest, now)]));
     const staleIds = existing
-      .filter(
-        (sq) =>
-          sq.status !== StudentQuestStatus.EXPIRED &&
-          sq.periodKey !== 'static' &&
-          sq.periodKey !== this.dayKey(now) &&
-          sq.periodKey !== this.weekKey(now),
-      )
+      .filter((sq) => {
+        if (sq.status === StudentQuestStatus.EXPIRED) return false;
+        if (sq.periodKey === 'static') return false;
+        const currentPeriod = currentPeriodByQuestId.get(sq.questId);
+        return !currentPeriod || sq.periodKey !== currentPeriod;
+      })
       .map((sq) => sq.id);
     if (staleIds.length > 0) {
       await this.studentQuests.update({ id: In(staleIds) }, { status: StudentQuestStatus.EXPIRED });
@@ -557,9 +540,9 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
     // streak nor the lifetime solve counters.
     if (event.alreadySolved) return profile;
 
-    const today = this.dayKey(new Date());
+    const today = dayKey(new Date());
     if (profile.streakLastDate !== today) {
-      const yesterday = this.dayKey(new Date(Date.now() - 86400000));
+      const yesterday = dayKey(new Date(Date.now() - 86400000));
       profile.streak = profile.streakLastDate === yesterday ? profile.streak + 1 : 1;
       profile.streakLastDate = today;
     }
