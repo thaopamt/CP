@@ -24,6 +24,8 @@ import {
   useResetPasswordStudent,
   useResetStudentLearningData,
   useStudentHeatmapAdmin,
+  useBlockStudent,
+  useUnblockStudent,
 } from '../../../api/student.queries';
 import {
   useStudentTeachers,
@@ -53,6 +55,8 @@ export default function StudentProfilePage() {
   const [manageTeachersOpen, setManageTeachersOpen] = useState(false);
   const resetPassword = useResetPasswordStudent(idParam as string);
   const resetLearningData = useResetStudentLearningData(idParam as string);
+  const blockStudent = useBlockStudent(idParam as string);
+  const unblockStudent = useUnblockStudent(idParam as string);
   const heatmapQuery = useStudentHeatmapAdmin(idParam as string);
 
   const subjectGrades: ISubjectGrade[] = useMemo(
@@ -142,6 +146,85 @@ export default function StudentProfilePage() {
     }
   }
 
+  async function handleBlockStudent() {
+    const ok = await confirm({
+      title: t('pages.admin.studentProfile.block.title', 'Block student'),
+      message: (
+        <div className="space-y-2 text-left">
+          <p>
+            {t(
+              'pages.admin.studentProfile.block.message',
+              'Học sinh sẽ không thể truy cập website. Hệ thống sẽ xóa bài đã làm, submissions, progress khóa học, quest, badge, maze, shop và đặt lại XP/gems/level.',
+            )}
+          </p>
+          <p className="font-medium">
+            {t(
+              'pages.admin.studentProfile.block.keep',
+              'Thông tin cá nhân, học phí, lớp học, lịch học, điểm danh và dữ liệu finance sẽ được giữ nguyên.',
+            )}
+          </p>
+          <p className="text-error font-medium">
+            {t(
+              'pages.admin.studentProfile.block.noRestore',
+              'Unblock sau này chỉ mở lại quyền truy cập, không khôi phục dữ liệu học tập đã reset.',
+            )}
+          </p>
+        </div>
+      ),
+      confirmLabel: t('pages.admin.studentProfile.block.confirm', 'Block student'),
+      cancelLabel: t('common.cancel', 'Cancel'),
+      intent: 'danger',
+    });
+    if (!ok) return;
+
+    try {
+      const result = await blockStudent.mutateAsync();
+      const deletedCount =
+        result.submissionsDeleted +
+        result.assignmentProgressDeleted +
+        result.questsDeleted +
+        result.badgesDeleted +
+        result.shopItemsDeleted +
+        result.mazeSubmissionsDeleted;
+      toast.success(
+        t('pages.admin.studentProfile.block.success', {
+          defaultValue: 'Đã block học sinh và reset dữ liệu học tập ({{count}} bản ghi).',
+          count: deletedCount,
+        }),
+      );
+    } catch {
+      toast.error(t('pages.admin.studentProfile.block.error', 'Không thể block học sinh. Vui lòng thử lại.'));
+    }
+  }
+
+  async function handleUnblockStudent() {
+    const ok = await confirm({
+      title: t('pages.admin.studentProfile.unblock.title', 'Unblock student'),
+      message: (
+        <div className="space-y-2 text-left">
+          <p>{t('pages.admin.studentProfile.unblock.message', 'Học sinh sẽ có thể đăng nhập lại.')}</p>
+          <p className="font-medium">
+            {t(
+              'pages.admin.studentProfile.unblock.noRestore',
+              'Dữ liệu học tập đã reset sẽ không được khôi phục; học sinh bắt đầu lại từ trạng thái reset.',
+            )}
+          </p>
+        </div>
+      ),
+      confirmLabel: t('pages.admin.studentProfile.unblock.confirm', 'Unblock student'),
+      cancelLabel: t('common.cancel', 'Cancel'),
+      intent: 'primary',
+    });
+    if (!ok) return;
+
+    try {
+      await unblockStudent.mutateAsync();
+      toast.success(t('pages.admin.studentProfile.unblock.success', 'Đã unblock học sinh.'));
+    } catch {
+      toast.error(t('pages.admin.studentProfile.unblock.error', 'Không thể unblock học sinh. Vui lòng thử lại.'));
+    }
+  }
+
   return (
     <div className="flex flex-col gap-lg">
       <PageHeader
@@ -176,6 +259,11 @@ export default function StudentProfilePage() {
               <div className="font-manrope text-headline-lg text-on-surface truncate">{fullName}</div>
               <div className="flex items-center gap-sm mt-xs">
                 <EnrollmentStatusBadge status={s.status} />
+                <StatusBadge tone={s.isActive ? 'success' : 'error'}>
+                  {s.isActive
+                    ? t('pages.admin.studentProfile.accountActive', 'Active')
+                    : t('pages.admin.studentProfile.accountBlocked', 'Blocked')}
+                </StatusBadge>
               </div>
             </div>
           </div>
@@ -205,6 +293,27 @@ export default function StudentProfilePage() {
               >
                 {t('pages.admin.studentProfile.resetLearning.action', 'Reset học tập')}
               </Button>
+            )}
+            {base === '/admin' && (
+              s.isActive ? (
+                <Button
+                  variant="danger"
+                  leadingIcon={<Icon name="block" size={18} />}
+                  disabled={blockStudent.isPending}
+                  onClick={handleBlockStudent}
+                >
+                  {t('pages.admin.studentProfile.block.action', 'Block student')}
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  leadingIcon={<Icon name="lock_open" size={18} />}
+                  disabled={unblockStudent.isPending}
+                  onClick={handleUnblockStudent}
+                >
+                  {t('pages.admin.studentProfile.unblock.action', 'Unblock student')}
+                </Button>
+              )
             )}
             <Button variant="admin" leadingIcon={<Icon name="mail" size={18} />}>
               {t('pages.admin.studentProfile.message')}

@@ -97,24 +97,56 @@ export function useResetPasswordStudent(id: string) {
   });
 }
 
+function invalidateStudentLearningCaches(
+  qc: ReturnType<typeof useQueryClient>,
+  id: string,
+  userId: string,
+) {
+  void qc.invalidateQueries({ queryKey: ['students'] });
+  void qc.invalidateQueries({ queryKey: studentQueryKeys.detail(id) });
+  void qc.invalidateQueries({ queryKey: studentQueryKeys.byUserId(userId) });
+  void qc.invalidateQueries({ queryKey: studentQueryKeys.me() });
+  void qc.invalidateQueries({ queryKey: studentQueryKeys.dashboard() });
+  void qc.invalidateQueries({ queryKey: ['submissions'] });
+  void qc.invalidateQueries({ queryKey: ['submissions-all'] });
+  void qc.invalidateQueries({ queryKey: ['submissions-all-my'] });
+  void qc.invalidateQueries({ queryKey: ['leaderboard'] });
+  void qc.invalidateQueries({ queryKey: ['student-quests'] });
+  void qc.invalidateQueries({ queryKey: ['student-badges'] });
+  void qc.invalidateQueries({ queryKey: ['shop'] });
+  void qc.invalidateQueries({ queryKey: ['maze-levels'] });
+}
+
 export function useResetStudentLearningData(id: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => studentsApi.resetLearningData(id),
+    onSuccess: (result) => {
+      invalidateStudentLearningCaches(qc, id, result.userId);
+    },
+  });
+}
+
+export function useBlockStudent(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => studentsApi.block(id),
+    onSuccess: (result) => {
+      invalidateStudentLearningCaches(qc, id, result.userId);
+    },
+  });
+}
+
+export function useUnblockStudent(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => studentsApi.unblock(id),
     onSuccess: (result) => {
       void qc.invalidateQueries({ queryKey: ['students'] });
       void qc.invalidateQueries({ queryKey: studentQueryKeys.detail(id) });
       void qc.invalidateQueries({ queryKey: studentQueryKeys.byUserId(result.userId) });
       void qc.invalidateQueries({ queryKey: studentQueryKeys.me() });
       void qc.invalidateQueries({ queryKey: studentQueryKeys.dashboard() });
-      void qc.invalidateQueries({ queryKey: ['submissions'] });
-      void qc.invalidateQueries({ queryKey: ['submissions-all'] });
-      void qc.invalidateQueries({ queryKey: ['submissions-all-my'] });
-      void qc.invalidateQueries({ queryKey: ['leaderboard'] });
-      void qc.invalidateQueries({ queryKey: ['student-quests'] });
-      void qc.invalidateQueries({ queryKey: ['student-badges'] });
-      void qc.invalidateQueries({ queryKey: ['shop'] });
-      void qc.invalidateQueries({ queryKey: ['maze-levels'] });
     },
   });
 }

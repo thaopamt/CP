@@ -152,6 +152,7 @@ export interface IStudentProfile {
   email: string;
   username?: string | null;
   avatarUrl?: string | null;
+  isActive: boolean;
 
   /** Demographics */
   homeAddress?: string | null;

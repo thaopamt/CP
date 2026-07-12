@@ -35,6 +35,7 @@ interface ApiUser {
   firstName: string;
   lastName: string;
   avatarUrl?: string | null;
+  isActive: boolean;
 }
 
 interface ApiGuardian {
@@ -86,6 +87,19 @@ export interface ResetStudentLearningDataResult {
   learningResetAt: string;
 }
 
+export interface BlockStudentResult extends ResetStudentLearningDataResult {
+  blockedAt: string;
+  isActive: false;
+  alreadyBlocked: boolean;
+}
+
+export interface UnblockStudentResult {
+  studentId: string;
+  userId: string;
+  unblockedAt: string;
+  isActive: true;
+}
+
 export interface UpdateMyStudentPayload {
   firstName?: string;
   lastName?: string;
@@ -114,6 +128,7 @@ function toStudent(s: ApiStudentProfile): IStudentProfile {
     email: s.user.email,
     username: s.user.username ?? null,
     avatarUrl: s.user.avatarUrl ?? null,
+    isActive: s.user.isActive,
     homeAddress: s.homeAddress,
     grade: s.grade,
     cohortYear: s.cohortYear,
@@ -231,6 +246,16 @@ export const studentsApi = {
 
   async resetLearningData(id: string): Promise<ResetStudentLearningDataResult> {
     const { data } = await apiClient.post<ResetStudentLearningDataResult>(`/students/${id}/reset-learning-data`);
+    return data;
+  },
+
+  async block(id: string): Promise<BlockStudentResult> {
+    const { data } = await apiClient.post<BlockStudentResult>(`/students/${id}/block`);
+    return data;
+  },
+
+  async unblock(id: string): Promise<UnblockStudentResult> {
+    const { data } = await apiClient.post<UnblockStudentResult>(`/students/${id}/unblock`);
     return data;
   },
 
