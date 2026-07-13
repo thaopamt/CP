@@ -25,7 +25,6 @@ export default function CheckinPopup() {
       lastPopupDay: localStorage.getItem(popupKey),
     });
     if (!decision) return;
-    localStorage.setItem(popupKey, status.today);
     setOpen(true);
   }, [status, user]);
 
@@ -37,7 +36,13 @@ export default function CheckinPopup() {
 
   if (!open || !status) return null;
 
-  const dismiss = () => setOpen(false);
+  const dismiss = () => {
+    if (user && status) {
+      const popupKey = `checkin:lastPopupDay:${user.id}`;
+      localStorage.setItem(popupKey, status.today);
+    }
+    setOpen(false);
+  };
   const nextMs = nextStreakMilestone(status.currentStreak);
 
   return (
