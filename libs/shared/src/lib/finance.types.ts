@@ -70,7 +70,7 @@ export interface IFinanceMonthlyReport {
 export interface IFinanceMonthlyReportParams {
   month?: string;
   search?: string;
-  status?: FinanceCollectionStatus;
+  status?: FinanceCollectionStatus | 'UNPAID';
   billingStatus?: FinanceBillingStatus;
   studentGroup?: 'center' | 'home';
   page?: number;

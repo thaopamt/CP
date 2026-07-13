@@ -1052,6 +1052,7 @@ const vi: AppResources = {
           SENT: 'Đã gửi',
           PRINTED: 'Đã in',
           PAID: 'Đã thanh toán',
+          UNPAID: 'Chưa thanh toán',
         },
         collectionStatusInputLabel: 'Cập nhật trạng thái thanh toán',
         collectionStatusSaved: 'Đã cập nhật trạng thái.',

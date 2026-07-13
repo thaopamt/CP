@@ -38,7 +38,7 @@ import { MonthStepper } from '../../components/finance/MonthStepper';
 import { currentFinanceMonth, formatFinanceMonthLabel } from '../../lib/finance-month';
 
 const PAGE_SIZE = 25;
-type StatusFilter = 'all' | FinanceCollectionStatus;
+type StatusFilter = 'all' | FinanceCollectionStatus | 'UNPAID';
 
 function formatDate(value: string | Date) {
   const date = typeof value === 'string' ? new Date(`${value.slice(0, 10)}T00:00:00`) : value;
@@ -552,10 +552,8 @@ export default function AdminFinancePage() {
           onChange={(event) => setCollectionStatusFilter(event.target.value as StatusFilter)}
           options={[
             { value: 'all', label: t('pages.admin.finance.filters.statusAll') },
-            ...FINANCE_COLLECTION_STATUSES.map((status) => ({
-              value: status,
-              label: getCollectionStatusLabel(status),
-            })),
+            { value: 'PAID', label: getCollectionStatusLabel('PAID') },
+            { value: 'UNPAID', label: getCollectionStatusLabel('UNPAID' as FinanceCollectionStatus) },
           ]}
         />
       </FilterToolbar>

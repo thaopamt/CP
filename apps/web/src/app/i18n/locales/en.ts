@@ -1055,6 +1055,7 @@ const en = {
           SENT: 'Sent',
           PRINTED: 'Printed',
           PAID: 'Paid',
+          UNPAID: 'Unpaid',
         },
         collectionStatusInputLabel: 'Update payment status',
         collectionStatusSaved: 'Status updated.',

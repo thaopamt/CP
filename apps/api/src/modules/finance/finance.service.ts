@@ -325,7 +325,11 @@ export class FinanceService {
           collectionStatus,
         };
       })
-      .filter((row) => !statusFilter || row.collectionStatus === statusFilter)
+      .filter((row) => {
+        if (!statusFilter) return true;
+        if (statusFilter === 'UNPAID') return row.collectionStatus !== 'PAID';
+        return row.collectionStatus === statusFilter;
+      })
       .filter((row) => !billingStatusFilter || row.billingStatus === billingStatusFilter);
 
     const summary = allRows.reduce(
@@ -424,7 +428,7 @@ export class FinanceService {
   ): Promise<IFinanceMonthlyStatusUpdate> {
     const month = this.normalizeMonth(payload.month);
     const status = this.normalizeCollectionStatus(payload.status);
-    if (!status) {
+    if (!status || status === 'UNPAID') {
       throw new BadRequestException('status is invalid');
     }
     const profile = await this.profiles.findOne({ where: { userId: studentId } });
@@ -476,10 +480,11 @@ export class FinanceService {
     return Math.round(amount);
   }
 
-  private normalizeCollectionStatus(value: unknown, allowAll = false): FinanceCollectionStatus | undefined {
+  private normalizeCollectionStatus(value: unknown, allowAll = false): FinanceCollectionStatus | 'UNPAID' | undefined {
     if (allowAll && (value === undefined || value === null || value === '' || value === 'all')) {
       return undefined;
     }
+    if (value === 'UNPAID') return 'UNPAID';
     if (FINANCE_COLLECTION_STATUSES.includes(value as FinanceCollectionStatus)) {
       return value as FinanceCollectionStatus;
     }

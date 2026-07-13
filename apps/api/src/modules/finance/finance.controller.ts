@@ -31,7 +31,7 @@ export class FinanceController {
   getMonthlyReport(
     @Query('month') month?: string,
     @Query('search') search?: string,
-    @Query('status') status?: FinanceCollectionStatus,
+    @Query('status') status?: FinanceCollectionStatus | 'UNPAID',
     @Query('billingStatus') billingStatus?: FinanceBillingStatus,
     @Query('studentGroup') studentGroup?: 'center' | 'home',
     @Query('page') page?: string,
