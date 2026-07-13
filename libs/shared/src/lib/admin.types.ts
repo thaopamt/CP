@@ -162,6 +162,7 @@ export interface IStudentProfile {
   cohortYear: number;         // e.g. 2025 for "Class of 2025"
   enrolledAt: string;         // ISO datetime
   startDate?: string | null;
+  leaveDate?: string | null;
   status: EnrollmentStatus;
   monthlyTuition: number;     // Default monthly tuition in VND
 
@@ -205,6 +206,7 @@ export interface ICreateStudentPayload {
   grade: number;
   cohortYear?: number;
   startDate?: string;
+  leaveDate?: string;
   status?: EnrollmentStatus;
   monthlyTuition?: number;
   guardians?: IGuardianInput[];
@@ -217,6 +219,7 @@ export interface IUpdateStudentPayload {
   grade?: number;
   cohortYear?: number;
   startDate?: string;
+  leaveDate?: string;
   status?: EnrollmentStatus;
   monthlyTuition?: number;
   guardians?: IGuardianInput[];

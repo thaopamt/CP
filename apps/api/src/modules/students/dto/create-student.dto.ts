@@ -58,6 +58,9 @@ export class CreateStudentDto implements ICreateStudentPayload {
   @IsOptional() @IsDateString()
   startDate?: string;
 
+  @IsOptional() @IsDateString()
+  leaveDate?: string;
+
   @IsOptional() @IsEnum(EnrollmentStatus)
   status?: EnrollmentStatus;
 

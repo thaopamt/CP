@@ -55,6 +55,7 @@ interface ApiStudentProfile {
   cohortYear: number;
   enrolledAt: string;
   startDate: string | null;
+  leaveDate: string | null;
   status: EnrollmentStatus;
   monthlyTuition: number;
   cumulativeGpa: number;
@@ -134,6 +135,7 @@ function toStudent(s: ApiStudentProfile): IStudentProfile {
     cohortYear: s.cohortYear,
     enrolledAt: s.enrolledAt,
     startDate: s.startDate,
+    leaveDate: s.leaveDate ?? null,
     status: s.status,
     monthlyTuition: s.monthlyTuition ?? 0,
     cumulativeGpa: s.cumulativeGpa ?? 0,

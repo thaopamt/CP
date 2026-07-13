@@ -805,6 +805,7 @@ const en = {
           grade: 'Grade level',
           cohortYear: 'Cohort year',
           startDate: 'Start date',
+          leaveDate: 'Leave date',
           monthlyTuition: 'Monthly tuition',
           monthlyTuitionHint:
             'Default monthly tuition. Finance divides it across scheduled sessions, and Finance can override it for a specific student and month.',

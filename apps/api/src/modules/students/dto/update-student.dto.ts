@@ -42,6 +42,9 @@ export class UpdateStudentDto {
   @IsOptional() @IsDateString()
   startDate?: string;
 
+  @IsOptional() @IsDateString()
+  leaveDate?: string;
+
   @IsOptional() @IsEnum(EnrollmentStatus)
   status?: EnrollmentStatus;
 

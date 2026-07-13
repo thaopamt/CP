@@ -37,6 +37,7 @@ type Draft = {
 
   grade: number;
   startDate: string;
+  leaveDate: string;
   status: EnrollmentStatus;
   monthlyTuition: number;
   isAccountActive: boolean;
@@ -57,8 +58,9 @@ const INITIAL: Draft = {
   username: '',
   password: '',
 
-  grade: 1,
+  grade: 10,
   startDate: '',
+  leaveDate: '',
   status: EnrollmentStatus.ACTIVE,
   monthlyTuition: 500000,
   isAccountActive: true,
@@ -165,6 +167,7 @@ export default function StudentCreatePage() {
 
       grade: draft.grade,
       startDate: draft.startDate || undefined,
+      leaveDate: draft.leaveDate || undefined,
       status: draft.status,
       monthlyTuition: draft.monthlyTuition,
       guardians: draft.guardians
@@ -306,6 +309,16 @@ export default function StudentCreatePage() {
               className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
             />
           </FormField>
+          {(draft.status === EnrollmentStatus.INACTIVE || draft.status === EnrollmentStatus.GRADUATED) && (
+            <FormField label={t('pages.admin.studentCreate.fields.leaveDate')}>
+              <input
+                type="date"
+                value={draft.leaveDate}
+                onChange={(e) => patch({ leaveDate: e.target.value })}
+                className="bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm focus:ring-2 focus:ring-primary outline-none"
+              />
+            </FormField>
+          )}
           <FormField label={'Ngôn ngữ mặc định'}>
             <select
               value={draft.defaultLanguage}

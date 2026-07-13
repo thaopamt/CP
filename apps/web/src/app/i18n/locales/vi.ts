@@ -802,6 +802,7 @@ const vi: AppResources = {
           grade: 'Khối lớp',
           cohortYear: 'Năm tốt nghiệp',
           startDate: 'Ngày nhập học',
+          leaveDate: 'Ngày nghỉ học',
           monthlyTuition: 'Học phí tháng',
           monthlyTuitionHint:
             'Học phí tháng mặc định. Màn tài chính sẽ chia theo số buổi lịch và có thể chỉnh riêng theo từng học sinh, từng tháng.',

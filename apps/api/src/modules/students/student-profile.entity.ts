@@ -45,6 +45,9 @@ export class StudentProfile extends BaseEntity {
   @Column({ type: 'date', name: 'start_date', nullable: true })
   startDate!: string | null;
 
+  @Column({ type: 'date', name: 'leave_date', nullable: true })
+  leaveDate!: string | null;
+
   @Index()
   @Column({ type: 'enum', enum: EnrollmentStatus, default: EnrollmentStatus.ACTIVE })
   status!: EnrollmentStatus;

@@ -171,8 +171,11 @@ export class FinanceService {
       if (visibleSet && !visibleSet.has(profile.userId)) return false;
       if (!this.hasStartedByMonthEnd(profile, to)) return false;
       
+      const leaveDate = this.datePart(profile.leaveDate);
+      if (leaveDate && leaveDate < from) return false;
+
       if (profile.status === EnrollmentStatus.INACTIVE || profile.status === EnrollmentStatus.GRADUATED) {
-        if (profile.updatedAt) {
+        if (!leaveDate && profile.updatedAt) {
           const inactiveMonthStr = profile.updatedAt.toISOString().slice(0, 7);
           if (month > inactiveMonthStr) return false;
         }
@@ -216,6 +219,9 @@ export class FinanceService {
       const dayOfWeek = JS_DOW_TO_ENUM[new Date(`${date}T00:00:00.000Z`).getUTCDay()];
       for (const schedule of schedules) {
         if (schedule.dayOfWeek !== dayOfWeek) continue;
+        const profile = profileByStudentId.get(schedule.studentId);
+        if (profile && this.hasLeftBeforeDate(profile, date)) continue;
+
         if (cancelledSlots.has(this.slotKey(date, schedule.dayOfWeek, schedule.startTime, schedule.endTime)))
           continue;
 
@@ -228,7 +234,8 @@ export class FinanceService {
 
     for (const row of slotRows) {
       if (!BILLABLE_STATUSES.includes(row.status)) continue;
-      if (!profileByStudentId.has(row.studentId)) continue;
+      const profile = profileByStudentId.get(row.studentId)!;
+      if (this.hasLeftBeforeDate(profile, row.date)) continue;
       if (cancelledSlots.has(this.slotKey(row.date, row.dayOfWeek, row.startTime, row.endTime))) continue;
 
       const schedule = scheduleBySlot.get(this.attendanceSlotKey(row));
@@ -241,7 +248,8 @@ export class FinanceService {
 
     for (const row of legacyRows) {
       if (!BILLABLE_STATUSES.includes(row.status)) continue;
-      if (!profileByStudentId.has(row.studentId)) continue;
+      const profile = profileByStudentId.get(row.studentId)!;
+      if (this.hasLeftBeforeDate(profile, row.date)) continue;
       const duplicateKey = this.studentDateClassKey(row.studentId, row.date, row.classId);
       if (countedSlotClassKeys.has(duplicateKey)) continue;
 
@@ -534,6 +542,11 @@ export class FinanceService {
   private hasStartedByMonthEnd(profile: StudentProfile, monthEnd: string): boolean {
     const startDate = this.datePart(profile.startDate);
     return !startDate || startDate <= monthEnd;
+  }
+
+  private hasLeftBeforeDate(profile: StudentProfile, date: string): boolean {
+    const leaveDate = this.datePart(profile.leaveDate);
+    return !!(leaveDate && leaveDate < date);
   }
 
   private datePart(value: Date | string | null | undefined): string | null {
