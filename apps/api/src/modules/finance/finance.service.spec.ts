@@ -1,5 +1,5 @@
 import { ObjectLiteral, Repository } from 'typeorm';
-import { AttendanceStatus, DayOfWeek, FinanceCollectionStatus } from '@cp/shared';
+import { AttendanceStatus, DayOfWeek, EnrollmentStatus, FinanceCollectionStatus } from '@cp/shared';
 
 import { AttendanceRecord } from '../attendance/attendance.entity';
 import { ScheduleSlotAttendanceRecord } from '../attendance/schedule-slot-attendance.entity';
@@ -375,5 +375,25 @@ describe('FinanceService', () => {
     expect(trend[2].month).toBe('2026-06');
     expect(trend[2].summary.totalPotentialAmount).toBe(600_000);
     expect(trend[2].summary.totalAmountDue).toBe(120_000); // 1 session out of 5 scheduled in June 2026
+  });
+
+  it('excludes INACTIVE students starting from the month after their updatedAt timestamp', async () => {
+    // Create an inactive profile that was updated (dropped out) in 2026-06
+    const p1 = profile('p1', 's1', 600_000);
+    p1.status = EnrollmentStatus.INACTIVE;
+    p1.updatedAt = new Date('2026-06-15T00:00:00.000Z');
+
+    const service = serviceWith({
+      profiles: [p1],
+      schedules: [schedule('s1', DayOfWeek.TUE, '08:00:00', '09:30:00', null)]
+    });
+
+    // They should appear in the month they dropped out (June 2026)
+    const reportJune = await service.getMonthlyReport({ month: '2026-06' });
+    expect(reportJune.rows.map(r => r.studentId)).toEqual(['s1']);
+
+    // They should NOT appear in the next month (July 2026)
+    const reportJuly = await service.getMonthlyReport({ month: '2026-07' });
+    expect(reportJuly.rows.map(r => r.studentId)).toEqual([]);
   });
 });

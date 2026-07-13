@@ -4,6 +4,7 @@ import { Between, In, Repository } from 'typeorm';
 import {
   AttendanceStatus,
   DayOfWeek,
+  EnrollmentStatus,
   FINANCE_COLLECTION_STATUSES,
   FINANCE_BILLING_STATUSES,
   FinanceBillingStatus,
@@ -168,7 +169,15 @@ export class FinanceService {
     // Only include students once their start month has arrived.
     const profiles = allProfiles.filter((profile) => {
       if (visibleSet && !visibleSet.has(profile.userId)) return false;
-      return this.hasStartedByMonthEnd(profile, to);
+      if (!this.hasStartedByMonthEnd(profile, to)) return false;
+      
+      if (profile.status === EnrollmentStatus.INACTIVE || profile.status === EnrollmentStatus.GRADUATED) {
+        if (profile.updatedAt) {
+          const inactiveMonthStr = profile.updatedAt.toISOString().slice(0, 7);
+          if (month > inactiveMonthStr) return false;
+        }
+      }
+      return true;
     });
 
     const profileByStudentId = new Map(profiles.map((profile) => [profile.userId, profile]));
