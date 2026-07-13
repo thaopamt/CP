@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCheckinStatus, useCheckIn } from '../api/checkin.queries';
 import { shouldOpenCheckinPopup, streakBonusGems, nextStreakMilestone } from '../lib/checkin-board';
-
-const POPUP_KEY = 'checkin:lastPopupDay';
+import { useAuthStore } from '../stores/auth.store';
 
 /**
  * Self-contained, zero-prop. Opens at most once per VN day (server-authoritative
@@ -12,21 +11,29 @@ const POPUP_KEY = 'checkin:lastPopupDay';
  */
 export default function CheckinPopup() {
   const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
   const { data: status } = useCheckinStatus();
   const checkIn = useCheckIn();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (!status) return;
+    if (!status || !user) return;
+    const popupKey = `checkin:lastPopupDay:${user.id}`;
     const decision = shouldOpenCheckinPopup({
       checkedInToday: status.checkedInToday,
       today: status.today,
-      lastPopupDay: localStorage.getItem(POPUP_KEY),
+      lastPopupDay: localStorage.getItem(popupKey),
     });
     if (!decision) return;
-    localStorage.setItem(POPUP_KEY, status.today);
+    localStorage.setItem(popupKey, status.today);
     setOpen(true);
-  }, [status]);
+  }, [status, user]);
+
+  useEffect(() => {
+    if (status?.checkedInToday) {
+      setOpen(false);
+    }
+  }, [status?.checkedInToday]);
 
   if (!open || !status) return null;
 
@@ -34,7 +41,7 @@ export default function CheckinPopup() {
   const nextMs = nextStreakMilestone(status.currentStreak);
 
   return (
-    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/40 backdrop-blur-sm" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-[90] grid place-items-center bg-black/40 backdrop-blur-sm" role="dialog" aria-modal="true">
       <div className="w-[min(92vw,26rem)] rounded-3xl bg-surface p-lg flex flex-col gap-md shadow-elev-3">
         <div className="flex items-center gap-sm">
           <span className="material-symbols-outlined text-primary text-[32px]">event_available</span>

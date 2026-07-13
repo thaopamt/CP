@@ -30,7 +30,9 @@ export function GamificationCelebration() {
 
   return (
     <AnimatePresence>
-      {current && <CelebrationCard key={current.at} event={current} onClose={dismiss} t={t} />}
+      {current && (
+        <CelebrationCardInner key={current.at} event={current} onClose={dismiss} t={t} />
+      )}
     </AnimatePresence>
   );
 }
@@ -61,19 +63,19 @@ const THEME: Record<
   },
 };
 
-function CelebrationCard({
-  event,
-  onClose,
-  t,
-}: {
+// Extracted inner component, returning motion.div directly so AnimatePresence can track it
+import { forwardRef } from 'react';
+
+const CelebrationCardInner = forwardRef<HTMLDivElement, {
   event: IGamificationEvent;
   onClose: () => void;
   t: TFn;
-}) {
+}>(function CelebrationCardInner({ event, onClose, t }, ref) {
   const theme = THEME[event.type] ?? THEME['quest:completed'];
 
   return (
     <motion.div
+      ref={ref}
       className="fixed inset-0 z-[100] grid place-items-center bg-black/60 backdrop-blur-sm px-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -133,4 +135,4 @@ function CelebrationCard({
       </motion.div>
     </motion.div>
   );
-}
+});
