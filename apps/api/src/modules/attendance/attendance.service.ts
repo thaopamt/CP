@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { AttendanceStatus, DayOfWeek, IStudentAttendanceHistoryItem, JwtPayload, UserRole } from '@cp/shared';
+import { AttendanceStatus, DayOfWeek, EnrollmentStatus, IStudentAttendanceHistoryItem, JwtPayload, UserRole } from '@cp/shared';
 
 import { AttendanceRecord } from './attendance.entity';
 import { ClassEntity } from '../classes/class.entity';
@@ -39,6 +39,14 @@ export class AttendanceService {
     private readonly studentProfiles: Repository<StudentProfile>,
     private readonly cache: SystemCacheService,
   ) {}
+
+  private async getActiveStudentIds(): Promise<string[]> {
+    const profiles = await this.studentProfiles.find({
+      where: { status: In([EnrollmentStatus.ACTIVE, EnrollmentStatus.PENDING]) },
+      select: ['userId'],
+    });
+    return profiles.map((p) => p.userId);
+  }
 
   /**
    * Teacher-portal visibility rule for attendance rosters.
@@ -109,9 +117,10 @@ export class AttendanceService {
     if (!cls) throw new NotFoundException(`Class ${classId} not found`);
 
     const dow = JS_DOW_TO_ENUM[new Date(date).getUTCDay()];
-    const allSchedulesForClassDay = dow
+    const activeIds = await this.getActiveStudentIds();
+    const allSchedulesForClassDay = (dow && activeIds.length > 0)
       ? await this.studentSchedules.find({
-          where: { classId, dayOfWeek: dow, student: { isActive: true } },
+          where: { classId, dayOfWeek: dow, studentId: In(activeIds) },
           relations: ['student'],
         })
       : [];
@@ -471,9 +480,12 @@ export class AttendanceService {
   }
 
   private async computeAllCustomSchedules() {
+    const activeIds = await this.getActiveStudentIds();
+    if (!activeIds.length) return [];
+    
     const rows = await this.studentSchedules.find({
       relations: ['class', 'student'],
-      where: { student: { isActive: true } },
+      where: { studentId: In(activeIds) },
       order: { dayOfWeek: 'ASC', startTime: 'ASC' },
     });
 
@@ -520,11 +532,14 @@ export class AttendanceService {
     endTime: string,
     viewer?: JwtPayload,
   ) {
-    const allSchedules = await this.studentSchedules.find({
-      where: { dayOfWeek, startTime, endTime, student: { isActive: true } },
-      relations: ['student'],
-      order: { student: { firstName: 'ASC', lastName: 'ASC' } },
-    });
+    const activeIds = await this.getActiveStudentIds();
+    const allSchedules = activeIds.length > 0 
+      ? await this.studentSchedules.find({
+          where: { dayOfWeek, startTime, endTime, studentId: In(activeIds) },
+          relations: ['student'],
+          order: { student: { firstName: 'ASC', lastName: 'ASC' } },
+        })
+      : [];
 
     // Teacher portal: only their own students (or students with no teacher).
     const hidden = await this.hiddenStudentUserIds(
@@ -619,10 +634,13 @@ export class AttendanceService {
     const dates = this.eachDate(from, to);
     if (dates.length === 0) return [];
 
-    const allSchedules = await this.studentSchedules.find({
-      where: { student: { isActive: true } },
-      relations: ['student'],
-    });
+    const activeIds = await this.getActiveStudentIds();
+    const allSchedules = activeIds.length > 0 
+      ? await this.studentSchedules.find({
+          where: { studentId: In(activeIds) },
+          relations: ['student'],
+        })
+      : [];
 
     // Teacher portal: drop other teachers' students so slots that end up with
     // no visible students disappear entirely from the calendar.

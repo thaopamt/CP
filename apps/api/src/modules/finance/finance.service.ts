@@ -234,8 +234,8 @@ export class FinanceService {
 
     for (const row of slotRows) {
       if (!BILLABLE_STATUSES.includes(row.status)) continue;
-      const profile = profileByStudentId.get(row.studentId)!;
-      if (this.hasLeftBeforeDate(profile, row.date)) continue;
+      const profile = profileByStudentId.get(row.studentId);
+      if (!profile || this.hasLeftBeforeDate(profile, row.date)) continue;
       if (cancelledSlots.has(this.slotKey(row.date, row.dayOfWeek, row.startTime, row.endTime))) continue;
 
       const schedule = scheduleBySlot.get(this.attendanceSlotKey(row));
@@ -248,8 +248,8 @@ export class FinanceService {
 
     for (const row of legacyRows) {
       if (!BILLABLE_STATUSES.includes(row.status)) continue;
-      const profile = profileByStudentId.get(row.studentId)!;
-      if (this.hasLeftBeforeDate(profile, row.date)) continue;
+      const profile = profileByStudentId.get(row.studentId);
+      if (!profile || this.hasLeftBeforeDate(profile, row.date)) continue;
       const duplicateKey = this.studentDateClassKey(row.studentId, row.date, row.classId);
       if (countedSlotClassKeys.has(duplicateKey)) continue;
 
