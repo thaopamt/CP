@@ -281,3 +281,36 @@ describe('StudentsService.resetLearningData', () => {
     });
   });
 });
+
+describe('StudentsService.updateStudent', () => {
+  it('updates user.isActive to false and clears refreshTokenHash when status changes to INACTIVE', async () => {
+    const ctx = makeService(
+      { id: 'profile-1', userId: 'user-1', status: 'ACTIVE' as any },
+      { id: 'user-1', isActive: true }
+    );
+    
+    // Mock the profile findOne responses on the main repo and transaction repo
+    const mockRepo = ctx.service['repo'] as any;
+    mockRepo.findOne = jest.fn().mockResolvedValueOnce({ 
+      id: 'profile-1', 
+      userId: 'user-1', 
+      status: 'ACTIVE', 
+      user: { id: 'user-1', isActive: true } 
+    });
+    
+    ctx.profileRepository.findOne = jest.fn().mockResolvedValueOnce({ 
+      id: 'profile-1', 
+      userId: 'user-1', 
+      status: 'INACTIVE', 
+      user: { id: 'user-1', isActive: false }, 
+      guardians: [] 
+    });
+
+    await ctx.service.updateStudent('profile-1', { status: 'INACTIVE' as any });
+
+    expect(ctx.usersRepository.update).toHaveBeenCalledWith(
+      { id: 'user-1' },
+      expect.objectContaining({ isActive: false, refreshTokenHash: null })
+    );
+  });
+});

@@ -176,7 +176,14 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       if (dto.grade !== undefined) profilePatch.grade = dto.grade;
       if (dto.cohortYear !== undefined) profilePatch.cohortYear = dto.cohortYear;
       if (dto.startDate !== undefined) profilePatch.startDate = dto.startDate;
-      if (dto.status !== undefined) profilePatch.status = dto.status;
+      if (dto.status !== undefined) {
+        profilePatch.status = dto.status;
+        if (dto.status === EnrollmentStatus.INACTIVE || dto.status === EnrollmentStatus.GRADUATED) {
+          await userRepo.update({ id: profile.userId }, { isActive: false, refreshTokenHash: null });
+        } else if (dto.status === EnrollmentStatus.ACTIVE || dto.status === EnrollmentStatus.PENDING) {
+          await userRepo.update({ id: profile.userId }, { isActive: true });
+        }
+      }
       if (dto.monthlyTuition !== undefined) profilePatch.monthlyTuition = dto.monthlyTuition;
       if (dto.honorRoll !== undefined) profilePatch.honorRoll = dto.honorRoll;
       if (Object.keys(profilePatch).length) {
