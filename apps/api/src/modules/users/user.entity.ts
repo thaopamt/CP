@@ -41,6 +41,9 @@ export class User
   @Column({ type: 'boolean', default: true, name: 'is_active' })
   isActive!: boolean;
 
+  @Column({ type: 'text', name: 'block_reason', nullable: true })
+  blockReason!: string | null;
+
   toJSON(): Omit<User, 'passwordHash' | 'toJSON'> {
     const { passwordHash: _passwordHash, ...safe } = this;
     return safe as Omit<User, 'passwordHash' | 'toJSON'>;

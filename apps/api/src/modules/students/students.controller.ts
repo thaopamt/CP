@@ -137,8 +137,9 @@ export class StudentsController implements CrudController<StudentProfile> {
   @Post(':id/block')
   async blockStudent(
     @Param('id', new ParseUUIDPipe()) id: string,
+    @Body('reason') reason?: string,
   ) {
-    return this.service.blockStudent(id);
+    return this.service.blockStudent(id, reason);
   }
 
   @Roles(UserRole.ADMIN)

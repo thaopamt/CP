@@ -130,7 +130,7 @@ export function useResetStudentLearningData(id: string) {
 export function useBlockStudent(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => studentsApi.block(id),
+    mutationFn: (reason?: string) => studentsApi.block(id, reason),
     onSuccess: (result) => {
       invalidateStudentLearningCaches(qc, id, result.userId);
     },

@@ -17,8 +17,11 @@ export class AuthService {
 
   async login(email: string, password: string): Promise<LoginResponse> {
     const user = await this.users.findByEmailWithPassword(email);
-    if (!user || !user.isActive) {
+    if (!user) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+    if (!user.isActive) {
+      throw this.blockedException(user.blockReason);
     }
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) {
@@ -48,7 +51,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
     if (!user.isActive) {
-      throw this.blockedException();
+      throw this.blockedException(user.blockReason);
     }
     if (!user.refreshTokenHash) {
       throw new UnauthorizedException('Invalid refresh token');
@@ -88,10 +91,10 @@ export class AuthService {
     await this.users.updateRefreshTokenHash(userId, null);
   }
 
-  private blockedException(): ForbiddenException {
+  private blockedException(reason?: string | null): ForbiddenException {
     return new ForbiddenException({
       code: 'USER_BLOCKED',
-      message: 'User is blocked',
+      message: reason || 'Tài khoản của bạn đã bị khóa',
     });
   }
 
@@ -128,8 +131,11 @@ export class AuthService {
     newPassword: string,
   ): Promise<{ success: boolean }> {
     const user = await this.users.findByIdWithPassword(userId);
-    if (!user || !user.isActive) {
+    if (!user) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+    if (!user.isActive) {
+      throw this.blockedException(user.blockReason);
     }
 
     const ok = await bcrypt.compare(currentPassword, user.passwordHash);

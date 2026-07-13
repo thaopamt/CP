@@ -251,8 +251,8 @@ export const studentsApi = {
     return data;
   },
 
-  async block(id: string): Promise<BlockStudentResult> {
-    const { data } = await apiClient.post<BlockStudentResult>(`/students/${id}/block`);
+  async block(id: string, reason?: string): Promise<BlockStudentResult> {
+    const { data } = await apiClient.post<BlockStudentResult>(`/students/${id}/block`, { reason });
     return data;
   },
 

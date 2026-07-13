@@ -181,9 +181,10 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       if (dto.status !== undefined) {
         profilePatch.status = dto.status;
         if (dto.status === EnrollmentStatus.INACTIVE || dto.status === EnrollmentStatus.GRADUATED) {
-          await userRepo.update({ id: profile.userId }, { isActive: false, refreshTokenHash: null });
+          const reason = dto.status === EnrollmentStatus.INACTIVE ? 'Tài khoản bị khóa do học sinh đã Nghỉ học' : 'Tài khoản bị khóa do học sinh đã Tốt nghiệp';
+          await userRepo.update({ id: profile.userId }, { isActive: false, refreshTokenHash: null, blockReason: reason });
         } else if (dto.status === EnrollmentStatus.ACTIVE || dto.status === EnrollmentStatus.PENDING) {
-          await userRepo.update({ id: profile.userId }, { isActive: true });
+          await userRepo.update({ id: profile.userId }, { isActive: true, blockReason: null });
         }
       }
       if (dto.monthlyTuition !== undefined) profilePatch.monthlyTuition = dto.monthlyTuition;
@@ -414,7 +415,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
     return result;
   }
 
-  async blockStudent(studentId: string): Promise<BlockStudentResult> {
+  async blockStudent(studentId: string, reason?: string): Promise<BlockStudentResult> {
     const blockedAt = new Date();
     const result = await this.ds.transaction(async (tx) => {
       const profileRepo = tx.getRepository(StudentProfile);
@@ -428,7 +429,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
       const alreadyBlocked = user.isActive === false;
       await userRepo.update(
         { id: profile.userId },
-        { isActive: false, refreshTokenHash: null },
+        { isActive: false, refreshTokenHash: null, blockReason: reason || null },
       );
 
       const reset = await this.resetLearningDataInTransaction(tx, studentId, blockedAt);
@@ -454,7 +455,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
 
       await userRepo.update(
         { id: profile.userId },
-        { isActive: true, refreshTokenHash: null },
+        { isActive: true, refreshTokenHash: null, blockReason: null },
       );
 
       return {

@@ -35,6 +35,7 @@ import { useUsersList } from '../../../api/users.queries';
 import { usePortalBase } from '../../../hooks/usePortalBase';
 import { MultiSelectPicker } from '../../../components/MultiSelectPicker';
 import { ResetPasswordModal } from './ResetPasswordModal';
+import { BlockStudentModal } from './BlockStudentModal';
 import StudentScheduleTab from './StudentScheduleTab';
 import StudentAttendanceHistoryTab from './StudentAttendanceHistoryTab';
 
@@ -52,6 +53,7 @@ export default function StudentProfilePage() {
   const studentTeachersQuery = useStudentTeachers(idParam);
   const [tab, setTab] = useState<Tab>('academics');
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
   const [manageTeachersOpen, setManageTeachersOpen] = useState(false);
   const resetPassword = useResetPasswordStudent(idParam as string);
   const resetLearningData = useResetStudentLearningData(idParam as string);
@@ -146,55 +148,8 @@ export default function StudentProfilePage() {
     }
   }
 
-  async function handleBlockStudent() {
-    const ok = await confirm({
-      title: t('pages.admin.studentProfile.block.title', 'Block student'),
-      message: (
-        <div className="space-y-2 text-left">
-          <p>
-            {t(
-              'pages.admin.studentProfile.block.message',
-              'Học sinh sẽ không thể truy cập website. Hệ thống sẽ xóa bài đã làm, submissions, progress khóa học, quest, badge, maze, shop và đặt lại XP/gems/level.',
-            )}
-          </p>
-          <p className="font-medium">
-            {t(
-              'pages.admin.studentProfile.block.keep',
-              'Thông tin cá nhân, học phí, lớp học, lịch học, điểm danh và dữ liệu finance sẽ được giữ nguyên.',
-            )}
-          </p>
-          <p className="text-error font-medium">
-            {t(
-              'pages.admin.studentProfile.block.noRestore',
-              'Unblock sau này chỉ mở lại quyền truy cập, không khôi phục dữ liệu học tập đã reset.',
-            )}
-          </p>
-        </div>
-      ),
-      confirmLabel: t('pages.admin.studentProfile.block.confirm', 'Block student'),
-      cancelLabel: t('common.cancel', 'Cancel'),
-      intent: 'danger',
-    });
-    if (!ok) return;
-
-    try {
-      const result = await blockStudent.mutateAsync();
-      const deletedCount =
-        result.submissionsDeleted +
-        result.assignmentProgressDeleted +
-        result.questsDeleted +
-        result.badgesDeleted +
-        result.shopItemsDeleted +
-        result.mazeSubmissionsDeleted;
-      toast.success(
-        t('pages.admin.studentProfile.block.success', {
-          defaultValue: 'Đã block học sinh và reset dữ liệu học tập ({{count}} bản ghi).',
-          count: deletedCount,
-        }),
-      );
-    } catch {
-      toast.error(t('pages.admin.studentProfile.block.error', 'Không thể block học sinh. Vui lòng thử lại.'));
-    }
+  function handleBlockStudent() {
+    setIsBlockModalOpen(true);
   }
 
   async function handleUnblockStudent() {
@@ -511,6 +466,11 @@ export default function StudentProfilePage() {
             toast.error(t('pages.admin.studentProfile.resetPasswordError', 'Failed to reset password'));
           }
         }}
+      />
+      <BlockStudentModal
+        isOpen={isBlockModalOpen}
+        onClose={() => setIsBlockModalOpen(false)}
+        studentId={idParam as string}
       />
       {manageTeachersOpen && (
         <ManageTeachersDialog
