@@ -22,6 +22,7 @@ interface ShopSeed {
   minLevel?: number;
   payload?: IShopItemPayload | null;
   sortOrder: number;
+  isActive?: boolean;
 }
 
 // ── Characters ────────────────────────────────────────────────────────────────
@@ -123,6 +124,53 @@ const ITEMS: ShopSeed[] = [
 
   // ── Characters (avatars) ───────────────────────────────────────────────────────
   ...CHARACTER_ITEMS,
+
+  // ── Weekly reward avatars (hidden from general shop catalog) ─────────────────
+  {
+    code: 'CHAR_WEEKLY_CHAMPION',
+    name: 'Chiến thần Bảng tuần',
+    description: 'Avatar đặc quyền dành riêng cho nhà vô địch Bảng xếp hạng Tuần. Thời hạn sử dụng: 7 ngày.',
+    icon: 'military_tech',
+    imageUrl: '/character/male/15-divine.svg',
+    kind: ShopItemKind.COSMETIC,
+    category: ShopItemCategory.CHARACTER,
+    rarity: BadgeRarity.LEGENDARY,
+    price: 999999,
+    minLevel: 0,
+    payload: null,
+    sortOrder: 999,
+    isActive: true,
+  },
+  {
+    code: 'CHAR_WEEKLY_ELITE',
+    name: 'Cao thủ Bảng tuần',
+    description: 'Avatar đặc quyền dành riêng cho Top 2-3 Bảng xếp hạng Tuần. Thời hạn sử dụng: 7 ngày.',
+    icon: 'military_tech',
+    imageUrl: '/character/male/12-royal.svg',
+    kind: ShopItemKind.COSMETIC,
+    category: ShopItemCategory.CHARACTER,
+    rarity: BadgeRarity.EPIC,
+    price: 999999,
+    minLevel: 0,
+    payload: null,
+    sortOrder: 1000,
+    isActive: true,
+  },
+  {
+    code: 'CHAR_WEEKLY_CHALLENGER',
+    name: 'Đấu sĩ Bảng tuần',
+    description: 'Avatar đặc quyền dành cho Top 4-10 Bảng xếp hạng Tuần. Thời hạn sử dụng: 7 ngày.',
+    icon: 'military_tech',
+    imageUrl: '/character/male/6-platinum.svg',
+    kind: ShopItemKind.COSMETIC,
+    category: ShopItemCategory.CHARACTER,
+    rarity: BadgeRarity.RARE,
+    price: 999999,
+    minLevel: 0,
+    payload: null,
+    sortOrder: 1001,
+    isActive: true,
+  },
 ];
 
 async function run() {

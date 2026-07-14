@@ -153,16 +153,18 @@ export class ShopService {
         const level = profile?.level ?? 0;
         const ownedById = new Map(owned.map((o) => [o.itemId, o]));
 
-        const entries: IShopCatalogEntry[] = items.map((item) => {
-          const inv = ownedById.get(item.id);
-          return {
-            item: this.toDto(item),
-            owned: !!inv,
-            equipped: !!inv?.equipped,
-            affordable: gems >= item.price,
-            unlocked: level >= item.minLevel,
-          };
-        });
+        const entries: IShopCatalogEntry[] = items
+          .filter((item) => !item.code.startsWith('CHAR_WEEKLY_'))
+          .map((item) => {
+            const inv = ownedById.get(item.id);
+            return {
+              item: this.toDto(item),
+              owned: !!inv,
+              equipped: !!inv?.equipped,
+              affordable: gems >= item.price,
+              unlocked: level >= item.minLevel,
+            };
+          });
 
         return { gems, level, entries };
       },
