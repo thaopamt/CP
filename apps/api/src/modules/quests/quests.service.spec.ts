@@ -14,6 +14,7 @@ import { GamificationGateway } from './gamification.gateway';
 import { Quest } from './quest.entity';
 import { QuestsService } from './quests.service';
 import { StudentQuest } from './student-quest.entity';
+import { LeaderboardService } from './leaderboard.service';
 
 function crudMetadata(targetName: string) {
   return {
@@ -124,6 +125,10 @@ describe('QuestsService recurrence and duplicate-solve behavior', () => {
     badges = { evaluateAndAward: jest.fn().mockResolvedValue(undefined) };
     gateway = { publish: jest.fn() };
 
+    const leaderboardService = {
+      checkAndFinalizeWeeklyLeaderboard: jest.fn().mockResolvedValue(undefined),
+    };
+
     service = new QuestsService(
       questRepo,
       studentQuestRepo,
@@ -133,6 +138,7 @@ describe('QuestsService recurrence and duplicate-solve behavior', () => {
       badges as unknown as BadgesService,
       gateway as unknown as GamificationGateway,
       cache as unknown as SystemCacheService,
+      leaderboardService as unknown as LeaderboardService,
     );
   });
 

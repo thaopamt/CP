@@ -57,12 +57,17 @@ function makeService(
     remember: jest.fn().mockImplementation((opts, fn) => fn()),
   };
 
+  const leaderboardService = {
+    checkAndFinalizeWeeklyLeaderboard: jest.fn().mockResolvedValue(undefined),
+  };
+
   const service = new ShopService(
     itemsRepo as any,
     inventoryRepo as any,
     profilesRepo as any,
     usersRepo as any,
     badgesService as any,
+    leaderboardService as any,
     ds as any,
     cache as any,
   );

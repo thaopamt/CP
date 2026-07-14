@@ -28,6 +28,7 @@ describe('LeaderboardService.checkAndFinalizeWeeklyLeaderboard', () => {
     };
 
     invRepoMock = {
+      findOne: jest.fn(),
       delete: jest.fn(),
       create: jest.fn((x) => x),
       save: jest.fn(async (x) => x),
@@ -71,6 +72,7 @@ describe('LeaderboardService.checkAndFinalizeWeeklyLeaderboard', () => {
     studentBadgesRepoMock = {};
     cacheMock = {
       remember: jest.fn(),
+      bumpTags: jest.fn().mockResolvedValue(undefined),
     };
 
     service = new LeaderboardService(
@@ -186,7 +188,7 @@ describe('LeaderboardService.checkAndFinalizeWeeklyLeaderboard', () => {
     const s1 = mockProfiles[0];
     expect(s1.gems).toBe(600); // 100 + 500
     expect(s1.xp).toBe(2000); // 1000 + 1000
-    expect(invRepoMock.delete).toHaveBeenCalledWith({ userId: 'student-1', itemId: 'item-champion-id' });
+    expect(invRepoMock.findOne).toHaveBeenCalledWith({ where: { userId: 'student-1', itemId: 'item-champion-id' } });
     expect(invRepoMock.save).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'student-1',
@@ -199,13 +201,13 @@ describe('LeaderboardService.checkAndFinalizeWeeklyLeaderboard', () => {
     const s2 = mockProfiles[1];
     expect(s2.gems).toBe(350); // 50 + 300
     expect(s2.xp).toBe(1300); // 800 + 500
-    expect(invRepoMock.delete).toHaveBeenCalledWith({ userId: 'student-2', itemId: 'item-elite-id' });
+    expect(invRepoMock.findOne).toHaveBeenCalledWith({ where: { userId: 'student-2', itemId: 'item-elite-id' } });
 
     // Student 4 (Rank 4): +200 XP, +100 Gems, challenger avatar
     const s4 = mockProfiles[3];
     expect(s4.gems).toBe(100); // 0 + 100
     expect(s4.xp).toBe(600); // 400 + 200
-    expect(invRepoMock.delete).toHaveBeenCalledWith({ userId: 'student-4', itemId: 'item-challenger-id' });
+    expect(invRepoMock.findOne).toHaveBeenCalledWith({ where: { userId: 'student-4', itemId: 'item-challenger-id' } });
 
     // Assert finalized record is saved
     expect(finalizedRepoMock.save).toHaveBeenCalledWith(
@@ -233,6 +235,61 @@ describe('LeaderboardService.checkAndFinalizeWeeklyLeaderboard', () => {
             rewards: { xp: 200, gems: 100, avatarCode: 'CHAR_WEEKLY_CHALLENGER' },
           }),
         ]),
+      }),
+    );
+  });
+
+  it('should extend expiresAt and preserve equipped status if the student already owns the weekly avatar', async () => {
+    finalizedRepoMock.findOne.mockResolvedValue(null);
+
+    const mockProfiles = [
+      {
+        userId: 'student-1',
+        weeklyXp: 100,
+        xp: 1000,
+        gems: 100,
+        level: 10,
+        weekKey: prevWeekKey,
+        user: { firstName: 'John', lastName: 'Doe', avatarUrl: 'avatar' },
+      },
+    ];
+
+    const queryBuilderMock = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue(mockProfiles),
+    };
+
+    profilesRepoMock.createQueryBuilder.mockReturnValue(queryBuilderMock);
+
+    // Simulate already owning the avatar and having it equipped: true
+    const existingInventoryRow = {
+      userId: 'student-1',
+      itemId: 'item-champion-id',
+      expiresAt: new Date(),
+      equipped: true,
+    };
+    invRepoMock.findOne.mockResolvedValue(existingInventoryRow);
+
+    await service.checkAndFinalizeWeeklyLeaderboard(mockDate);
+
+    // Assert findOne was called
+    expect(invRepoMock.findOne).toHaveBeenCalledWith({
+      where: { userId: 'student-1', itemId: 'item-champion-id' },
+    });
+
+    // Assert that it did NOT delete, but updated the existing row with new expiresAt and saved
+    expect(invRepoMock.delete).not.toHaveBeenCalled();
+    expect(invRepoMock.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'student-1',
+        itemId: 'item-champion-id',
+        equipped: true,
+        expiresAt: expect.any(Date),
       }),
     );
   });

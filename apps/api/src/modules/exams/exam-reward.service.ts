@@ -13,6 +13,7 @@ import { StudentBadge } from '../quests/student-badge.entity';
 import { GamificationGateway } from '../quests/gamification.gateway';
 import { applyXpGain } from '../quests/period-keys';
 import { advanceLevel } from '../../common/gamification.constants';
+import { LeaderboardService } from '../quests/leaderboard.service';
 
 interface EvalContext {
   maxTotalScore: number;
@@ -37,9 +38,11 @@ export class ExamRewardService {
     private readonly ds: DataSource,
     private readonly audit: ExamAuditService,
     private readonly gamification: GamificationGateway,
+    private readonly leaderboardService: LeaderboardService,
   ) {}
 
-  async grantAll(examId: string, snapshotVersion: number, actorId: string | null): Promise<{ granted: number }> {
+  async grantAll(examId: string, snapshotVersion: number, actorId: string | null, now: Date = new Date()): Promise<{ granted: number }> {
+    await this.leaderboardService.checkAndFinalizeWeeklyLeaderboard(now);
     const rules = await this.rules.find({ where: { examId, isActive: true }, order: { priority: 'ASC' } });
     if (rules.length === 0) return { granted: 0 };
 

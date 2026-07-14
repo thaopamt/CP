@@ -21,6 +21,7 @@ import {
 import { StudentProfile } from '../students/student-profile.entity';
 import { User } from '../users/user.entity';
 import { BadgesService } from '../quests/badges.service';
+import { LeaderboardService } from '../quests/leaderboard.service';
 import { applyXpGain } from '../quests/period-keys';
 import { advanceLevel } from '../../common/gamification.constants';
 import { ShopItem } from './shop-item.entity';
@@ -35,6 +36,7 @@ export class ShopService {
     @InjectRepository(StudentProfile) private readonly profiles: Repository<StudentProfile>,
     @InjectRepository(User) private readonly users: Repository<User>,
     private readonly badges: BadgesService,
+    private readonly leaderboardService: LeaderboardService,
     private readonly ds: DataSource,
     private readonly cache: SystemCacheService,
   ) {}
@@ -238,6 +240,7 @@ export class ShopService {
    * Runs in a transaction so the gem debit and the grant can't diverge.
    */
   async purchase(userId: string, itemId: string): Promise<IPurchaseResult> {
+    await this.leaderboardService.checkAndFinalizeWeeklyLeaderboard(new Date());
     const result = await this.ds.transaction(async (tx) => {
       const itemRepo = tx.getRepository(ShopItem);
       const invRepo = tx.getRepository(StudentInventory);

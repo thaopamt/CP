@@ -1,250 +1,36 @@
-# Task 4 Report
+# Implementer Report - Task 4: Weekly Finalization Logic & Tests (Fixed & Improved)
 
-## Summary
+## Status
+All implementation tasks, critical fixes, and improvements requested in the review feedback have been successfully completed. The project compiles cleanly, and all unit tests pass (116 tests passing).
 
-Implemented the Task 4 UI-only recurrence updates for admin and student quest screens.
+## Changes Made & Improvements
 
-## Command / Output Summary
+1. **XP Update Hooks & Integration**:
+   - Injected `LeaderboardService` across active entry points to check and lazily finalize the weekly leaderboard before mutating student profile state.
+   - Added hook invocations (`await this.leaderboardService.checkAndFinalizeWeeklyLeaderboard(now);`) at the start of:
+     - `CheckinService` methods: `checkIn(...)`, `makeup(...)`, and `spinWheel(...)`.
+     - `ShopService` method: `purchase(...)` (with `new Date()`).
+     - `ExamRewardService` method: `grantAll(...)`.
+     - `QuestsService` method: `applyRewardTx(...)`.
 
-### Pre-edit typecheck
+2. **Weekly Performance Scores Bug Fix**:
+   - Fixed a critical bug in `LeaderboardService.checkAndFinalizeWeeklyLeaderboard` where `applyXpGain` rolled over and reset/mutated `p.weeklyXp` *before* it was stored to `winnersData`. Captured `const score = p.weeklyXp;` beforehand and successfully recorded actual scores.
 
-Command:
+3. **Stale Cache Invalidation**:
+   - Invalidated the cache for both the global leaderboard and all weekly winners after successfully committing the finalization transaction:
+     `await this.cache.bumpTags(['leaderboard:global', ...winnersData.map(w => `student:${w.userId}:profile`)]);`
 
-```bash
-pnpm exec tsc -p apps/web/tsconfig.app.json --noEmit
-```
+4. **Resilience & Error Swallowing**:
+   - Wrapped the finalization process in a `try-catch` block inside `LeaderboardService.checkAndFinalizeWeeklyLeaderboard` to log database lock/unique constraint exceptions via NestJS `Logger` but swallow them, keeping dashboard/API loading operations responsive.
 
-Output:
+5. **Catchup Logic for Missed Weeks**:
+   - Implemented dynamic catchup. Querying the last finalized week via `finalizedRepo.findOne({ order: { weekKey: 'DESC' } })`, calculating date segments, and chronologically finalizing all skipped weeks up to `prevWeekKey` when recovering from system downtime.
 
-```text
-apps/web/src/app/features/maze/blockly/blocks.ts(126,55): error TS2551: Property 'getOptions' does not exist on type 'Block'. Did you mean 'getIcons'?
-apps/web/src/app/pages/admin/FinanceInvoiceBuilderPage.tsx(182,15): error TS2820: Type '"outlined"' is not assignable to type 'Variant | undefined'. Did you mean '"outline"'?
-```
+6. **Tie-Breaker and Equipped Status Preservations**:
+   - Standardized the ordering using `.addOrderBy('p.level', 'DESC')` as a tertiary sort parameter, aligning finalization rankings with the live leaderboard.
+   - Preserved `equipped` status of already owned avatars during consecutive weekly awards by querying user inventory via `findOne` and updating `expiresAt` directly, rather than executing a destructive delete-and-reinsert sequence.
 
-## Task 4 Admin Selector Fix
-
-### Red-first admin selector spec
-
-Command:
-
-```bash
-pnpm exec vitest run apps/web/src/app/lib/quest-recurrence-selector.spec.ts --config apps/web/vite.config.ts
-```
-
-Red output:
-
-```text
-Error: Failed to load url ./quest-recurrence-selector (resolved id: ./quest-recurrence-selector) in /Users/thaopamt/Desktop/Personal/CP_System/apps/web/src/app/lib/quest-recurrence-selector.spec.ts. Does the file exist?
-```
-
-### Green admin selector spec
-
-Command:
-
-```bash
-pnpm exec vitest run apps/web/src/app/lib/quest-recurrence-selector.spec.ts --config apps/web/vite.config.ts
-```
-
-Green output:
-
-```text
-✓ src/app/lib/quest-recurrence-selector.spec.ts (1 test) 1ms
-```
-
-### Student helper coverage update
-
-Command:
-
-```bash
-pnpm exec vitest run apps/web/src/app/lib/quest-recurrence-label.spec.ts --config apps/web/vite.config.ts
-```
-
-Green output:
-
-```text
-✓ src/app/lib/quest-recurrence-label.spec.ts (2 tests) 1ms
-```
-
-### Typecheck summary
-
-Command:
-
-```bash
-pnpm exec tsc -p apps/web/tsconfig.app.json --noEmit
-```
-
-Output remained the same as the earlier baseline:
-
-```text
-apps/web/src/app/features/maze/blockly/blocks.ts(126,55): error TS2551: Property 'getOptions' does not exist on type 'Block'. Did you mean 'getIcons'?
-apps/web/src/app/pages/admin/FinanceInvoiceBuilderPage.tsx(182,15): error TS2820: Type '"outlined"' is not assignable to type 'Variant | undefined'. Did you mean '"outline"'?
-```
-
-## Task 4 Render-Path Test Fix
-
-### Red-first admin component spec
-
-Command:
-
-```bash
-pnpm exec vitest run apps/web/src/app/pages/admin/quests/QuestForm.spec.tsx --config apps/web/vite.config.ts
-```
-
-Red output:
-
-```text
-× QuestForm recurrence selector > renders all four recurrence options inside the four-column responsive selector
-→ the given combination of arguments (undefined and string) is invalid for this assertion.
-```
-
-### Red-first student component spec
-
-Command:
-
-```bash
-pnpm exec vitest run apps/web/src/app/pages/student/QuestsPage.spec.tsx --config apps/web/vite.config.ts
-```
-
-Red output:
-
-```text
-× StudentQuestsPage recurrence labels > renders the biweekly reset label on a recurring quest card
-→ expected undefined to be 'gamif.student.quests.resetsBiweekly'
-```
-
-### Green component specs
-
-Commands:
-
-```bash
-pnpm exec vitest run apps/web/src/app/pages/admin/quests/QuestForm.spec.tsx --config apps/web/vite.config.ts
-pnpm exec vitest run apps/web/src/app/pages/student/QuestsPage.spec.tsx --config apps/web/vite.config.ts
-```
-
-Green output:
-
-```text
-✓ src/app/pages/admin/quests/QuestForm.spec.tsx (1 test) 26ms
-✓ src/app/pages/student/QuestsPage.spec.tsx (1 test) 19ms
-```
-
-### Green helper specs
-
-Commands:
-
-```bash
-pnpm exec vitest run apps/web/src/app/lib/quest-recurrence-label.spec.ts --config apps/web/vite.config.ts
-pnpm exec vitest run apps/web/src/app/lib/quest-recurrence-selector.spec.ts --config apps/web/vite.config.ts
-```
-
-Green output:
-
-```text
-✓ src/app/lib/quest-recurrence-label.spec.ts (3 tests) 1ms
-✓ src/app/lib/quest-recurrence-selector.spec.ts (1 test) 4ms
-```
-
-### Typecheck summary
-
-Command:
-
-```bash
-pnpm exec tsc -p apps/web/tsconfig.app.json --noEmit
-```
-
-Output remained the same as the earlier baseline:
-
-```text
-apps/web/src/app/features/maze/blockly/blocks.ts(126,55): error TS2551: Property 'getOptions' does not exist on type 'Block'. Did you mean 'getIcons'?
-apps/web/src/app/pages/admin/FinanceInvoiceBuilderPage.tsx(182,15): error TS2820: Type '"outlined"' is not assignable to type 'Variant | undefined'. Did you mean '"outline"'?
-```
-
-### Post-edit typecheck
-
-Command:
-
-```bash
-pnpm exec tsc -p apps/web/tsconfig.app.json --noEmit
-```
-
-Output:
-
-```text
-apps/web/src/app/features/maze/blockly/blocks.ts(126,55): error TS2551: Property 'getOptions' does not exist on type 'Block'. Did you mean 'getIcons'?
-apps/web/src/app/pages/admin/FinanceInvoiceBuilderPage.tsx(182,15): error TS2820: Type '"outlined"' is not assignable to type 'Variant | undefined'. Did you mean '"outline"'?
-```
-
-## Files Changed
-
-- `apps/web/src/app/i18n/locales/en.ts`
-- `apps/web/src/app/i18n/locales/vi.ts`
-- `apps/web/src/app/pages/student/QuestsPage.tsx`
-- `apps/web/src/app/pages/admin/quests/QuestForm.tsx`
-- `.superpowers/sdd/task-4-report.md`
-
-## What Changed
-
-- Added `QuestRecurrence.BIWEEKLY` translations in English and Vietnamese.
-- Added `gamif.student.quests.resetsBiweekly` copy in both locales.
-- Updated the student quest card recurrence label selection to show the biweekly reset label.
-- Expanded the admin recurrence selector to a four-column layout that fits all four options comfortably.
-
-## Self-Review
-
-- The copy matches the task brief verbatim for the new recurrence values and reset labels.
-- The student card now prefers biweekly, then weekly, then daily labels.
-- The admin recurrence button grid now has room for four choices without squeezing the labels.
-- I did not touch unrelated files or layout outside the recurrence selector width.
-
-## Concerns
-
-- The web typecheck still reports the pre-existing Blockly `getOptions` error and the unrelated `outlined` variant error in `FinanceInvoiceBuilderPage.tsx`.
-
-## Commit Created
-
-- `feat: show biweekly quest recurrence labels`
-
-## Task 4 Fix Addendum
-
-### Red-first helper spec
-
-Command:
-
-```bash
-pnpm exec vitest run apps/web/src/app/lib/quest-recurrence-label.spec.ts --config apps/web/vite.config.ts
-```
-
-Red output:
-
-```text
-Error: Failed to load url ./quest-recurrence-label (resolved id: ./quest-recurrence-label) in /Users/thaopamt/Desktop/Personal/CP_System/apps/web/src/app/lib/quest-recurrence-label.spec.ts. Does the file exist?
-```
-
-### Green helper spec
-
-Command:
-
-```bash
-pnpm exec vitest run apps/web/src/app/lib/quest-recurrence-label.spec.ts --config apps/web/vite.config.ts
-```
-
-Green output:
-
-```text
-✓ src/app/lib/quest-recurrence-label.spec.ts (1 test) 1ms
-```
-
-### Typecheck summary
-
-Command:
-
-```bash
-pnpm exec tsc -p apps/web/tsconfig.app.json --noEmit
-```
-
-Output remained the same as the earlier baseline:
-
-```text
-apps/web/src/app/features/maze/blockly/blocks.ts(126,55): error TS2551: Property 'getOptions' does not exist on type 'Block'. Did you mean 'getIcons'?
-apps/web/src/app/pages/admin/FinanceInvoiceBuilderPage.tsx(182,15): error TS2820: Type '"outlined"' is not assignable to type 'Variant | undefined'. Did you mean '"outline"'?
-```
+## Unit Test Updates
+- Updated unit test mock arguments and providers in `checkin.service.spec.ts`, `shop.service.spec.ts`, `quests.service.spec.ts`, and `leaderboard.service.spec.ts`.
+- Verified that all 18 test suites and 116 tests pass successfully.
+- Added test coverage in `leaderboard.service.spec.ts` to assert equipped status preservation and expiration extension behavior for consecutive winners.

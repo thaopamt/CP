@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import {
@@ -89,15 +89,55 @@ export class LeaderboardService {
     );
   }
 
+  private readonly logger = new Logger(LeaderboardService.name);
+
   async checkAndFinalizeWeeklyLeaderboard(now: Date = new Date()): Promise<void> {
-    const prevWeekTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const prevWeek = weekKey(prevWeekTime);
+    try {
+      const prevWeekTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const prevWeekKey = weekKey(prevWeekTime);
 
-    const finalizedRepo = this.profiles.manager.getRepository(LeaderboardFinalizedWeek);
-    const exists = await finalizedRepo.findOne({ where: { weekKey: prevWeek } });
-    if (exists) return;
+      const finalizedRepo = this.profiles.manager.getRepository(LeaderboardFinalizedWeek);
+      const exists = await finalizedRepo.findOne({ where: { weekKey: prevWeekKey } });
+      if (exists) return;
 
-    // Chạy trong transaction để đảm bảo tính toàn vẹn dữ liệu
+      const lastFinalized = await finalizedRepo.findOne({ order: { weekKey: 'DESC' } });
+
+      let weeksToFinalize: string[] = [];
+
+      if (lastFinalized) {
+        let currentWeekDate = parseWeekKeyToDate(lastFinalized.weekKey);
+        while (true) {
+          currentWeekDate = new Date(currentWeekDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+          const currentWeekKey = weekKey(currentWeekDate);
+          if (currentWeekKey <= prevWeekKey) {
+            if (currentWeekKey !== lastFinalized.weekKey && !weeksToFinalize.includes(currentWeekKey)) {
+              weeksToFinalize.push(currentWeekKey);
+            }
+          } else {
+            break;
+          }
+        }
+      } else {
+        weeksToFinalize.push(prevWeekKey);
+      }
+
+      for (const targetWeekKey of weeksToFinalize) {
+        const doubleCheck = await finalizedRepo.findOne({ where: { weekKey: targetWeekKey } });
+        if (doubleCheck) continue;
+
+        await this.finalizeSingleWeek(targetWeekKey, now);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to check and finalize weekly leaderboard: ${error instanceof Error ? error.message : error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
+  }
+
+  private async finalizeSingleWeek(targetWeekKey: string, now: Date): Promise<void> {
+    let winnersData: LeaderboardFinalizedWeek['winners'] = [];
+
     await this.profiles.manager.transaction(async (tx) => {
       const txFinalizedRepo = tx.getRepository(LeaderboardFinalizedWeek);
       const profRepo = tx.getRepository(StudentProfile);
@@ -105,25 +145,26 @@ export class LeaderboardService {
       const itemRepo = tx.getRepository(ShopItem);
 
       // Lock double-check
-      const doubleCheck = await txFinalizedRepo.findOne({ where: { weekKey: prevWeek } });
+      const doubleCheck = await txFinalizedRepo.findOne({ where: { weekKey: targetWeekKey } });
       if (doubleCheck) return;
 
-      // Query top 10 có week_key = prevWeek, sắp xếp theo weekly_xp desc
+      // Query top 10 có week_key = targetWeekKey, sắp xếp theo weekly_xp desc
       const topProfiles = await profRepo
         .createQueryBuilder('p')
         .leftJoinAndSelect('p.user', 'u')
         .where('u.is_active = :active', { active: true })
         .andWhere('u.role = :role', { role: 'STUDENT' })
-        .andWhere('p.week_key = :prevWeek', { prevWeek })
+        .andWhere('p.week_key = :prevWeek', { prevWeek: targetWeekKey })
         .andWhere('p.weekly_xp > 0')
         .orderBy('p.weekly_xp', 'DESC')
         .addOrderBy('p.xp', 'DESC')
+        .addOrderBy('p.level', 'DESC')
         .limit(10)
         .getMany();
 
       if (topProfiles.length === 0) {
         // Không có ai hoạt động tuần trước, lưu bản ghi trống
-        await txFinalizedRepo.save(txFinalizedRepo.create({ weekKey: prevWeek, winners: [] }));
+        await txFinalizedRepo.save(txFinalizedRepo.create({ weekKey: targetWeekKey, winners: [] }));
         return;
       }
 
@@ -131,7 +172,7 @@ export class LeaderboardService {
       const rewardItems = await itemRepo.find({ where: { code: In(avatarCodes) } });
       const itemMap = new Map(rewardItems.map((i) => [i.code, i]));
 
-      const winnersData: LeaderboardFinalizedWeek['winners'] = [];
+      winnersData = [];
 
       for (let i = 0; i < topProfiles.length; i++) {
         const p = topProfiles[i];
@@ -150,7 +191,9 @@ export class LeaderboardService {
           avatarCode = 'CHAR_WEEKLY_ELITE';
         }
 
-        // 1. Cộng Gems & XP
+        // 1. Capture score BEFORE applying rewards which might roll over/reset it
+        const score = p.weeklyXp;
+
         p.gems += gemsReward;
         applyXpGain(p, xpReward, now);
         advanceLevel(p);
@@ -160,14 +203,20 @@ export class LeaderboardService {
         const item = itemMap.get(avatarCode);
         if (item) {
           const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-          // Xóa avatar cũ cùng loại trong kho đồ nếu có trước khi insert mới
-          await invRepo.delete({ userId: p.userId, itemId: item.id });
-          await invRepo.save(invRepo.create({
-            userId: p.userId,
-            itemId: item.id,
-            expiresAt,
-            equipped: false
-          }));
+          const existing = await invRepo.findOne({ where: { userId: p.userId, itemId: item.id } });
+          if (existing) {
+            existing.expiresAt = expiresAt;
+            await invRepo.save(existing);
+          } else {
+            await invRepo.save(
+              invRepo.create({
+                userId: p.userId,
+                itemId: item.id,
+                expiresAt,
+                equipped: false,
+              }),
+            );
+          }
         }
 
         winnersData.push({
@@ -175,16 +224,25 @@ export class LeaderboardService {
           name: p.user ? `${p.user.firstName} ${p.user.lastName}`.trim() : '—',
           avatarUrl: p.user?.avatarUrl ?? null,
           rank,
-          weeklyXp: p.weeklyXp,
-          rewards: { xp: xpReward, gems: gemsReward, avatarCode }
+          weeklyXp: score,
+          rewards: { xp: xpReward, gems: gemsReward, avatarCode },
         });
       }
 
-      await txFinalizedRepo.save(txFinalizedRepo.create({
-        weekKey: prevWeek,
-        winners: winnersData
-      }));
+      await txFinalizedRepo.save(
+        txFinalizedRepo.create({
+          weekKey: targetWeekKey,
+          winners: winnersData,
+        }),
+      );
     });
+
+    if (winnersData.length > 0) {
+      await this.cache.bumpTags([
+        'leaderboard:global',
+        ...winnersData.map((w) => `student:${w.userId}:profile`),
+      ]);
+    }
   }
 
   private async buildLeaderboard(params: ILeaderboardParams, currentUserId?: string): Promise<ILeaderboardResponse> {
@@ -270,4 +328,23 @@ export class LeaderboardService {
 
     return { scope, window, entries, me, total };
   }
+}
+
+function parseWeekKeyToDate(wk: string): Date {
+  const parts = wk.split('-W');
+  if (parts.length !== 2) throw new Error(`Invalid weekKey format: ${wk}`);
+  const year = parseInt(parts[0], 10);
+  const week = parseInt(parts[1], 10);
+
+  // ISO 8601 week 1 always contains Jan 4th.
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  
+  // Get Monday of ISO week 1
+  const dayNum = jan4.getUTCDay() || 7;
+  const monday1 = new Date(jan4.getTime() - (dayNum - 1) * 24 * 60 * 60 * 1000);
+
+  // Add (week - 1) weeks to monday1, then add 3 days to safely reach Thursday
+  const targetDate = new Date(monday1.getTime() + (week - 1) * 7 * 24 * 60 * 60 * 1000);
+  targetDate.setUTCDate(targetDate.getUTCDate() + 3);
+  return targetDate;
 }
