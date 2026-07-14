@@ -100,7 +100,9 @@ export default function StudentLayout() {
   useStudentLivePresence(location.pathname);
 
   return (
-    <div className="min-h-screen bg-surface/85 backdrop-blur-md text-on-surface font-inter">
+    <div className="min-h-screen bg-surface/85 text-on-surface font-inter">
+      {/* Background blur layer to preserve glassmorphism without breaking fixed positioning */}
+      <div className="fixed inset-0 backdrop-blur-md pointer-events-none" style={{ zIndex: -1 }} />
 
       <GamificationCelebration />
       <CheckinPopup />
