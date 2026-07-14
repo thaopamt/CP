@@ -207,6 +207,10 @@ export class ShopService {
       const item = await itemRepo.findOne({ where: { id: itemId, isActive: true } });
       if (!item) throw new NotFoundException('Shop item not found');
 
+      if (item.code.startsWith('CHAR_WEEKLY_')) {
+        throw new BadRequestException('Vật phẩm này là phần thưởng tuần, không thể mua trực tiếp.');
+      }
+
       const profile = await profRepo.findOne({ where: { userId } });
       if (!profile) throw new NotFoundException('Student profile not found');
 

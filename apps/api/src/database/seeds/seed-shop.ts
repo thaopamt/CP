@@ -201,7 +201,7 @@ async function run() {
           minLevel: it.minLevel ?? 0,
           payload: it.payload ?? null,
           sortOrder: it.sortOrder,
-          isActive: true,
+          isActive: it.isActive ?? true,
         },
       );
       continue;
@@ -220,7 +220,7 @@ async function run() {
         minLevel: it.minLevel ?? 0,
         payload: it.payload ?? null,
         sortOrder: it.sortOrder,
-        isActive: true,
+        isActive: it.isActive ?? true,
       }),
     );
     created += 1;
