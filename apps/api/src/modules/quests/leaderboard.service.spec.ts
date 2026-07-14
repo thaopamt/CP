@@ -83,6 +83,7 @@ describe('LeaderboardService.checkAndFinalizeWeeklyLeaderboard', () => {
     service = new LeaderboardService(
       profilesRepoMock,
       studentBadgesRepoMock,
+      finalizedRepoMock,
       cacheMock,
     );
   });
@@ -430,6 +431,7 @@ describe('LeaderboardService - Weekly Reward popup and history methods', () => {
     service = new LeaderboardService(
       profilesRepoMock,
       studentBadgesRepoMock,
+      finalizedRepoMock,
       cacheMock,
     );
   });
@@ -529,7 +531,7 @@ describe('LeaderboardService - Weekly Reward popup and history methods', () => {
       await expect(service.claimReward('user-1')).rejects.toThrow(NotFoundException);
     });
 
-    it('should update the student profile lastSeenWeeklyRewardWeek to last finalized week key and save it', async () => {
+    it('should update the student profile lastSeenWeeklyRewardWeek to last finalized week key, save it, and invalidate profile cache', async () => {
       finalizedRepoMock.findOne.mockResolvedValue({ weekKey: '2026-W28' });
       const mockProfile = {
         userId: 'user-1',
@@ -541,6 +543,7 @@ describe('LeaderboardService - Weekly Reward popup and history methods', () => {
 
       expect(mockProfile.lastSeenWeeklyRewardWeek).toBe('2026-W28');
       expect(profilesRepoMock.save).toHaveBeenCalledWith(mockProfile);
+      expect(cacheMock.bumpTags).toHaveBeenCalledWith(['student:user-1:profile']);
       expect(result).toEqual(mockProfile);
     });
   });

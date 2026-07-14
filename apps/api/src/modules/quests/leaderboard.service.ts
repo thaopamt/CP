@@ -30,6 +30,7 @@ export class LeaderboardService {
   constructor(
     @InjectRepository(StudentProfile) private readonly profiles: Repository<StudentProfile>,
     @InjectRepository(StudentBadge) private readonly studentBadges: Repository<StudentBadge>,
+    @InjectRepository(LeaderboardFinalizedWeek) private readonly finalizedWeeks: Repository<LeaderboardFinalizedWeek>,
     private readonly cache: SystemCacheService,
   ) {}
 
@@ -96,11 +97,10 @@ export class LeaderboardService {
       const prevWeekTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const prevWeekKey = weekKey(prevWeekTime);
 
-      const finalizedRepo = this.profiles.manager.getRepository(LeaderboardFinalizedWeek);
-      const exists = await finalizedRepo.findOne({ where: { weekKey: prevWeekKey } });
+      const exists = await this.finalizedWeeks.findOne({ where: { weekKey: prevWeekKey } });
       if (exists) return;
 
-      const lastFinalized = await finalizedRepo.findOne({ order: { weekKey: 'DESC' } });
+      const lastFinalized = await this.finalizedWeeks.findOne({ order: { weekKey: 'DESC' } });
 
       let weeksToFinalize: string[] = [];
 
@@ -122,7 +122,7 @@ export class LeaderboardService {
       }
 
       for (const targetWeekKey of weeksToFinalize) {
-        const doubleCheck = await finalizedRepo.findOne({ where: { weekKey: targetWeekKey } });
+        const doubleCheck = await this.finalizedWeeks.findOne({ where: { weekKey: targetWeekKey } });
         if (doubleCheck) continue;
 
         await this.finalizeSingleWeek(targetWeekKey, now);
@@ -343,15 +343,13 @@ export class LeaderboardService {
   }
 
   async getFinalizedWeeks(): Promise<LeaderboardFinalizedWeek[]> {
-    const finalizedRepo = this.profiles.manager.getRepository(LeaderboardFinalizedWeek);
-    return finalizedRepo.find({
+    return this.finalizedWeeks.find({
       order: { weekKey: 'DESC' },
     });
   }
 
   async getPendingReward(userId: string): Promise<any | null> {
-    const finalizedRepo = this.profiles.manager.getRepository(LeaderboardFinalizedWeek);
-    const lastFinalized = await finalizedRepo.findOne({
+    const lastFinalized = await this.finalizedWeeks.findOne({
       order: { weekKey: 'DESC' },
     });
     if (!lastFinalized) return null;
@@ -375,8 +373,7 @@ export class LeaderboardService {
   }
 
   async claimReward(userId: string): Promise<StudentProfile> {
-    const finalizedRepo = this.profiles.manager.getRepository(LeaderboardFinalizedWeek);
-    const lastFinalized = await finalizedRepo.findOne({
+    const lastFinalized = await this.finalizedWeeks.findOne({
       order: { weekKey: 'DESC' },
     });
     if (!lastFinalized) {
@@ -389,7 +386,9 @@ export class LeaderboardService {
     }
 
     profile.lastSeenWeeklyRewardWeek = lastFinalized.weekKey;
-    return this.profiles.save(profile);
+    const savedProfile = await this.profiles.save(profile);
+    await this.cache.bumpTags([`student:${userId}:profile`]);
+    return savedProfile;
   }
 }
 
