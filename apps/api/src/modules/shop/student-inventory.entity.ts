@@ -34,6 +34,7 @@ export class StudentInventory extends BaseEntity {
   @Column({ type: 'timestamptz', name: 'acquired_at', default: () => 'CURRENT_TIMESTAMP' })
   acquiredAt!: Date;
 
+  @Index()
   @Column({ type: 'timestamptz', name: 'expires_at', nullable: true, default: null })
   expiresAt!: Date | null;
 }

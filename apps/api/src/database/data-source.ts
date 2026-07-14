@@ -23,6 +23,7 @@ import { Quest } from '../modules/quests/quest.entity';
 import { StudentQuest } from '../modules/quests/student-quest.entity';
 import { Badge } from '../modules/quests/badge.entity';
 import { StudentBadge } from '../modules/quests/student-badge.entity';
+import { LeaderboardFinalizedWeek } from '../modules/quests/leaderboard-finalized-week.entity';
 import { MazeLevel } from '../modules/maze/maze-level.entity';
 import { MazeSubmission } from '../modules/maze/maze-submission.entity';
 import { ShopItem } from '../modules/shop/shop-item.entity';
@@ -80,6 +81,7 @@ export const AppDataSource = new DataSource({
     StudentQuest,
     Badge,
     StudentBadge,
+    LeaderboardFinalizedWeek,
     MazeLevel,
     MazeSubmission,
     FinanceMonthlyAmountDue,

@@ -20,7 +20,7 @@ export class LeaderboardFinalizedWeek extends BaseEntity {
     rewards: {
       xp: number;
       gems: number;
-      avatarCode: string;
+      avatarCode?: string;
     };
   }[];
 }
