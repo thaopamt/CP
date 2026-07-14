@@ -182,3 +182,25 @@ export interface IWeeklyWinnerPendingReward {
   };
 }
 
+export interface ILeaderboardFinalizedWeek {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+  version: number;
+  weekKey: string;
+  finalizedAt: string;
+  winners: {
+    userId: string;
+    name: string;
+    avatarUrl: string | null;
+    rank: number;
+    weeklyXp: number;
+    rewards: {
+      xp: number;
+      gems: number;
+      avatarCode?: string;
+    };
+  }[];
+}
+

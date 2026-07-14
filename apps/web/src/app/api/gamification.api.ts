@@ -1,4 +1,4 @@
-import { ILeaderboardParams, ILeaderboardResponse, IQuestAnalyticsSummary, IWeeklyWinnerPendingReward } from '@cp/shared';
+import { ILeaderboardParams, ILeaderboardResponse, IQuestAnalyticsSummary, IWeeklyWinnerPendingReward, ILeaderboardFinalizedWeek } from '@cp/shared';
 import { apiClient } from '../lib/api-client';
 
 export const gamificationApi = {
@@ -13,6 +13,9 @@ export const gamificationApi = {
   },
   claimReward() {
     return apiClient.post<any>('/leaderboard/claim-reward');
+  },
+  finalizedWeeks() {
+    return apiClient.get<ILeaderboardFinalizedWeek[]>('/leaderboard/finalized');
   },
 };
 

@@ -7,6 +7,7 @@ export const gamificationQueryKeys = {
   leaderboard: (params?: ILeaderboardParams) => ['leaderboard', params] as const,
   questAnalytics: () => ['quest-analytics', 'summary'] as const,
   pendingReward: () => ['leaderboard', 'pending-reward'] as const,
+  finalizedWeeks: () => ['leaderboard', 'finalized'] as const,
 };
 
 export function useLeaderboard(params?: ILeaderboardParams) {
@@ -30,6 +31,14 @@ export function usePendingReward() {
   return useQuery({
     queryKey: gamificationQueryKeys.pendingReward(),
     queryFn: () => gamificationApi.getPendingReward().then((res) => res.data),
+    staleTime: queryStaleTime.realtime,
+  });
+}
+
+export function useFinalizedWeeks() {
+  return useQuery({
+    queryKey: gamificationQueryKeys.finalizedWeeks(),
+    queryFn: () => gamificationApi.finalizedWeeks().then((res) => res.data),
     staleTime: queryStaleTime.realtime,
   });
 }
