@@ -175,7 +175,7 @@ export class LeaderboardService {
       winnersData = [];
 
       for (let i = 0; i < topProfiles.length; i++) {
-        const p = topProfiles[i];
+        const pRaw = topProfiles[i];
         const rank = i + 1;
         let xpReward = 200;
         let gemsReward = 100;
@@ -189,6 +189,16 @@ export class LeaderboardService {
           xpReward = 500;
           gemsReward = 300;
           avatarCode = 'CHAR_WEEKLY_ELITE';
+        }
+
+        const p = await profRepo.findOne({
+          where: { id: pRaw.id },
+          lock: { mode: 'pessimistic_write' },
+          loadEagerRelations: false,
+        });
+
+        if (!p) {
+          continue;
         }
 
         // 1. Capture score BEFORE applying rewards which might roll over/reset it
@@ -221,8 +231,8 @@ export class LeaderboardService {
 
         winnersData.push({
           userId: p.userId,
-          name: p.user ? `${p.user.firstName} ${p.user.lastName}`.trim() : '—',
-          avatarUrl: p.user?.avatarUrl ?? null,
+          name: pRaw.user ? `${pRaw.user.firstName} ${pRaw.user.lastName}`.trim() : '—',
+          avatarUrl: pRaw.user?.avatarUrl ?? null,
           rank,
           weeklyXp: score,
           rewards: { xp: xpReward, gems: gemsReward, avatarCode },
@@ -238,10 +248,13 @@ export class LeaderboardService {
     });
 
     if (winnersData.length > 0) {
-      await this.cache.bumpTags([
-        'leaderboard:global',
-        ...winnersData.map((w) => `student:${w.userId}:profile`),
-      ]);
+      const tags: string[] = ['leaderboard:global'];
+      for (const w of winnersData) {
+        tags.push(`student:${w.userId}:profile`);
+        tags.push(`student:${w.userId}:dashboard`);
+        tags.push(`student:${w.userId}:shop`);
+      }
+      await this.cache.bumpTags(tags);
     }
   }
 

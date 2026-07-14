@@ -131,6 +131,7 @@ describe('LeaderboardService.checkAndFinalizeWeeklyLeaderboard', () => {
 
     const mockProfiles = [
       {
+        id: 'prof-1',
         userId: 'student-1',
         xp: 1000,
         gems: 100,
@@ -140,6 +141,7 @@ describe('LeaderboardService.checkAndFinalizeWeeklyLeaderboard', () => {
         user: { firstName: 'RankOne', lastName: 'Student', avatarUrl: 'avatar-1' },
       },
       {
+        id: 'prof-2',
         userId: 'student-2',
         xp: 800,
         gems: 50,
@@ -149,6 +151,7 @@ describe('LeaderboardService.checkAndFinalizeWeeklyLeaderboard', () => {
         user: { firstName: 'RankTwo', lastName: 'Student', avatarUrl: 'avatar-2' },
       },
       {
+        id: 'prof-3',
         userId: 'student-3',
         xp: 600,
         gems: 10,
@@ -158,6 +161,7 @@ describe('LeaderboardService.checkAndFinalizeWeeklyLeaderboard', () => {
         user: { firstName: 'RankThree', lastName: 'Student', avatarUrl: 'avatar-3' },
       },
       {
+        id: 'prof-4',
         userId: 'student-4',
         xp: 400,
         gems: 0,
@@ -167,6 +171,11 @@ describe('LeaderboardService.checkAndFinalizeWeeklyLeaderboard', () => {
         user: { firstName: 'RankFour', lastName: 'Student', avatarUrl: 'avatar-4' },
       },
     ];
+
+    profilesRepoMock.findOne.mockImplementation(({ where }) => {
+      const match = mockProfiles.find((p) => p.id === where.id);
+      return Promise.resolve(match || null);
+    });
 
     const queryBuilderMock = {
       leftJoinAndSelect: jest.fn().mockReturnThis(),
@@ -244,6 +253,7 @@ describe('LeaderboardService.checkAndFinalizeWeeklyLeaderboard', () => {
 
     const mockProfiles = [
       {
+        id: 'prof-1',
         userId: 'student-1',
         weeklyXp: 100,
         xp: 1000,
@@ -253,6 +263,11 @@ describe('LeaderboardService.checkAndFinalizeWeeklyLeaderboard', () => {
         user: { firstName: 'John', lastName: 'Doe', avatarUrl: 'avatar' },
       },
     ];
+
+    profilesRepoMock.findOne.mockImplementation(({ where }) => {
+      const match = mockProfiles.find((p) => p.id === where.id);
+      return Promise.resolve(match || null);
+    });
 
     const queryBuilderMock = {
       leftJoinAndSelect: jest.fn().mockReturnThis(),
@@ -292,5 +307,84 @@ describe('LeaderboardService.checkAndFinalizeWeeklyLeaderboard', () => {
         expiresAt: expect.any(Date),
       }),
     );
+  });
+
+  describe('catch-up logic when multiple weeks are missed', () => {
+    it('should chronologically finalize all missed weeks when multiple weeks are missed', async () => {
+      const mockLastFinalized = { weekKey: '2026-W25' };
+
+      finalizedRepoMock.findOne.mockImplementation(({ where, order }) => {
+        if (where?.weekKey === prevWeekKey) {
+          return Promise.resolve(null);
+        }
+        if (order?.weekKey === 'DESC') {
+          return Promise.resolve(mockLastFinalized);
+        }
+        return Promise.resolve(null); // double-check inside loop
+      });
+
+      const finalizeSpy = jest.spyOn(service as any, 'finalizeSingleWeek').mockResolvedValue(undefined);
+
+      await service.checkAndFinalizeWeeklyLeaderboard(mockDate);
+
+      // Verify that it identifies the missed weeks and calls finalizeSingleWeek in order
+      expect(finalizeSpy).toHaveBeenCalledTimes(3);
+      expect(finalizeSpy.mock.calls[0][0]).toBe('2026-W26');
+      expect(finalizeSpy.mock.calls[1][0]).toBe('2026-W27');
+      expect(finalizeSpy.mock.calls[2][0]).toBe('2026-W28');
+
+      finalizeSpy.mockRestore();
+    });
+
+    it('should terminate the loop correctly and not roll over past the current previous week', async () => {
+      const mockLastFinalized = { weekKey: '2026-W25' };
+
+      finalizedRepoMock.findOne.mockImplementation(({ where, order }) => {
+        if (where?.weekKey === prevWeekKey) {
+          return Promise.resolve(null);
+        }
+        if (order?.weekKey === 'DESC') {
+          return Promise.resolve(mockLastFinalized);
+        }
+        return Promise.resolve(null);
+      });
+
+      const finalizeSpy = jest.spyOn(service as any, 'finalizeSingleWeek').mockResolvedValue(undefined);
+
+      await service.checkAndFinalizeWeeklyLeaderboard(mockDate);
+
+      // Verify that it stops exactly at 2026-W28 (prevWeekKey) and does not call for 2026-W29 (current week)
+      expect(finalizeSpy).toHaveBeenCalledTimes(3);
+      const calls = finalizeSpy.mock.calls.map((c) => c[0]);
+      expect(calls).not.toContain('2026-W29');
+
+      finalizeSpy.mockRestore();
+    });
+
+    it('should correctly handle year roll-over (e.g. 2025-W51 to 2026-W02)', async () => {
+      const jan2026Date = new Date('2026-01-15T00:00:00Z');
+      const janPrevWeekKey = weekKey(new Date(jan2026Date.getTime() - 7 * 24 * 60 * 60 * 1000)); // 2026-W02
+
+      finalizedRepoMock.findOne.mockImplementation(({ where, order }) => {
+        if (where?.weekKey === janPrevWeekKey) {
+          return Promise.resolve(null);
+        }
+        if (order?.weekKey === 'DESC') {
+          return Promise.resolve({ weekKey: '2025-W51' });
+        }
+        return Promise.resolve(null);
+      });
+
+      const finalizeSpy = jest.spyOn(service as any, 'finalizeSingleWeek').mockResolvedValue(undefined);
+
+      await service.checkAndFinalizeWeeklyLeaderboard(jan2026Date);
+
+      expect(finalizeSpy).toHaveBeenCalled();
+      const calls = finalizeSpy.mock.calls.map((c) => c[0]);
+      expect(calls[0]).toBe('2025-W52');
+      expect(calls[calls.length - 1]).toBe('2026-W02');
+
+      finalizeSpy.mockRestore();
+    });
   });
 });
