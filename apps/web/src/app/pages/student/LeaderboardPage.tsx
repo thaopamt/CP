@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AnimatePresence } from 'framer-motion';
 import { Icon } from '@cp/ui';
 import { LeaderboardScope, LeaderboardWindow, ILeaderboardRankEntry } from '@cp/shared';
 import { useLeaderboard, usePendingReward } from '../../api/gamification.queries';
@@ -53,12 +54,12 @@ export default function StudentLeaderboardPage() {
   const [timeWindow, setTimeWindow] = useState<LeaderboardWindow>('weekly');
   const { data, isLoading } = useLeaderboard({ scope, window: timeWindow, limit: 50 });
   const { data: pendingReward } = usePendingReward();
-  const [modalOpen, setModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const reset = untilNextWeek();
 
   useEffect(() => {
     if (pendingReward) {
-      setModalOpen(true);
+      setIsModalOpen(true);
     }
   }, [pendingReward]);
 
@@ -72,13 +73,14 @@ export default function StudentLeaderboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl py-lg text-on-surface">
-      {pendingReward && (
-        <WeeklyWinnerModal
-          reward={pendingReward}
-          isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {isModalOpen && pendingReward && (
+          <WeeklyWinnerModal
+            reward={pendingReward}
+            onClose={() => setIsModalOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ── Hero Header ── */}
       <header className="mb-8">
