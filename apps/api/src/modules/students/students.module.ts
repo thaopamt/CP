@@ -7,6 +7,7 @@ import { Enrollment } from '../classes/enrollment.entity';
 import { StudentProfile } from './student-profile.entity';
 import { Guardian } from './guardian.entity';
 import { StudentSchedule } from './student-schedule.entity';
+import { StudentInventory } from '../shop/student-inventory.entity';
 import { TeacherStudent } from './teacher-student.entity';
 import { StudentsController } from './students.controller';
 import { StudentDashboardController } from './student-dashboard.controller';
@@ -26,6 +27,7 @@ import { TeacherAssignmentsService } from './teacher-assignments.service';
       ClassEntity,
       Enrollment,
       TeacherStudent,
+      StudentInventory,
     ]),
   ],
   controllers: [

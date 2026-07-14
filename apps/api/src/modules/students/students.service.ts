@@ -3,8 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { TypeOrmCrudService } from '@dataui/crud-typeorm';
 import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
-import { DataSource, EntityManager, Repository, In, MoreThanOrEqual, Not } from 'typeorm';
-import { DayOfWeek, EnrollmentStatus, PublishStatus, SubmissionStatus, UserRole } from '@cp/shared';
+import { DataSource, EntityManager, Repository, In, MoreThanOrEqual, Not, LessThan } from 'typeorm';
+import { DayOfWeek, EnrollmentStatus, PublishStatus, SubmissionStatus, UserRole, ShopItemCategory } from '@cp/shared';
 import { CourseContentKind, type ICourseNextStep } from '@cp/shared';
 
 import { User } from '../users/user.entity';
@@ -64,6 +64,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
     @InjectRepository(StudentProfile) repo: Repository<StudentProfile>,
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Guardian) private readonly guardians: Repository<Guardian>,
+    @InjectRepository(StudentInventory) private readonly inventory: Repository<StudentInventory>,
     private readonly ds: DataSource,
     private readonly cache: SystemCacheService,
   ) {
@@ -240,7 +241,57 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
     };
   }
 
+  async cleanupExpiredInventory(userId: string): Promise<void> {
+    const expired = await this.inventory.find({
+      where: { userId, expiresAt: LessThan(new Date()) },
+      relations: ['item'],
+    });
+    if (expired.length === 0) return;
+
+    await this.ds.transaction(async (tx) => {
+      const invRepo = tx.getRepository(StudentInventory);
+      const profRepo = tx.getRepository(StudentProfile);
+      const userRepo = tx.getRepository(User);
+
+      const profile = await profRepo.findOne({ where: { userId } });
+      const user = await userRepo.findOne({ where: { id: userId } });
+
+      for (const row of expired) {
+        if (row.equipped && profile) {
+          switch (row.item.category) {
+            case ShopItemCategory.PROFILE_THEME:
+              profile.equippedTheme = null;
+              break;
+            case ShopItemCategory.NAME_COLOR:
+              profile.nameColor = null;
+              break;
+            case ShopItemCategory.TITLE:
+              profile.equippedTitle = null;
+              break;
+            default:
+              break;
+          }
+          if (row.item.category === ShopItemCategory.CHARACTER && user) {
+            user.avatarUrl = null;
+          }
+        }
+        await invRepo.remove(row);
+      }
+
+      if (profile) await profRepo.save(profile);
+      if (user) await userRepo.save(user);
+    });
+
+    await this.cache.bumpTags([
+      `student:${userId}:shop`,
+      `student:${userId}:profile`,
+      `student:${userId}:dashboard`,
+      'leaderboard:global',
+    ]);
+  }
+
   async getStudentByUserId(userId: string): Promise<StudentProfile> {
+    await this.cleanupExpiredInventory(userId);
     const profile = await this.cache.remember(
       {
         namespace: 'student-profile-by-user',

@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Repository, LessThan } from 'typeorm';
 import {
   BadgeRarity,
   ICreateShopItemPayload,
@@ -134,8 +134,41 @@ export class ShopService {
     await this.bumpShopCatalogCaches();
   }
 
+  async cleanupExpiredInventory(userId: string): Promise<void> {
+    const expired = await this.inventory.find({
+      where: { userId, expiresAt: LessThan(new Date()) },
+      relations: ['item'],
+    });
+    if (expired.length === 0) return;
+
+    await this.ds.transaction(async (tx) => {
+      const invRepo = tx.getRepository(StudentInventory);
+      const profRepo = tx.getRepository(StudentProfile);
+      const userRepo = tx.getRepository(User);
+
+      const profile = await profRepo.findOne({ where: { userId } });
+      const user = await userRepo.findOne({ where: { id: userId } });
+
+      for (const row of expired) {
+        if (row.equipped && profile) {
+          this.clearCosmeticFromProfile(profile, row.item.category);
+          if (row.item.category === ShopItemCategory.CHARACTER && user) {
+            user.avatarUrl = null;
+          }
+        }
+        await invRepo.remove(row);
+      }
+
+      if (profile) await profRepo.save(profile);
+      if (user) await userRepo.save(user);
+    });
+
+    await this.bumpStudentShopCaches(userId);
+  }
+
   /** The shop catalog as seen by one student: owned/equipped/affordable flags. */
   async getCatalog(userId: string): Promise<IShopCatalogResponse> {
+    await this.cleanupExpiredInventory(userId);
     return this.cache.remember(
       {
         namespace: 'shop-catalog',
@@ -173,6 +206,7 @@ export class ShopService {
 
   /** List a student's owned cosmetics. */
   async getInventory(userId: string): Promise<IShopCatalogEntry[]> {
+    await this.cleanupExpiredInventory(userId);
     return this.cache.remember(
       {
         namespace: 'shop-inventory',

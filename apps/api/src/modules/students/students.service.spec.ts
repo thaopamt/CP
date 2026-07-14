@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { ObjectLiteral, Repository } from 'typeorm';
+import { ShopItemCategory } from '@cp/shared';
 
 import { MazeSubmission } from '../maze/maze-submission.entity';
 import { StudentBadge } from '../quests/student-badge.entity';
@@ -57,7 +58,10 @@ function makeService(
   const submissionRepository = deleteRepo(3);
   const questRepository = deleteRepo(4);
   const badgeRepository = deleteRepo(5);
-  const inventoryRepository = deleteRepo(6);
+  const inventoryRepository = {
+    ...deleteRepo(6),
+    find: jest.fn().mockResolvedValue([]),
+  };
   const mazeRepository = deleteRepo(7);
 
   repos.set(StudentProfile, profileRepository);
@@ -84,6 +88,7 @@ function makeService(
     crudRepo<StudentProfile>(),
     usersRepository as unknown as Repository<User>,
     {} as Repository<Guardian>,
+    inventoryRepository as unknown as Repository<StudentInventory>,
     ds as any,
     cache as any,
   );
@@ -91,6 +96,7 @@ function makeService(
   return {
     service,
     tx,
+    ds,
     cache,
     profileRepository,
     usersRepository,
@@ -212,7 +218,7 @@ describe('StudentsService.resetLearningData', () => {
 
     expect(ctx.usersRepository.update).toHaveBeenCalledWith(
       { id: 'user-1' },
-      { isActive: false, refreshTokenHash: null },
+      { isActive: false, refreshTokenHash: null, blockReason: null },
     );
     expect(ctx.progressRepository.delete).toHaveBeenCalledWith({ studentId: 'user-1' });
     expect(ctx.submissionRepository.delete).toHaveBeenCalledWith({ userId: 'user-1' });
@@ -254,7 +260,7 @@ describe('StudentsService.resetLearningData', () => {
 
     expect(ctx.usersRepository.update).toHaveBeenCalledWith(
       { id: 'user-1' },
-      { isActive: false, refreshTokenHash: null },
+      { isActive: false, refreshTokenHash: null, blockReason: null },
     );
     expect(ctx.submissionRepository.delete).toHaveBeenCalledWith({ userId: 'user-1' });
     expect(result.alreadyBlocked).toBe(true);
@@ -270,7 +276,7 @@ describe('StudentsService.resetLearningData', () => {
 
     expect(ctx.usersRepository.update).toHaveBeenCalledWith(
       { id: 'user-1' },
-      { isActive: true, refreshTokenHash: null },
+      { isActive: true, refreshTokenHash: null, blockReason: null },
     );
     expect(ctx.submissionRepository.delete).not.toHaveBeenCalled();
     expect(result).toEqual({
@@ -312,5 +318,83 @@ describe('StudentsService.updateStudent', () => {
       { id: 'user-1' },
       expect.objectContaining({ isActive: false, refreshTokenHash: null })
     );
+  });
+});
+
+describe('StudentsService.cleanupExpiredInventory', () => {
+  it('does nothing if no expired items exist', async () => {
+    const ctx = makeService({ id: 'profile-1', userId: 'user-1' });
+    ctx.inventoryRepository.find = jest.fn().mockResolvedValue([]);
+
+    await ctx.service.cleanupExpiredInventory('user-1');
+
+    expect(ctx.ds.transaction).not.toHaveBeenCalled();
+  });
+
+  it('cleans up expired items and updates profile/user when items are equipped', async () => {
+    const profile = {
+      id: 'profile-1',
+      userId: 'user-1',
+      equippedTheme: 'some-theme',
+      nameColor: '#ffffff',
+      equippedTitle: 'some-title',
+    };
+    const user = {
+      id: 'user-1',
+      avatarUrl: 'some-avatar-url',
+    };
+    const ctx = makeService(profile, user);
+
+    const expiredItems = [
+      {
+        id: 'inv-1',
+        userId: 'user-1',
+        equipped: true,
+        item: {
+          category: ShopItemCategory.PROFILE_THEME,
+        },
+      },
+      {
+        id: 'inv-2',
+        userId: 'user-1',
+        equipped: true,
+        item: {
+          category: ShopItemCategory.CHARACTER,
+        },
+      },
+    ];
+
+    ctx.inventoryRepository.find = jest.fn().mockResolvedValue(expiredItems);
+
+    const profileRepoMock = {
+      findOne: jest.fn().mockResolvedValue(profile),
+      save: jest.fn().mockResolvedValue(profile),
+    };
+    const userRepoMock = {
+      findOne: jest.fn().mockResolvedValue(user),
+      save: jest.fn().mockResolvedValue(user),
+    };
+    const invRepoMock = {
+      remove: jest.fn(),
+    };
+
+    ctx.tx.getRepository = jest.fn((entity) => {
+      if (entity === StudentProfile) return profileRepoMock;
+      if (entity === User) return userRepoMock;
+      if (entity === StudentInventory) return invRepoMock;
+      return null;
+    });
+
+    await ctx.service.cleanupExpiredInventory('user-1');
+
+    expect(invRepoMock.remove).toHaveBeenCalledTimes(2);
+    expect(invRepoMock.remove).toHaveBeenNthCalledWith(1, expiredItems[0]);
+    expect(invRepoMock.remove).toHaveBeenNthCalledWith(2, expiredItems[1]);
+
+    expect(profile.equippedTheme).toBeNull();
+    expect(user.avatarUrl).toBeNull();
+    expect(profileRepoMock.save).toHaveBeenCalledWith(profile);
+    expect(userRepoMock.save).toHaveBeenCalledWith(user);
+    expect(ctx.cache.bumpTags).toHaveBeenCalled();
   });
 });
