@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import {
@@ -340,6 +340,56 @@ export class LeaderboardService {
     }
 
     return { scope, window, entries, me, total };
+  }
+
+  async getFinalizedWeeks(): Promise<LeaderboardFinalizedWeek[]> {
+    const finalizedRepo = this.profiles.manager.getRepository(LeaderboardFinalizedWeek);
+    return finalizedRepo.find({
+      order: { weekKey: 'DESC' },
+    });
+  }
+
+  async getPendingReward(userId: string): Promise<any | null> {
+    const finalizedRepo = this.profiles.manager.getRepository(LeaderboardFinalizedWeek);
+    const lastFinalized = await finalizedRepo.findOne({
+      order: { weekKey: 'DESC' },
+    });
+    if (!lastFinalized) return null;
+
+    const profile = await this.profiles.findOne({ where: { userId } });
+    if (!profile) return null;
+
+    if (profile.lastSeenWeeklyRewardWeek === lastFinalized.weekKey) {
+      return null;
+    }
+
+    const winner = lastFinalized.winners.find((w) => w.userId === userId);
+    if (!winner) return null;
+
+    return {
+      weekKey: lastFinalized.weekKey,
+      rank: winner.rank,
+      weeklyXp: winner.weeklyXp,
+      rewards: winner.rewards,
+    };
+  }
+
+  async claimReward(userId: string): Promise<StudentProfile> {
+    const finalizedRepo = this.profiles.manager.getRepository(LeaderboardFinalizedWeek);
+    const lastFinalized = await finalizedRepo.findOne({
+      order: { weekKey: 'DESC' },
+    });
+    if (!lastFinalized) {
+      throw new NotFoundException('No finalized weekly leaderboard found');
+    }
+
+    const profile = await this.profiles.findOne({ where: { userId } });
+    if (!profile) {
+      throw new NotFoundException('Student profile not found');
+    }
+
+    profile.lastSeenWeeklyRewardWeek = lastFinalized.weekKey;
+    return this.profiles.save(profile);
   }
 }
 

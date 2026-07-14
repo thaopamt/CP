@@ -1,7 +1,8 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { JwtPayload, LeaderboardScope, LeaderboardWindow } from '@cp/shared';
+import { Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { JwtPayload, LeaderboardScope, LeaderboardWindow, UserRole } from '@cp/shared';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { LeaderboardService } from './leaderboard.service';
 
@@ -24,4 +25,21 @@ export class LeaderboardController {
       user.sub,
     );
   }
+
+  @Get('finalized')
+  async getFinalizedWeeks() {
+    return this.service.getFinalizedWeeks();
+  }
+
+  @Get('pending-reward')
+  async getPendingReward(@CurrentUser() user: JwtPayload) {
+    return this.service.getPendingReward(user.sub);
+  }
+
+  @Post('claim-reward')
+  @Roles(UserRole.STUDENT)
+  async claimReward(@CurrentUser() user: JwtPayload) {
+    return this.service.claimReward(user.sub);
+  }
 }
+

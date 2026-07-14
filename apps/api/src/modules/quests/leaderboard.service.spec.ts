@@ -1,4 +1,9 @@
+import 'reflect-metadata';
 import { In } from 'typeorm';
+import { NotFoundException } from '@nestjs/common';
+import { UserRole } from '@cp/shared';
+import { ROLES_KEY } from '../../common/decorators/roles.decorator';
+import { LeaderboardController } from './leaderboard.controller';
 import { LeaderboardService } from './leaderboard.service';
 import { LeaderboardFinalizedWeek } from './leaderboard-finalized-week.entity';
 import { StudentProfile } from '../students/student-profile.entity';
@@ -385,6 +390,215 @@ describe('LeaderboardService.checkAndFinalizeWeeklyLeaderboard', () => {
       expect(calls[calls.length - 1]).toBe('2026-W02');
 
       finalizeSpy.mockRestore();
+    });
+  });
+});
+
+describe('LeaderboardService - Weekly Reward popup and history methods', () => {
+  let service: LeaderboardService;
+  let profilesRepoMock: any;
+  let studentBadgesRepoMock: any;
+  let cacheMock: any;
+  let finalizedRepoMock: any;
+
+  beforeEach(() => {
+    finalizedRepoMock = {
+      find: jest.fn(),
+      findOne: jest.fn(),
+      save: jest.fn(async (x) => x),
+    };
+
+    profilesRepoMock = {
+      findOne: jest.fn(),
+      save: jest.fn(async (x) => x),
+    };
+
+    profilesRepoMock.manager = {
+      getRepository: jest.fn((entity) => {
+        if (entity === LeaderboardFinalizedWeek) return finalizedRepoMock;
+        if (entity === StudentProfile) return profilesRepoMock;
+        return null;
+      }),
+    };
+
+    studentBadgesRepoMock = {};
+    cacheMock = {
+      remember: jest.fn(),
+      bumpTags: jest.fn().mockResolvedValue(undefined),
+    };
+
+    service = new LeaderboardService(
+      profilesRepoMock,
+      studentBadgesRepoMock,
+      cacheMock,
+    );
+  });
+
+  describe('getFinalizedWeeks', () => {
+    it('should retrieve all finalized weeks ordered by weekKey DESC', async () => {
+      const mockWeeks = [{ weekKey: '2026-W28' }, { weekKey: '2026-W27' }];
+      finalizedRepoMock.find.mockResolvedValue(mockWeeks);
+
+      const result = await service.getFinalizedWeeks();
+
+      expect(finalizedRepoMock.find).toHaveBeenCalledWith({
+        order: { weekKey: 'DESC' },
+      });
+      expect(result).toEqual(mockWeeks);
+    });
+  });
+
+  describe('getPendingReward', () => {
+    it('should return null if there is no finalized week', async () => {
+      finalizedRepoMock.findOne.mockResolvedValue(null);
+
+      const result = await service.getPendingReward('user-1');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null if the student profile is not found', async () => {
+      finalizedRepoMock.findOne.mockResolvedValue({ weekKey: '2026-W28' });
+      profilesRepoMock.findOne.mockResolvedValue(null);
+
+      const result = await service.getPendingReward('user-1');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null if the user has already seen/claimed the latest finalized week', async () => {
+      finalizedRepoMock.findOne.mockResolvedValue({ weekKey: '2026-W28' });
+      profilesRepoMock.findOne.mockResolvedValue({
+        userId: 'user-1',
+        lastSeenWeeklyRewardWeek: '2026-W28',
+      });
+
+      const result = await service.getPendingReward('user-1');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null if the user is not in the winners array of the latest finalized week', async () => {
+      finalizedRepoMock.findOne.mockResolvedValue({
+        weekKey: '2026-W28',
+        winners: [{ userId: 'user-2', rank: 1, weeklyXp: 100, rewards: { xp: 1000, gems: 500 } }],
+      });
+      profilesRepoMock.findOne.mockResolvedValue({
+        userId: 'user-1',
+        lastSeenWeeklyRewardWeek: '2026-W27',
+      });
+
+      const result = await service.getPendingReward('user-1');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return reward details if the user is a winner and has not seen the reward week yet', async () => {
+      const winnerReward = { xp: 1000, gems: 500 };
+      finalizedRepoMock.findOne.mockResolvedValue({
+        weekKey: '2026-W28',
+        winners: [{ userId: 'user-1', rank: 1, weeklyXp: 150, rewards: winnerReward }],
+      });
+      profilesRepoMock.findOne.mockResolvedValue({
+        userId: 'user-1',
+        lastSeenWeeklyRewardWeek: '2026-W27',
+      });
+
+      const result = await service.getPendingReward('user-1');
+
+      expect(result).toEqual({
+        weekKey: '2026-W28',
+        rank: 1,
+        weeklyXp: 150,
+        rewards: winnerReward,
+      });
+    });
+  });
+
+  describe('claimReward', () => {
+    it('should throw NotFoundException if there is no finalized week', async () => {
+      finalizedRepoMock.findOne.mockResolvedValue(null);
+
+      await expect(service.claimReward('user-1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if the student profile is not found', async () => {
+      finalizedRepoMock.findOne.mockResolvedValue({ weekKey: '2026-W28' });
+      profilesRepoMock.findOne.mockResolvedValue(null);
+
+      await expect(service.claimReward('user-1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('should update the student profile lastSeenWeeklyRewardWeek to last finalized week key and save it', async () => {
+      finalizedRepoMock.findOne.mockResolvedValue({ weekKey: '2026-W28' });
+      const mockProfile = {
+        userId: 'user-1',
+        lastSeenWeeklyRewardWeek: '2026-W27',
+      };
+      profilesRepoMock.findOne.mockResolvedValue(mockProfile);
+
+      const result = await service.claimReward('user-1');
+
+      expect(mockProfile.lastSeenWeeklyRewardWeek).toBe('2026-W28');
+      expect(profilesRepoMock.save).toHaveBeenCalledWith(mockProfile);
+      expect(result).toEqual(mockProfile);
+    });
+  });
+});
+
+describe('LeaderboardController', () => {
+  let controller: LeaderboardController;
+  let serviceMock: any;
+
+  beforeEach(() => {
+    serviceMock = {
+      getLeaderboard: jest.fn(),
+      getFinalizedWeeks: jest.fn(),
+      getPendingReward: jest.fn(),
+      claimReward: jest.fn(),
+    };
+    controller = new LeaderboardController(serviceMock);
+  });
+
+  describe('getFinalizedWeeks', () => {
+    it('delegates to LeaderboardService.getFinalizedWeeks', async () => {
+      const mockWeeks = [{ weekKey: '2026-W28' }];
+      serviceMock.getFinalizedWeeks.mockResolvedValue(mockWeeks);
+
+      const result = await controller.getFinalizedWeeks();
+
+      expect(serviceMock.getFinalizedWeeks).toHaveBeenCalled();
+      expect(result).toEqual(mockWeeks);
+    });
+  });
+
+  describe('getPendingReward', () => {
+    it('delegates to LeaderboardService.getPendingReward', async () => {
+      const user = { sub: 'user-1' } as any;
+      const mockReward = { rank: 1, weeklyXp: 100, rewards: { xp: 1000 } };
+      serviceMock.getPendingReward.mockResolvedValue(mockReward);
+
+      const result = await controller.getPendingReward(user);
+
+      expect(serviceMock.getPendingReward).toHaveBeenCalledWith('user-1');
+      expect(result).toEqual(mockReward);
+    });
+  });
+
+  describe('claimReward', () => {
+    it('delegates to LeaderboardService.claimReward and is decorated with Roles(UserRole.STUDENT)', async () => {
+      const user = { sub: 'user-1' } as any;
+      const mockProfile = { userId: 'user-1', lastSeenWeeklyRewardWeek: '2026-W28' };
+      serviceMock.claimReward.mockResolvedValue(mockProfile);
+
+      const result = await controller.claimReward(user);
+
+      expect(serviceMock.claimReward).toHaveBeenCalledWith('user-1');
+      expect(result).toEqual(mockProfile);
+
+      // Verify roles decorator metadata
+      const roles = Reflect.getMetadata(ROLES_KEY, LeaderboardController.prototype.claimReward);
+      expect(roles).toEqual([UserRole.STUDENT]);
     });
   });
 });
