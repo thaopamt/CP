@@ -7,7 +7,6 @@ import { Enrollment } from '../classes/enrollment.entity';
 import { StudentProfile } from './student-profile.entity';
 import { Guardian } from './guardian.entity';
 import { StudentSchedule } from './student-schedule.entity';
-import { StudentInventory } from '../shop/student-inventory.entity';
 import { TeacherStudent } from './teacher-student.entity';
 import { StudentsController } from './students.controller';
 import { StudentDashboardController } from './student-dashboard.controller';
@@ -16,6 +15,7 @@ import { TeacherAssignmentsController } from './teacher-assignments.controller';
 import { StudentsService } from './students.service';
 import { StudentScheduleService } from './student-schedule.service';
 import { TeacherAssignmentsService } from './teacher-assignments.service';
+import { ShopModule } from '../shop/shop.module';
 
 @Module({
   imports: [
@@ -27,8 +27,8 @@ import { TeacherAssignmentsService } from './teacher-assignments.service';
       ClassEntity,
       Enrollment,
       TeacherStudent,
-      StudentInventory,
     ]),
+    ShopModule,
   ],
   controllers: [
     StudentsController,

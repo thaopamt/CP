@@ -135,14 +135,17 @@ export class ShopService {
   }
 
   async cleanupExpiredInventory(userId: string): Promise<void> {
-    const expired = await this.inventory.find({
-      where: { userId, expiresAt: LessThan(new Date()) },
-      relations: ['item'],
-    });
-    if (expired.length === 0) return;
-
+    let hasCleared = false;
     await this.ds.transaction(async (tx) => {
       const invRepo = tx.getRepository(StudentInventory);
+      const expired = await invRepo.find({
+        where: { userId, expiresAt: LessThan(new Date()) },
+        relations: ['item'],
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (expired.length === 0) return;
+
+      hasCleared = true;
       const profRepo = tx.getRepository(StudentProfile);
       const userRepo = tx.getRepository(User);
 
@@ -163,7 +166,9 @@ export class ShopService {
       if (user) await userRepo.save(user);
     });
 
-    await this.bumpStudentShopCaches(userId);
+    if (hasCleared) {
+      await this.bumpStudentShopCaches(userId);
+    }
   }
 
   /** The shop catalog as seen by one student: owned/equipped/affordable flags. */

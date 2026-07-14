@@ -1,6 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
 import { ObjectLiteral, Repository } from 'typeorm';
-import { ShopItemCategory } from '@cp/shared';
 
 import { MazeSubmission } from '../maze/maze-submission.entity';
 import { StudentBadge } from '../quests/student-badge.entity';
@@ -12,6 +11,7 @@ import { User } from '../users/user.entity';
 import { Guardian } from './guardian.entity';
 import { StudentProfile } from './student-profile.entity';
 import { StudentsService } from './students.service';
+import { ShopService } from '../shop/shop.service';
 
 function crudRepo<T extends ObjectLiteral>() {
   return {
@@ -63,6 +63,9 @@ function makeService(
     find: jest.fn().mockResolvedValue([]),
   };
   const mazeRepository = deleteRepo(7);
+  const shopService = {
+    cleanupExpiredInventory: jest.fn().mockResolvedValue(undefined),
+  };
 
   repos.set(StudentProfile, profileRepository);
   repos.set(User, usersRepository);
@@ -82,13 +85,14 @@ function makeService(
   };
   const cache = {
     bumpTags: jest.fn().mockResolvedValue(undefined),
+    remember: jest.fn().mockImplementation((opts, fn) => fn()),
   };
 
   const service = new StudentsService(
     crudRepo<StudentProfile>(),
     usersRepository as unknown as Repository<User>,
     {} as Repository<Guardian>,
-    inventoryRepository as unknown as Repository<StudentInventory>,
+    shopService as unknown as ShopService,
     ds as any,
     cache as any,
   );
@@ -106,6 +110,7 @@ function makeService(
     badgeRepository,
     inventoryRepository,
     mazeRepository,
+    shopService,
   };
 }
 
@@ -321,80 +326,15 @@ describe('StudentsService.updateStudent', () => {
   });
 });
 
-describe('StudentsService.cleanupExpiredInventory', () => {
-  it('does nothing if no expired items exist', async () => {
-    const ctx = makeService({ id: 'profile-1', userId: 'user-1' });
-    ctx.inventoryRepository.find = jest.fn().mockResolvedValue([]);
+describe('StudentsService.getStudentByUserId', () => {
+  it('calls shopService.cleanupExpiredInventory and returns profile', async () => {
+    const profile = { id: 'profile-1', userId: 'user-1' };
+    const ctx = makeService(profile);
+    jest.spyOn(ctx.service['repo'], 'findOne').mockResolvedValue(profile as any);
 
-    await ctx.service.cleanupExpiredInventory('user-1');
+    const result = await ctx.service.getStudentByUserId('user-1');
 
-    expect(ctx.ds.transaction).not.toHaveBeenCalled();
-  });
-
-  it('cleans up expired items and updates profile/user when items are equipped', async () => {
-    const profile = {
-      id: 'profile-1',
-      userId: 'user-1',
-      equippedTheme: 'some-theme',
-      nameColor: '#ffffff',
-      equippedTitle: 'some-title',
-    };
-    const user = {
-      id: 'user-1',
-      avatarUrl: 'some-avatar-url',
-    };
-    const ctx = makeService(profile, user);
-
-    const expiredItems = [
-      {
-        id: 'inv-1',
-        userId: 'user-1',
-        equipped: true,
-        item: {
-          category: ShopItemCategory.PROFILE_THEME,
-        },
-      },
-      {
-        id: 'inv-2',
-        userId: 'user-1',
-        equipped: true,
-        item: {
-          category: ShopItemCategory.CHARACTER,
-        },
-      },
-    ];
-
-    ctx.inventoryRepository.find = jest.fn().mockResolvedValue(expiredItems);
-
-    const profileRepoMock = {
-      findOne: jest.fn().mockResolvedValue(profile),
-      save: jest.fn().mockResolvedValue(profile),
-    };
-    const userRepoMock = {
-      findOne: jest.fn().mockResolvedValue(user),
-      save: jest.fn().mockResolvedValue(user),
-    };
-    const invRepoMock = {
-      remove: jest.fn(),
-    };
-
-    ctx.tx.getRepository = jest.fn((entity) => {
-      if (entity === StudentProfile) return profileRepoMock;
-      if (entity === User) return userRepoMock;
-      if (entity === StudentInventory) return invRepoMock;
-      return null;
-    });
-
-    await ctx.service.cleanupExpiredInventory('user-1');
-
-    expect(invRepoMock.remove).toHaveBeenCalledTimes(2);
-    expect(invRepoMock.remove).toHaveBeenNthCalledWith(1, expiredItems[0]);
-    expect(invRepoMock.remove).toHaveBeenNthCalledWith(2, expiredItems[1]);
-
-    expect(profile.equippedTheme).toBeNull();
-    expect(user.avatarUrl).toBeNull();
-    expect(profileRepoMock.save).toHaveBeenCalledWith(profile);
-    expect(userRepoMock.save).toHaveBeenCalledWith(user);
-    expect(ctx.cache.bumpTags).toHaveBeenCalled();
+    expect(ctx.shopService.cleanupExpiredInventory).toHaveBeenCalledWith('user-1');
+    expect(result).toEqual(profile);
   });
 });
