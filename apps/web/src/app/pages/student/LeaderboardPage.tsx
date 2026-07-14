@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@cp/ui';
 import { LeaderboardScope, LeaderboardWindow, ILeaderboardRankEntry } from '@cp/shared';
-import { useLeaderboard } from '../../api/gamification.queries';
+import { useLeaderboard, usePendingReward } from '../../api/gamification.queries';
 import { StudentHoverCard } from '../../components/StudentHoverCard';
+import { WeeklyWinnerModal } from '../../components/WeeklyWinnerModal';
 
 type TFn = (key: string, opts?: Record<string, unknown>) => string;
 
@@ -51,7 +52,15 @@ export default function StudentLeaderboardPage() {
   const [scope, setScope] = useState<LeaderboardScope>('xp');
   const [timeWindow, setTimeWindow] = useState<LeaderboardWindow>('weekly');
   const { data, isLoading } = useLeaderboard({ scope, window: timeWindow, limit: 50 });
+  const { data: pendingReward } = usePendingReward();
+  const [modalOpen, setModalOpen] = useState(false);
   const reset = untilNextWeek();
+
+  useEffect(() => {
+    if (pendingReward) {
+      setModalOpen(true);
+    }
+  }, [pendingReward]);
 
   const entries = data?.entries ?? [];
   const me = data?.me ?? null;
@@ -63,6 +72,14 @@ export default function StudentLeaderboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl py-lg text-on-surface">
+      {pendingReward && (
+        <WeeklyWinnerModal
+          reward={pendingReward}
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+        />
+      )}
+
       {/* ── Hero Header ── */}
       <header className="mb-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">

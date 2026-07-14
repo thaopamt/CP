@@ -170,3 +170,15 @@ export interface IGamificationEvent {
   rewardGems?: number;
   at: string;
 }
+
+export interface IWeeklyWinnerPendingReward {
+  weekKey: string;
+  rank: number;
+  weeklyXp: number;
+  rewards: {
+    xp: number;
+    gems: number;
+    avatarCode?: string;
+  };
+}
+
