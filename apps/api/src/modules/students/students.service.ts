@@ -21,6 +21,7 @@ import { Submission } from '../submissions/submission.entity';
 import { StudentAssignmentProgress } from '../submissions/student-assignment-progress.entity';
 import { StudentQuest } from '../quests/student-quest.entity';
 import { StudentBadge } from '../quests/student-badge.entity';
+import { LeaderboardService } from '../quests/leaderboard.service';
 import { ShopService } from '../shop/shop.service';
 import { StudentInventory } from '../shop/student-inventory.entity';
 import { MazeSubmission } from '../maze/maze-submission.entity';
@@ -68,6 +69,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
     private readonly shopService: ShopService,
     private readonly ds: DataSource,
     private readonly cache: SystemCacheService,
+    private readonly leaderboardService: LeaderboardService,
   ) {
     super(repo);
   }
@@ -243,6 +245,7 @@ export class StudentsService extends TypeOrmCrudService<StudentProfile> {
   }
 
   async getStudentByUserId(userId: string): Promise<StudentProfile> {
+    await this.leaderboardService.checkAndFinalizeWeeklyLeaderboard();
     await this.shopService.cleanupExpiredInventory(userId);
     const profile = await this.cache.remember(
       {

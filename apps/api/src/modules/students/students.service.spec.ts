@@ -12,6 +12,7 @@ import { Guardian } from './guardian.entity';
 import { StudentProfile } from './student-profile.entity';
 import { StudentsService } from './students.service';
 import { ShopService } from '../shop/shop.service';
+import { LeaderboardService } from '../quests/leaderboard.service';
 
 function crudRepo<T extends ObjectLiteral>() {
   return {
@@ -66,6 +67,9 @@ function makeService(
   const shopService = {
     cleanupExpiredInventory: jest.fn().mockResolvedValue(undefined),
   };
+  const leaderboardService = {
+    checkAndFinalizeWeeklyLeaderboard: jest.fn().mockResolvedValue(undefined),
+  };
 
   repos.set(StudentProfile, profileRepository);
   repos.set(User, usersRepository);
@@ -95,6 +99,7 @@ function makeService(
     shopService as unknown as ShopService,
     ds as any,
     cache as any,
+    leaderboardService as unknown as LeaderboardService,
   );
 
   return {

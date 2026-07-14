@@ -16,6 +16,7 @@ import { StudentsService } from './students.service';
 import { StudentScheduleService } from './student-schedule.service';
 import { TeacherAssignmentsService } from './teacher-assignments.service';
 import { ShopModule } from '../shop/shop.module';
+import { QuestsModule } from '../quests/quests.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ShopModule } from '../shop/shop.module';
       TeacherStudent,
     ]),
     ShopModule,
+    QuestsModule,
   ],
   controllers: [
     StudentsController,

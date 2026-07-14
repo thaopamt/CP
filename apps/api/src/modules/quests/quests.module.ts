@@ -60,6 +60,6 @@ import { ShopItem } from '../shop/shop-item.entity';
     QuestAnalyticsService,
     GamificationGateway,
   ],
-  exports: [QuestsService, BadgesService, GamificationGateway],
+  exports: [QuestsService, BadgesService, GamificationGateway, LeaderboardService],
 })
 export class QuestsModule {}
