@@ -2291,6 +2291,7 @@ const vi: AppResources = {
           celebrationDesc: 'Chúc mừng bạn đã xuất sắc lọt top vinh danh tuần qua với tổng số {{xp}} XP tích luỹ!',
           gemsLabel: 'Đá quý',
           avatarDuration: '7 ngày',
+          avatarLabel: 'Avatar',
           claimBtn: 'Nhận Thưởng',
           claimingBtn: 'Đang Nhận...',
           avatarName: {
@@ -2324,6 +2325,8 @@ const vi: AppResources = {
           tooltipChampion: 'Phần thưởng Hạng 1: 1,000 XP, 500 Kim cương và Avatar Chiến thần (7 ngày)',
           tooltipElite: 'Phần thưởng Hạng {{rank}}: 500 XP, 300 Kim cương và Avatar Cao thủ (7 ngày)',
           tooltipChallenger: 'Phần thưởng Hạng {{rank}}: 200 XP, 100 Kim cương và Avatar Đấu sĩ (7 ngày)',
+          tooltipAriaLabel: 'Xem chi tiết phần thưởng tuần',
+          tagHot: 'Hot',
         },
       },
       shop: {

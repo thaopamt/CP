@@ -39,7 +39,7 @@ export function useFinalizedWeeks() {
   return useQuery({
     queryKey: gamificationQueryKeys.finalizedWeeks(),
     queryFn: () => gamificationApi.finalizedWeeks().then((res) => res.data),
-    staleTime: queryStaleTime.realtime,
+    staleTime: queryStaleTime.publishedDetail,
   });
 }
 

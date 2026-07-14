@@ -2286,6 +2286,7 @@ const en = {
           celebrationDesc: 'Congratulations on climbing to the top! You earned an impressive {{xp}} XP last week!',
           gemsLabel: 'Gems',
           avatarDuration: '7 days',
+          avatarLabel: 'Avatar',
           claimBtn: 'Claim Reward',
           claimingBtn: 'Claiming...',
           avatarName: {
@@ -2319,6 +2320,8 @@ const en = {
           tooltipChampion: 'Rank 1 Rewards: 1,000 XP, 500 Gems, and Champion Avatar (7 days)',
           tooltipElite: 'Rank {{rank}} Rewards: 500 XP, 300 Gems, and Elite Avatar (7 days)',
           tooltipChallenger: 'Rank {{rank}} Rewards: 200 XP, 100 Gems, and Challenger Avatar (7 days)',
+          tooltipAriaLabel: 'View weekly reward details',
+          tagHot: 'Hot',
         },
       },
       shop: {

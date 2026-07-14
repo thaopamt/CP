@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { i18n } from 'i18next';
 import { AnimatePresence } from 'framer-motion';
 import { Icon } from '@cp/ui';
 import { LeaderboardScope, LeaderboardWindow, ILeaderboardRankEntry } from '@cp/shared';
@@ -49,7 +50,7 @@ const PILL_IDLE =
   'bg-surface-container-low text-on-surface-variant border border-transparent hover:bg-surface-container-high hover:text-on-surface';
 
 export default function StudentLeaderboardPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [activeSubTab, setActiveSubTab] = useState<'leaderboard' | 'hall_of_fame'>('leaderboard');
   const [scope, setScope] = useState<LeaderboardScope>('xp');
   const [timeWindow, setTimeWindow] = useState<LeaderboardWindow>('weekly');
@@ -171,7 +172,7 @@ export default function StudentLeaderboardPage() {
                   <h3 className="font-bold text-lg text-on-surface mb-1 flex items-center gap-2">
                     {t('gamif.student.leaderboard.rewardsInfo.title')}
                     <span className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-200 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                      Hot
+                      {t('gamif.student.leaderboard.rewardsInfo.tagHot')}
                     </span>
                   </h3>
                   <p className="text-sm text-on-surface-variant mb-4">
@@ -291,7 +292,7 @@ export default function StudentLeaderboardPage() {
         </>
       ) : (
         /* ── Hall of Fame Tab ── */
-        <HallOfFameTab t={t} initials={initials} />
+        <HallOfFameTab t={t} i18n={i18n} initials={initials} />
       )}
     </div>
   );
@@ -483,7 +484,11 @@ function RewardTooltip({ rank, t }: { rank: number; t: TFn }) {
 
   return (
     <div className="relative group flex items-center justify-center shrink-0">
-      <button className="text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300 transition-colors focus:outline-none p-0.5 rounded-full hover:bg-amber-100 dark:hover:bg-amber-400/10">
+      <button
+        type="button"
+        aria-label={t('gamif.student.leaderboard.rewardsInfo.tooltipAriaLabel')}
+        className="text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300 transition-colors focus:outline-none p-0.5 rounded-full hover:bg-amber-100 dark:hover:bg-amber-400/10"
+      >
         <Icon name="card_giftcard" size={14} />
       </button>
       <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 scale-95 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-200 origin-bottom z-[999]">
@@ -498,7 +503,7 @@ function RewardTooltip({ rank, t }: { rank: number; t: TFn }) {
 }
 
 /* ── Hall of Fame Tab ── */
-function HallOfFameTab({ t, initials }: { t: TFn; initials: (name: string) => string }) {
+function HallOfFameTab({ t, i18n, initials }: { t: TFn; i18n: i18n; initials: (name: string) => string }) {
   const { data: finalizedWeeks, isLoading } = useFinalizedWeeks();
 
   if (isLoading) {
@@ -537,7 +542,7 @@ function HallOfFameTab({ t, initials }: { t: TFn; initials: (name: string) => st
               </h2>
               <p className="text-xs text-on-surface-variant mt-1">
                 {t('gamif.student.leaderboard.hallOfFame.finalizedAt', {
-                  date: new Date(week.finalizedAt).toLocaleDateString(t('languageSwitcher.short') === 'VI' ? 'vi-VN' : 'en-US', {
+                  date: new Date(week.finalizedAt).toLocaleDateString(i18n.language.startsWith('vi') ? 'vi-VN' : 'en-US', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
@@ -626,7 +631,7 @@ function HallOfFameTab({ t, initials }: { t: TFn; initials: (name: string) => st
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-on-surface-variant flex items-center gap-1">
                           <Icon name="flash_on" size={12} className="text-amber-500" />
-                          XP
+                          {t('gamif.student.leaderboard.scopeXp')}
                         </span>
                         <span className="font-extrabold text-amber-600 dark:text-amber-400">
                           +{winner.rewards.xp}
@@ -636,7 +641,7 @@ function HallOfFameTab({ t, initials }: { t: TFn; initials: (name: string) => st
                         <div className="flex items-center justify-between text-[10px] text-fuchsia-600 dark:text-fuchsia-300 font-bold border-t border-dashed border-outline-variant/30 pt-2 mt-1 dark:border-white/5">
                           <span className="flex items-center gap-1">
                             <Icon name="face" size={12} />
-                            Avatar
+                            {t('gamif.student.leaderboard.weeklyWinner.avatarLabel')}
                           </span>
                           <span className="truncate max-w-[120px]" title={winner.rewards.avatarCode}>
                             {t(`gamif.student.leaderboard.weeklyWinner.avatarName.${winner.rewards.avatarCode}`, { defaultValue: winner.rewards.avatarCode })}
