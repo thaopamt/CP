@@ -12,7 +12,7 @@ export interface ThemeContextType {
 export const ThemeContext = createContext<ThemeContextType>({
   activeTheme: undefined,
   isOverride: false,
-  setThemeOverride: () => {},
+  setThemeOverride: () => { },
 });
 
 export function useTheme() {
@@ -54,7 +54,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   return (
     <ThemeContext.Provider value={{ activeTheme, isOverride: !!themeOverride, setThemeOverride }}>
       {children}
-      <DevThemeSwitcher />
+      {/* <DevThemeSwitcher /> */}
     </ThemeContext.Provider>
   );
 }
