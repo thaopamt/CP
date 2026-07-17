@@ -1,6 +1,6 @@
 # Weekly Leaderboard Rewards System Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Triển khai tính năng chốt BXH tuần, trao quà (XP, Gems, Avatar hạn dùng 1 tuần) cho Top 10 học sinh tích cực nhất mỗi tuần, hiển thị popup chúc mừng khi học sinh đăng nhập và tab Lịch sử vinh danh (Hall of Fame).
 
@@ -26,7 +26,7 @@
 - Consumes: TypeORM decorators
 - Produces: `StudentInventory.expiresAt` (Date | null), `StudentProfile.lastSeenWeeklyRewardWeek` (string | null), `LeaderboardFinalizedWeek` Entity.
 
-- [ ] **Step 1: Cập nhật thực thể StudentInventory**
+- [x] **Step 1: Cập nhật thực thể StudentInventory**
   Thêm cột `expiresAt` vào `StudentInventory` class:
   ```typescript
   // apps/api/src/modules/shop/student-inventory.entity.ts
@@ -34,7 +34,7 @@
   expiresAt!: Date | null;
   ```
 
-- [ ] **Step 2: Cập nhật thực thể StudentProfile**
+- [x] **Step 2: Cập nhật thực thể StudentProfile**
   Thêm cột `lastSeenWeeklyRewardWeek` vào `StudentProfile` class:
   ```typescript
   // apps/api/src/modules/students/student-profile.entity.ts
@@ -42,7 +42,7 @@
   lastSeenWeeklyRewardWeek!: string | null;
   ```
 
-- [ ] **Step 3: Tạo thực thể LeaderboardFinalizedWeek**
+- [x] **Step 3: Tạo thực thể LeaderboardFinalizedWeek**
   Tạo file entity mới lưu trữ lịch sử chốt tuần:
   ```typescript
   // apps/api/src/modules/quests/leaderboard-finalized-week.entity.ts
@@ -74,7 +74,7 @@
   }
   ```
 
-- [ ] **Step 4: Đăng ký entity mới vào QuestsModule**
+- [x] **Step 4: Đăng ký entity mới vào QuestsModule**
   Cập nhật file `quests.module.ts` để import `LeaderboardFinalizedWeek`, `StudentInventory` và `ShopItem` vào TypeOrmModule.forFeature:
   ```typescript
   // apps/api/src/modules/quests/quests.module.ts
@@ -96,11 +96,11 @@
   ])
   ```
 
-- [ ] **Step 5: Run npm run build to verify syntax**
+- [x] **Step 5: Run npm run build to verify syntax**
   Run: `npm run build`
   Expected: Build thành công không có lỗi TypeScript.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   ```bash
   git add apps/api/src/modules/shop/student-inventory.entity.ts apps/api/src/modules/students/student-profile.entity.ts apps/api/src/modules/quests/leaderboard-finalized-week.entity.ts apps/api/src/modules/quests/quests.module.ts
   git commit -m "feat: add schema and entities for weekly leaderboard rewards"
@@ -118,7 +118,7 @@
 - Consumes: Database ShopItem
 - Produces: Weekly Reward Avatar Seed rows, Hiding Weekly Avatars from Shop Catalog.
 
-- [ ] **Step 1: Thêm seeds cho 3 avatar tuần vào seed-shop.ts**
+- [x] **Step 1: Thêm seeds cho 3 avatar tuần vào seed-shop.ts**
   Bổ sung vào mảng `ITEMS` trong `seed-shop.ts` (khoảng dòng 79-80):
   ```typescript
   {
@@ -168,7 +168,7 @@
   }
   ```
 
-- [ ] **Step 2: Ẩn Avatar tuần khỏi danh sách catalog mua hàng**
+- [x] **Step 2: Ẩn Avatar tuần khỏi danh sách catalog mua hàng**
   Cập nhật hàm `getCatalog` trong `ShopService` để loại bỏ các avatar có mã bắt đầu bằng `CHAR_WEEKLY_`:
   ```typescript
   // apps/api/src/modules/shop/shop.service.ts:156 (trong getCatalog)
@@ -177,11 +177,11 @@
     .map((item) => { ... });
   ```
 
-- [ ] **Step 3: Chạy lại seed-shop để cập nhật DB local**
+- [x] **Step 3: Chạy lại seed-shop để cập nhật DB local**
   Run: `tsx --tsconfig tsconfig.base.json apps/api/src/database/seeds/seed-shop.ts` (Hoặc chạy lệnh npm seed tương ứng)
   Expected: Seed thành công và thêm 3 items mới vào bảng `shop_items`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   ```bash
   git add apps/api/src/database/seeds/seed-shop.ts apps/api/src/modules/shop/shop.service.ts
   git commit -m "feat: seed weekly avatars and hide them from gem shop catalog"
@@ -199,7 +199,7 @@
 - Consumes: `cleanupExpiredInventory(userId)`
 - Produces: Automatic unequip and delete of expired inventory items.
 
-- [ ] **Step 1: Tạo hàm helper cleanupExpiredInventory trong ShopService**
+- [x] **Step 1: Tạo hàm helper cleanupExpiredInventory trong ShopService**
   Thêm hàm sau vào `ShopService`:
   ```typescript
   // apps/api/src/modules/shop/shop.service.ts
@@ -236,12 +236,12 @@
   }
   ```
 
-- [ ] **Step 2: Gọi helper cleanup ở các API Inventory và Catalog**
+- [x] **Step 2: Gọi helper cleanup ở các API Inventory và Catalog**
   Gọi `await this.cleanupExpiredInventory(userId);` ở dòng đầu của:
   - `getCatalog(userId)`
   - `getInventory(userId)`
 
-- [ ] **Step 3: Gọi helper cleanup ở API Load Profile của học sinh**
+- [x] **Step 3: Gọi helper cleanup ở API Load Profile của học sinh**
   Inject `ShopService` vào `StudentsService` hoặc gọi trực tiếp từ `StudentsService.getProfile`. Để tránh circular dependency, ta có thể inject trực tiếp `Repository<StudentInventory>` và `Repository<ShopItem>` và thực hiện xóa/unequip tương tự hoặc gọi `ShopService` (do `StudentsModule` chưa import `ShopModule`).
   Đơn giản nhất, cập nhật `apps/api/src/modules/students/students.service.ts` để gọi cleanup:
   ```typescript
@@ -261,7 +261,7 @@
   // Viết logic dọn dẹp tương tự ở đầu hàm findOne hoặc getProfile.
   ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   ```bash
   git add apps/api/src/modules/shop/shop.service.ts apps/api/src/modules/students/students.service.ts
   git commit -m "feat: implement lazy expiration cleanup for reward items"
@@ -279,7 +279,7 @@
 - Consumes: StudentProfiles, LeaderboardFinalizedWeeks
 - Produces: `checkAndFinalizeWeeklyLeaderboard(now: Date)`
 
-- [ ] **Step 1: Viết test case chốt tuần kiểm tra lỗi (failing test)**
+- [x] **Step 1: Viết test case chốt tuần kiểm tra lỗi (failing test)**
   Tạo file `leaderboard.service.spec.ts` và viết unit test mô phỏng quá trình chốt tuần:
   ```typescript
   // apps/api/src/modules/quests/leaderboard.service.spec.ts
@@ -292,11 +292,11 @@
   });
   ```
 
-- [ ] **Step 2: Chạy thử test và xác nhận fail**
+- [x] **Step 2: Chạy thử test và xác nhận fail**
   Run: `nx test api --testFile=leaderboard.service.spec.ts`
   Expected: Thất bại do chưa implement hàm `checkAndFinalizeWeeklyLeaderboard`.
 
-- [ ] **Step 3: Implement hàm chốt tuần trong LeaderboardService**
+- [x] **Step 3: Implement hàm chốt tuần trong LeaderboardService**
   Cập nhật `LeaderboardService` để thêm logic chốt tuần:
   ```typescript
   // apps/api/src/modules/quests/leaderboard.service.ts
@@ -405,15 +405,15 @@
   }
   ```
 
-- [ ] **Step 4: Chạy thử test và xác nhận pass**
+- [x] **Step 4: Chạy thử test và xác nhận pass**
   Run: `nx test api --testFile=leaderboard.service.spec.ts`
   Expected: PASS.
 
-- [ ] **Step 5: Gọi checkAndFinalizeWeeklyLeaderboard ở API Leaderboard và XP updates**
+- [x] **Step 5: Gọi checkAndFinalizeWeeklyLeaderboard ở API Leaderboard và XP updates**
   - Trong `LeaderboardService.getLeaderboard` (dòng đầu)
   - Trong `applyXpGain` hoặc trước khi cập nhật `weekKey` trong các service khác.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   ```bash
   git add apps/api/src/modules/quests/leaderboard.service.ts apps/api/src/modules/quests/leaderboard.service.spec.ts
   git commit -m "feat: implement lazy weekly leaderboard finalization and write tests"
@@ -431,10 +431,10 @@
 - Consumes: API endpoints
 - Produces: JSON payload for pending reward, reward claim and list of finalized weeks.
 
-- [ ] **Step 1: Viết test endpoints chốt tuần**
+- [x] **Step 1: Viết test endpoints chốt tuần**
   Đảm bảo các hàm trả về chính xác lịch sử và phần thưởng nhận được của học sinh.
 
-- [ ] **Step 2: Bổ sung logic controller và service endpoints**
+- [x] **Step 2: Bổ sung logic controller và service endpoints**
   ```typescript
   // apps/api/src/modules/quests/leaderboard.controller.ts
   @Get('finalized')
@@ -457,11 +457,11 @@
   - `getPendingReward(userId)`: Tìm tuần chốt gần nhất. Nếu học sinh đó nằm trong Top 10 của tuần đó và `lastSeenWeeklyRewardWeek !== lastWeekKey`, trả về thông tin quà để client hiện popup.
   - `claimReward(userId)`: Cập nhật `lastSeenWeeklyRewardWeek = lastWeekKey` trên profile học sinh.
 
-- [ ] **Step 3: Run npm run test to verify all tests pass**
+- [x] **Step 3: Run npm run test to verify all tests pass**
   Run: `npm run test`
   Expected: Tất cả bài test cũ và mới đều PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   ```bash
   git add apps/api/src/modules/quests/leaderboard.controller.ts apps/api/src/modules/quests/leaderboard.service.ts
   git commit -m "feat: add api endpoints for weekly reward popup and history"
@@ -480,16 +480,16 @@
 - Consumes: `GET /leaderboard/pending-reward`, `POST /leaderboard/claim-reward`
 - Produces: Celebration UI popup with Framer Motion, confetti and reward details.
 
-- [ ] **Step 1: Thêm API queries trên frontend**
+- [x] **Step 1: Thêm API queries trên frontend**
   Thêm các hàm fetch và mutation cho pending reward và claim reward.
 
-- [ ] **Step 2: Tạo component WeeklyWinnerModal.tsx**
+- [x] **Step 2: Tạo component WeeklyWinnerModal.tsx**
   Thiết kế component modal đẹp lung linh sử dụng Framer Motion và Canvas Confetti (`@tsparticles/react` hoặc `canvas-confetti` nếu có). Hiển thị chi tiết Gems, XP và Avatar nhận được kèm nhãn đếm ngược 7 ngày.
 
-- [ ] **Step 3: Gọi hiển thị modal trên trang LeaderboardPage**
+- [x] **Step 3: Gọi hiển thị modal trên trang LeaderboardPage**
   Khi vào trang Leaderboard, fetch pending reward, nếu có dữ liệu thì mở modal vinh danh học sinh.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   ```bash
   git add apps/web/src/app/components/WeeklyWinnerModal.tsx apps/web/src/app/pages/student/LeaderboardPage.tsx apps/web/src/app/api/gamification.api.ts apps/web/src/app/api/gamification.queries.ts
   git commit -m "feat: add frontend weekly winner popup with premium particles celebration"
@@ -506,20 +506,20 @@
 - Consumes: `GET /leaderboard/finalized`
 - Produces: Header Banner, Gift icons for Top 10 preview, and Hall of Fame history tab.
 
-- [ ] **Step 1: Thêm Banner giải thích cơ chế quà tặng hàng tuần**
+- [x] **Step 1: Thêm Banner giải thích cơ chế quà tặng hàng tuần**
   Hiển thị hộp giới thiệu quà tặng ở đầu tab "weekly" để kích thích tinh thần đua top.
 
-- [ ] **Step 2: Thêm Gift Icon Preview**
+- [x] **Step 2: Thêm Gift Icon Preview**
   Bổ sung một icon hộp quà nhỏ bên cạnh Rank #1, #2, #3 và Top 4-10. Khi hover sẽ hiện tooltip hiển thị quà tặng tương ứng.
 
-- [ ] **Step 3: Tạo Tab Lịch sử vinh danh (Hall of Fame)**
+- [x] **Step 3: Tạo Tab Lịch sử vinh danh (Hall of Fame)**
   Thêm nút chuyển đổi tab bên cạnh tabs Xếp hạng hiện tại. Render danh sách các tuần đã chốt cùng Top 3 người đạt giải cao nhất mỗi tuần đó.
 
-- [ ] **Step 4: Run serve:all to manually verify the features work**
+- [x] **Step 4: Run serve:all to manually verify the features work**
   Run: `npm run serve:all`
   Expected: Trang web tải bình thường, hiển thị hoàn hảo Bảng vinh danh và các biểu tượng quà tặng.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   ```bash
   git add apps/web/src/app/pages/student/LeaderboardPage.tsx
   git commit -m "feat: implement hall of fame tab and reward previews on leaderboard page"

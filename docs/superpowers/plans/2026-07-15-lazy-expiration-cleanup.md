@@ -32,10 +32,10 @@
 - Consumes: `StudentInventory` entity.
 - Produces: Injectable `inventory` repository in `StudentsService`.
 
-- [ ] **Step 1: Import StudentInventory and add to TypeOrmModule.forFeature in students.module.ts**
-- [ ] **Step 2: Inject Repository<StudentInventory> into StudentsService constructor**
-- [ ] **Step 3: Update students.service.spec.ts makeService factory to supply mock inventory repository to the constructor**
-- [ ] **Step 4: Run tests to verify the constructor changes didn't break existing tests**
+- [x] **Step 1: Import StudentInventory and add to TypeOrmModule.forFeature in students.module.ts**
+- [x] **Step 2: Inject Repository<StudentInventory> into StudentsService constructor**
+- [x] **Step 3: Update students.service.spec.ts makeService factory to supply mock inventory repository to the constructor**
+- [x] **Step 4: Run tests to verify the constructor changes didn't break existing tests**
 
 ### Task 2: Implement cleanupExpiredInventory in ShopService and Hook Into Catalog/Inventory APIs
 
@@ -45,10 +45,10 @@
 **Interfaces:**
 - Produces: `cleanupExpiredInventory(userId: string): Promise<void>` in `ShopService`
 
-- [ ] **Step 1: Import LessThan in shop.service.ts**
-- [ ] **Step 2: Add cleanupExpiredInventory(userId: string): Promise<void> helper method to ShopService**
-- [ ] **Step 3: Call cleanupExpiredInventory at start of getCatalog(userId)**
-- [ ] **Step 4: Call cleanupExpiredInventory at start of getInventory(userId)**
+- [x] **Step 1: Import LessThan in shop.service.ts**
+- [x] **Step 2: Add cleanupExpiredInventory(userId: string): Promise<void> helper method to ShopService**
+- [x] **Step 3: Call cleanupExpiredInventory at start of getCatalog(userId)**
+- [x] **Step 4: Call cleanupExpiredInventory at start of getInventory(userId)**
 
 ### Task 3: Implement cleanupExpiredInventory in StudentsService and Hook Into getStudentByUserId
 
@@ -58,9 +58,9 @@
 **Interfaces:**
 - Produces: `cleanupExpiredInventory(userId: string): Promise<void>` in `StudentsService`
 
-- [ ] **Step 1: Import LessThan and ShopItemCategory in students.service.ts**
-- [ ] **Step 2: Add cleanupExpiredInventory(userId: string): Promise<void> helper method to StudentsService**
-- [ ] **Step 3: Call cleanupExpiredInventory at start of getStudentByUserId(userId)**
+- [x] **Step 1: Import LessThan and ShopItemCategory in students.service.ts**
+- [x] **Step 2: Add cleanupExpiredInventory(userId: string): Promise<void> helper method to StudentsService**
+- [x] **Step 3: Call cleanupExpiredInventory at start of getStudentByUserId(userId)**
 
 ### Task 4: Fix Existing Broken Tests and Add Tests for Lazy Expiration Cleanup
 
@@ -69,14 +69,14 @@
 - Modify: [students.controller.spec.ts](file:///Users/thaopamt/Desktop/Personal/CP_System/apps/api/src/modules/students/students.controller.spec.ts)
 - Modify: [auth.service.spec.ts](file:///Users/thaopamt/Desktop/Personal/CP_System/apps/api/src/modules/auth/auth.service.spec.ts)
 
-- [ ] **Step 1: Fix expectations in blockStudent and unblockStudent tests in students.service.spec.ts**
-- [ ] **Step 2: Fix expect message in auth.service.spec.ts**
-- [ ] **Step 3: Fix mock expectations in students.controller.spec.ts**
-- [ ] **Step 4: Add tests for cleanupExpiredInventory inside students.service.spec.ts**
-- [ ] **Step 5: Run all tests to verify everything passes**
+- [x] **Step 1: Fix expectations in blockStudent and unblockStudent tests in students.service.spec.ts**
+- [x] **Step 2: Fix expect message in auth.service.spec.ts**
+- [x] **Step 3: Fix mock expectations in students.controller.spec.ts**
+- [x] **Step 4: Add tests for cleanupExpiredInventory inside students.service.spec.ts**
+- [x] **Step 5: Run all tests to verify everything passes**
 
 ### Task 5: Build Verification and Commits
 
-- [ ] **Step 1: Build project with `pnpm nx build api`**
-- [ ] **Step 2: Commit changes to Git**
-- [ ] **Step 3: Save implementer report to `task-3-report.md`**
+- [x] **Step 1: Build project with `pnpm nx build api`**
+- [x] **Step 2: Commit changes to Git**
+- [x] **Step 3: Save implementer report to `task-3-report.md`**
