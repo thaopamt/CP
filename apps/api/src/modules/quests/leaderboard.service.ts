@@ -210,7 +210,18 @@ export class LeaderboardService {
         const score = p.weeklyXp;
 
         p.gems += gemsReward;
-        applyXpGain(p, xpReward, now);
+        // Roll over stale period keys if needed, but do NOT add reward XP to weekly/monthly buckets
+        const wk = weekKey(now);
+        const mk = monthKey(now);
+        if (p.weekKey !== wk) {
+          p.weekKey = wk;
+          p.weeklyXp = 0;
+        }
+        if (p.monthKey !== mk) {
+          p.monthKey = mk;
+          p.monthlyXp = 0;
+        }
+        p.xp += xpReward;
         advanceLevel(p);
         await profRepo.save(p);
 
