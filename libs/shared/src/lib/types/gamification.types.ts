@@ -180,6 +180,7 @@ export interface IWeeklyWinnerPendingReward {
     gems: number;
     avatarCode?: string;
   };
+  avatarItemId?: string | null;
 }
 
 export interface ILeaderboardFinalizedWeek {

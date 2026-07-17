@@ -2288,7 +2288,9 @@ const en = {
           avatarDuration: '7 days',
           avatarLabel: 'Avatar',
           claimBtn: 'Claim Reward',
+          claimAndEquipBtn: 'Claim & Equip',
           claimingBtn: 'Claiming...',
+          chooseGender: 'Choose avatar gender:',
           avatarName: {
             CHAR_WEEKLY_CHAMPION: 'Weekly Champion',
             CHAR_WEEKLY_ELITE: 'Weekly Elite',

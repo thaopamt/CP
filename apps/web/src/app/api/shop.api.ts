@@ -19,8 +19,9 @@ export const shopApi = {
   purchase(itemId: string) {
     return apiClient.post<IPurchaseResult>(`/shop/purchase/${itemId}`);
   },
-  equip(itemId: string) {
-    return apiClient.post<IEquipResult>(`/shop/equip/${itemId}`);
+  equip(itemId: string, gender?: 'male' | 'female') {
+    const url = gender ? `/shop/equip/${itemId}?gender=${gender}` : `/shop/equip/${itemId}`;
+    return apiClient.post<IEquipResult>(url);
   },
   unequip(itemId: string) {
     return apiClient.post<IEquipResult>(`/shop/unequip/${itemId}`);

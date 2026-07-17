@@ -101,7 +101,7 @@ export default function StudentShopPage() {
         await unequip.mutateAsync(entry.item.id);
         toast.success(t('gamif.student.shop.unequipDone'));
       } else {
-        await equip.mutateAsync(entry.item.id);
+        await equip.mutateAsync({ itemId: entry.item.id });
         toast.success(t('gamif.student.shop.equipDone'));
       }
     } catch (err) {

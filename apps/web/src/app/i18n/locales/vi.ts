@@ -2293,7 +2293,9 @@ const vi: AppResources = {
           avatarDuration: '7 ngày',
           avatarLabel: 'Avatar',
           claimBtn: 'Nhận Thưởng',
+          claimAndEquipBtn: 'Nhận Thưởng & Trang Bị',
           claimingBtn: 'Đang Nhận...',
+          chooseGender: 'Chọn giới tính trang bị:',
           avatarName: {
             CHAR_WEEKLY_CHAMPION: 'Chiến thần Bảng tuần',
             CHAR_WEEKLY_ELITE: 'Cao thủ Bảng tuần',

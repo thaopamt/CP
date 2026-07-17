@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon, useToast } from '@cp/ui';
 import { IWeeklyWinnerPendingReward } from '@cp/shared';
 import { useClaimReward } from '../api/gamification.queries';
+import { useEquipItem } from '../api/shop.queries';
 
 interface WeeklyWinnerModalProps {
   reward: IWeeklyWinnerPendingReward;
@@ -53,11 +54,14 @@ export function WeeklyWinnerModal({ reward, onClose }: WeeklyWinnerModalProps) {
   const { t } = useTranslation();
   const toast = useToast();
   const claimRewardMutation = useClaimReward();
+  const equipItemMutation = useEquipItem();
   const [particles, setParticles] = useState<Particle[]>([]);
+  const [selectedGender, setSelectedGender] = useState<'male' | 'female'>('male');
 
   const rank = reward.rank;
   const avatarCode = reward.rewards.avatarCode || 'CHAR_WEEKLY_CHALLENGER';
   const avatarDetails = AVATAR_MAPPING[avatarCode] || AVATAR_MAPPING.CHAR_WEEKLY_CHALLENGER;
+  const previewImage = avatarDetails.image.replace('/male/', `/${selectedGender}/`);
 
   // Generate confetti particles on mount
   useEffect(() => {
@@ -78,7 +82,26 @@ export function WeeklyWinnerModal({ reward, onClose }: WeeklyWinnerModalProps) {
   const handleClaim = async () => {
     try {
       await claimRewardMutation.mutateAsync();
-      toast.success(t('gamif.student.leaderboard.weeklyWinner.claimSuccess'));
+      
+      // Auto-equip the avatar if the reward gave one
+      if (reward.avatarItemId) {
+        try {
+          await equipItemMutation.mutateAsync({
+            itemId: reward.avatarItemId,
+            gender: selectedGender,
+          });
+          toast.success(
+            t('gamif.student.leaderboard.weeklyWinner.claimAndEquipSuccess') ||
+              'Đã nhận quà và trang bị thành công!'
+          );
+        } catch (equipError) {
+          console.error('Failed to auto-equip reward avatar:', equipError);
+          toast.success(t('gamif.student.leaderboard.weeklyWinner.claimSuccess'));
+        }
+      } else {
+        toast.success(t('gamif.student.leaderboard.weeklyWinner.claimSuccess'));
+      }
+      
       onClose();
     } catch (error) {
       toast.error(t('gamif.student.leaderboard.weeklyWinner.claimError'));
@@ -90,6 +113,8 @@ export function WeeklyWinnerModal({ reward, onClose }: WeeklyWinnerModalProps) {
     if (rank === 2 || rank === 3) return t('gamif.student.leaderboard.weeklyWinner.titleElite');
     return t('gamif.student.leaderboard.weeklyWinner.titleChallenger');
   };
+
+  const isPending = claimRewardMutation.isPending || equipItemMutation.isPending;
 
   return (
     <motion.div
@@ -193,7 +218,7 @@ export function WeeklyWinnerModal({ reward, onClose }: WeeklyWinnerModalProps) {
 
         {/* Main Rewards Display Grid */}
         <motion.div
-          className="grid grid-cols-3 gap-3 mb-8 bg-white/[0.02] border border-white/5 rounded-2xl p-4"
+          className="grid grid-cols-3 gap-3 mb-6 bg-white/[0.02] border border-white/5 rounded-2xl p-4"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.35, type: 'spring', stiffness: 200, damping: 20 }}
@@ -222,7 +247,7 @@ export function WeeklyWinnerModal({ reward, onClose }: WeeklyWinnerModalProps) {
           <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-white/[0.02] border border-white/5 relative">
             <div className="w-10 h-10 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/20 grid place-items-center mb-1 overflow-hidden">
               <img
-                src={avatarDetails.image}
+                src={previewImage}
                 alt={t(`gamif.student.leaderboard.weeklyWinner.avatarName.${avatarCode}`)}
                 className="w-8 h-8 object-contain"
               />
@@ -237,6 +262,48 @@ export function WeeklyWinnerModal({ reward, onClose }: WeeklyWinnerModalProps) {
           </div>
         </motion.div>
 
+        {/* Gender Selection if Avatar rewarded */}
+        {reward.avatarItemId && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mb-6 flex flex-col items-center gap-2.5"
+          >
+            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
+              {t('gamif.student.leaderboard.weeklyWinner.chooseGender') || 'Chọn giới tính trang bị:'}
+            </span>
+            <div className="flex gap-4 w-full">
+              <button
+                type="button"
+                onClick={() => setSelectedGender('male')}
+                disabled={isPending}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-extrabold transition-all duration-200 ${
+                  selectedGender === 'male'
+                    ? 'bg-sky-500/10 border-sky-400/50 text-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.12)]'
+                    : 'bg-white/[0.01] border-white/5 text-slate-400 hover:bg-white/[0.03] hover:text-slate-300'
+                }`}
+              >
+                <Icon name="male" size={18} />
+                {t('common.gender.male') || 'Nam'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedGender('female')}
+                disabled={isPending}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-extrabold transition-all duration-200 ${
+                  selectedGender === 'female'
+                    ? 'bg-fuchsia-500/10 border-fuchsia-400/50 text-fuchsia-400 shadow-[0_0_15px_rgba(217,70,239,0.12)]'
+                    : 'bg-white/[0.01] border-white/5 text-slate-400 hover:bg-white/[0.03] hover:text-slate-300'
+                }`}
+              >
+                <Icon name="female" size={18} />
+                {t('common.gender.female') || 'Nữ'}
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Claim Action Button */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
@@ -247,10 +314,10 @@ export function WeeklyWinnerModal({ reward, onClose }: WeeklyWinnerModalProps) {
           <button
             type="button"
             onClick={handleClaim}
-            disabled={claimRewardMutation.isPending}
+            disabled={isPending}
             className={`relative w-full py-3.5 rounded-2xl bg-gradient-to-r ${avatarDetails.colors} text-white font-black text-sm uppercase tracking-wider hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 shadow-lg`}
           >
-            {claimRewardMutation.isPending ? (
+            {isPending ? (
               <>
                 <Icon name="sync" className="animate-spin text-white" size={18} />
                 {t('gamif.student.leaderboard.weeklyWinner.claimingBtn')}
@@ -258,7 +325,9 @@ export function WeeklyWinnerModal({ reward, onClose }: WeeklyWinnerModalProps) {
             ) : (
               <>
                 <Icon name="redeem" size={18} />
-                {t('gamif.student.leaderboard.weeklyWinner.claimBtn')}
+                {reward.avatarItemId
+                  ? t('gamif.student.leaderboard.weeklyWinner.claimAndEquipBtn') || 'Nhận Thưởng & Trang Bị'
+                  : t('gamif.student.leaderboard.weeklyWinner.claimBtn')}
               </>
             )}
           </button>

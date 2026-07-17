@@ -381,11 +381,16 @@ export class LeaderboardService {
     const winner = lastFinalized.winners.find((w) => w.userId === userId);
     if (!winner) return null;
 
+    const item = await this.profiles.manager.getRepository(ShopItem).findOne({
+      where: { code: winner.rewards.avatarCode },
+    });
+
     return {
       weekKey: lastFinalized.weekKey,
       rank: winner.rank,
       weeklyXp: winner.weeklyXp,
       rewards: winner.rewards,
+      avatarItemId: item?.id ?? null,
     };
   }
 
