@@ -144,6 +144,11 @@ export class LeaderboardService {
       const invRepo = tx.getRepository(StudentInventory);
       const itemRepo = tx.getRepository(ShopItem);
 
+      // Acquire a transaction-scoped advisory lock based on the week key
+      await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+        `weekly-leaderboard-rewards-${targetWeekKey}`,
+      ]);
+
       // Lock double-check
       const doubleCheck = await txFinalizedRepo.findOne({ where: { weekKey: targetWeekKey } });
       if (doubleCheck) return;

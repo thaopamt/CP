@@ -61,6 +61,7 @@ describe('LeaderboardService.checkAndFinalizeWeeklyLeaderboard', () => {
         if (entity === ShopItem) return itemRepoMock;
         return null;
       }),
+      query: jest.fn().mockResolvedValue([]),
     };
 
     profilesRepoMock.manager = {
