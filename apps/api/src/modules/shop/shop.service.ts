@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository, LessThan } from 'typeorm';
+import { DataSource, Repository, LessThan, In } from 'typeorm';
 import {
   BadgeRarity,
   ICreateShopItemPayload,
@@ -140,12 +140,17 @@ export class ShopService {
     let hasCleared = false;
     await this.ds.transaction(async (tx) => {
       const invRepo = tx.getRepository(StudentInventory);
-      const expired = await invRepo.find({
+      const expiredLocked = await invRepo.find({
         where: { userId, expiresAt: LessThan(new Date()) },
-        relations: ['item'],
+        loadEagerRelations: false,
         lock: { mode: 'pessimistic_write' },
       });
-      if (expired.length === 0) return;
+      if (expiredLocked.length === 0) return;
+
+      const expired = await invRepo.find({
+        where: { id: In(expiredLocked.map((row) => row.id)) },
+        relations: ['item'],
+      });
 
       hasCleared = true;
       const profRepo = tx.getRepository(StudentProfile);

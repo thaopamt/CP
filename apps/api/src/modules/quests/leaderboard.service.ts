@@ -100,7 +100,7 @@ export class LeaderboardService {
       const exists = await this.finalizedWeeks.findOne({ where: { weekKey: prevWeekKey } });
       if (exists) return;
 
-      const lastFinalized = await this.finalizedWeeks.findOne({ order: { weekKey: 'DESC' } });
+      const lastFinalized = await this.finalizedWeeks.findOne({ where: {}, order: { weekKey: 'DESC' } });
 
       let weeksToFinalize: string[] = [];
 
@@ -350,6 +350,7 @@ export class LeaderboardService {
 
   async getPendingReward(userId: string): Promise<any | null> {
     const lastFinalized = await this.finalizedWeeks.findOne({
+      where: {},
       order: { weekKey: 'DESC' },
     });
     if (!lastFinalized) return null;
@@ -374,6 +375,7 @@ export class LeaderboardService {
 
   async claimReward(userId: string): Promise<StudentProfile> {
     const lastFinalized = await this.finalizedWeeks.findOne({
+      where: {},
       order: { weekKey: 'DESC' },
     });
     if (!lastFinalized) {
