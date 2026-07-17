@@ -199,7 +199,7 @@ export class ShopService {
         const ownedById = new Map(owned.map((o) => [o.itemId, o]));
 
         const entries: IShopCatalogEntry[] = items
-          .filter((item) => !item.code.startsWith('CHAR_WEEKLY_'))
+          .filter((item) => !item.code.startsWith('CHAR_WEEKLY_') || ownedById.has(item.id))
           .map((item) => {
             const inv = ownedById.get(item.id);
             return {
