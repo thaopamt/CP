@@ -37,6 +37,8 @@ export interface JwtPayload {
   sub: string;
   email: string;
   role: UserRole;
+  /** Present only on tokens minted by admin impersonation; the admin's user id. */
+  impersonatedBy?: string;
   iat?: number;
   exp?: number;
 }

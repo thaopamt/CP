@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException, UnauthorizedExceptio
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import { IUser, JwtPayload, LoginResponse } from '@cp/shared';
+import { IUser, JwtPayload, LoginResponse, UserRole } from '@cp/shared';
 
 import { UsersService } from '../users/users.service';
 import { User } from '../users/user.entity';
@@ -43,6 +43,34 @@ export class AuthService {
       refreshToken,
       user: this.serializeUser(user),
     };
+  }
+
+  async generateImpersonationToken(
+    studentUserId: string,
+    adminId: string,
+  ): Promise<{ accessToken: string; user: IUser }> {
+    const user = await this.users.findActiveById(studentUserId);
+    if (!user) {
+      throw new NotFoundException(`Student ${studentUserId} not found or inactive`);
+    }
+    if (user.role !== UserRole.STUDENT) {
+      throw new ForbiddenException('Only student accounts can be impersonated');
+    }
+
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      impersonatedBy: adminId,
+    };
+
+    // Access token only — never issue/store a refresh token here, or we would
+    // clobber the student's single refreshTokenHash slot and break their login.
+    const accessToken = await this.jwt.signAsync(payload, {
+      expiresIn: this.config.get<string>('JWT_IMPERSONATION_EXPIRES_IN') ?? '1d',
+    });
+
+    return { accessToken, user: this.serializeUser(user) };
   }
 
   async refreshTokens(userId: string, refreshToken: string): Promise<LoginResponse> {
