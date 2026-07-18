@@ -91,12 +91,11 @@ export function WeeklyWinnerModal({ reward, onClose }: WeeklyWinnerModalProps) {
             gender: selectedGender,
           });
           toast.success(
-            t('gamif.student.leaderboard.weeklyWinner.claimAndEquipSuccess') ||
-              'Đã nhận quà và trang bị thành công!'
+            t('gamif.student.leaderboard.weeklyWinner.claimAndEquipSuccess', 'Chúc mừng! Nhận và trang bị thành công.')
           );
         } catch (equipError) {
           console.error('Failed to auto-equip reward avatar:', equipError);
-          toast.success(t('gamif.student.leaderboard.weeklyWinner.claimSuccess'));
+          toast.success(t('gamif.student.leaderboard.weeklyWinner.claimSuccess', 'Nhận quà thành công!'));
         }
       } else {
         toast.success(t('gamif.student.leaderboard.weeklyWinner.claimSuccess'));
@@ -139,7 +138,7 @@ export function WeeklyWinnerModal({ reward, onClose }: WeeklyWinnerModalProps) {
           type="button"
           onClick={onClose}
           className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors duration-200 z-[101]"
-          aria-label={t('common.dismiss') || 'Close'}
+          aria-label={t('common.dismiss', 'Close')}
         >
           <Icon name="close" size={24} />
         </button>
@@ -271,7 +270,7 @@ export function WeeklyWinnerModal({ reward, onClose }: WeeklyWinnerModalProps) {
             className="mb-6 flex flex-col items-center gap-2.5"
           >
             <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
-              {t('gamif.student.leaderboard.weeklyWinner.chooseGender') || 'Chọn giới tính trang bị:'}
+              {t('gamif.student.leaderboard.weeklyWinner.chooseGender', 'Chọn giới tính trang bị:')}
             </span>
             <div className="flex gap-4 w-full">
               <button
@@ -285,7 +284,7 @@ export function WeeklyWinnerModal({ reward, onClose }: WeeklyWinnerModalProps) {
                 }`}
               >
                 <Icon name="male" size={18} />
-                {t('common.gender.male') || 'Nam'}
+                {t('common.gender.male', 'Nam')}
               </button>
               <button
                 type="button"
@@ -298,7 +297,7 @@ export function WeeklyWinnerModal({ reward, onClose }: WeeklyWinnerModalProps) {
                 }`}
               >
                 <Icon name="female" size={18} />
-                {t('common.gender.female') || 'Nữ'}
+                {t('common.gender.female', 'Nữ')}
               </button>
             </div>
           </motion.div>
@@ -320,14 +319,14 @@ export function WeeklyWinnerModal({ reward, onClose }: WeeklyWinnerModalProps) {
             {isPending ? (
               <>
                 <Icon name="sync" className="animate-spin text-white" size={18} />
-                {t('gamif.student.leaderboard.weeklyWinner.claimingBtn')}
+                {t('gamif.student.leaderboard.weeklyWinner.claimingBtn', 'Đang Nhận...')}
               </>
             ) : (
               <>
                 <Icon name="redeem" size={18} />
                 {reward.avatarItemId
-                  ? t('gamif.student.leaderboard.weeklyWinner.claimAndEquipBtn') || 'Nhận Thưởng & Trang Bị'
-                  : t('gamif.student.leaderboard.weeklyWinner.claimBtn')}
+                  ? t('gamif.student.leaderboard.weeklyWinner.claimAndEquipBtn', 'Nhận Thưởng & Trang Bị')
+                  : t('gamif.student.leaderboard.weeklyWinner.claimBtn', 'Nhận Thưởng')}
               </>
             )}
           </button>

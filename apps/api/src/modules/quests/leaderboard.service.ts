@@ -359,9 +359,38 @@ export class LeaderboardService {
   }
 
   async getFinalizedWeeks(): Promise<LeaderboardFinalizedWeek[]> {
-    return this.finalizedWeeks.find({
+    const weeks = await this.finalizedWeeks.find({
       order: { weekKey: 'DESC' },
     });
+
+    if (weeks.length === 0) return weeks;
+
+    const userIds = new Set<string>();
+    for (const week of weeks) {
+      for (const winner of week.winners) {
+        userIds.add(winner.userId);
+      }
+    }
+
+    if (userIds.size > 0) {
+      const profiles = await this.profiles.find({
+        where: { userId: In(Array.from(userIds)) },
+        relations: ['user'],
+      });
+      const userMap = new Map(profiles.map((p) => [p.userId, p.user]));
+
+      for (const week of weeks) {
+        for (const winner of week.winners) {
+          const user = userMap.get(winner.userId);
+          if (user) {
+            winner.avatarUrl = user.avatarUrl ?? null;
+            winner.name = `${user.firstName} ${user.lastName}`.trim() || winner.name;
+          }
+        }
+      }
+    }
+
+    return weeks;
   }
 
   async getPendingReward(userId: string): Promise<any | null> {

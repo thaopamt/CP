@@ -44,6 +44,21 @@ function initials(name: string): string {
     .join('') || '?';
 }
 
+function parseWeekKeyToRange(wk: string): { start: Date; end: Date } | null {
+  const parts = wk.split('-W');
+  if (parts.length !== 2) return null;
+  const year = parseInt(parts[0], 10);
+  const week = parseInt(parts[1], 10);
+
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const dayNum = jan4.getUTCDay() || 7;
+  const monday1 = new Date(jan4.getTime() - (dayNum - 1) * 24 * 60 * 60 * 1000);
+
+  const start = new Date(monday1.getTime() + (week - 1) * 7 * 24 * 60 * 60 * 1000);
+  const end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+  return { start, end };
+}
+
 const PILL_ACTIVE =
   'bg-primary text-on-primary border border-transparent shadow-elev-1 dark:bg-white/10 dark:text-white dark:border-white/20';
 const PILL_IDLE =
@@ -105,22 +120,20 @@ export default function StudentLeaderboardPage() {
       <div className="flex border-b border-outline-variant dark:border-white/5 mb-6">
         <button
           onClick={() => setActiveSubTab('leaderboard')}
-          className={`px-6 py-3 font-bold text-sm border-b-2 transition-all duration-200 flex items-center gap-2 ${
-            activeSubTab === 'leaderboard'
+          className={`px-6 py-3 font-bold text-sm border-b-2 transition-all duration-200 flex items-center gap-2 ${activeSubTab === 'leaderboard'
               ? 'border-amber-500 text-amber-600 dark:border-amber-400 dark:text-amber-300'
               : 'border-transparent text-on-surface-variant hover:text-on-surface'
-          }`}
+            }`}
         >
           <Icon name="leaderboard" size={18} />
           {t('gamif.student.leaderboard.hallOfFame.tabLeaderboard')}
         </button>
         <button
           onClick={() => setActiveSubTab('hall_of_fame')}
-          className={`px-6 py-3 font-bold text-sm border-b-2 transition-all duration-200 flex items-center gap-2 ${
-            activeSubTab === 'hall_of_fame'
+          className={`px-6 py-3 font-bold text-sm border-b-2 transition-all duration-200 flex items-center gap-2 ${activeSubTab === 'hall_of_fame'
               ? 'border-amber-500 text-amber-600 dark:border-amber-400 dark:text-amber-300'
               : 'border-transparent text-on-surface-variant hover:text-on-surface'
-          }`}
+            }`}
         >
           <Icon name="workspace_premium" size={18} />
           {t('gamif.student.leaderboard.hallOfFame.tabHallOfFame')}
@@ -135,11 +148,10 @@ export default function StudentLeaderboardPage() {
               <button
                 key={w.key}
                 onClick={() => setTimeWindow(w.key)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all duration-200 ${
-                  timeWindow === w.key
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all duration-200 ${timeWindow === w.key
                     ? 'bg-amber-100 text-amber-800 border border-amber-300 shadow-elev-1 dark:bg-amber-400/15 dark:text-amber-200 dark:border-amber-400/40'
                     : PILL_IDLE
-                }`}
+                  }`}
               >
                 <Icon name={w.icon} size={16} />
                 {t(w.labelKey)}
@@ -163,7 +175,7 @@ export default function StudentLeaderboardPage() {
             <div className="mb-6 p-6 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-pink-500/10 border border-amber-500/20 shadow-elev-1 relative overflow-hidden dark:from-amber-500/5 dark:via-orange-500/5 dark:to-pink-500/5 dark:border-amber-500/10">
               <div className="absolute -right-10 -top-10 w-32 h-32 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 opacity-20 blur-xl pointer-events-none" />
               <div className="absolute -left-10 -bottom-10 w-32 h-32 rounded-full bg-gradient-to-tr from-pink-500 to-purple-500 opacity-20 blur-xl pointer-events-none" />
-              
+
               <div className="flex gap-4 items-start relative z-10">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-pink-500 flex items-center justify-center shadow-lg shrink-0">
                   <Icon name="card_giftcard" size={26} className="text-white" />
@@ -178,7 +190,7 @@ export default function StudentLeaderboardPage() {
                   <p className="text-sm text-on-surface-variant mb-4">
                     {t('gamif.student.leaderboard.rewardsInfo.subtitle')}
                   </p>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="p-4 rounded-xl bg-surface-container-low/70 border border-outline-variant/50 backdrop-blur-sm flex flex-col gap-1 dark:bg-white/[0.02]">
                       <span className="text-xs font-bold text-amber-500 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1">
@@ -189,7 +201,7 @@ export default function StudentLeaderboardPage() {
                         {t('gamif.student.leaderboard.rewardsInfo.championDesc')}
                       </span>
                     </div>
-                    
+
                     <div className="p-4 rounded-xl bg-surface-container-low/70 border border-outline-variant/50 backdrop-blur-sm flex flex-col gap-1 dark:bg-white/[0.02]">
                       <span className="text-xs font-bold text-slate-500 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1">
                         <Icon name="military_tech" size={14} />
@@ -199,7 +211,7 @@ export default function StudentLeaderboardPage() {
                         {t('gamif.student.leaderboard.rewardsInfo.eliteDesc')}
                       </span>
                     </div>
-                    
+
                     <div className="p-4 rounded-xl bg-surface-container-low/70 border border-outline-variant/50 backdrop-blur-sm flex flex-col gap-1 dark:bg-white/[0.02]">
                       <span className="text-xs font-bold text-orange-500 dark:text-orange-400 uppercase tracking-wider flex items-center gap-1">
                         <Icon name="workspace_premium" size={14} />
@@ -222,9 +234,8 @@ export default function StudentLeaderboardPage() {
                 <button
                   key={s.key}
                   onClick={() => setScope(s.key)}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200 ${
-                    scope === s.key ? PILL_ACTIVE : PILL_IDLE
-                  }`}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200 ${scope === s.key ? PILL_ACTIVE : PILL_IDLE
+                    }`}
                 >
                   <Icon name={s.icon} size={16} />
                   {t(s.labelKey)}
@@ -323,9 +334,9 @@ function PodiumCard({
   return (
     <div className={`flex flex-col items-center w-28 md:w-44 ${isFirst ? '-mt-4' : ''}`}>
       {/* Avatar + crown */}
-      <StudentHoverCard 
-        userId={entry.userId} 
-        fallbackName={entry.name} 
+      <StudentHoverCard
+        userId={entry.userId}
+        fallbackName={entry.name}
         fallbackAvatar={entry.avatarUrl}
         className="relative mb-3 flex flex-col items-center"
       >
@@ -539,6 +550,16 @@ function HallOfFameTab({ t, i18n, initials }: { t: TFn; i18n: i18n; initials: (n
               <h2 className="font-manrope text-lg md:text-xl font-extrabold text-on-surface flex items-center gap-2">
                 <Icon name="stars" className="text-amber-500 shrink-0" size={22} />
                 {t('gamif.student.leaderboard.hallOfFame.weekTitle', { weekKey: week.weekKey })}
+                {(() => {
+                  const range = parseWeekKeyToRange(week.weekKey);
+                  if (!range) return null;
+                  const format = (d: Date) => d.toLocaleDateString(i18n.language.startsWith('vi') ? 'vi-VN' : 'en-US', { day: 'numeric', month: 'short' });
+                  return (
+                    <span className="text-[13px] font-semibold text-on-surface-variant ml-2 bg-surface-container-high px-2.5 py-1 rounded-md dark:bg-white/5 border border-outline-variant/50 hidden sm:inline-block">
+                      {format(range.start)} - {format(range.end)}
+                    </span>
+                  );
+                })()}
               </h2>
               <p className="text-xs text-on-surface-variant mt-1">
                 {t('gamif.student.leaderboard.hallOfFame.finalizedAt', {
@@ -550,9 +571,7 @@ function HallOfFameTab({ t, i18n, initials }: { t: TFn; i18n: i18n; initials: (n
                 })}
               </p>
             </div>
-            <div className="text-xs bg-surface-container-high font-bold px-3 py-1.5 rounded-full text-on-surface-variant dark:bg-white/5">
-              {t('gamif.student.leaderboard.hallOfFame.top3Winners')}
-            </div>
+
           </div>
 
           {/* Top 3 Winners */}
@@ -567,14 +586,14 @@ function HallOfFameTab({ t, i18n, initials }: { t: TFn; i18n: i18n; initials: (n
                 const borderClass = is1st
                   ? 'border-amber-400/50 bg-gradient-to-b from-amber-500/[0.08] to-transparent dark:from-amber-400/5'
                   : is2nd
-                  ? 'border-slate-300/40 bg-gradient-to-b from-slate-300/[0.05] to-transparent dark:from-slate-300/5'
-                  : 'border-orange-700/30 bg-gradient-to-b from-orange-700/[0.05] to-transparent dark:from-orange-700/5';
+                    ? 'border-slate-300/40 bg-gradient-to-b from-slate-300/[0.05] to-transparent dark:from-slate-300/5'
+                    : 'border-orange-700/30 bg-gradient-to-b from-orange-700/[0.05] to-transparent dark:from-orange-700/5';
 
                 const rankBadgeColor = is1st
                   ? 'bg-amber-100 text-amber-800 dark:bg-amber-400/20 dark:text-amber-300'
                   : is2nd
-                  ? 'bg-slate-100 text-slate-800 dark:bg-slate-300/20 dark:text-slate-200'
-                  : 'bg-orange-100 text-orange-800 dark:bg-orange-700/20 dark:text-orange-300';
+                    ? 'bg-slate-100 text-slate-800 dark:bg-slate-300/20 dark:text-slate-200'
+                    : 'bg-orange-100 text-orange-800 dark:bg-orange-700/20 dark:text-orange-300';
 
                 return (
                   <div

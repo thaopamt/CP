@@ -56,6 +56,10 @@ const en = {
     none: 'None',
     loading: 'Loading…',
     notFound: 'Nothing to show.',
+    gender: {
+      male: 'Male',
+      female: 'Female',
+    },
   },
 
   nav: {

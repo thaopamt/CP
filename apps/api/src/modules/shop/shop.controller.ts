@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtPayload, UserRole } from '@cp/shared';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -28,8 +28,12 @@ export class ShopController {
   }
 
   @Post('equip/:itemId')
-  async equip(@CurrentUser() user: JwtPayload, @Param('itemId') itemId: string) {
-    return this.service.equip(user.sub, itemId);
+  async equip(
+    @CurrentUser() user: JwtPayload,
+    @Param('itemId') itemId: string,
+    @Query('gender') gender?: 'male' | 'female',
+  ) {
+    return this.service.equip(user.sub, itemId, gender);
   }
 
   @Post('unequip/:itemId')

@@ -54,6 +54,10 @@ const vi: AppResources = {
     none: 'Trống',
     loading: 'Đang tải…',
     notFound: 'Không có dữ liệu.',
+    gender: {
+      male: 'Nam',
+      female: 'Nữ',
+    },
   },
 
   nav: {

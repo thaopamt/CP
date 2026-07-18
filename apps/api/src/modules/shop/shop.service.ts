@@ -327,7 +327,7 @@ export class ShopService {
   }
 
   /** Equip an owned cosmetic, unequipping any other item in the same slot. */
-  async equip(userId: string, itemId: string): Promise<IEquipResult> {
+  async equip(userId: string, itemId: string, gender?: 'male' | 'female'): Promise<IEquipResult> {
     const result = await this.ds.transaction(async (tx) => {
       const invRepo = tx.getRepository(StudentInventory);
       const profRepo = tx.getRepository(StudentProfile);
@@ -362,7 +362,7 @@ export class ShopService {
       await profRepo.save(profile);
 
       // CHARACTER replaces the user's avatar image everywhere it is rendered.
-      const avatarUrl = await this.syncCharacterAvatar(userRepo, userId, item, true);
+      const avatarUrl = await this.syncCharacterAvatar(userRepo, userId, item, true, gender);
 
       return this.equipResult(item.code, true, profile, avatarUrl);
     });
@@ -406,11 +406,20 @@ export class ShopService {
     userId: string,
     item: ShopItem,
     equipping: boolean,
+    gender?: 'male' | 'female',
   ): Promise<string | null> {
     const user = await userRepo.findOne({ where: { id: userId } });
     if (!user) return null;
     if (item.category === ShopItemCategory.CHARACTER) {
-      user.avatarUrl = equipping ? item.imageUrl ?? null : null;
+      if (equipping) {
+        let imageUrl = item.imageUrl ?? null;
+        if (item.code.startsWith('CHAR_WEEKLY_') && gender && imageUrl) {
+          imageUrl = imageUrl.replace('/male/', `/${gender}/`).replace('/female/', `/${gender}/`);
+        }
+        user.avatarUrl = imageUrl;
+      } else {
+        user.avatarUrl = null;
+      }
       await userRepo.save(user);
     }
     return user.avatarUrl ?? null;
