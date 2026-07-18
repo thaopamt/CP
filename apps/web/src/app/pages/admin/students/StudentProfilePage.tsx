@@ -33,6 +33,7 @@ import {
 } from '../../../api/teacherAssignments.queries';
 import { useUsersList } from '../../../api/users.queries';
 import { usePortalBase } from '../../../hooks/usePortalBase';
+import { useImpersonateStudent } from '../../../hooks/useImpersonateStudent';
 import { MultiSelectPicker } from '../../../components/MultiSelectPicker';
 import { ResetPasswordModal } from './ResetPasswordModal';
 import { BlockStudentModal } from './BlockStudentModal';
@@ -60,6 +61,7 @@ export default function StudentProfilePage() {
   const blockStudent = useBlockStudent(idParam as string);
   const unblockStudent = useUnblockStudent(idParam as string);
   const heatmapQuery = useStudentHeatmapAdmin(idParam as string);
+  const impersonate = useImpersonateStudent();
 
   const subjectGrades: ISubjectGrade[] = useMemo(
     () => [
@@ -180,6 +182,23 @@ export default function StudentProfilePage() {
     }
   }
 
+  async function handleImpersonate() {
+    const res = await impersonate.start(idParam as string);
+    if (!res.ok) {
+      toast.error(
+        res.error === 'popup'
+          ? t(
+              'pages.admin.studentProfile.impersonate.popupBlocked',
+              'Trình duyệt đã chặn cửa sổ mới. Hãy cho phép popup rồi thử lại.',
+            )
+          : t(
+              'pages.admin.studentProfile.impersonate.failed',
+              'Không thể đăng nhập với tư cách học sinh.',
+            ),
+      );
+    }
+  }
+
   return (
     <div className="flex flex-col gap-lg">
       <PageHeader
@@ -239,6 +258,16 @@ export default function StudentProfilePage() {
             >
               {t('pages.admin.studentProfile.resetPassword')}
             </Button>
+            {base === '/admin' && (
+              <Button
+                variant="ghost"
+                leadingIcon={<Icon name="switch_account" size={18} />}
+                disabled={impersonate.isPending || !s.isActive}
+                onClick={handleImpersonate}
+              >
+                {t('pages.admin.studentProfile.impersonate.action', 'Mạo danh')}
+              </Button>
+            )}
             {base === '/admin' && (
               <Button
                 variant="danger"

@@ -16,6 +16,7 @@ import {
   IStudentDashboardData,
   IUpdateStudentPayload,
   IHeatmapData,
+  IUser,
 } from '@cp/shared';
 
 import { apiClient } from '../lib/api-client';
@@ -99,6 +100,11 @@ export interface UnblockStudentResult {
   userId: string;
   unblockedAt: string;
   isActive: true;
+}
+
+export interface ImpersonateStudentResult {
+  accessToken: string;
+  user: IUser;
 }
 
 export interface UpdateMyStudentPayload {
@@ -258,6 +264,11 @@ export const studentsApi = {
 
   async unblock(id: string): Promise<UnblockStudentResult> {
     const { data } = await apiClient.post<UnblockStudentResult>(`/students/${id}/unblock`);
+    return data;
+  },
+
+  async impersonate(id: string): Promise<ImpersonateStudentResult> {
+    const { data } = await apiClient.post<ImpersonateStudentResult>(`/students/${id}/impersonate`);
     return data;
   },
 

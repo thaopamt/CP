@@ -28,6 +28,7 @@ const TeacherLayout = lazy(() => import('./layouts/TeacherLayout'));
 const StudentLayout = lazy(() => import('./layouts/StudentLayout'));
 
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const ImpersonationHandoff = lazy(() => import('./pages/ImpersonationHandoffPage'));
 const AdminDashboard = lazy(() => import('./pages/admin/DashboardPage'));
 const AdminUsers = lazy(() => import('./pages/admin/UsersPage'));
 const AdminStudents = lazy(() => import('./pages/admin/students/StudentsListPage'));
@@ -100,6 +101,7 @@ const TeacherFinance = lazy(() => import('./pages/teacher/FinancePage'));
 import { ToastProvider, ConfirmProvider } from '@cp/ui';
 
 import { ThemeEffects } from './components/ThemeEffects';
+import { ImpersonationBanner } from './components/ImpersonationBanner';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, gcTime: 10 * 60_000, retry: 1 } },
@@ -118,6 +120,7 @@ export default function App() {
         <BrowserRouter>
           <ThemeProvider>
             <ThemeEffects />
+            <ImpersonationBanner />
             <ConfirmProvider>
               <ToastProvider />
             <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center">Loading...</div>}>
@@ -279,6 +282,9 @@ export default function App() {
                 <Route path="submissions" element={<SubmissionsPage />} />
                 <Route path="me" element={<StudentMe />} />
               </Route>
+
+              {/* ── Impersonation handoff (public; no RoleGuard) ─────── */}
+              <Route path="/impersonate" element={<ImpersonationHandoff />} />
 
               {/* Default — send user to their own portal home */}
               <Route path="/" element={<RoleHomeRedirect />} />
