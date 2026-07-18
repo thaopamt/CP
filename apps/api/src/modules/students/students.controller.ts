@@ -9,6 +9,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { StudentProfile } from './student-profile.entity';
 import { StudentsService } from './students.service';
 import { TeacherAssignmentsService } from './teacher-assignments.service';
+import { AuthService } from '../auth/auth.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 import { UpdateMyStudentDto } from './dto/update-my-student.dto';
@@ -53,6 +54,7 @@ export class StudentsController implements CrudController<StudentProfile> {
   constructor(
     public service: StudentsService,
     private readonly assignments: TeacherAssignmentsService,
+    private readonly auth: AuthService,
   ) {}
 
   get base(): CrudController<StudentProfile> {
@@ -148,6 +150,16 @@ export class StudentsController implements CrudController<StudentProfile> {
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     return this.service.unblockStudent(id);
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Post(':id/impersonate')
+  async impersonate(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser() admin: JwtPayload,
+  ): Promise<{ accessToken: string; user: import('@cp/shared').IUser }> {
+    const profile = await this.service.getProfileById(id);
+    return this.auth.generateImpersonationToken(profile.userId, admin.sub);
   }
 
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
