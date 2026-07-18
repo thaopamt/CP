@@ -15,11 +15,13 @@ import {
   SearchBox,
   SelectFilter,
   useConfirm,
+  useToast,
 } from '@cp/ui';
 import { ENROLLMENT_STATUS_LABEL, EnrollmentStatus, IStudentProfile } from '@cp/shared';
 
 import { useDeleteStudent, useStudentsList } from '../../../api/student.queries';
 import { usePortalBase } from '../../../hooks/usePortalBase';
+import { useImpersonateStudent } from '../../../hooks/useImpersonateStudent';
 
 const PAGE_SIZE = 10;
 
@@ -48,6 +50,25 @@ export default function StudentsListPage() {
     status,
   });
   const deleteStudent = useDeleteStudent();
+  const toast = useToast();
+  const impersonate = useImpersonateStudent();
+
+  async function handleImpersonate(s: IStudentProfile) {
+    const res = await impersonate.start(s.id);
+    if (!res.ok) {
+      toast.error(
+        res.error === 'popup'
+          ? t(
+              'pages.admin.studentProfile.impersonate.popupBlocked',
+              'Trình duyệt đã chặn cửa sổ mới. Hãy cho phép popup rồi thử lại.',
+            )
+          : t(
+              'pages.admin.studentProfile.impersonate.failed',
+              'Không thể đăng nhập với tư cách học sinh.',
+            ),
+      );
+    }
+  }
 
   const rows = data?.items ?? [];
   const total = data?.total ?? 0;
@@ -135,6 +156,18 @@ export default function StudentsListPage() {
             >
               <Icon name="open_in_new" size={18} />
             </button>
+            {base === '/admin' && (
+              <button
+                type="button"
+                onClick={() => handleImpersonate(s)}
+                className="p-1 rounded text-on-surface-variant hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label={t('pages.admin.studentProfile.impersonate.action', 'Đăng nhập với tư cách HS')}
+                title={t('pages.admin.studentProfile.impersonate.action', 'Đăng nhập với tư cách HS')}
+                disabled={impersonate.isPending || !s.isActive}
+              >
+                <Icon name="switch_account" size={18} />
+              </button>
+            )}
             <button
               type="button"
               onClick={async () => {
@@ -156,7 +189,7 @@ export default function StudentsListPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, navigate, deleteStudent],
+    [t, navigate, deleteStudent, impersonate, base],
   );
 
   return (
