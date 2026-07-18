@@ -32,6 +32,13 @@ const impersonationTab =
   typeof window !== 'undefined' &&
   isImpersonationTab(window.location.pathname, window.sessionStorage);
 
+// Banner state keys off the persisted flag (set by startImpersonation), not the
+// pathname — so the /impersonate handoff document (pathname matches but no
+// session yet) doesn't flash the "session expired" banner before the token arrives.
+const impersonationActive =
+  typeof window !== 'undefined' &&
+  window.sessionStorage.getItem(IMPERSONATION_FLAG) === '1';
+
 const authStorage: Storage =
   typeof window === 'undefined'
     ? localStorage
@@ -46,7 +53,7 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       user: null,
       isHydrated: false,
-      isImpersonating: impersonationTab,
+      isImpersonating: impersonationActive,
 
       setSession: (accessToken, refreshToken, user) => set({ accessToken, refreshToken, user }),
       setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),

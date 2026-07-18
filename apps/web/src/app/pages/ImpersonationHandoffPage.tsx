@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuthStore } from '../stores/auth.store';
-import { HANDOFF_TYPE, READY_TYPE, isValidHandoffMessage } from '../lib/impersonation';
+import { READY_TYPE, isValidHandoffMessage } from '../lib/impersonation';
 
 /**
  * Runs in the tab opened by the admin. Announces readiness to window.opener,

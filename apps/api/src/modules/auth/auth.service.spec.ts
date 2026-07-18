@@ -66,7 +66,7 @@ describe('AuthService.generateImpersonationToken', () => {
     } as unknown as UsersService;
     const jwt = { signAsync: jest.fn().mockResolvedValue('access-jwt') } as unknown as JwtService;
     const config = {
-      get: jest.fn().mockReturnValue('1d'),
+      get: jest.fn().mockReturnValue('2h'),
       getOrThrow: jest.fn(),
     } as unknown as ConfigService;
     const service = new AuthService(users, jwt, config);
@@ -78,7 +78,8 @@ describe('AuthService.generateImpersonationToken', () => {
     expect((jwt.signAsync as jest.Mock)).toHaveBeenCalledTimes(1);
     const [payload, opts] = (jwt.signAsync as jest.Mock).mock.calls[0];
     expect(payload).toMatchObject({ sub: 'stu-1', role: UserRole.STUDENT, impersonatedBy: 'admin-9' });
-    expect(opts).toMatchObject({ expiresIn: '1d' });
+    expect(opts).toMatchObject({ expiresIn: '2h' });
+    expect((config.get as jest.Mock)).toHaveBeenCalledWith('JWT_IMPERSONATION_EXPIRES_IN');
     expect((users.updateRefreshTokenHash as jest.Mock)).not.toHaveBeenCalled();
   });
 
