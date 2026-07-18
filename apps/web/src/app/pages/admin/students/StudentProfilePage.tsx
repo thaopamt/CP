@@ -265,7 +265,7 @@ export default function StudentProfilePage() {
                 disabled={impersonate.isPending || !s.isActive}
                 onClick={handleImpersonate}
               >
-                {t('pages.admin.studentProfile.impersonate.action', 'Đăng nhập với tư cách HS')}
+                {t('pages.admin.studentProfile.impersonate.action', 'Mạo danh')}
               </Button>
             )}
             {base === '/admin' && (

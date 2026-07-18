@@ -161,8 +161,8 @@ export default function StudentsListPage() {
                 type="button"
                 onClick={() => handleImpersonate(s)}
                 className="p-1 rounded text-on-surface-variant hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed"
-                aria-label={t('pages.admin.studentProfile.impersonate.action', 'Đăng nhập với tư cách HS')}
-                title={t('pages.admin.studentProfile.impersonate.action', 'Đăng nhập với tư cách HS')}
+                aria-label={t('pages.admin.studentProfile.impersonate.action', 'Mạo danh')}
+                title={t('pages.admin.studentProfile.impersonate.action', 'Mạo danh')}
                 disabled={impersonate.isPending || !s.isActive}
               >
                 <Icon name="switch_account" size={18} />
