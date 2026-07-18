@@ -41,6 +41,15 @@ describe('message validation', () => {
   it('rejects a message with the wrong type', () => {
     expect(isValidHandoffMessage({ origin: 'https://a', source: opener, data: { type: 'nope' } }, 'https://a', opener)).toBe(false);
   });
+  it('rejects a ready message from a wrong source', () => {
+    expect(isReadyMessage({ origin: 'https://a', source: {}, data: { type: READY_TYPE } }, 'https://a', opener)).toBe(false);
+  });
+  it('rejects a ready message with the wrong type', () => {
+    expect(isReadyMessage({ origin: 'https://a', source: opener, data: { type: 'nope' } }, 'https://a', opener)).toBe(false);
+  });
+  it('rejects a handoff message from a wrong origin', () => {
+    expect(isValidHandoffMessage({ origin: 'https://evil', source: opener, data: { type: HANDOFF_TYPE } }, 'https://a', opener)).toBe(false);
+  });
 });
 
 describe('exitImpersonation', () => {
