@@ -28,6 +28,7 @@ const TeacherLayout = lazy(() => import('./layouts/TeacherLayout'));
 const StudentLayout = lazy(() => import('./layouts/StudentLayout'));
 
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const ImpersonationHandoff = lazy(() => import('./pages/ImpersonationHandoffPage'));
 const AdminDashboard = lazy(() => import('./pages/admin/DashboardPage'));
 const AdminUsers = lazy(() => import('./pages/admin/UsersPage'));
 const AdminStudents = lazy(() => import('./pages/admin/students/StudentsListPage'));
@@ -279,6 +280,9 @@ export default function App() {
                 <Route path="submissions" element={<SubmissionsPage />} />
                 <Route path="me" element={<StudentMe />} />
               </Route>
+
+              {/* ── Impersonation handoff (public; no RoleGuard) ─────── */}
+              <Route path="/impersonate" element={<ImpersonationHandoff />} />
 
               {/* Default — send user to their own portal home */}
               <Route path="/" element={<RoleHomeRedirect />} />
