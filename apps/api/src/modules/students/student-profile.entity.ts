@@ -81,6 +81,9 @@ export class StudentProfile extends BaseEntity {
   @Column({ type: 'varchar', length: 8, nullable: true, name: 'week_key' })
   weekKey!: string | null;
 
+  @Column({ type: 'varchar', length: 8, name: 'last_seen_weekly_reward_week', nullable: true, default: null })
+  lastSeenWeeklyRewardWeek!: string | null;
+
   /** XP earned in the current calendar month; lazily reset with `monthKey`. */
   @Column({ type: 'int', default: 0, name: 'monthly_xp' })
   monthlyXp!: number;

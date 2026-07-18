@@ -37,7 +37,7 @@ describe('AuthService.refreshTokens', () => {
     await expect(service.refreshTokens('user-1', 'refresh')).rejects.toMatchObject({
       response: {
         code: 'USER_BLOCKED',
-        message: 'User is blocked',
+        message: 'Tài khoản của bạn đã bị khóa',
       },
     });
     expect(jwt.verifyAsync).not.toHaveBeenCalled();

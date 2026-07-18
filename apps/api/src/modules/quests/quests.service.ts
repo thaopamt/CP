@@ -20,6 +20,7 @@ import { StudentProfile } from '../students/student-profile.entity';
 import { Enrollment } from '../classes/enrollment.entity';
 import { BadgesService } from './badges.service';
 import { GamificationGateway } from './gamification.gateway';
+import { LeaderboardService } from './leaderboard.service';
 import { applyXpGain, dayKey, questPeriodKey } from './period-keys';
 import { advanceLevel } from '../../common/gamification.constants';
 import { SystemCacheService } from '../../common/cache/system-cache.service';
@@ -50,6 +51,7 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
     private readonly badges: BadgesService,
     private readonly gateway: GamificationGateway,
     private readonly cache: SystemCacheService,
+    private readonly leaderboardService: LeaderboardService,
   ) {
     super(repo);
   }
@@ -252,6 +254,8 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
     userId: string,
     studentQuestId: string,
   ): Promise<{ sq: StudentQuest; leveledUp: boolean; newLevel: number; badgeAwarded: Badge | null } | null> {
+    const now = new Date();
+    await this.leaderboardService.checkAndFinalizeWeeklyLeaderboard(now);
     return this.ds.transaction(async (tx) => {
       const sqRepo = tx.getRepository(StudentQuest);
       const profileRepo = tx.getRepository(StudentProfile);
@@ -271,7 +275,6 @@ export class QuestsService extends TypeOrmCrudService<Quest> {
       let badgeAwarded: Badge | null = null;
 
       if (profile) {
-        const now = new Date();
         const prevLevel = profile.level;
         applyXpGain(profile, sq.quest.rewardXp, now);
         profile.gems += sq.quest.rewardGems;

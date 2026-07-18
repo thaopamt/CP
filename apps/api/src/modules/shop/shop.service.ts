@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Repository, LessThan, In } from 'typeorm';
 import {
   BadgeRarity,
   ICreateShopItemPayload,
@@ -21,6 +21,7 @@ import {
 import { StudentProfile } from '../students/student-profile.entity';
 import { User } from '../users/user.entity';
 import { BadgesService } from '../quests/badges.service';
+import { LeaderboardService } from '../quests/leaderboard.service';
 import { applyXpGain } from '../quests/period-keys';
 import { advanceLevel } from '../../common/gamification.constants';
 import { ShopItem } from './shop-item.entity';
@@ -35,6 +36,7 @@ export class ShopService {
     @InjectRepository(StudentProfile) private readonly profiles: Repository<StudentProfile>,
     @InjectRepository(User) private readonly users: Repository<User>,
     private readonly badges: BadgesService,
+    private readonly leaderboardService: LeaderboardService,
     private readonly ds: DataSource,
     private readonly cache: SystemCacheService,
   ) {}
@@ -134,8 +136,51 @@ export class ShopService {
     await this.bumpShopCatalogCaches();
   }
 
+  async cleanupExpiredInventory(userId: string): Promise<void> {
+    let hasCleared = false;
+    await this.ds.transaction(async (tx) => {
+      const invRepo = tx.getRepository(StudentInventory);
+      const expiredLocked = await invRepo.find({
+        where: { userId, expiresAt: LessThan(new Date()) },
+        loadEagerRelations: false,
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (expiredLocked.length === 0) return;
+
+      const expired = await invRepo.find({
+        where: { id: In(expiredLocked.map((row) => row.id)) },
+        relations: ['item'],
+      });
+
+      hasCleared = true;
+      const profRepo = tx.getRepository(StudentProfile);
+      const userRepo = tx.getRepository(User);
+
+      const profile = await profRepo.findOne({ where: { userId } });
+      const user = await userRepo.findOne({ where: { id: userId } });
+
+      for (const row of expired) {
+        if (row.equipped && profile) {
+          this.clearCosmeticFromProfile(profile, row.item.category);
+          if (row.item.category === ShopItemCategory.CHARACTER && user) {
+            user.avatarUrl = null;
+          }
+        }
+        await invRepo.remove(row);
+      }
+
+      if (profile) await profRepo.save(profile);
+      if (user) await userRepo.save(user);
+    });
+
+    if (hasCleared) {
+      await this.bumpStudentShopCaches(userId);
+    }
+  }
+
   /** The shop catalog as seen by one student: owned/equipped/affordable flags. */
   async getCatalog(userId: string): Promise<IShopCatalogResponse> {
+    await this.cleanupExpiredInventory(userId);
     return this.cache.remember(
       {
         namespace: 'shop-catalog',
@@ -153,16 +198,18 @@ export class ShopService {
         const level = profile?.level ?? 0;
         const ownedById = new Map(owned.map((o) => [o.itemId, o]));
 
-        const entries: IShopCatalogEntry[] = items.map((item) => {
-          const inv = ownedById.get(item.id);
-          return {
-            item: this.toDto(item),
-            owned: !!inv,
-            equipped: !!inv?.equipped,
-            affordable: gems >= item.price,
-            unlocked: level >= item.minLevel,
-          };
-        });
+        const entries: IShopCatalogEntry[] = items
+          .filter((item) => !item.code.startsWith('CHAR_WEEKLY_') || ownedById.has(item.id))
+          .map((item) => {
+            const inv = ownedById.get(item.id);
+            return {
+              item: this.toDto(item),
+              owned: !!inv,
+              equipped: !!inv?.equipped,
+              affordable: gems >= item.price,
+              unlocked: level >= item.minLevel,
+            };
+          });
 
         return { gems, level, entries };
       },
@@ -171,6 +218,7 @@ export class ShopService {
 
   /** List a student's owned cosmetics. */
   async getInventory(userId: string): Promise<IShopCatalogEntry[]> {
+    await this.cleanupExpiredInventory(userId);
     return this.cache.remember(
       {
         namespace: 'shop-inventory',
@@ -197,6 +245,7 @@ export class ShopService {
    * Runs in a transaction so the gem debit and the grant can't diverge.
    */
   async purchase(userId: string, itemId: string): Promise<IPurchaseResult> {
+    await this.leaderboardService.checkAndFinalizeWeeklyLeaderboard(new Date());
     const result = await this.ds.transaction(async (tx) => {
       const itemRepo = tx.getRepository(ShopItem);
       const invRepo = tx.getRepository(StudentInventory);
@@ -204,6 +253,10 @@ export class ShopService {
 
       const item = await itemRepo.findOne({ where: { id: itemId, isActive: true } });
       if (!item) throw new NotFoundException('Shop item not found');
+
+      if (item.code.startsWith('CHAR_WEEKLY_')) {
+        throw new BadRequestException('Vật phẩm này là phần thưởng tuần, không thể mua trực tiếp.');
+      }
 
       const profile = await profRepo.findOne({ where: { userId } });
       if (!profile) throw new NotFoundException('Student profile not found');
@@ -274,7 +327,7 @@ export class ShopService {
   }
 
   /** Equip an owned cosmetic, unequipping any other item in the same slot. */
-  async equip(userId: string, itemId: string): Promise<IEquipResult> {
+  async equip(userId: string, itemId: string, gender?: 'male' | 'female'): Promise<IEquipResult> {
     const result = await this.ds.transaction(async (tx) => {
       const invRepo = tx.getRepository(StudentInventory);
       const profRepo = tx.getRepository(StudentProfile);
@@ -309,7 +362,7 @@ export class ShopService {
       await profRepo.save(profile);
 
       // CHARACTER replaces the user's avatar image everywhere it is rendered.
-      const avatarUrl = await this.syncCharacterAvatar(userRepo, userId, item, true);
+      const avatarUrl = await this.syncCharacterAvatar(userRepo, userId, item, true, gender);
 
       return this.equipResult(item.code, true, profile, avatarUrl);
     });
@@ -353,11 +406,20 @@ export class ShopService {
     userId: string,
     item: ShopItem,
     equipping: boolean,
+    gender?: 'male' | 'female',
   ): Promise<string | null> {
     const user = await userRepo.findOne({ where: { id: userId } });
     if (!user) return null;
     if (item.category === ShopItemCategory.CHARACTER) {
-      user.avatarUrl = equipping ? item.imageUrl ?? null : null;
+      if (equipping) {
+        let imageUrl = item.imageUrl ?? null;
+        if (item.code.startsWith('CHAR_WEEKLY_') && gender && imageUrl) {
+          imageUrl = imageUrl.replace('/male/', `/${gender}/`).replace('/female/', `/${gender}/`);
+        }
+        user.avatarUrl = imageUrl;
+      } else {
+        user.avatarUrl = null;
+      }
       await userRepo.save(user);
     }
     return user.avatarUrl ?? null;

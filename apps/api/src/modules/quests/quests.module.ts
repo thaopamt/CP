@@ -19,10 +19,23 @@ import { LeaderboardController } from './leaderboard.controller';
 import { QuestAnalyticsController } from './quest-analytics.controller';
 import { StudentProfile } from '../students/student-profile.entity';
 import { Enrollment } from '../classes/enrollment.entity';
+import { LeaderboardFinalizedWeek } from './leaderboard-finalized-week.entity';
+import { StudentInventory } from '../shop/student-inventory.entity';
+import { ShopItem } from '../shop/shop-item.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Quest, StudentQuest, Badge, StudentBadge, StudentProfile, Enrollment]),
+    TypeOrmModule.forFeature([
+      Quest,
+      StudentQuest,
+      Badge,
+      StudentBadge,
+      StudentProfile,
+      Enrollment,
+      LeaderboardFinalizedWeek,
+      StudentInventory,
+      ShopItem,
+    ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -47,6 +60,6 @@ import { Enrollment } from '../classes/enrollment.entity';
     QuestAnalyticsService,
     GamificationGateway,
   ],
-  exports: [QuestsService, BadgesService, GamificationGateway],
+  exports: [QuestsService, BadgesService, GamificationGateway, LeaderboardService],
 })
 export class QuestsModule {}

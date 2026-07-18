@@ -15,6 +15,7 @@ import { StudentProfile } from '../students/student-profile.entity';
 import { User } from '../users/user.entity';
 import { GamificationGateway } from '../quests/gamification.gateway';
 import { BadgesService } from '../quests/badges.service';
+import { LeaderboardService } from '../quests/leaderboard.service';
 import { checkinDayKey, daysBetweenDayKeys, applyXpGain } from '../quests/period-keys';
 import { advanceLevel } from '../../common/gamification.constants';
 import { SystemCacheService } from '../../common/cache/system-cache.service';
@@ -141,6 +142,7 @@ export class CheckinService {
     private readonly cache: SystemCacheService,
     private readonly gateway: GamificationGateway,
     private readonly badges: BadgesService,
+    private readonly leaderboardService: LeaderboardService,
   ) {}
 
   /** Read-only status; never writes. Month-scoped counters are figured on the fly. */
@@ -203,6 +205,7 @@ export class CheckinService {
   }
 
   async checkIn(userId: string, now: Date = new Date()): Promise<ICheckinResult> {
+    await this.leaderboardService.checkAndFinalizeWeeklyLeaderboard(now);
     const today = checkinDayKey(now);
     const monthNow = today.slice(0, 7);
 
@@ -406,6 +409,7 @@ export class CheckinService {
    * CHECKIN_MAKEUP_COST_GEMS (spec §6b).
    */
   async makeup(userId: string, date: string, now: Date = new Date()): Promise<ICheckinResult> {
+    await this.leaderboardService.checkAndFinalizeWeeklyLeaderboard(now);
     const today = checkinDayKey(now);
     const monthNow = today.slice(0, 7);
 
@@ -542,6 +546,7 @@ export class CheckinService {
     now: Date = new Date(),
     rand: () => number = Math.random,
   ): Promise<ICheckinWheelResult> {
+    await this.leaderboardService.checkAndFinalizeWeeklyLeaderboard(now);
     const today = checkinDayKey(now);
     const monthNow = today.slice(0, 7);
 

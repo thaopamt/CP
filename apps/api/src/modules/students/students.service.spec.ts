@@ -11,6 +11,8 @@ import { User } from '../users/user.entity';
 import { Guardian } from './guardian.entity';
 import { StudentProfile } from './student-profile.entity';
 import { StudentsService } from './students.service';
+import { ShopService } from '../shop/shop.service';
+import { LeaderboardService } from '../quests/leaderboard.service';
 
 function crudRepo<T extends ObjectLiteral>() {
   return {
@@ -57,8 +59,17 @@ function makeService(
   const submissionRepository = deleteRepo(3);
   const questRepository = deleteRepo(4);
   const badgeRepository = deleteRepo(5);
-  const inventoryRepository = deleteRepo(6);
+  const inventoryRepository = {
+    ...deleteRepo(6),
+    find: jest.fn().mockResolvedValue([]),
+  };
   const mazeRepository = deleteRepo(7);
+  const shopService = {
+    cleanupExpiredInventory: jest.fn().mockResolvedValue(undefined),
+  };
+  const leaderboardService = {
+    checkAndFinalizeWeeklyLeaderboard: jest.fn().mockResolvedValue(undefined),
+  };
 
   repos.set(StudentProfile, profileRepository);
   repos.set(User, usersRepository);
@@ -78,19 +89,23 @@ function makeService(
   };
   const cache = {
     bumpTags: jest.fn().mockResolvedValue(undefined),
+    remember: jest.fn().mockImplementation((opts, fn) => fn()),
   };
 
   const service = new StudentsService(
     crudRepo<StudentProfile>(),
     usersRepository as unknown as Repository<User>,
     {} as Repository<Guardian>,
+    shopService as unknown as ShopService,
     ds as any,
     cache as any,
+    leaderboardService as unknown as LeaderboardService,
   );
 
   return {
     service,
     tx,
+    ds,
     cache,
     profileRepository,
     usersRepository,
@@ -100,6 +115,7 @@ function makeService(
     badgeRepository,
     inventoryRepository,
     mazeRepository,
+    shopService,
   };
 }
 
@@ -212,7 +228,7 @@ describe('StudentsService.resetLearningData', () => {
 
     expect(ctx.usersRepository.update).toHaveBeenCalledWith(
       { id: 'user-1' },
-      { isActive: false, refreshTokenHash: null },
+      { isActive: false, refreshTokenHash: null, blockReason: null },
     );
     expect(ctx.progressRepository.delete).toHaveBeenCalledWith({ studentId: 'user-1' });
     expect(ctx.submissionRepository.delete).toHaveBeenCalledWith({ userId: 'user-1' });
@@ -254,7 +270,7 @@ describe('StudentsService.resetLearningData', () => {
 
     expect(ctx.usersRepository.update).toHaveBeenCalledWith(
       { id: 'user-1' },
-      { isActive: false, refreshTokenHash: null },
+      { isActive: false, refreshTokenHash: null, blockReason: null },
     );
     expect(ctx.submissionRepository.delete).toHaveBeenCalledWith({ userId: 'user-1' });
     expect(result.alreadyBlocked).toBe(true);
@@ -270,7 +286,7 @@ describe('StudentsService.resetLearningData', () => {
 
     expect(ctx.usersRepository.update).toHaveBeenCalledWith(
       { id: 'user-1' },
-      { isActive: true, refreshTokenHash: null },
+      { isActive: true, refreshTokenHash: null, blockReason: null },
     );
     expect(ctx.submissionRepository.delete).not.toHaveBeenCalled();
     expect(result).toEqual({
@@ -312,5 +328,18 @@ describe('StudentsService.updateStudent', () => {
       { id: 'user-1' },
       expect.objectContaining({ isActive: false, refreshTokenHash: null })
     );
+  });
+});
+
+describe('StudentsService.getStudentByUserId', () => {
+  it('calls shopService.cleanupExpiredInventory and returns profile', async () => {
+    const profile = { id: 'profile-1', userId: 'user-1' };
+    const ctx = makeService(profile);
+    jest.spyOn(ctx.service['repo'], 'findOne').mockResolvedValue(profile as any);
+
+    const result = await ctx.service.getStudentByUserId('user-1');
+
+    expect(ctx.shopService.cleanupExpiredInventory).toHaveBeenCalledWith('user-1');
+    expect(result).toEqual(profile);
   });
 });

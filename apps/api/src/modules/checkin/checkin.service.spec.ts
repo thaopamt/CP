@@ -9,6 +9,7 @@ import {
   toCheckinLeaderboard,
   isValidCalendarDayKey,
 } from './checkin.service';
+import { LeaderboardService } from '../quests/leaderboard.service';
 
 function makeService(
   seed: {
@@ -49,6 +50,10 @@ function makeService(
   const gateway = { publish: jest.fn() };
   const badges = { awardByCode: jest.fn().mockResolvedValue(null) };
 
+  const leaderboardService = {
+    checkAndFinalizeWeeklyLeaderboard: jest.fn().mockResolvedValue(undefined),
+  };
+
   const service = new CheckinService(
     stateRepo as never,
     dailyRepo as never,
@@ -57,6 +62,7 @@ function makeService(
     cache as never,
     gateway as never,
     badges as never,
+    leaderboardService as never,
   );
   return { service, tx, cache, gateway, badges, stateRepo, dailyRepo, profileRepo };
 }

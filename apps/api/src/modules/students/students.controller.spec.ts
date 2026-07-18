@@ -54,7 +54,7 @@ describe('StudentsController.blockStudent', () => {
     const controller = new StudentsController(service as never, {} as never);
 
     await expect(controller.blockStudent('profile-1')).resolves.toEqual(result);
-    expect(service.blockStudent).toHaveBeenCalledWith('profile-1');
+    expect(service.blockStudent).toHaveBeenCalledWith('profile-1', undefined);
     expect(Reflect.getMetadata(ROLES_KEY, StudentsController.prototype.blockStudent)).toEqual([
       UserRole.ADMIN,
     ]);

@@ -47,7 +47,8 @@ export function usePurchaseItem() {
 export function useEquipItem() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (itemId: string) => shopApi.equip(itemId).then((res) => res.data),
+    mutationFn: ({ itemId, gender }: { itemId: string; gender?: 'male' | 'female' }) =>
+      shopApi.equip(itemId, gender).then((res) => res.data),
     onSuccess: (result) => {
       syncAvatar(result);
       invalidateShop(qc);

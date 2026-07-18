@@ -15,6 +15,8 @@ import { TeacherAssignmentsController } from './teacher-assignments.controller';
 import { StudentsService } from './students.service';
 import { StudentScheduleService } from './student-schedule.service';
 import { TeacherAssignmentsService } from './teacher-assignments.service';
+import { ShopModule } from '../shop/shop.module';
+import { QuestsModule } from '../quests/quests.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { TeacherAssignmentsService } from './teacher-assignments.service';
       Enrollment,
       TeacherStudent,
     ]),
+    ShopModule,
+    QuestsModule,
   ],
   controllers: [
     StudentsController,

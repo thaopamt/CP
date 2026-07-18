@@ -22,6 +22,7 @@ interface ShopSeed {
   minLevel?: number;
   payload?: IShopItemPayload | null;
   sortOrder: number;
+  isActive?: boolean;
 }
 
 // ── Characters ────────────────────────────────────────────────────────────────
@@ -86,43 +87,90 @@ const ITEMS: ShopSeed[] = [
 
 
   // ── Profile themes ────────────────────────────────────────────────────────────
-  { code: 'THEME_OCEAN', name: 'Theme Đại dương', description: 'Giao diện mang màu xanh của biển cả.', icon: 'water_drop', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.COMMON, price: 150, payload: { themeKey: 'ocean' }, sortOrder: 20 },
-  { code: 'THEME_HACKER', name: 'Theme Hacker', description: 'Giao diện terminal xanh đen phong cách hacker.', icon: 'terminal', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.RARE, price: 300, payload: { themeKey: 'hacker' }, sortOrder: 21 },
-  { code: 'THEME_SUNSET', name: 'Theme Hoàng hôn', description: 'Giao diện ấm áp với sắc cam chiều tà.', icon: 'wb_twilight', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.RARE, price: 250, payload: { themeKey: 'sunset' }, sortOrder: 22 },
-  { code: 'THEME_FOREST', name: 'Theme Rừng nhiệt đới', description: 'Giao diện xanh lá mát mẻ của thiên nhiên.', icon: 'forest', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.EPIC, price: 400, payload: { themeKey: 'forest' }, sortOrder: 23 },
-  { code: 'THEME_CYBERPUNK', name: 'Theme Cyberpunk', description: 'Giao diện neon neon tương lai.', icon: 'memory', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.EPIC, price: 600, payload: { themeKey: 'cyberpunk' }, sortOrder: 24 },
-  { code: 'THEME_AURORA', name: 'Theme Cực quang', description: 'Giao diện gradient mờ ảo diệu kì.', icon: 'lens_blur', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.EPIC, price: 550, payload: { themeKey: 'aurora' }, sortOrder: 25 },
-  { code: 'THEME_GALAXY', name: 'Theme Thiên hà', description: 'Giao diện không gian vũ trụ tối tăm.', icon: 'public', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.LEGENDARY, price: 1000, payload: { themeKey: 'galaxy' }, sortOrder: 26 },
-  { code: 'THEME_SNOW', name: 'Theme Mùa đông', description: 'Giao diện băng giá với bông tuyết rơi.', icon: 'ac_unit', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.COMMON, price: 200, payload: { themeKey: 'snow' }, sortOrder: 27 },
-  { code: 'THEME_SAKURA', name: 'Theme Hoa anh đào', description: 'Giao diện hồng phấn lãng mạn.', icon: 'local_florist', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.RARE, price: 350, payload: { themeKey: 'sakura' }, sortOrder: 28 },
-  { code: 'THEME_VOLCANO', name: 'Theme Núi lửa', description: 'Giao diện rực lửa và cuồng nhiệt.', icon: 'local_fire_department', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.EPIC, price: 500, payload: { themeKey: 'volcano' }, sortOrder: 29 },
-  { code: 'THEME_PARTY', name: 'Theme Lễ hội', description: 'Giao diện sôi động với pháo hoa giấy.', icon: 'celebration', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.LEGENDARY, price: 800, payload: { themeKey: 'party' }, sortOrder: 30 },
+  { code: 'THEME_OCEAN', name: 'Theme Đại dương', description: 'Giao diện mang màu xanh của biển cả.', icon: 'water_drop', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.COMMON, price: 300, payload: { themeKey: 'ocean' }, sortOrder: 20 },
+  { code: 'THEME_HACKER', name: 'Theme Hacker', description: 'Giao diện terminal xanh đen phong cách hacker.', icon: 'terminal', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.RARE, price: 600, payload: { themeKey: 'hacker' }, sortOrder: 21 },
+  { code: 'THEME_SUNSET', name: 'Theme Hoàng hôn', description: 'Giao diện ấm áp với sắc cam chiều tà.', icon: 'wb_twilight', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.RARE, price: 500, payload: { themeKey: 'sunset' }, sortOrder: 22 },
+  { code: 'THEME_FOREST', name: 'Theme Rừng nhiệt đới', description: 'Giao diện xanh lá mát mẻ của thiên nhiên.', icon: 'forest', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.EPIC, price: 800, payload: { themeKey: 'forest' }, sortOrder: 23 },
+  { code: 'THEME_CYBERPUNK', name: 'Theme Cyberpunk', description: 'Giao diện neon neon tương lai.', icon: 'memory', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.EPIC, price: 1200, payload: { themeKey: 'cyberpunk' }, sortOrder: 24 },
+  { code: 'THEME_AURORA', name: 'Theme Cực quang', description: 'Giao diện gradient mờ ảo diệu kì.', icon: 'lens_blur', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.EPIC, price: 1100, payload: { themeKey: 'aurora' }, sortOrder: 25 },
+  { code: 'THEME_GALAXY', name: 'Theme Thiên hà', description: 'Giao diện không gian vũ trụ tối tăm.', icon: 'public', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.LEGENDARY, price: 2000, payload: { themeKey: 'galaxy' }, sortOrder: 26 },
+  { code: 'THEME_SNOW', name: 'Theme Mùa đông', description: 'Giao diện băng giá với bông tuyết rơi.', icon: 'ac_unit', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.COMMON, price: 400, payload: { themeKey: 'snow' }, sortOrder: 27 },
+  { code: 'THEME_SAKURA', name: 'Theme Hoa anh đào', description: 'Giao diện hồng phấn lãng mạn.', icon: 'local_florist', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.RARE, price: 700, payload: { themeKey: 'sakura' }, sortOrder: 28 },
+  { code: 'THEME_VOLCANO', name: 'Theme Núi lửa', description: 'Giao diện rực lửa và cuồng nhiệt.', icon: 'local_fire_department', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.EPIC, price: 1000, payload: { themeKey: 'volcano' }, sortOrder: 29 },
+  { code: 'THEME_PARTY', name: 'Theme Lễ hội', description: 'Giao diện sôi động với pháo hoa giấy.', icon: 'celebration', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.PROFILE_THEME, rarity: BadgeRarity.LEGENDARY, price: 1600, payload: { themeKey: 'party' }, sortOrder: 30 },
 
 
   // ── Titles ────────────────────────────────────────────────────────────────────
   { code: 'TITLE_RISING', name: 'Danh hiệu "Tân binh triển vọng"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.COMMON, price: 150, payload: { title: 'Tân binh triển vọng' }, sortOrder: 30 },
   { code: 'TITLE_CODER', name: 'Danh hiệu "Lập trình viên"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.RARE, price: 350, payload: { title: 'Lập trình viên' }, sortOrder: 31 },
-  { code: 'TITLE_LEGEND', name: 'Danh hiệu "Huyền thoại"', description: 'Danh hiệu dành cho bậc thầy.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.LEGENDARY, price: 900, payload: { title: 'Huyền thoại' }, sortOrder: 32 },
+  { code: 'TITLE_LEGEND', name: 'Danh hiệu "Huyền thoại"', description: 'Danh hiệu dành cho bậc thầy.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.LEGENDARY, price: 9000, payload: { title: 'Huyền thoại' }, sortOrder: 32 },
   { code: 'TITLE_NEWBIE', name: 'Danh hiệu "Tân thủ"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.COMMON, price: 100, payload: { title: 'Tân thủ' }, sortOrder: 33 },
   { code: 'TITLE_DILIGENT', name: 'Danh hiệu "Học viên chăm chỉ"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.COMMON, price: 150, payload: { title: 'Học viên chăm chỉ' }, sortOrder: 34 },
-  { code: 'TITLE_BUGHUNTER', name: 'Danh hiệu "Thợ săn Bug"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.RARE, price: 300, payload: { title: 'Thợ săn Bug' }, sortOrder: 35 },
-  { code: 'TITLE_SPEED', name: 'Danh hiệu "Vua Tốc Độ"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.RARE, price: 350, payload: { title: 'Vua Tốc Độ' }, sortOrder: 36 },
-  { code: 'TITLE_ALGO', name: 'Danh hiệu "Bậc thầy Giải thuật"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.EPIC, price: 600, payload: { title: 'Bậc thầy Giải thuật' }, sortOrder: 37 },
-  { code: 'TITLE_WARRIOR', name: 'Danh hiệu "Chiến Thần"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.EPIC, price: 650, payload: { title: 'Chiến Thần' }, sortOrder: 38 },
-  { code: 'TITLE_GENIUS', name: 'Danh hiệu "Thiên Tài"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.EPIC, price: 700, payload: { title: 'Thiên Tài' }, sortOrder: 39 },
-  { code: 'TITLE_DESTROYER', name: 'Danh hiệu "Kẻ Huỷ Diệt"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.EPIC, price: 720, payload: { title: 'Kẻ Huỷ Diệt' }, sortOrder: 40 },
-  { code: 'TITLE_GRANDMASTER', name: 'Danh hiệu "Đại Cao Thủ"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.LEGENDARY, price: 1100, payload: { title: 'Đại Cao Thủ' }, sortOrder: 41 },
-  { code: 'TITLE_CHAMPION', name: 'Danh hiệu "Nhà Vô Địch"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.LEGENDARY, price: 1200, payload: { title: 'Nhà Vô Địch' }, sortOrder: 42 },
-  { code: 'TITLE_EMPEROR', name: 'Danh hiệu "Hoàng Đế Code"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.LEGENDARY, price: 1400, payload: { title: 'Hoàng Đế Code' }, sortOrder: 43 },
-  { code: 'TITLE_MYTHIC', name: 'Danh hiệu "Truyền Kỳ"', description: 'Danh hiệu hiếm nhất hệ thống.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.LEGENDARY, price: 1800, payload: { title: 'Truyền Kỳ' }, sortOrder: 44 },
+  { code: 'TITLE_BUGHUNTER', name: 'Danh hiệu "Thợ săn Bug"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.RARE, price: 1000, payload: { title: 'Thợ săn Bug' }, sortOrder: 35 },
+  { code: 'TITLE_SPEED', name: 'Danh hiệu "Vua Tốc Độ"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.RARE, price: 3500, payload: { title: 'Vua Tốc Độ' }, sortOrder: 36 },
+  { code: 'TITLE_ALGO', name: 'Danh hiệu "Bậc thầy Giải thuật"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.EPIC, price: 6000, payload: { title: 'Bậc thầy Giải thuật' }, sortOrder: 37 },
+  { code: 'TITLE_WARRIOR', name: 'Danh hiệu "Chiến Thần"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.EPIC, price: 6500, payload: { title: 'Chiến Thần' }, sortOrder: 38 },
+  { code: 'TITLE_GENIUS', name: 'Danh hiệu "Thiên Tài"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.EPIC, price: 7000, payload: { title: 'Thiên Tài' }, sortOrder: 39 },
+  { code: 'TITLE_DESTROYER', name: 'Danh hiệu "Kẻ Huỷ Diệt"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.EPIC, price: 7200, payload: { title: 'Kẻ Huỷ Diệt' }, sortOrder: 40 },
+  { code: 'TITLE_GRANDMASTER', name: 'Danh hiệu "Đại Cao Thủ"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.LEGENDARY, price: 11000, payload: { title: 'Đại Cao Thủ' }, sortOrder: 41 },
+  { code: 'TITLE_CHAMPION', name: 'Danh hiệu "Nhà Vô Địch"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.LEGENDARY, price: 12000, payload: { title: 'Nhà Vô Địch' }, sortOrder: 42 },
+  { code: 'TITLE_EMPEROR', name: 'Danh hiệu "Hoàng Đế Code"', description: 'Hiển thị danh hiệu cạnh tên.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.LEGENDARY, price: 14000, payload: { title: 'Hoàng Đế Code' }, sortOrder: 43 },
+  { code: 'TITLE_MYTHIC', name: 'Danh hiệu "Truyền Kỳ"', description: 'Danh hiệu hiếm nhất hệ thống.', icon: 'badge', kind: ShopItemKind.COSMETIC, category: ShopItemCategory.TITLE, rarity: BadgeRarity.LEGENDARY, price: 18000, payload: { title: 'Truyền Kỳ' }, sortOrder: 44 },
 
   // ── Consumables ────────────────────────────────────────────────────────────────
   { code: 'XP_PACK_S', name: 'Gói XP nhỏ', description: 'Nhận ngay +100 XP.', icon: 'bolt', kind: ShopItemKind.CONSUMABLE, category: ShopItemCategory.CONSUMABLE, rarity: BadgeRarity.COMMON, price: 60, payload: { xp: 100 }, sortOrder: 40 },
   { code: 'XP_PACK_L', name: 'Gói XP lớn', description: 'Nhận ngay +500 XP.', icon: 'electric_bolt', kind: ShopItemKind.CONSUMABLE, category: ShopItemCategory.CONSUMABLE, rarity: BadgeRarity.RARE, price: 260, payload: { xp: 500 }, sortOrder: 41 },
-  { code: 'GEM_BOX', name: 'Hộp quà đá quý', description: 'Mở ra ngẫu nhiên 20–200 đá quý. Cầu may!', icon: 'card_giftcard', kind: ShopItemKind.CONSUMABLE, category: ShopItemCategory.CONSUMABLE, rarity: BadgeRarity.EPIC, price: 100, payload: { gemsMin: 20, gemsMax: 200 }, sortOrder: 42 },
+  { code: 'GEM_BOX', name: 'Hộp quà đá quý', description: 'Mở ra ngẫu nhiên 20–200 đá quý. Cầu may!', icon: 'card_giftcard', kind: ShopItemKind.CONSUMABLE, category: ShopItemCategory.CONSUMABLE, rarity: BadgeRarity.EPIC, price: 100, payload: { gemsMin: 20, gemsMax: 140 }, sortOrder: 42 },
 
   // ── Characters (avatars) ───────────────────────────────────────────────────────
   ...CHARACTER_ITEMS,
+
+  // ── Weekly reward avatars (hidden from general shop catalog) ─────────────────
+  {
+    code: 'CHAR_WEEKLY_CHAMPION',
+    name: 'Chiến thần Bảng tuần',
+    description: 'Avatar đặc quyền dành riêng cho nhà vô địch Bảng xếp hạng Tuần. Thời hạn sử dụng: 7 ngày.',
+    icon: 'military_tech',
+    imageUrl: '/character/male/15-divine.svg',
+    kind: ShopItemKind.COSMETIC,
+    category: ShopItemCategory.CHARACTER,
+    rarity: BadgeRarity.LEGENDARY,
+    price: 999999,
+    minLevel: 0,
+    payload: null,
+    sortOrder: 999,
+    isActive: true,
+  },
+  {
+    code: 'CHAR_WEEKLY_ELITE',
+    name: 'Cao thủ Bảng tuần',
+    description: 'Avatar đặc quyền dành riêng cho Top 2-3 Bảng xếp hạng Tuần. Thời hạn sử dụng: 7 ngày.',
+    icon: 'military_tech',
+    imageUrl: '/character/male/12-royal.svg',
+    kind: ShopItemKind.COSMETIC,
+    category: ShopItemCategory.CHARACTER,
+    rarity: BadgeRarity.EPIC,
+    price: 999999,
+    minLevel: 0,
+    payload: null,
+    sortOrder: 1000,
+    isActive: true,
+  },
+  {
+    code: 'CHAR_WEEKLY_CHALLENGER',
+    name: 'Đấu sĩ Bảng tuần',
+    description: 'Avatar đặc quyền dành cho Top 4-10 Bảng xếp hạng Tuần. Thời hạn sử dụng: 7 ngày.',
+    icon: 'military_tech',
+    imageUrl: '/character/male/6-platinum.svg',
+    kind: ShopItemKind.COSMETIC,
+    category: ShopItemCategory.CHARACTER,
+    rarity: BadgeRarity.RARE,
+    price: 999999,
+    minLevel: 0,
+    payload: null,
+    sortOrder: 1001,
+    isActive: true,
+  },
 ];
 
 async function run() {
@@ -153,7 +201,7 @@ async function run() {
           minLevel: it.minLevel ?? 0,
           payload: it.payload ?? null,
           sortOrder: it.sortOrder,
-          isActive: true,
+          isActive: it.isActive ?? true,
         },
       );
       continue;
@@ -172,7 +220,7 @@ async function run() {
         minLevel: it.minLevel ?? 0,
         payload: it.payload ?? null,
         sortOrder: it.sortOrder,
-        isActive: true,
+        isActive: it.isActive ?? true,
       }),
     );
     created += 1;
