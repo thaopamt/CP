@@ -46,7 +46,7 @@ export function PageHeader({
             <p className="text-body-md text-on-surface-variant mt-xs">{subtitle}</p>
           )}
         </div>
-        {actions && <div className="flex flex-wrap gap-sm shrink-0">{actions}</div>}
+        {actions && <div className="flex flex-wrap justify-end gap-sm">{actions}</div>}
       </div>
     </header>
   );
