@@ -2328,6 +2328,7 @@ const en = {
           tooltipChallenger: 'Rank {{rank}} Rewards: 200 XP, 100 Gems, and Challenger Avatar (7 days)',
           tooltipAriaLabel: 'View weekly reward details',
           tagHot: 'Hot',
+          note: 'Note: Any fraudulent behavior (using AI, copying code, etc.) will not be counted in the leaderboard and honor roll.',
         },
       },
       shop: {

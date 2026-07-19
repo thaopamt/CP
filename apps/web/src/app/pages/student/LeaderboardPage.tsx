@@ -187,8 +187,11 @@ export default function StudentLeaderboardPage() {
                       {t('gamif.student.leaderboard.rewardsInfo.tagHot')}
                     </span>
                   </h3>
-                  <p className="text-sm text-on-surface-variant mb-4">
+                  <p className="text-sm text-on-surface-variant mb-1">
                     {t('gamif.student.leaderboard.rewardsInfo.subtitle')}
+                  </p>
+                  <p className="text-xs text-error/90 dark:text-error-container font-medium mb-4 italic">
+                    {t('gamif.student.leaderboard.rewardsInfo.note')}
                   </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

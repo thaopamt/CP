@@ -2333,6 +2333,7 @@ const vi: AppResources = {
           tooltipChallenger: 'Phần thưởng Hạng {{rank}}: 200 XP, 100 Kim cương và Avatar Đấu sĩ (7 ngày)',
           tooltipAriaLabel: 'Xem chi tiết phần thưởng tuần',
           tagHot: 'Hot',
+          note: 'Lưu ý: Mọi hành vi gian lận (sử dụng AI, sao chép bài,...) sẽ không được tính vào bảng xếp hạng và bảng vinh danh.',
         },
       },
       shop: {
