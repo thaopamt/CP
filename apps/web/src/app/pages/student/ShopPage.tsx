@@ -13,6 +13,7 @@ import {
   useShopCatalog,
   useUnequipItem,
 } from '../../api/shop.queries';
+import { GemBoxModal } from '../../components/shop/GemBoxModal';
 
 type TFn = (key: string, opts?: Record<string, unknown>) => string;
 
@@ -70,6 +71,7 @@ export default function StudentShopPage() {
   const equip = useEquipItem();
   const unequip = useUnequipItem();
   const [cat, setCat] = useState<ShopItemCategory | 'all'>('all');
+  const [selectedGemBoxEntry, setSelectedGemBoxEntry] = useState<IShopCatalogEntry | null>(null);
 
   const gems = data?.gems ?? 0;
   const entries = useMemo(
@@ -80,6 +82,11 @@ export default function StudentShopPage() {
   const busy = purchase.isPending || equip.isPending || unequip.isPending;
 
   async function onBuy(entry: IShopCatalogEntry) {
+    if (entry.item.code === 'GEM_BOX') {
+      setSelectedGemBoxEntry(entry);
+      return;
+    }
+
     const ok = await confirm({
       title: t('gamif.student.shop.confirmTitle'),
       message: t('gamif.student.shop.confirmBody', { name: entry.item.name, price: entry.item.price }),
@@ -172,6 +179,14 @@ export default function StudentShopPage() {
           ))}
         </div>
       )}
+
+      <GemBoxModal
+        isOpen={!!selectedGemBoxEntry}
+        onClose={() => setSelectedGemBoxEntry(null)}
+        entry={selectedGemBoxEntry}
+        userGems={gems}
+        onOpenBox={(itemId) => purchase.mutateAsync(itemId)}
+      />
     </div>
   );
 }

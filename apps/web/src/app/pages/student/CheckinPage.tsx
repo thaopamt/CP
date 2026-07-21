@@ -5,6 +5,8 @@ import { useCheckinStatus, useCheckIn, useMakeup, useWheelSpin, useCheckinLeader
 import { buildBoardWeeks, streakBonusGems, nextStreakMilestone, monthProgress } from '../../lib/checkin-board';
 import type { ICheckinBoardCell, ICheckinWheelResult, ICheckinLeaderboardRow } from '@cp/shared';
 
+import { LuckyWheelModal } from '../../components/checkin/LuckyWheelModal';
+
 const CELL_CLASS: Record<ICheckinBoardCell['status'], string> = {
   checked: 'bg-primary text-on-primary',
   today: 'bg-tertiary-container text-on-tertiary-container ring-2 ring-primary',
@@ -22,6 +24,7 @@ export default function CheckinPage() {
   const spin = useWheelSpin();
   const { data: leaderboard, isLoading: leaderboardLoading } = useCheckinLeaderboard(20);
   const [wheelResult, setWheelResult] = useState<ICheckinWheelResult | null>(null);
+  const [isWheelModalOpen, setIsWheelModalOpen] = useState(false);
 
   if (isLoading || !status) {
     return <div className="p-lg text-on-surface-variant">…</div>;
@@ -156,23 +159,34 @@ export default function CheckinPage() {
           <Icon name="casino" size={20} className="text-primary" />
           {t('checkin.wheelTitle')}
         </h2>
-        <div className="flex items-center gap-md">
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            disabled={status.pendingWheelSpins < 1 || spin.isPending}
-            onClick={() => spin.mutate(undefined, { onSuccess: (result) => setWheelResult(result) })}
-            className="px-lg py-3 rounded-full bg-tertiary text-on-tertiary font-bold disabled:opacity-50"
+            onClick={() => setIsWheelModalOpen(true)}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white text-label-md font-bold shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
           >
-            {t('checkin.spinCta')} ({status.pendingWheelSpins})
+            <Icon name="casino" size={18} />
+            <span>Vòng quay may mắn</span>
+            <span className="bg-white/25 px-2 py-0.5 rounded-full text-xs font-black drop-shadow-sm">
+              {status.pendingWheelSpins}
+            </span>
           </button>
           {status.pendingWheelSpins < 1 && (
-            <span className="text-on-surface-variant text-label-md">{t('checkin.noSpins')}</span>
+            <span className="text-on-surface-variant text-label-sm">{t('checkin.noSpins')}</span>
           )}
         </div>
-        {wheelResult && (
-          <p className="text-label-md font-semibold text-on-surface">{wheelPrizeText(t, wheelResult)}</p>
-        )}
       </section>
+
+      <LuckyWheelModal
+        isOpen={isWheelModalOpen}
+        onClose={() => setIsWheelModalOpen(false)}
+        spinsCount={status.pendingWheelSpins}
+        onSpin={async () => {
+          const res = await spin.mutateAsync();
+          setWheelResult(res);
+          return res;
+        }}
+      />
 
       <section className="rounded-3xl bg-surface-container-low p-md flex flex-col gap-sm">
         <h2 className="text-title-md font-bold text-on-surface flex items-center gap-2">
