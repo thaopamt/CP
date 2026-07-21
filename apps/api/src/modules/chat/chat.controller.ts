@@ -76,7 +76,18 @@ export class ChatController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SendMessageDto,
   ) {
-    return this.chat.sendMessage(id, user.sub, user.role, dto.content, dto.type, dto.imageUrl);
+    return this.chat.sendMessage(
+      id,
+      user.sub,
+      user.role,
+      dto.content,
+      dto.type,
+      dto.imageUrl,
+      dto.contextType,
+      dto.contextId,
+      dto.contextTitle,
+      dto.contextMeta,
+    );
   }
 
   /** Mark messages as read. */

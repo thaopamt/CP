@@ -11,6 +11,8 @@ import {
 } from '../../api/chat.queries';
 import { useChatSocket } from '../../hooks/useChatSocket';
 import { chatApi } from '../../api/chat.api';
+import { parseReportMessage } from '../../lib/chat-report-helper';
+import { usePortalBase } from '../../hooks/usePortalBase';
 
 /* ────────────────────────────────────────────────────────────────────── */
 /*  Teacher / Admin — Full-page Chat                                     */
@@ -26,7 +28,7 @@ export default function ChatPage() {
   }>();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const portalBase = user?.role === UserRole.ADMIN ? '/admin' : '/teacher';
+  const portalBase = usePortalBase();
 
   const [activeConvId, setActiveConvId] = useState<string | null>(
     paramConvId ?? null,
@@ -265,9 +267,17 @@ export default function ChatPage() {
                       <span className="text-body-md font-semibold truncate">
                         {c.studentName}
                       </span>
-                      <span className="text-label-sm text-on-surface-variant shrink-0 ml-xs">
-                        {formatTime(c.lastMessageAt)}
-                      </span>
+                      <div className="flex items-center gap-1 shrink-0 ml-xs">
+                        {c.lastMessage?.includes('[📎') && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                            <span className="material-symbols-outlined text-[11px]">report_problem</span>
+                            Report
+                          </span>
+                        )}
+                        <span className="text-label-sm text-on-surface-variant">
+                          {formatTime(c.lastMessageAt)}
+                        </span>
+                      </div>
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
                       <span className="text-body-sm text-on-surface-variant truncate">
@@ -352,6 +362,7 @@ export default function ChatPage() {
                   i === 0 ||
                   new Date(msg.createdAt).toDateString() !==
                     new Date(allMessages[i - 1].createdAt).toDateString();
+                const reportInfo = parseReportMessage(msg);
 
                 return (
                   <div key={msg.id}>
@@ -390,9 +401,11 @@ export default function ChatPage() {
                         className={`max-w-[70%] px-sm py-xs rounded-2xl text-body-sm break-words ${
                           msg.type === 'warning'
                             ? 'bg-error text-on-error rounded-br-md ring-2 ring-error/30'
-                            : isStudent
-                              ? 'bg-surface-container-highest text-on-surface rounded-bl-md'
-                              : 'bg-primary text-on-primary rounded-br-md'
+                            : reportInfo.isReport
+                              ? 'bg-amber-950/30 text-on-surface border border-amber-500/40 rounded-bl-md ring-1 ring-amber-500/20'
+                              : isStudent
+                                ? 'bg-surface-container-highest text-on-surface rounded-bl-md'
+                                : 'bg-primary text-on-primary rounded-br-md'
                         }`}
                       >
                         {/* Warning badge */}
@@ -400,6 +413,46 @@ export default function ChatPage() {
                           <div className="flex items-center gap-1 text-[10px] font-bold mb-1 opacity-90">
                             <span className="material-symbols-outlined text-[12px]">warning</span>
                             {t('chat.warningBadge')}
+                          </div>
+                        )}
+                        {/* Report Card Banner */}
+                        {reportInfo.isReport && (
+                          <div className="mb-2 p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200">
+                            <div className="flex items-center justify-between text-[11px] font-bold text-amber-400 mb-1">
+                              <span className="flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[14px]">report_problem</span>
+                                Báo cáo / Thắc mắc bài tập
+                              </span>
+                            </div>
+                            
+                            {/* Clickable Assignment Button */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (reportInfo.id) {
+                                  navigate(`${portalBase}/assignments/${reportInfo.id}`);
+                                } else {
+                                  navigate(`${portalBase}/assignments`);
+                                }
+                              }}
+                              className="flex items-center justify-between gap-2 w-full text-left bg-surface-container-high/90 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg px-2.5 py-1.5 transition-all group cursor-pointer"
+                              title="Click để mở chi tiết bài tập này"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="material-symbols-outlined text-[18px] text-amber-400">assignment</span>
+                                <div className="truncate">
+                                  <p className="text-xs font-semibold text-on-surface group-hover:text-amber-300 transition-colors truncate">
+                                    {reportInfo.title}
+                                  </p>
+                                  {reportInfo.meta && (
+                                    <span className="text-[10px] text-on-surface-variant">{reportInfo.meta}</span>
+                                  )}
+                                </div>
+                              </div>
+                              <span className="material-symbols-outlined text-[16px] text-amber-400 group-hover:translate-x-0.5 transition-transform shrink-0">
+                                open_in_new
+                              </span>
+                            </button>
                           </div>
                         )}
                         {/* Show staff sender name if not the current user */}
@@ -417,7 +470,7 @@ export default function ChatPage() {
                             onClick={() => window.open(msg.imageUrl!, '_blank')}
                           />
                         )}
-                        {msg.content}
+                        {reportInfo.cleanContent}
                         <div
                           className={`flex items-center gap-1 mt-0.5 ${
                             isStudent ? 'justify-start' : 'justify-end'

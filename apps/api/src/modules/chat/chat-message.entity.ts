@@ -37,6 +37,18 @@ export class ChatMessage extends BaseEntity {
   @Column({ type: 'text', name: 'image_url', nullable: true })
   imageUrl!: string | null;
 
+  @Column({ type: 'varchar', length: 50, name: 'context_type', nullable: true })
+  contextType!: string | null;
+
+  @Column({ type: 'varchar', length: 100, name: 'context_id', nullable: true })
+  contextId!: string | null;
+
+  @Column({ type: 'text', name: 'context_title', nullable: true })
+  contextTitle!: string | null;
+
+  @Column({ type: 'text', name: 'context_meta', nullable: true })
+  contextMeta!: string | null;
+
   @Column({ type: 'timestamptz', name: 'read_at', nullable: true })
   readAt!: Date | null;
 }

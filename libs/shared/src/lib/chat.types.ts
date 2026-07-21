@@ -7,7 +7,7 @@ import { UserRole } from './user-role.enum';
 /*  can view and reply to any student thread.                            */
 /* ────────────────────────────────────────────────────────────────────── */
 
-export type ChatMessageType = 'normal' | 'warning';
+export type ChatMessageType = 'normal' | 'warning' | 'report';
 
 /** Wire-format conversation (returned from REST & pushed via socket). */
 export interface IChatConversation {
@@ -31,10 +31,15 @@ export interface IChatMessage {
   senderRole: UserRole;
   senderAvatarUrl: string | null;
   content: string;
-  /** 'normal' (default) or 'warning' (shows full-screen alert to student) */
+  /** 'normal' (default), 'warning' (shows full-screen alert to student), or 'report' (assignment report/Q&A) */
   type: ChatMessageType;
   /** Optional image URL (for warnings with images) */
   imageUrl: string | null;
+  /** Optional structured context (e.g. for assignment reports/Q&A) */
+  contextType?: string | null;
+  contextId?: string | null;
+  contextTitle?: string | null;
+  contextMeta?: string | null;
   readAt: string | null;
   createdAt: string;
 }
@@ -43,10 +48,15 @@ export interface IChatMessage {
 export interface SendMessagePayload {
   conversationId: string;
   content: string;
-  /** Optional: 'warning' to trigger a full-screen alert for the student */
+  /** Optional: 'warning' or 'report' */
   type?: ChatMessageType;
   /** Optional: image URL attached to the message */
   imageUrl?: string;
+  /** Optional structured context */
+  contextType?: string;
+  contextId?: string;
+  contextTitle?: string;
+  contextMeta?: string;
 }
 
 /** Paginated messages response. */

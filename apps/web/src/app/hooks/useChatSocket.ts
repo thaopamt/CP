@@ -121,14 +121,33 @@ export function useChatSocket() {
   }, [accessToken, qc]);
 
   const sendMessage = useCallback(
-    (conversationId: string, content: string, type?: string, imageUrl?: string) => {
-      socketRef.current?.emit('send_message', { conversationId, content, type, imageUrl });
+    (
+      conversationId: string,
+      content: string,
+      type?: string,
+      imageUrl?: string,
+      contextType?: string,
+      contextId?: string,
+      contextTitle?: string,
+      contextMeta?: string,
+    ) => {
+      socketRef.current?.emit('send_message', {
+        conversationId,
+        content,
+        type,
+        imageUrl,
+        contextType,
+        contextId,
+        contextTitle,
+        contextMeta,
+      });
     },
     [],
   );
 
   const markRead = useCallback((conversationId: string) => {
     socketRef.current?.emit('mark_read', { conversationId });
+    setTotalUnread(0);
   }, []);
 
   const lastTypingRef = useRef<number>(0);

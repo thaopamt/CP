@@ -19,10 +19,26 @@ export class SendMessageDto {
   content!: string;
 
   @IsOptional()
-  @IsIn(['normal', 'warning'])
+  @IsIn(['normal', 'warning', 'report'])
   type?: ChatMessageType;
 
   @IsOptional()
   @IsString()
   imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  contextType?: string;
+
+  @IsOptional()
+  @IsString()
+  contextId?: string;
+
+  @IsOptional()
+  @IsString()
+  contextTitle?: string;
+
+  @IsOptional()
+  @IsString()
+  contextMeta?: string;
 }

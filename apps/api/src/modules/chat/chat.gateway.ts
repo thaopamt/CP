@@ -73,14 +73,24 @@ export class ChatGateway
 
   @SubscribeMessage('send_message')
   async handleSendMessage(
-    @MessageBody() data: { conversationId: string; content: string; type?: string; imageUrl?: string },
+    @MessageBody()
+    data: {
+      conversationId: string;
+      content: string;
+      type?: string;
+      imageUrl?: string;
+      contextType?: string;
+      contextId?: string;
+      contextTitle?: string;
+      contextMeta?: string;
+    },
     @ConnectedSocket() client: Socket,
   ) {
     const payload = this.socketPayload.get(client.id);
     if (!payload || !data?.conversationId || !data?.content?.trim()) return;
 
     // 1. Save message (this already validates participation)
-    const msgType = data.type === 'warning' ? 'warning' : 'normal';
+    const msgType = data.type === 'warning' ? 'warning' : data.type === 'report' ? 'report' : 'normal';
     const message = await this.chat.sendMessage(
       data.conversationId,
       payload.sub,
@@ -88,6 +98,10 @@ export class ChatGateway
       data.content.trim(),
       msgType as any,
       data.imageUrl,
+      data.contextType,
+      data.contextId,
+      data.contextTitle,
+      data.contextMeta,
     );
 
     // 2. Fast lookup to find the student (single PK query)
@@ -135,6 +149,14 @@ export class ChatGateway
         conversationId: data.conversationId,
         readBy: payload.sub,
       });
+      this.chat
+        .getTotalUnread(payload.sub, UserRole.STUDENT)
+        .then((totalUnread) => {
+          this.server
+            .to(`student_${payload.sub}`)
+            .emit('unread_update', { totalUnread });
+        })
+        .catch(() => { /* ignore */ });
     } else {
       // Fast lookup instead of getConversations()
       const conv = await this.chat.findConversationById(data.conversationId);

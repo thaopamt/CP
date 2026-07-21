@@ -12,6 +12,7 @@ import {
 } from '../api/chat.queries';
 import { useChatSocket } from '../hooks/useChatSocket';
 import { chatApi } from '../api/chat.api';
+import { parseReportMessage } from '../lib/chat-report-helper';
 
 /* ────────────────────────────────────────────────────────────────────── */
 /*  Student Floating Chat Widget                                         */
@@ -117,13 +118,13 @@ export function ChatWidget() {
     }
   }, [allMessages, page, isOpen]);
 
-  // Mark as read when widget opens
+  // Mark as read when widget opens or conversation loads
   useEffect(() => {
-    if (isOpen && activeConvId && activeConv && activeConv.unreadCount > 0) {
+    if (isOpen && activeConvId) {
       wsMarkRead(activeConvId);
       markRead.mutate(activeConvId);
     }
-  }, [isOpen, activeConvId]);
+  }, [isOpen, activeConvId, activeConv]);
 
   // Listen for real-time messages
   useEffect(() => {
@@ -166,12 +167,12 @@ export function ChatWidget() {
   // Send message — optimistic UI, with optional context
   const handleSend = () => {
     if (!msgInput.trim() || !activeConvId) return;
-    let content = msgInput.trim();
+    const content = msgInput.trim();
+    const ctx = pendingContext;
+    const isReport = !!ctx;
+    const msgType = isReport ? 'report' : 'normal';
 
-    // Prepend context tag if present
     if (pendingContext) {
-      const tag = `[📎 ${pendingContext.type === 'assignment' ? t('chat.contextAssignment') : pendingContext.type}: ${pendingContext.title}]`;
-      content = `${tag}\n${content}`;
       clearContext();
     }
 
@@ -184,15 +185,28 @@ export function ChatWidget() {
       senderRole: UserRole.STUDENT,
       senderAvatarUrl: null,
       content,
-      type: 'normal',
+      type: msgType,
       imageUrl: null,
+      contextType: ctx?.type ?? null,
+      contextId: ctx?.id ?? null,
+      contextTitle: ctx?.title ?? null,
+      contextMeta: ctx?.meta ?? null,
       readAt: null,
       createdAt: new Date().toISOString(),
     };
     setAllMessages((prev) => [...prev, optimisticMsg]);
 
     // Send via socket
-    wsSend(activeConvId, content);
+    wsSend(
+      activeConvId,
+      content,
+      msgType,
+      undefined,
+      ctx?.type,
+      ctx?.id,
+      ctx?.title,
+      ctx?.meta,
+    );
     setMsgInput('');
   };
 
@@ -304,6 +318,7 @@ export function ChatWidget() {
                     i === 0 ||
                     new Date(msg.createdAt).toDateString() !==
                       new Date(allMessages[i - 1].createdAt).toDateString();
+                  const reportInfo = parseReportMessage(msg);
 
                   return (
                     <div key={msg.id}>
@@ -335,9 +350,11 @@ export function ChatWidget() {
                           className={`max-w-[75%] px-sm py-1.5 rounded-2xl text-[13px] leading-snug break-words ${
                             msg.type === 'warning'
                               ? 'bg-error text-on-error rounded-bl-md ring-1 ring-error/30'
-                              : isMine
-                                ? 'bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-br-md'
-                                : 'bg-surface-container-highest text-on-surface rounded-bl-md'
+                              : reportInfo.isReport
+                                ? 'bg-amber-950/40 text-on-surface border border-amber-500/40 rounded-br-md'
+                                : isMine
+                                  ? 'bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-br-md'
+                                  : 'bg-surface-container-highest text-on-surface rounded-bl-md'
                           }`}
                         >
                           {/* Warning badge */}
@@ -345,6 +362,21 @@ export function ChatWidget() {
                             <div className="flex items-center gap-1 text-[10px] font-bold mb-0.5 opacity-90">
                               <span className="material-symbols-outlined text-[11px]">warning</span>
                               {t('chat.warningBadge')}
+                            </div>
+                          )}
+                          {/* Report context badge */}
+                          {reportInfo.isReport && (
+                            <div className="mb-1.5 p-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200">
+                              <div className="flex items-center gap-1 text-[10px] font-bold text-amber-400 mb-0.5">
+                                <span className="material-symbols-outlined text-[12px]">report_problem</span>
+                                Báo cáo / Thắc mắc bài tập
+                              </div>
+                              <div className="text-[11px] font-semibold text-white truncate">
+                                {reportInfo.title}
+                              </div>
+                              {reportInfo.meta && (
+                                <div className="text-[9px] text-amber-300/80">{reportInfo.meta}</div>
+                              )}
                             </div>
                           )}
                           {/* Attached image */}
@@ -356,7 +388,7 @@ export function ChatWidget() {
                               onClick={() => window.open(msg.imageUrl!, '_blank')}
                             />
                           )}
-                          {msg.content}
+                          {reportInfo.cleanContent}
                           <div
                             className={`flex items-center gap-0.5 mt-0.5 ${
                               isMine ? 'justify-end' : 'justify-start'
